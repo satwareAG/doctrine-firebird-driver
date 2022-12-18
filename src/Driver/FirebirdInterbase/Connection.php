@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Doctrine\DBAL\Driver\Connection as ConnectionInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 
@@ -60,7 +61,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      * Isolation level used when a transaction is started.
      * @var int
      */
-    protected $attrDcTransIsolationLevel = \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED;
+    protected $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
 
     /**
      * Wait timeout used in transactions
@@ -267,16 +268,16 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     {
         $result = "";
         switch ($isolationLevel) {
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED:
+            case TransactionIsolationLevel::READ_UNCOMMITTED:
+                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION';
+                break;
+            case TransactionIsolationLevel::READ_COMMITTED:
                 $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION';
                 break;
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED:
-                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION';
-                break;
-            case \Doctrine\DBAL\Connection::TRANSACTION_REPEATABLE_READ:
+            case TransactionIsolationLevel::REPEATABLE_READ:
                 $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT';
                 break;
-            case \Doctrine\DBAL\Connection::TRANSACTION_SERIALIZABLE:
+            case TransactionIsolationLevel::SERIALIZABLE:
                 $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY';
                 break;
             default:

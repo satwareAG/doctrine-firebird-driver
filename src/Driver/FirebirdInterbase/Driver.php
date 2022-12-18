@@ -1,7 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception as DBALException;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 
 class Driver extends AbstractFirebirdInterbaseDriver
