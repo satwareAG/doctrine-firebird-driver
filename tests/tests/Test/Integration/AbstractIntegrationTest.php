@@ -4,28 +4,32 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\ORMSetup;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 
-abstract class AbstractIntegrationTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractIntegrationTest extends TestCase
 {
-    const DEFAULT_DATABASE_FILE_PATH = '/var/lib/firebird/2.5/data/music_library.fdb';
+    const DEFAULT_DATABASE_FILE_PATH = '/databases/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
-    const DEFAULT_DATABASE_PASSWORD = '88fb9f307125cc397f70e59c749715e1';
+    const DEFAULT_DATABASE_PASSWORD = 'masterkey';
 
     protected $_entityManager;
     protected $_platform;
 
-    public function setUp()
+    public function setUp(): void
     {
-        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         static::installFirebirdDatabase($configurationArray);
+        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
         $this->_platform = new FirebirdInterbasePlatform;
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         if ($this->_entityManager) {
             $this->_entityManager->getConnection()->close();
@@ -48,8 +52,18 @@ abstract class AbstractIntegrationTest extends \PHPUnit_Framework_TestCase
 
     protected static function installFirebirdDatabase(array $configurationArray)
     {
-        if (file_exists($configurationArray['dbname'])) {
-            unlink($configurationArray['dbname']); // Don't do this outside tests
+        $output = $result = '';
+        if (file_exists(ROOT_PATH . '/tests/databases/music_library.fdb')) {
+            $cmd = sprintf(
+                "gfix -user SYSDBA -password masterkey -shut -force 0 firebird:/databases/music_library.fdb 2>&1",
+            );
+            $ret = exec($cmd, $output, $result);
+            $cmd = sprintf(
+                "isql-fb -u SYSDBA -p masterkey -input %s 2>&1",
+                escapeshellarg(ROOT_PATH . "/tests/resources/database_drop.sql")
+            );
+
+            $ret = exec($cmd, $output, $result);
         }
 
         $cmd = sprintf(
@@ -58,11 +72,9 @@ abstract class AbstractIntegrationTest extends \PHPUnit_Framework_TestCase
         );
         exec($cmd);
 
-        chmod($configurationArray['dbname'], 0777);
-
         $cmd = sprintf(
             "isql-fb %s -input %s -password %s -user %s",
-            escapeshellarg($configurationArray['dbname']),
+            escapeshellarg($configurationArray['host'] . ':'. $configurationArray['dbname']),
             escapeshellarg(ROOT_PATH . "/tests/resources/database_setup.sql"),
             escapeshellarg($configurationArray['password']),
             escapeshellarg($configurationArray['user'])
@@ -91,11 +103,14 @@ abstract class AbstractIntegrationTest extends \PHPUnit_Framework_TestCase
     /**
      * @return Configuration
      */
-    protected static function getSetUpDoctrineConfiguration()
+    protected static function getSetUpDoctrineConfiguration(): Configuration
     {
-        $cache = new \Doctrine\Common\Cache\ArrayCache;
+
         $doctrineConfiguration = new Configuration;
-        $driverImpl = $doctrineConfiguration->newDefaultAnnotationDriver([ROOT_PATH . '/tests/resources/Test/Entity'], false);
+        $cache = new ArrayAdapter();
+        $config = new \Doctrine\ORM\Configuration();
+        $config->setMetadataCache($cache);
+        $driverImpl = ORMSetup::createDefaultAnnotationDriver([ROOT_PATH . '/tests/resources/Test/Entity'], $cache);
         $doctrineConfiguration->setMetadataDriverImpl($driverImpl);
         $doctrineConfiguration->setProxyDir(ROOT_PATH . '/var/doctrine-proxies');
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
@@ -109,7 +124,7 @@ abstract class AbstractIntegrationTest extends \PHPUnit_Framework_TestCase
     protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
     {
         return [
-            'host' => 'localhost',
+            'host' => 'firebird',
             'dbname' => static::DEFAULT_DATABASE_FILE_PATH,
             'user' => static::DEFAULT_DATABASE_USERNAME,
             'password' => static::DEFAULT_DATABASE_PASSWORD,

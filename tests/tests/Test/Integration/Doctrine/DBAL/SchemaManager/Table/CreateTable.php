@@ -4,9 +4,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\SchemaMan
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
-/**
- * @runTestsInSeparateProcesses
- */
+
 class CreateTest extends AbstractIntegrationTest
 {
     public function testCreateTable()

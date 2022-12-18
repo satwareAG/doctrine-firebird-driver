@@ -15,7 +15,7 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertNull($album->getId());
         $this->_entityManager->persist($album);
         $this->_entityManager->flush($album);
-        $this->assertInternalType('int', $album->getId());
+        $this->assertIsInt($album->getId());
         $this->assertSame("Communion", $album->getName());
     }
 
@@ -35,6 +35,6 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertSame($album, $albumFound);
         $this->assertInstanceOf(Entity\Artist::class, $album->getArtist());
         $this->assertSame($artist, $albumFound->getArtist());
-        $this->assertInternalType('int', $albumFound->getArtist()->getId());
+        $this->assertIsInt($albumFound->getArtist()->getId());
     }
 }

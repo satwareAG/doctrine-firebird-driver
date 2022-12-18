@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+  firebird:
+    container_name: firebird-doctrine-firebird-driver
+    image: "jacobalberty/firebird:2.5-sc"
+    environment:
+      - ISC_PASSWORD=masterkey
+      - TC=Europe/Berlin
+    volumes:
+      - ./databases:/databases
+  app:
+    environment:
+      PHP_IDE_CONFIG: "serverName=phpconsole"
+    user: application
+    working_dir: /app
+    container_name: app-doctrine-firebird-driver
+    build:
+      dockerfile: app/Dockerfile
+    volumes:
+      - ../.:/app
+    depends_on:
+      - firebird
+    tmpfs:
+      - /tmp:mode=1777
+
+

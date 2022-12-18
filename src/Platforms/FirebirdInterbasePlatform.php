@@ -346,7 +346,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     protected function doModifyLimitQuery($query, $limit, $offset)
     {
-        if ($limit === NULL && $offset === NULL)
+        if ((int)$limit === 0 && (int)$offset === 0)
             return $query; // No limitation specified - change nothing
 
         if ($offset === NULL) {

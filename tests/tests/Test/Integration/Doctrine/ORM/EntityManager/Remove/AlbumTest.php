@@ -14,10 +14,10 @@ class AlbumTest extends AbstractIntegrationTest
         $album = new Entity\Album("Some album " . __FUNCTION__);
         $this->_entityManager->persist($album);
         $this->_entityManager->flush($album);
-        $this->assertInternalType('int', $album->getId());
+        $this->assertIsInt($album->getId());
         $id = $album->getId();
         $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
-        $this->assertInternalType('int', $album->getId());
+        $this->assertIsInt($album->getId());
         $this->assertInstanceOf(Entity\Album::class, $album);
         $this->_entityManager->remove($album);
         $this->_entityManager->flush($album);
@@ -31,11 +31,11 @@ class AlbumTest extends AbstractIntegrationTest
         $subclass = new Entity\Cases\CascadingRemove\Subclass;
         $this->_entityManager->persist($subclass);
         $this->_entityManager->flush($subclass);
-        $this->assertInternalType('int', $subclass->getId());
+        $this->assertIsInt($subclass->getId());
         $cascadingRemove = new Entity\Cases\CascadingRemove($subclass);
         $this->_entityManager->persist($cascadingRemove);
         $this->_entityManager->flush($cascadingRemove);
-        $this->assertInternalType('int', $cascadingRemove->getId());
+        $this->assertIsInt($cascadingRemove->getId());
         $cascadingRemoveId = $cascadingRemove->getId();
         $subclassId = $cascadingRemove->getSubclass()->getId();
         $this->_entityManager->remove($cascadingRemove);

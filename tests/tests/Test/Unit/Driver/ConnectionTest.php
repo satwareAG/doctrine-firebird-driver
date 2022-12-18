@@ -2,8 +2,10 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Driver;
 
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
+use PHPUnit\Framework\Test;
+use PHPUnit\Framework\TestCase;
 
-class ConnectionTest extends \PHPUnit_Framework_TestCase
+class ConnectionTest extends TestCase
 {
     public function testQuote()
     {

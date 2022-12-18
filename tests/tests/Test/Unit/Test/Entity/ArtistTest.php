@@ -3,8 +3,9 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Test\Resource\Entity;
 
 use Doctrine\Common\Collections\Collection;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
+use PHPUnit\Framework\TestCase;
 
-class ArtistTest extends \PHPUnit_Framework_TestCase
+class ArtistTest extends TestCase
 {
     public function testBasics()
     {

@@ -43,7 +43,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTest
         $result = $connection->query($sql);
         $this->assertInstanceOf(Statement::class, $result);
         $row = $result->fetch();
-        $this->assertInternalType('array', $row);
+        $this->assertIsArray($row);
         $this->assertArrayHasKey('RDB$FIELD_TYPE', $row);
         $this->assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], "Invalid field type.");
 
@@ -170,7 +170,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTest
         $result = $connection->query($sql);
         $this->assertInstanceOf(Statement::class, $result);
         $rows = $result->fetchAll();
-        $this->assertInternalType('array', $rows);
+        $this->assertIsArray($rows);
         $this->assertCount(count($columns), $rows, 'Row count does not match column count');
 
         $columnsIndexed = [];

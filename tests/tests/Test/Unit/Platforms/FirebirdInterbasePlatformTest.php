@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
+use Doctrine\DBAL\DBALException;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 
@@ -11,7 +12,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 {
     public function testGetName()
     {
-        $this->assertInternalType("string", $this->_platform->getName());
+        $this->assertIsString($this->_platform->getName());
         $this->assertSame("FirebirdInterbase", $this->_platform->getName());
     }
 
@@ -21,22 +22,20 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetMaxIdentifierLength()
     {
-        $this->assertInternalType("int", $this->_platform->getMaxIdentifierLength());
+        $this->assertIsInt($this->_platform->getMaxIdentifierLength());
         $this->assertSame(31, $this->_platform->getMaxIdentifierLength());
     }
 
     public function testGetMaxConstraintIdentifierLength()
     {
-        $this->assertInternalType("int", $this->_platform->getMaxConstraintIdentifierLength());
+        $this->assertIsInt($this->_platform->getMaxConstraintIdentifierLength());
         $this->assertSame(27, $this->_platform->getMaxConstraintIdentifierLength());
     }
 
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage Operation 'Identifier kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk is too long for firebird platform. Maximum identifier length is 31' is not supported by platform
-     */
     public function testCheckIdentifierLengthThrowsExceptionWhenArgumentNameIsTooLong()
     {
+        $this->expectExceptionMessage("Operation 'Identifier kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk is too long for firebird platform. Maximum identifier length is 31' is not supported by platform");
+        $this->expectException(DBALException::class);
         $this->_platform->checkIdentifierLength(str_repeat("k", 32), null);
     }
 
@@ -46,7 +45,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('quoteSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("'foo'", $found);
     }
 
@@ -71,13 +70,13 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetInvalidForeignKeyReferentialActionSQLThrowsException()
     {
-        $this->setExpectedException('InvalidArgumentException');
+        $this->expectException('InvalidArgumentException');
         $this->_platform->getForeignKeyReferentialActionSQL('unknown');
     }
 
     public function testGetUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->setExpectedException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\DBALException');
         $this->_platform->getDoctrineTypeMapping('foobar');
     }
 
@@ -89,14 +88,14 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testRegisterUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->setExpectedException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\DBALException');
         $this->_platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
     public function testCreateWithNoColumnsThrowsException()
     {
         $table = new \Doctrine\DBAL\Schema\Table('test');
-        $this->setExpectedException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\DBALException');
         $this->_platform->getCreateTableSQL($table);
     }
 
@@ -121,112 +120,112 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('generatePrimaryKeyConstraintName');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'id');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("id_PK", $found);
     }
 
     public function testSupportsForeignKeyConstraints()
     {
         $found = $this->_platform->supportsForeignKeyConstraints();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testSupportsSequences()
     {
         $found = $this->_platform->supportsSequences();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testUsesSequenceEmulatedIdentityColumns()
     {
         $found = $this->_platform->usesSequenceEmulatedIdentityColumns();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testGetIdentitySequenceName()
     {
         $found = $this->_platform->getIdentitySequenceName('foo', 'bar');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("foo_D2IS", $found);
     }
 
     public function testGetIdentitySequenceTriggerName()
     {
         $found = $this->_platform->getIdentitySequenceTriggerName('foo', 'bar');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("foo_D2IT", $found);
     }
 
     public function testSupportsViews()
     {
         $found = $this->_platform->supportsViews();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testSupportsSchemas()
     {
         $found = $this->_platform->supportsSchemas();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertFalse($found);
     }
 
     public function testSupportsIdentityColumns()
     {
         $found = $this->_platform->supportsIdentityColumns();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertFalse($found);
     }
 
     public function testSupportsInlineColumnComments()
     {
         $found = $this->_platform->supportsInlineColumnComments();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertFalse($found);
     }
 
     public function testSupportsCommentOnStatement()
     {
         $found = $this->_platform->supportsCommentOnStatement();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testSupportsCreateDropDatabase()
     {
         $found = $this->_platform->supportsCreateDropDatabase();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertFalse($found);
     }
 
     public function testSupportsSavepoints()
     {
         $found = $this->_platform->supportsSavepoints();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testSupportsLimitOffset()
     {
         $found = $this->_platform->supportsLimitOffset();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testPrefersSequences()
     {
         $found = $this->_platform->prefersSequences();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertTrue($found);
     }
 
     public function testPrefersIdentityColumns()
     {
         $found = $this->_platform->prefersIdentityColumns();
-        $this->assertInternalType("bool", $found);
+        $this->assertIsBool($found);
         $this->assertFalse($found);
     }
 
@@ -239,7 +238,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('doModifyLimitQuery');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $query, $limit, $offset);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -256,13 +255,13 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetListTablesSQL()
     {
         $found = $this->_platform->getListTablesSQL();
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
     }
 
     public function testGetListViewsSQL()
     {
         $found = $this->_platform->getListViewsSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
     }
 
     /**
@@ -274,7 +273,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('makeSimpleMetadataSelectExpression');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $expressions);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -290,7 +289,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDummySelectSQL()
     {
         $found = $this->_platform->getDummySelectSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
     }
 
     /**
@@ -302,7 +301,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getExecuteBlockSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $params);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -326,7 +325,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getExecuteBlockWithExecuteStatementsSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $params);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -344,7 +343,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDropAllViewsOfTablePSqlSnippet()
     {
         $found = $this->_platform->getDropAllViewsOfTablePSqlSnippet('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
     }
 
     public function testGetCreateSequenceSQL()
@@ -359,7 +358,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->with($this->_platform)
             ->willReturn('foo');
         $found = $this->_platform->getCreateSequenceSQL($sequence);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("CREATE SEQUENCE foo", $found);
     }
 
@@ -379,7 +378,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->with($this->_platform)
             ->willReturn('foo');
         $found = $this->_platform->getAlterSequenceSQL($sequence);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("ALTER SEQUENCE foo RESTART WITH 2", $found);
     }
 
@@ -389,7 +388,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getExecuteStatementPSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("EXECUTE STATEMENT 'foo'", $found);
     }
 
@@ -399,7 +398,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getPlainDropSequenceSQL');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DROP SEQUENCE foo", $found);
     }
 
@@ -409,7 +408,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getDropTriggerSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DROP TRIGGER foo", $found);
     }
 
@@ -427,9 +426,9 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getDropTriggerIfExistsPSql');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $aTrigger, $inBlock);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertStringStartsWith($expectedStartsWith, $found);
-        $this->assertContains("IF (EXISTS (SELECT 1 FROM RDB\$TRIGGERS WHERE", $found);
+        $this->assertStringContainsString("IF (EXISTS (SELECT 1 FROM RDB\$TRIGGERS WHERE", $found);
         $this->assertStringEndsWith($expectedEndsWith, $found);
     }
 
@@ -460,7 +459,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getCombinedSqlStatements');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $sql, $aSeparator);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -475,19 +474,19 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDropSequenceSQLWithNormalString()
     {
         $found = $this->_platform->getDropSequenceSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('DROP SEQUENCE foo', $found);
     }
 
     public function testGetDropSequenceSQLWithD2IS()
     {
         $found = $this->_platform->getDropSequenceSQL('bar_D2IS');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertStringStartsWith('EXECUTE BLOCK AS', $found);
-        $this->assertContains('RDB$TRIGGERS', $found);
-        $this->assertContains('RDB$TRIGGER_NAME', $found);
-        $this->assertContains('DROP TRIGGER bar_D2IT', $found);
-        $this->assertContains('DROP SEQUENCE bar_D2IS', $found);
+        $this->assertStringContainsString('RDB$TRIGGERS', $found);
+        $this->assertStringContainsString('RDB$TRIGGER_NAME', $found);
+        $this->assertStringContainsString('DROP TRIGGER bar_D2IT', $found);
+        $this->assertStringContainsString('DROP SEQUENCE bar_D2IS', $found);
     }
 
     public function testGetDropSequenceSQLWithSequence()
@@ -501,57 +500,55 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getQuotedName')
             ->willReturn('foo');
         $found = $this->_platform->getDropSequenceSQL($sequence);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('DROP SEQUENCE foo', $found);
     }
 
     public function testGetDropForeignKeySQL()
     {
         $found = $this->_platform->getDropForeignKeySQL('foo', 'bar');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('ALTER TABLE bar DROP CONSTRAINT foo', $found);
     }
 
     public function testGetSequenceNextValFunctionSQL()
     {
         $found = $this->_platform->getSequenceNextValFunctionSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('NEXT VALUE FOR foo', $found);
     }
 
     public function testGetSequenceNextValSQL()
     {
         $found = $this->_platform->getSequenceNextValSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('SELECT NEXT VALUE FOR foo FROM RDB$DATABASE', $found);
     }
 
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     */
     public function testGetSetTransactionIsolationSQLThrowsException()
     {
+        $this->expectException(DBALException::class);
         $this->_platform->getSetTransactionIsolationSQL(null);
     }
 
     public function testGetBooleanTypeDeclarationSQL()
     {
         $found = $this->_platform->getBooleanTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('BOOLEAN', $found);
     }
 
     public function testGetIntegerTypeDeclarationSQL()
     {
         $found = $this->_platform->getIntegerTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('INTEGER', $found);
     }
 
     public function testGetBigIntTypeDeclarationSQL()
     {
         $found = $this->_platform->getBigIntTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('BIGINT', $found);
     }
 
@@ -561,7 +558,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetTruncateTableSQL($cascade)
     {
         $found = $this->_platform->getTruncateTableSQL('foo', $cascade);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame('DELETE FROM foo', $found);
     }
 
@@ -576,7 +573,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDateTimeFormatString()
     {
         $found = $this->_platform->getDateTimeFormatString();
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
     }
 
     public function testGetAlterTableSQLWorksWithNoChanges()
@@ -606,7 +603,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff->changedColumns = [];
         $diff->renamedColumns = [];
         $found = $this->_platform->getAlterTableSQL($diff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertSame([], $found);
     }
 
@@ -661,7 +658,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff->changedColumns = [];
         $diff->renamedColumns = [];
         $found = $this->_platform->getAlterTableSQL($diff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertSame([0 => "ALTER TABLE 'foo' ADD 'bar' baz DEFAULT NULL"], $found);
     }
@@ -717,7 +714,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff->changedColumns = [];
         $diff->renamedColumns = [];
         $found = $this->_platform->getAlterTableSQL($diff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertSame([0 => "ALTER TABLE 'foo' DROP 'bar'"], $found);
     }
@@ -794,7 +791,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff->changedColumns = [$columnDiff];
         $diff->renamedColumns = [];
         $found = $this->_platform->getAlterTableSQL($diff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(6, $found);
         $expected = [
             0 => "ALTER TABLE 'foo' ALTER COLUMN 'bar' TYPE baz",
@@ -858,7 +855,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff->changedColumns = [];
         $diff->renamedColumns = [$column];
         $found = $this->_platform->getAlterTableSQL($diff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertSame([0 => "ALTER TABLE 'foo' ALTER COLUMN 0 TO 'bar'"], $found);
     }
@@ -866,14 +863,14 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetVarcharMaxLength()
     {
         $found = $this->_platform->getVarcharMaxLength();
-        $this->assertInternalType("int", $found);
+        $this->assertIsInt($found);
         $this->assertGreaterThan(0, $found);
     }
 
     public function testGetBinaryMaxLength()
     {
         $found = $this->_platform->getBinaryMaxLength();
-        $this->assertInternalType("int", $found);
+        $this->assertIsInt($found);
         $this->assertGreaterThan(0, $found);
     }
 
@@ -883,7 +880,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getReservedKeywordsClass');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertTrue(class_exists($found));
         $this->assertTrue(is_subclass_of($found, 'Doctrine\DBAL\Platforms\Keywords\KeywordList'));
     }
@@ -891,7 +888,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetSmallIntTypeDeclarationSQL()
     {
         $found = $this->_platform->getSmallIntTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("SMALLINT", $found);
     }
 
@@ -901,7 +898,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('_getCommonIntegerTypeDeclarationSQL');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, []);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("", $found);
     }
 
@@ -911,7 +908,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetClobTypeDeclarationSQL($expected, $field)
     {
         $found = $this->_platform->getClobTypeDeclarationSQL($field);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -926,28 +923,28 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetBlobTypeDeclarationSQL()
     {
         $found = $this->_platform->getBlobTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("BLOB", $found);
     }
 
     public function testGetDateTimeTypeDeclarationSQL()
     {
         $found = $this->_platform->getDateTimeTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("TIMESTAMP", $found);
     }
 
     public function testGetTimeTypeDeclarationSQL()
     {
         $found = $this->_platform->getTimeTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("TIME", $found);
     }
 
     public function testGetDateTypeDeclarationSQL()
     {
         $found = $this->_platform->getDateTypeDeclarationSQL([]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATE", $found);
     }
 
@@ -960,7 +957,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getVarcharTypeDeclarationSQLSnippet');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $length, $fixed);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -980,7 +977,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetColumnCharsetDeclarationSQL($expected, $charset)
     {
         $found = $this->_platform->getColumnCharsetDeclarationSQL($charset);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -1007,7 +1004,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getBinaryTypeDeclarationSQLSnippet');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $length, $fixed);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -1038,21 +1035,21 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('__toString')
             ->willReturn("binary");
         $found = $this->_platform->getColumnDeclarationSQL("foo", ['type' => $type]);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("foo baz  CHARACTER SET binary DEFAULT NULL ", $found);
     }
 
     public function testGetCreateTemporaryTableSnippetSQL()
     {
         $found = $this->_platform->getCreateTemporaryTableSnippetSQL();
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("CREATE GLOBAL TEMPORARY TABLE", $found);
     }
 
     public function testGetTemporaryTableSQLgetTemporaryTableSQL()
     {
         $found = $this->_platform->getTemporaryTableSQL();
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("GLOBAL TEMPORARY", $found);
     }
 
@@ -1076,7 +1073,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('_getCreateTableSQL');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo', $columns, $options);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertSame($expected, $found);
     }
 
@@ -1101,41 +1098,41 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetListSequencesSQL()
     {
         $found = $this->_platform->getListSequencesSQL('');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertStringStartsWith("select trim(rdb\$generator_name)", $found);
     }
 
     public function testGetListTableColumnsSQL()
     {
         $found = $this->_platform->getListTableColumnsSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $foundNormalized = preg_replace('/\r\n|\r/', "\n", ltrim($found));
         $this->assertStringStartsWith("SELECT TRIM(r.RDB\$FIELD_NAME) AS \"FIELD_NAME\",\n", $foundNormalized);
-        $this->assertContains(" FROM RDB\$RELATION_FIELDS r\n", $foundNormalized);
+        $this->assertStringContainsString(" FROM RDB\$RELATION_FIELDS r\n", $foundNormalized);
     }
 
     public function testGetListTableForeignKeysSQL()
     {
         $found = $this->_platform->getListTableForeignKeysSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $foundNormalized = preg_replace('/\r\n|\r/', "\n", ltrim($found));
         $this->assertStringStartsWith("SELECT TRIM(rc.RDB\$CONSTRAINT_NAME) AS constraint_name,\n", $foundNormalized);
-        $this->assertContains(" FROM RDB\$INDEX_SEGMENTS s\n", $foundNormalized);
+        $this->assertStringContainsString(" FROM RDB\$INDEX_SEGMENTS s\n", $foundNormalized);
     }
 
     public function testGetListTableIndexesSQL()
     {
         $found = $this->_platform->getListTableIndexesSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $foundNormalized = preg_replace('/\r\n|\r/', "\n", ltrim($found));
         $this->assertStringStartsWith("SELECT\n", $foundNormalized);
-        $this->assertContains("FROM RDB\$INDEX_SEGMENTS\n", $foundNormalized);
+        $this->assertStringContainsString("FROM RDB\$INDEX_SEGMENTS\n", $foundNormalized);
     }
 
     public function testGetSQLResultCasing()
     {
         $found = $this->_platform->getSQLResultCasing('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertStringStartsWith("FOO", $found);
     }
 
@@ -1145,7 +1142,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('unquotedIdentifierName');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("foo", $found);
     }
 
@@ -1155,23 +1152,19 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $method = $reflection->getMethod('getQuotedNameOf');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("foo", $found);
     }
 
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     */
     public function testGetCreateDatabaseSQLThrowsException()
     {
+        $this->expectException(DBALException::class);
         $this->_platform->getCreateDatabaseSQL('foo');
     }
 
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     */
     public function testGetDropDatabaseSQLThrowsException()
     {
+        $this->expectException(DBALException::class);
         $this->_platform->getDropDatabaseSQL('foobar');
     }
 

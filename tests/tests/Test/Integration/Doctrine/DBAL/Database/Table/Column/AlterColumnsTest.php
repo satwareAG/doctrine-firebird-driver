@@ -27,7 +27,7 @@ class AlterColumnsTest extends AbstractIntegrationTest
         $sql = "CREATE TABLE {$tableName} ({$createColumnSql})";
         $connection->exec($sql);
         $columns = $sm->listTableColumns($tableName);
-        $this->assertInternalType('array', $columns);
+        $this->assertIsArray($columns);
         $this->assertCount(1, $columns);
         $this->assertArrayHasKey('foo', $columns);
         $previousColumn = $columns['foo'];
@@ -62,7 +62,7 @@ class AlterColumnsTest extends AbstractIntegrationTest
         $result = $connection->query($sql);
         $this->assertInstanceOf(Statement::class, $result);
         $row = $result->fetch();
-        $this->assertInternalType('array', $row);
+        $this->assertIsArray($row);
         $this->assertArrayHasKey('RDB$FIELD_TYPE', $row);
         $this->assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], "Invalid field type. SQL: " . self::statementArrayToText($statements));
 

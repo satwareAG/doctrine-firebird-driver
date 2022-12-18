@@ -438,7 +438,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
                 }
                 $this->_ibaseActiveTransaction = $this->createTransaction(true);
             } catch (\Exception $e) {
-                throw new \RuntimeException("Failed to connection to database", 0, $e);
+                throw new \RuntimeException("Failed to connect", 0, $e);
             }
         }
         if (!$this->_ibaseActiveTransaction || false == is_resource($this->_ibaseActiveTransaction)) {

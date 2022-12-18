@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Kafoso\DoctrineFirebird
 
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
@@ -15,19 +16,18 @@ class ConnectionTest extends AbstractIntegrationTest
     public function testBasics()
     {
         $connection = $this->_entityManager->getConnection()->getWrappedConnection();
-        $this->assertInternalType("object", $connection);
+        $this->assertIsObject($connection);
         $this->assertInstanceOf(Connection::class, $connection);
         $this->assertNull($connection->getAttribute(-1));
         $this->assertSame(
             \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED,
             $connection->getAttribute(AbstractFirebirdInterbaseDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL)
         );
-        $this->assertInternalType("resource", $connection->getInterbaseConnectionResource());
+        $this->assertIsResource($connection->getInterbaseConnectionResource());
         $this->assertFalse($connection->requiresQueryForServerVersion());
         $this->assertInstanceOf(Statement::class, $connection->prepare("foo"));
         $this->assertSame("'''foo'''", $connection->quote("'foo'"));
-        $this->assertInternalType(
-            "string",
+        $this->assertIsString(
             $connection->getStartTransactionSql(\Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED)
         );
         $this->assertSame(
@@ -56,21 +56,18 @@ class ConnectionTest extends AbstractIntegrationTest
         $this->assertSame(4, $idB);
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Argument $name must be null or a string. Found: (integer) 42
-     */
     public function testLastInsertIdThrowsExceptionWhenArgumentNameIsInvalid()
     {
+        $this->expectExceptionMessage('Argument $name must be null or a string. Found: (integer) 42');
+        $this->expectException(\InvalidArgumentException::class);
         $this->_entityManager->getConnection()->lastInsertId(42);
     }
 
-    /**
-     * @expectedException \UnexpectedValueException
-     * @expectedExceptionMessageRegExp /^Expects argument \$name to match regular expression '.+?'\. Found\: \(string\) "FOO_Ø"$/
-     */
     public function testLastInsertIdThrowsExceptionWhenArgumentNameContainsInvalidCharacters()
     {
+
+        $this->expectExceptionMessage('Expects argument $name to match regular expression \'/^\w{1,31}$/\'. Found: (string) "FOO_Ø"');
+        $this->expectException(\UnexpectedValueException::class);
         $this->_entityManager->getConnection()->lastInsertId("FOO_Ø");
     }
 
@@ -128,12 +125,10 @@ class ConnectionTest extends AbstractIntegrationTest
         ];
     }
 
-    /**
-     * @expectedException Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception
-     * @expectedExceptionMessage Isolation level -1 is not supported
-     */
     public function testGetStartTransactionSqlThrowsExceptionWhenIsolationLevelIsNotSupported()
     {
+        $this->expectExceptionMessage("Isolation level -1 is not supported");
+        $this->expectException(Exception::class);
         $connection = $this->_entityManager->getConnection()->getWrappedConnection();
         $connection->getStartTransactionSql(-1);
     }
@@ -155,22 +150,20 @@ class ConnectionTest extends AbstractIntegrationTest
         $reflectionPropertyIbaseActiveTransaction->setAccessible(true);
         $transactionA = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
         $this->assertSame(0, $level);
-        $this->assertInternalType("resource", $transactionA);
+        $this->assertIsResource($transactionA);
 
         $connection->beginTransaction();
         $level = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
         $transactionB = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
         $this->assertSame(1, $level);
-        $this->assertInternalType("resource", $transactionB);
+        $this->assertIsResource($transactionB);
         $this->assertNotSame($transactionA, $transactionB);
     }
 
-    /**
-     * @expectedException \RuntimeException
-     * @expectedExceptionMessage Argument $params must contain non-empty "host" and "dbname"
-     */
     public function testGenerateConnectStringThrowsExceptionWhenArrayIsMalformed()
     {
+        $this->expectExceptionMessage('Argument $params must contain non-empty "host" and "dbname"');
+        $this->expectException(\RuntimeException::class);
         Connection::generateConnectString([]);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
+use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 
 /**
@@ -15,7 +16,10 @@ class TransactionTest extends AbstractIntegrationTest
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
         unset($connection);
-        $this->setUp();
+        $configurationArray = static::getSetUpDoctrineConfigurationArray();
+        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
+        $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
+        $this->_platform = new FirebirdInterbasePlatform();
         $connection = $this->_entityManager->getConnection();
         $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
         $value = $result->fetchColumn();
@@ -36,7 +40,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -58,7 +62,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -95,7 +99,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -139,7 +143,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -157,7 +161,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -183,7 +187,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -220,7 +224,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -267,7 +271,7 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -309,12 +313,12 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 
@@ -371,12 +375,12 @@ class TransactionTest extends AbstractIntegrationTest
         try {
             $connection->commit();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
         try {
             $connection->rollback();
         } catch (\Doctrine\DBAL\ConnectionException $e) {
-            $this->assertContains("There is no active transaction", $e->getMessage());
+            $this->assertStringContainsString("There is no active transaction", $e->getMessage());
         }
     }
 }

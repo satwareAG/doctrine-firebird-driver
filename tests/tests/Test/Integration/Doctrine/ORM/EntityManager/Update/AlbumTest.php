@@ -15,7 +15,7 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertNull($album->getId());
         $this->_entityManager->persist($album);
         $this->_entityManager->flush($album);
-        $this->assertInternalType('int', $album->getId());
+        $this->assertIsInt($album->getId());
         $this->assertNull($album->getArtist());
         $albumId = $album->getId();
         $foundAlbumA = $this->_entityManager->getRepository(Entity\Album::class)->find($albumId);

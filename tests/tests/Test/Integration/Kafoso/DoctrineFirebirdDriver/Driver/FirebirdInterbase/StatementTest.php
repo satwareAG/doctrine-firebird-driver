@@ -19,7 +19,7 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_CLASS, '\stdClass');
         $statement->execute();
         $object = $statement->fetch();
-        $this->assertInternalType('object', $object);
+        $this->assertIsObject($object);
         $this->assertInstanceOf('stdClass', $object);
         $this->assertSame(1, $object->ID);
         $this->assertSame('2017-01-01 15:00:00', $object->TIMECREATED);
@@ -29,7 +29,7 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_OBJ, '\stdClass');
         $statement->execute();
         $object = $statement->fetch();
-        $this->assertInternalType('object', $object);
+        $this->assertIsObject($object);
         $this->assertInstanceOf('stdClass', $object);
         $this->assertSame(1, $object->ID);
         $this->assertSame('2017-01-01 15:00:00', $object->TIMECREATED);
@@ -87,11 +87,11 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_CLASS, 'stdClass');
         $statement->execute();
         $array = $statement->fetchAll();
-        $this->assertInternalType("array", $array);
+        $this->assertIsArray($array);
         $this->assertCount(2, $array);
-        $this->assertInternalType('object', $array[0]);
+        $this->assertIsObject($array[0]);
         $this->assertInstanceOf('stdClass', $array[0]);
-        $this->assertInternalType('object', $array[1]);
+        $this->assertIsObject($array[1]);
         $this->assertInstanceOf('stdClass', $array[1]);
         $this->assertSame(1, $array[0]->ID);
         $this->assertSame('2017-01-01 15:00:00', $array[0]->TIMECREATED);
@@ -105,10 +105,10 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_ASSOC);
         $statement->execute();
         $rows = $statement->fetchAll();
-        $this->assertInternalType("array", $rows);
+        $this->assertIsArray($rows);
         $this->assertCount(2, $rows);
-        $this->assertInternalType("array", $rows[0]);
-        $this->assertInternalType("array", $rows[1]);
+        $this->assertIsArray($rows[0]);
+        $this->assertIsArray($rows[1]);
         $this->assertSame(1, $rows[0]['ID'] ?? false);
         $this->assertSame('2017-01-01 15:00:00', $rows[0]['TIMECREATED'] ?? false);
         $this->assertSame('...Baby One More Time', $rows[0]['NAME'] ?? false);
@@ -121,10 +121,10 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_NUM);
         $statement->execute();
         $rows = $statement->fetchAll();
-        $this->assertInternalType("array", $rows);
+        $this->assertIsArray($rows);
         $this->assertCount(2, $rows);
-        $this->assertInternalType("array", $rows[0]);
-        $this->assertInternalType("array", $rows[1]);
+        $this->assertIsArray($rows[0]);
+        $this->assertIsArray($rows[1]);
         $this->assertSame(1, $rows[0][0] ?? false);
         $this->assertSame('2017-01-01 15:00:00', $rows[0][1] ?? false);
         $this->assertSame('...Baby One More Time', $rows[0][2] ?? false);
@@ -137,10 +137,10 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_BOTH);
         $statement->execute();
         $rows = $statement->fetchAll();
-        $this->assertInternalType("array", $rows);
+        $this->assertIsArray($rows);
         $this->assertCount(2, $rows);
-        $this->assertInternalType("array", $rows[0]);
-        $this->assertInternalType("array", $rows[1]);
+        $this->assertIsArray($rows[0]);
+        $this->assertIsArray($rows[1]);
         $this->assertSame(1, $rows[0][0] ?? false);
         $this->assertSame('2017-01-01 15:00:00', $rows[0][1] ?? false);
         $this->assertSame('...Baby One More Time', $rows[0][2] ?? false);
@@ -193,8 +193,8 @@ class StatementTest extends AbstractIntegrationTest
             $array[] = $row;
         }
         $this->assertCount(2, $array);
-        $this->assertInternalType("array", $array[0]);
-        $this->assertInternalType("array", $array[1]);
+        $this->assertIsArray($array[0]);
+        $this->assertIsArray($array[1]);
         $this->assertSame(1, $array[0]['ID'] ?? false);
         $this->assertSame(2, $array[1]['ID'] ?? false);
     }
@@ -285,7 +285,7 @@ class StatementTest extends AbstractIntegrationTest
         $reflectionProperty->setAccessible(true);
         $this->assertNull($reflectionProperty->getValue($statement));
         $statement->execute();
-        $this->assertInternalType("resource", $reflectionProperty->getValue($statement));
+        $this->assertIsResource($reflectionProperty->getValue($statement));
         $statement->closeCursor();
         $this->assertNull($reflectionProperty->getValue($statement));
     }

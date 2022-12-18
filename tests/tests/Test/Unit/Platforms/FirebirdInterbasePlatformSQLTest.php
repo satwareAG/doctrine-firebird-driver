@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
+use Doctrine\DBAL\Schema\Table;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 
 /**
@@ -13,28 +14,28 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGetBitAndComparisonExpression()
     {
         $found = $this->_platform->getBitAndComparisonExpression(0, 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("BIN_AND (0, 1)", $found);
     }
 
     public function testGetBitOrComparisonExpression()
     {
         $found = $this->_platform->getBitOrComparisonExpression(0, 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("BIN_OR (0, 1)", $found);
     }
 
     public function testGetDateAddDaysExpression()
     {
         $found = $this->_platform->getDateAddDaysExpression('2018-01-01', 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATEADD(1 DAY TO 2018-01-01)", $found);
     }
 
     public function testGetDateAddMonthExpression()
     {
         $found = $this->_platform->getDateAddMonthExpression('2018-01-01', 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATEADD(1 MONTH TO 2018-01-01)", $found);
     }
 
@@ -47,7 +48,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $method = $reflection->getMethod('getDateArithmeticIntervalExpression');
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, '2018-01-01', $operator, $interval, $unit);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -65,21 +66,21 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGetDateDiffExpression()
     {
         $found = $this->_platform->getDateDiffExpression('2018-01-01', '2017-01-01');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATEDIFF(day, 2017-01-01,2018-01-01)", $found);
     }
 
     public function testGetDateSubDaysExpression()
     {
         $found = $this->_platform->getDateSubDaysExpression('2018-01-01', 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATEADD(-1 DAY TO 2018-01-01)", $found);
     }
 
     public function testGetDateSubMonthExpression()
     {
         $found = $this->_platform->getDateSubMonthExpression('2018-01-01', 1);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DATEADD(-1 MONTH TO 2018-01-01)", $found);
     }
 
@@ -89,7 +90,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGetLocateExpression($expected, $startPos)
     {
         $found = $this->_platform->getLocateExpression("foo", "o", $startPos);
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame($expected, $found);
     }
 
@@ -103,21 +104,21 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testGetRegexpExpression()
     {
-        $this->assertInternalType("string", $this->_platform->getRegexpExpression());
+        $this->assertIsString($this->_platform->getRegexpExpression());
         $this->assertSame("SIMILAR TO", $this->_platform->getRegexpExpression());
     }
 
     public function testGetCreateViewSQL()
     {
         $found = $this->_platform->getCreateViewSQL('foo', 'bar');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("CREATE VIEW foo AS bar", $found);
     }
 
     public function testGetDropViewSQL()
     {
         $found = $this->_platform->getDropViewSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertSame("DROP VIEW foo", $found);
     }
 
@@ -130,10 +131,10 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGetDropTableSQL()
     {
         $found = $this->_platform->getDropTableSQL('foo');
-        $this->assertInternalType("string", $found);
+        $this->assertIsString($found);
         $this->assertStringStartsWith('EXECUTE BLOCK AS', $found);
-        $this->assertContains('DROP TRIGGER foo_D2IT', $found);
-        $this->assertContains('DROP TABLE foo', $found);
+        $this->assertStringContainsString('DROP TRIGGER foo_D2IT', $found);
+        $this->assertStringContainsString('DROP TABLE foo', $found);
     }
 
     public function testGeneratesTypeDeclarationForIntegers()
@@ -244,7 +245,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     {
         $columnName = strtoupper('id' . uniqid());
         $tableName = strtoupper('table' . uniqid());
-        $table = new \Doctrine\DBAL\Schema\Table($tableName);
+        $table = new Table($tableName);
         $column = $table->addColumn($columnName, 'integer');
         $column->setAutoincrement(true);
         $statements = $this->_platform->getCreateTableSQL($table);
@@ -256,19 +257,19 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertArrayHasKey(0, $statements);
         $this->assertSame("CREATE TABLE {$tableName} ({$columnName} INTEGER NOT NULL)", $statements[0]);
         $this->assertArrayHasKey(1, $statements);
-        $this->assertRegExp('/^CREATE SEQUENCE TABLE[0-9A-Z]+_D2IS$/', $statements[1]);
+        $this->assertMatchesRegularExpression('/^CREATE SEQUENCE TABLE[0-9A-Z]+_D2IS$/', $statements[1]);
         $this->assertArrayHasKey(2, $statements);
         $regex = '/^';
         $regex .= 'CREATE TRIGGER TABLE([0-9A-Z]+)_D2IT FOR TABLE\1';
         $regex .= ' BEFORE INSERT AS BEGIN IF \(\(NEW.ID([0-9A-Z]+) IS NULL\) OR \(NEW.ID\2 = 0\)\) THEN';
         $regex .= ' BEGIN NEW.ID\2 = NEXT VALUE FOR TABLE\1_D2IS; END END;';
         $regex .= '$/';
-        $this->assertRegExp($regex, $statements[2]);
+        $this->assertMatchesRegularExpression($regex, $statements[2]);
     }
 
     public function testGenerateTableWithMultiColumnUniqueIndex()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('test');
+        $table = new Table('test');
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $table->addColumn('bar', 'string', ['notnull' => false, 'length' => 255]);
         $table->addUniqueIndex(["foo", "bar"]);
@@ -277,7 +278,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertArrayHasKey(0, $statements);
         $this->assertSame("CREATE TABLE test (foo VARCHAR(255) DEFAULT NULL, bar VARCHAR(255) DEFAULT NULL)", $statements[0]);
         $this->assertArrayHasKey(1, $statements);
-        $this->assertRegExp('/^CREATE UNIQUE INDEX UNIQ_[0-9A-Z]+ ON test \(foo, bar\)$/', $statements[1]);
+        $this->assertMatchesRegularExpression('/^CREATE UNIQUE INDEX UNIQ_[0-9A-Z]+ ON test \(foo, bar\)$/', $statements[1]);
     }
 
     public function testGeneratesIndexCreationSql()
@@ -369,24 +370,24 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGetCreateAutoincrementSql()
     {
         $found = $this->_platform->getCreateAutoincrementSql("bar", "foo");
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame("CREATE SEQUENCE foo_D2IS", $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertStringStartsWith("CREATE TRIGGER foo_D2IT FOR foo", $found[1]);
-        $this->assertContains("NEW.bar = NEXT VALUE FOR foo_D2IS;", $found[1]);
+        $this->assertStringContainsString("NEW.bar = NEXT VALUE FOR foo_D2IS;", $found[1]);
     }
 
     public function testGetDropAutoincrementSql()
     {
         $found = $this->_platform->getDropAutoincrementSql("foo");
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame("DROP TRIGGER FOO_AI_PK", $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertStringStartsWith("EXECUTE BLOCK", $found[1]);
-        $this->assertContains("DROP TRIGGER FOO_D2IT", $found[1]);
-        $this->assertContains("DROP SEQUENCE FOO_D2IS", $found[1]);
+        $this->assertStringContainsString("DROP TRIGGER FOO_D2IT", $found[1]);
+        $this->assertStringContainsString("DROP SEQUENCE FOO_D2IS", $found[1]);
         $this->assertSame("ALTER TABLE FOO DROP CONSTRAINT FOO_AI_PK", $found[2]);
     }
 
@@ -395,7 +396,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers()
     {
-        $table1 = new \Doctrine\DBAL\Schema\Table(
+        $table1 = new Table(
             '"foo"',
             [
                 new \Doctrine\DBAL\Schema\Column(
@@ -404,7 +405,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
                 )
             ]
         );
-        $table2 = new \Doctrine\DBAL\Schema\Table(
+        $table2 = new Table(
             '"foo"',
             [
                 new \Doctrine\DBAL\Schema\Column(
@@ -429,7 +430,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testQuotedTableNames()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('"test"');
+        $table = new Table('"test"');
         $table->addColumn('"id"', 'integer', ['autoincrement' => true]);
         $this->assertTrue($table->isQuoted());
         $this->assertEquals('test', $table->getName());
@@ -500,13 +501,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertEquals($expected, $found);
     }
 
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage Operation 'Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform::getAlterTableSQL Cannot rename tables because firebird does not support it
-     */
     public function testGeneratesTableAlterationSqlThrowsException()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('mytable');
+        $this->expectExceptionMessage("Operation 'Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform::getAlterTableSQL Cannot rename tables because firebird does not support it");
+        $this->expectException(\Doctrine\DBAL\DBALException::class);
+        $table = new Table('mytable');
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->addColumn('foo', 'integer');
         $table->addColumn('bar', 'string');
@@ -582,7 +581,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             $listenerMock
         );
         $this->_platform->setEventManager($eventManager);
-        $table = new \Doctrine\DBAL\Schema\Table('test');
+        $table = new Table('test');
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $table->addColumn('bar', 'string', ['notnull' => false, 'length' => 255]);
         $this->_platform->getCreateTableSQL($table);
@@ -642,7 +641,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         ];
         $eventManager->addEventListener($events, $listenerMock);
         $this->_platform->setEventManager($eventManager);
-        $table = new \Doctrine\DBAL\Schema\Table('mytable');
+        $table = new Table('mytable');
         $table->addColumn('removed', 'integer');
         $table->addColumn('changed', 'integer');
         $table->addColumn('renamed', 'integer');
@@ -680,7 +679,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testCreateTableColumnComments()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('test');
+        $table = new Table('test');
         $table->addColumn('id', 'integer', ['comment' => 'This is a comment']);
         $table->setPrimaryKey(['id']);
         $found = $this->_platform->getCreateTableSQL($table);
@@ -733,7 +732,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testCreateTableColumnTypeComments()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('test');
+        $table = new Table('test');
         $table->addColumn('id', 'integer');
         $table->addColumn('data', 'array');
         $table->setPrimaryKey(['id']);
@@ -786,11 +785,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotedColumnInPrimaryKeyPropagation()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('`quoted`');
+        $table = new Table('`quoted`');
         $table->addColumn('create', 'string');
         $table->setPrimaryKey(['create']);
         $found = $this->_platform->getCreateTableSQL($table);
-        $this->assertInternalType('array', $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertArrayHasKey(0, $found);
         $expected = 'CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL, CONSTRAINT "quoted_PK" PRIMARY KEY ("create"))';
@@ -803,7 +802,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotedColumnInIndexPropagation()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('`quoted`');
+        $table = new Table('`quoted`');
         $table->addColumn('create', 'string');
         $table->addIndex(['create']);
         $found = $this->_platform->getCreateTableSQL($table);
@@ -811,12 +810,12 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL)', $found[0]);
         $this->assertArrayHasKey(1, $found);
-        $this->assertRegExp('/^CREATE INDEX IDX_[0-9A-F]+ ON "quoted" \("create"\)$/', $found[1]);
+        $this->assertMatchesRegularExpression('/^CREATE INDEX IDX_[0-9A-F]+ ON "quoted" \("create"\)$/', $found[1]);
     }
 
     public function testQuotedNameInIndexSQL()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('test');
+        $table = new Table('test');
         $table->addColumn('column1', 'string');
         $table->addIndex(['column1'], '`key`');
         $found = $this->_platform->getCreateTableSQL($table);
@@ -832,12 +831,12 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotedColumnInForeignKeyPropagation()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('`quoted`');
+        $table = new Table('`quoted`');
         $table->addColumn('create', 'string');
         $table->addColumn('foo', 'string');
         $table->addColumn('`bar`', 'string');
         // Foreign table with reserved keyword as name (needs quotation).
-        $foreignTable = new \Doctrine\DBAL\Schema\Table('foreign');
+        $foreignTable = new Table('foreign');
         $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
@@ -849,7 +848,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             'FK_WITH_RESERVED_KEYWORD'
         );
         // Foreign table with non-reserved keyword as name (does not need quotation).
-        $foreignTable = new \Doctrine\DBAL\Schema\Table('foo');
+        $foreignTable = new Table('foo');
         $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
@@ -861,7 +860,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             'FK_WITH_NON_RESERVED_KEYWORD'
         );
         // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable = new \Doctrine\DBAL\Schema\Table('`foo-bar`');
+        $foreignTable = new Table('`foo-bar`');
         $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
@@ -910,7 +909,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testAlterTableChangeQuotedColumn()
     {
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
-        $tableDiff->fromTable = new \Doctrine\DBAL\Schema\Table('mytable');
+        $tableDiff->fromTable = new Table('mytable');
         $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
             'select',
             new \Doctrine\DBAL\Schema\Column(
@@ -919,7 +918,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ),
             ['type']
         );
-        $this->assertContains(
+        $this->assertStringContainsString(
             $this->_platform->quoteIdentifier('select'),
             implode(';', $this->_platform->getAlterTableSQL($tableDiff))
         );
@@ -931,14 +930,14 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testAlterTableRenameIndex()
     {
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
-        $tableDiff->fromTable = new \Doctrine\DBAL\Schema\Table('mytable');
+        $tableDiff->fromTable = new Table('mytable');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
             'idx_foo' => new \Doctrine\DBAL\Schema\Index('idx_bar', ['id'])
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(2, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('DROP INDEX idx_foo', $found[0]);
@@ -953,7 +952,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testQuotesAlterTableRenameIndex()
     {
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('table');
-        $tableDiff->fromTable = new \Doctrine\DBAL\Schema\Table('table');
+        $tableDiff->fromTable = new Table('table');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
@@ -961,7 +960,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             '`foo`'  => new \Doctrine\DBAL\Schema\Index('`bar`', ['id']),
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(4, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('DROP INDEX "create"', $found[0]);
@@ -978,7 +977,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesAlterTableRenameColumn()
     {
-        $fromTable = new \Doctrine\DBAL\Schema\Table('mytable');
+        $fromTable = new Table('mytable');
         $fromTable->addColumn('unquoted1', 'integer', ['comment' => 'Unquoted 1']);
         $fromTable->addColumn('unquoted2', 'integer', ['comment' => 'Unquoted 2']);
         $fromTable->addColumn('unquoted3', 'integer', ['comment' => 'Unquoted 3']);
@@ -988,7 +987,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $fromTable->addColumn('`quoted1`', 'integer', ['comment' => 'Quoted 1']);
         $fromTable->addColumn('`quoted2`', 'integer', ['comment' => 'Quoted 2']);
         $fromTable->addColumn('`quoted3`', 'integer', ['comment' => 'Quoted 3']);
-        $toTable = new \Doctrine\DBAL\Schema\Table('mytable');
+        $toTable = new Table('mytable');
         $toTable->addColumn('unquoted', 'integer', ['comment' => 'Unquoted 1']); // unquoted -> unquoted
         $toTable->addColumn('where', 'integer', ['comment' => 'Unquoted 2']); // unquoted -> reserved keyword
         $toTable->addColumn('`foo`', 'integer', ['comment' => 'Unquoted 3']); // unquoted -> quoted
@@ -1000,7 +999,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $toTable->addColumn('`baz`', 'integer', ['comment' => 'Quoted 3']); // quoted -> quoted
         $comparator = new \Doctrine\DBAL\Schema\Comparator();
         $found = $this->_platform->getAlterTableSQL($comparator->diffTable($fromTable, $toTable));
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(9, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('ALTER TABLE mytable ALTER COLUMN unquoted1 TO unquoted', $found[0]);
@@ -1028,14 +1027,14 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testAlterTableRenameIndexInSchema()
     {
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('myschema.mytable');
-        $tableDiff->fromTable = new \Doctrine\DBAL\Schema\Table('myschema.mytable');
+        $tableDiff->fromTable = new Table('myschema.mytable');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
             'idx_foo' => new \Doctrine\DBAL\Schema\Index('idx_bar', ['id'])
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(2, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('DROP INDEX idx_foo', $found[0]);
@@ -1049,7 +1048,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testQuotesAlterTableRenameIndexInSchema()
     {
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('`schema`.table');
-        $tableDiff->fromTable = new \Doctrine\DBAL\Schema\Table('`schema`.table');
+        $tableDiff->fromTable = new Table('`schema`.table');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
@@ -1057,7 +1056,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             '`foo`'  => new \Doctrine\DBAL\Schema\Index('`bar`', ['id']),
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(4, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('DROP INDEX "create"', $found[0]);
@@ -1110,7 +1109,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testGeneratesAlterTableRenameColumnSQL()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('foo');
+        $table = new Table('foo');
         $table->addColumn(
             'bar',
             'integer',
@@ -1124,7 +1123,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ['notnull' => true, 'default' => 666, 'comment' => 'rename test']
         );
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('ALTER TABLE foo ALTER COLUMN bar TO baz', $found[0]);
@@ -1135,7 +1134,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesTableIdentifiersInAlterTableSQL()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('"foo"');
+        $table = new Table('"foo"');
         $table->addColumn('id', 'integer');
         $table->addColumn('fk', 'integer');
         $table->addColumn('fk2', 'integer');
@@ -1187,7 +1186,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             'fk1'
         );
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(8, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk1', $found[0]);
@@ -1216,7 +1215,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterStringToFixedString()
     {
-        $table = new \Doctrine\DBAL\Schema\Table('mytable');
+        $table = new Table('mytable');
         $table->addColumn('name', 'string', ['length' => 2]);
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
         $tableDiff->fromTable = $table;
@@ -1229,7 +1228,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ['fixed']
         );
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(1, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertEquals('ALTER TABLE mytable ALTER COLUMN name TYPE CHAR(2)', $found[0]);
@@ -1240,10 +1239,10 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL()
     {
-        $foreignTable = new \Doctrine\DBAL\Schema\Table('foreign_table');
+        $foreignTable = new Table('foreign_table');
         $foreignTable->addColumn('id', 'integer');
         $foreignTable->setPrimaryKey(['id']);
-        $primaryTable = new \Doctrine\DBAL\Schema\Table('mytable');
+        $primaryTable = new Table('mytable');
         $primaryTable->addColumn('foo', 'integer');
         $primaryTable->addColumn('bar', 'integer');
         $primaryTable->addColumn('baz', 'integer');
@@ -1255,7 +1254,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $tableDiff->fromTable = $primaryTable;
         $tableDiff->renamedIndexes['idx_foo'] = new \Doctrine\DBAL\Schema\Index('idx_foo_renamed', ['foo']);
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertInternalType("array", $found);
+        $this->assertIsArray($found);
         $this->assertCount(2, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('DROP INDEX idx_foo', $found[0]);

@@ -2,8 +2,9 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Kafoso\DoctrineFirebirdDriver;
 
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
+use PHPUnit\Framework\TestCase;
 
-class ConnectionTest extends \PHPUnit_Framework_TestCase
+class ValueFormatterTest extends TestCase
 {
     public function testEscapeAndQuote()
     {
@@ -22,7 +23,7 @@ class ConnectionTest extends \PHPUnit_Framework_TestCase
         $this->assertSame('"foo"', ValueFormatter::cast("foo"));
         $this->assertSame('Array(2)', ValueFormatter::cast([1,2]));
         $this->assertSame('\stdClass', ValueFormatter::cast(new \stdClass));
-        $this->assertRegExp('/^#Resource id #\d+$/', ValueFormatter::cast(fopen(__FILE__, 'r')));
+        $this->assertMatchesRegularExpression('/^#Resource id #\d+$/', ValueFormatter::cast(fopen(__FILE__, 'r')));
     }
 
     public function testFound()
@@ -35,6 +36,6 @@ class ConnectionTest extends \PHPUnit_Framework_TestCase
         $this->assertSame('(string) "foo"', ValueFormatter::found("foo"));
         $this->assertSame('(array) Array(2)', ValueFormatter::found([1,2]));
         $this->assertSame('(object) \\stdClass', ValueFormatter::found(new \stdClass));
-        $this->assertRegExp('/^\(resource\) Resource id #\d+$/', ValueFormatter::found(fopen(__FILE__, 'r')));
+        $this->assertMatchesRegularExpression('/^\(resource\) Resource id #\d+$/', ValueFormatter::found(fopen(__FILE__, 'r')));
     }
 }

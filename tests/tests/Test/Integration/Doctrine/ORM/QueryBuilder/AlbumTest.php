@@ -16,12 +16,14 @@ class AlbumTest extends AbstractIntegrationTest
             ->select('album')
             ->from(Entity\Album::class, 'album');
         $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        $from =$qb->getQuery()->getDQL();
+        $sql = $qb->getQuery()->getSQL();
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(1, $albums[0]->getId());
@@ -38,7 +40,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $ids = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $ids);
+        $this->assertIsArray($ids);
         $this->assertGreaterThan(0, count($ids));
         $this->assertArrayHasKey(0, $ids);
         $this->assertArrayHasKey('id', $ids[0]);
@@ -59,7 +61,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ INNER JOIN ARTIST a1_ ON a0_.artist_id = a1_.id";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(1, $albums[0]->getId());
@@ -81,7 +83,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " INNER JOIN ARTIST a1_ ON (a1_.id = a0_.artist_id)";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(1, $albums[0]->getId());
@@ -102,7 +104,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ LEFT JOIN ARTIST a1_ ON a0_.artist_id = a1_.id";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(1, $albums[0]->getId());
@@ -125,7 +127,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " LEFT JOIN ARTIST a1_ ON (a1_.id = 0)";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $results = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $results);
+        $this->assertIsArray($results);
         $this->assertArrayHasKey(0, $results);
         $this->assertInstanceOf(Entity\Album::class, $results[0]);
         $this->assertSame(1, $results[0]->getId());
@@ -148,7 +150,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 1";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(2, $albums[0]->getId());
@@ -169,7 +171,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 1 TO 1";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
@@ -191,7 +193,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 2 TO 9000000000000000000";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(2, $albums[0]->getId());
@@ -213,7 +215,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 2 TO 2";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
@@ -235,7 +237,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id = ?";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertSame(1, $albums[0]->getId());
@@ -255,7 +257,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_ INNER JOIN ARTIST a1_ ON a0_.artist_id = a1_.id GROUP BY a0_.id";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albumIds = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albumIds);
+        $this->assertIsArray($albumIds);
         $this->assertCount(2, $albumIds);
         $this->assertArrayHasKey(0, $albumIds);
         $this->assertArrayHasKey('id', $albumIds[0]);
@@ -278,7 +280,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " GROUP BY a0_.id HAVING a0_.id > 1";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albumIds = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albumIds);
+        $this->assertIsArray($albumIds);
         $this->assertCount(1, $albumIds);
         $this->assertArrayHasKey(0, $albumIds);
         $this->assertArrayHasKey('id', $albumIds[0]);
@@ -299,7 +301,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ ORDER BY a0_.id DESC";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
         $this->assertNotSame(1, $albums[0]->getId());
@@ -324,7 +326,7 @@ class AlbumTest extends AbstractIntegrationTest
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2, a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.artist_id IN (SELECT a1_.id FROM ARTIST a1_ WHERE a1_.id = 2)";
         $this->assertSame($expectedSQL, $qb2->getQuery()->getSQL());
         $albums = $qb2->getQuery()->getResult();
-        $this->assertInternalType('array', $albums);
+        $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
         $this->assertInstanceOf(Entity\Album::class, $albums[0]);
