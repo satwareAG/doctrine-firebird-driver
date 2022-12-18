@@ -32,10 +32,10 @@
         "doctrine/annotations": "^1.14",
         "doctrine/dbal": "^2.9.3",
         "doctrine/orm": "^2.7",
-        "symfony/cache": "^5.4"
+        "symfony/cache": "^5.4",
+        "ext-pdo": "*"
     },
     "require-dev": {
-        "ext-pdo": "*",
         "phpunit/phpunit": "^9.5"
     }
 }

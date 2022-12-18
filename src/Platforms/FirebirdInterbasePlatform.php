@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\Table;
@@ -40,7 +41,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * Checks if the identifier exceeds the platform limit
      *
-     * @param \Doctrine\DBAL\Schema\Identifier|string   $aIdentifier    The identifier to check
+     * @param Identifier|string   $aIdentifier    The identifier to check
      * @param integer                                   $maxLength      Length limit to check. Usually the result of
      *                                                                  {@link getMaxIdentifierLength()} should be passed
      * @throws \Doctrine\DBAL\DBALException
@@ -48,7 +49,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     public function checkIdentifierLength($aIdentifier, $maxLength)
     {
         $maxLength || $maxLength = $this->getMaxIdentifierLength();
-        $name = ($aIdentifier instanceof \Doctrine\DBAL\Schema\AbstractAsset) ?
+        $name = ($aIdentifier instanceof AbstractAsset) ?
                 $aIdentifier->getName() : $aIdentifier;
 
         if (strlen($name) > $this->getMaxIdentifierLength()) {
@@ -59,12 +60,12 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * Generates an internal ID based on the table name and a suffix
-     * @param array|string|\Doctrine\DBAL\Schema\Identifier $prefix     Name, Identifier object or array of names or
+     * @param array|string|Identifier $prefix     Name, Identifier object or array of names or
      *                                                                  identifier objects to use as prefix.
      * @param integer                                       $maxLength  Length limit to check. Usually the result of
      *                                                                  {@link getMaxIdentifierLength()} should be passed
      *
-     * @return \Doctrine\DBAL\Schema\Identifier
+     * @return Identifier
      */
     protected function generateIdentifier($prefix, $suffix, $maxLength)
     {
@@ -74,8 +75,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         is_array($prefix) || $prefix = [$prefix];
         $ml = floor(($maxLength - strlen($suffix)) / count($prefix));
         foreach ($prefix as $p) {
-            if (!$p instanceof \Doctrine\DBAL\Schema\AbstractAsset)
-                $p = new \Doctrine\DBAL\Schema\Identifier($p);
+            if (!$p instanceof AbstractAsset)
+                $p = new Identifier($p);
             $fullId .= $p->getName() . '_';
             if (strlen($p->getName()) >= $ml) {
                 $c = crc32($p->getName());
@@ -88,9 +89,9 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         $fullId .= $suffix;
         $shortId .= $suffix;
         if (strlen($fullId) > $maxLength) {
-            return new \Doctrine\DBAL\Schema\Identifier($needQuote ? $this->quoteIdentifier($shortId) : $shortId);
+            return new Identifier($needQuote ? $this->quoteIdentifier($shortId) : $shortId);
         } else {
-            return new \Doctrine\DBAL\Schema\Identifier($needQuote ? $this->quoteIdentifier($fullId) : $fullId);
+            return new Identifier($needQuote ? $this->quoteIdentifier($fullId) : $fullId);
         }
     }
 
@@ -110,7 +111,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      *
      * The format is tablename_PK. If the combined name exceeds the length limit, the table name gets shortened.
      *
-     * @param \Doctrine\DBAL\Schema\Identifier|string   $aTable Table name or identifier
+     * @param Identifier|string   $aTable Table name or identifier
      *
      * @return string
      */
@@ -399,7 +400,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             if ($i > 0) {
                 $result .= ' AND ';
             }
-            if (($v instanceof \Doctrine\DBAL\Schema\AbstractAsset) ||
+            if (($v instanceof AbstractAsset) ||
                     (is_string($v))) {
                 $result .= 'UPPER(' . $f . ') = UPPER(\'' . $this->unquotedIdentifierName($v) . '\')';
             } else {
@@ -897,7 +898,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
                 continue;
             }
 
-            $oldColumnName = new \Doctrine\DBAL\Schema\Identifier($oldColumnName);
+            $oldColumnName = new Identifier($oldColumnName);
 
             $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);
@@ -1181,10 +1182,10 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     {
         $sql = [];
 
-        if (!$column instanceof \Doctrine\DBAL\Schema\AbstractAsset)
-            $column = new \Doctrine\DBAL\Schema\Identifier($column);
+        if (!$column instanceof AbstractAsset)
+            $column = new Identifier($column);
 
-        $tableName = new \Doctrine\DBAL\Schema\Identifier($tableName);
+        $tableName = new Identifier($tableName);
         $sequenceName = $this->getIdentitySequenceName($tableName, $column);
         $triggerName = $this->getIdentitySequenceTriggerName($tableName, $column);
         $sequence = new \Doctrine\DBAL\Schema\Sequence($sequenceName, 1, 1);
@@ -1368,22 +1369,22 @@ ___query___;
 
     private function unquotedIdentifierName($name)
     {
-        $name instanceof \Doctrine\DBAL\Schema\AbstractAsset || $name = new \Doctrine\DBAL\Schema\Identifier($name);
+        $name instanceof AbstractAsset || $name = new Identifier($name);
         return $name->getName();
     }
 
     /**
      * Returns a quoted name if necessar
      *
-     * @param string|\Doctrine\DBAL\Schema\Identifier $name
+     * @param string|Identifier $name
      * @return string
      */
     protected function getQuotedNameOf($name)
     {
-        if ($name instanceof \Doctrine\DBAL\Schema\AbstractAsset) {
+        if ($name instanceof AbstractAsset) {
             return $name->getQuotedName($this);
         }
-        $id = new \Doctrine\DBAL\Schema\Identifier($name);
+        $id = new Identifier($name);
         return $id->getQuotedName($this);
     }
 
@@ -1400,18 +1401,18 @@ ___query___;
      */
     private function normalizeIdentifier($name)
     {
-        if ($name instanceof \Doctrine\DBAL\Schema\AbstractAsset) {
-            $result = new \Doctrine\DBAL\Schema\Identifier($name->getQuotedName($this));
+        if ($name instanceof AbstractAsset) {
+            $result = new Identifier($name->getQuotedName($this));
         } else {
-            $result = new \Doctrine\DBAL\Schema\Identifier($name);
+            $result = new Identifier($name);
         }
         if ($result->isQuoted()) {
             return $result;
         } else {
-            if (strtolower($result->getName() == $result->getName())) {
-                return new \Doctrine\DBAL\Schema\Identifier(strtoupper($result->getName()));
+            if (strtolower($result->getName()) == $result->getName()) {
+                return new Identifier(strtoupper($result->getName()));
             } else {
-                return new \Doctrine\DBAL\Schema\Identifier($this->quoteIdentifier($result->getName()));
+                return new Identifier($this->quoteIdentifier($result->getName()));
             }
         }
     }

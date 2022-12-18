@@ -134,10 +134,10 @@ class Statement implements \IteratorAggregate, StatementInterface
                 return;
             case \PDO::FETCH_INTO:
                 $fetchInto = $arg2;
-                if (false == is_object($fetchInto)) {
+                if (!is_object($fetchInto)) {
                     throw new Exception(sprintf(
                         "Fetch into (from \$arg2) must be an object. Found: %s",
-                        ValueFormatter::found($fetchClass)
+                        ValueFormatter::found($fetchInto)
                     ));
                 }
                 $this->defaultFetchMode = $fetchMode;
