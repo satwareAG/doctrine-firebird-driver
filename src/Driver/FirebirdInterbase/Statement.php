@@ -5,6 +5,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
+use ReturnTypeWillChange;
 
 /**
  * Based on:
@@ -457,6 +458,7 @@ class Statement implements \IteratorAggregate, StatementInterface
     /**
      * {@inheritdoc}
      */
+    #[ReturnTypeWillChange]
     public function getIterator()
     {
         $data = $this->fetchAll();

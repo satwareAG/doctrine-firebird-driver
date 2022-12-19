@@ -1,4 +1,4 @@
-FROM webdevops/php-dev:7.4
+FROM webdevops/php-dev:8.1
 
 RUN apt-get update --allow-releaseinfo-change
 RUN apt-get install -y software-properties-common
