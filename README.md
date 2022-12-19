@@ -1,7 +1,7 @@
 Doctrine Firebird driver
 ---------------------------
 
-Firebird driver for the [Doctrine DBAL](https://github.com/doctrine/dbal) ([v2.7.*](https://packagist.org/packages/doctrine/orm#v2.7.0)).
+Firebird driver for the [Doctrine DBAL](https://github.com/doctrine/dbal) ([v2.13.*](https://packagist.org/packages/doctrine/orm#v2.13.0)).
 
 This library is completely separate (i.e. abstracted away) from the core Doctrine DBAL library. I.e. it is fully a **plug-in**.
 
@@ -9,9 +9,8 @@ This library is completely separate (i.e. abstracted away) from the core Doctrin
 
 To utilize this library in your application code, the following is required:
 
-- [Firebird](https://firebirdsql.org/) version 2.5.*
-  - Version 3.* is not supported. You are very welcome to provide a pull request for this.
-- PHP >= 7.2
+- [Firebird](https://firebirdsql.org/) version 2.5.* & 3.*
+- PHP >= 7.4
 - PHP extensions<sup>1</sup>:
   - [ibase](http://php.net/manual/en/book.ibase.php)
   - [mbstring](http://php.net/manual/en/book.mbstring.php)
