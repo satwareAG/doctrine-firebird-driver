@@ -13,7 +13,7 @@ use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 
 abstract class AbstractIntegrationTest extends TestCase
 {
-    const DEFAULT_DATABASE_FILE_PATH = '/databases/music_library.fdb';
+    const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
     const DEFAULT_DATABASE_PASSWORD = 'masterkey';
 
@@ -26,7 +26,7 @@ abstract class AbstractIntegrationTest extends TestCase
         static::installFirebirdDatabase($configurationArray);
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
-        $this->_platform = new FirebirdInterbasePlatform;
+        $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();
     }
 
     public function tearDown(): void
@@ -55,7 +55,7 @@ abstract class AbstractIntegrationTest extends TestCase
         $output = $result = '';
         if (file_exists(ROOT_PATH . '/tests/databases/music_library.fdb')) {
             $cmd = sprintf(
-                "gfix -user SYSDBA -password masterkey -shut -force 0 firebird:/databases/music_library.fdb 2>&1",
+                "gfix -user SYSDBA -password masterkey -shut -force 0 firebird:/firebird/data/music_library.fdb 2>&1",
             );
             $ret = exec($cmd, $output, $result);
             $cmd = sprintf(

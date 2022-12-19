@@ -23,6 +23,11 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     protected $connectString = null;
 
     /**
+     * @var null|string
+     **/
+    protected $host = null;
+
+    /**
      * @var bool
      */
     protected $isPersistent = true;
@@ -46,6 +51,8 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      * @var resource (ibase_pconnect or ibase_connect)
      */
     private $_ibaseConnectionRc = null;
+
+    private $_ibaseService = null;
 
     /**
      * @var int
@@ -88,6 +95,15 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
         $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
 
         $this->connectString = self::generateConnectString($params);
+        $this->host = $params['host'];
+        if (isset($params['port'])) {
+            if (!$params['port']) {
+                throw new \RuntimeException("Invalid \"port\" in argument \$params");
+            }
+            $this->host .= '/' . $params['port'];
+        }
+
+
         $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
         if (isset($params['isPersistent']) && is_bool($params['isPersistent'])) {
             $this->isPersistent = $params['isPersistent'];
@@ -177,7 +193,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      */
     public function getServerVersion()
     {
-        return ibase_server_info($this->_ibaseConnectionRc, IBASE_SVC_SERVER_VERSION);
+        return ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION);
     }
 
     /**
@@ -438,6 +454,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
                     throw Exception::fromErrorInfo($this->errorInfo());
                 }
                 $this->_ibaseActiveTransaction = $this->createTransaction(true);
+                $this->_ibaseService = ibase_service_attach($this->host, $this->username, $this->password);
             } catch (\Exception $e) {
                 throw new \RuntimeException("Failed to connect", 0, $e);
             }
@@ -493,6 +510,9 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
         $success = true;
         if ($this->_ibaseConnectionRc && is_resource($this->_ibaseConnectionRc)) {
             $success = @ibase_close($this->_ibaseConnectionRc);
+        }
+        if ($this->_ibaseService && is_resource($this->_ibaseService)) {
+            $success = @ibase_service_detach($this->_ibaseService);
         }
         $this->_ibaseConnectionRc = null;
         $this->_ibaseActiveTransaction  = null;

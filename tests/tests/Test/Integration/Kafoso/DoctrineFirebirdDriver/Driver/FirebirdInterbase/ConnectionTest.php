@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
@@ -88,38 +89,38 @@ class ConnectionTest extends AbstractIntegrationTest
     {
         return [
             [
-                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5",
-                \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED,
+                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5",
+                TransactionIsolationLevel::READ_UNCOMMITTED,
                 null
             ],
             [
                 "SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5",
-                \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED,
+                TransactionIsolationLevel::READ_COMMITTED,
                 null
             ],
             [
                 "SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT WAIT LOCK TIMEOUT 5",
-                \Doctrine\DBAL\Connection::TRANSACTION_REPEATABLE_READ,
+                TransactionIsolationLevel::REPEATABLE_READ,
                 null
             ],
             [
                 "SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY WAIT LOCK TIMEOUT 5",
-                \Doctrine\DBAL\Connection::TRANSACTION_SERIALIZABLE,
+                TransactionIsolationLevel::SERIALIZABLE,
                 null
             ],
             [
-                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 1",
-                \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED,
+                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 1",
+                TransactionIsolationLevel::READ_UNCOMMITTED,
                 1
             ],
             [
-                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION WAIT",
-                \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED,
+                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT",
+                TransactionIsolationLevel::READ_UNCOMMITTED,
                 -1
             ],
             [
-                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION NO WAIT",
-                \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED,
+                "SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION NO WAIT",
+                TransactionIsolationLevel::READ_UNCOMMITTED,
                 0
             ],
         ];

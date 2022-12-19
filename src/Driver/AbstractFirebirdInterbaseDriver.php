@@ -4,16 +4,49 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\ExceptionConverterDriver;
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\VersionAwarePlatformDriver;
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
-abstract class AbstractFirebirdInterbaseDriver implements Driver, ExceptionConverterDriver
+abstract class AbstractFirebirdInterbaseDriver implements Driver, ExceptionConverterDriver, VersionAwarePlatformDriver
 {
     const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
     const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
 
     private $_driverOptions = [];
+
+    /**
+     * {@inheritdoc}
+     */
+    public function createDatabasePlatformForVersion($version)
+    {
+        if (
+            ! preg_match(
+                '/^LI-(V|T)(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
+                $version,
+                $versionParts
+            )
+        ) {
+            throw Exception::invalidPlatformVersionSpecified(
+                $version,
+                'LI-V<major_version>.<minor_version>.<patch_version>.<build_version>'
+            );
+        }
+        $majorVersion = $versionParts['major'];
+        $minorVersion = $versionParts['minor'] ?? 0;
+        $patchVersion = $versionParts['patch'] ?? 0;
+        $buildVersion = $versionParts['build'] ?? 0;
+        $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
+
+        switch (true) {
+            case version_compare($version, '3.0', '>='):
+                return new Firebird3Platform();
+            default:
+                return new FirebirdInterbasePlatform();
+        }
+    }
 
     /**
      * {@inheritdoc}

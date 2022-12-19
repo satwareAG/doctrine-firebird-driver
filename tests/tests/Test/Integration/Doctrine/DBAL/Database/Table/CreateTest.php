@@ -96,7 +96,11 @@ class CreateTest extends AbstractIntegrationTest
         $this->assertNotEmpty($match, "Invalid match against \$statements[1]: {$statements[1]}");
         $indexName = $match[1];
 
-        $sql = (
+        /**
+         * Firebird 2.5
+         */
+        if ($connection->getDatabasePlatform()->getName() === 'FirebirdInterbase') {
+            $sql = (
             "SELECT 1
             FROM RDB\$INDICES IX
             LEFT JOIN RDB\$INDEX_SEGMENTS SG ON IX.RDB\$INDEX_NAME = SG.RDB\$INDEX_NAME
@@ -105,7 +109,26 @@ class CreateTest extends AbstractIntegrationTest
             AND IX.RDB\$INDEX_NAME = '{$indexName}'
             AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
             AND SG.RDB\$FIELD_NAME = 'FOO'"
-        );
+            );
+        } else {
+            /**
+             * Firebird 3.0+
+             */
+            $sql = (
+            "SELECT 1
+            FROM RDB\$INDICES IX
+            LEFT JOIN RDB\$INDEX_SEGMENTS SG ON IX.RDB\$INDEX_NAME = SG.RDB\$INDEX_NAME
+            LEFT JOIN RDB\$RELATION_CONSTRAINTS RC ON RC.RDB\$INDEX_NAME = IX.RDB\$INDEX_NAME
+            WHERE IX.RDB\$UNIQUE_FLAG = 0
+            AND IX.RDB\$INDEX_NAME = '{$indexName}'
+            AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
+            AND SG.RDB\$FIELD_NAME = 'FOO'"
+            );
+
+        }
+
+
+
         $result = $connection->query($sql);
         $this->assertInstanceOf(Statement::class, $result);
         $this->assertSame(1, $result->fetchColumn(), "Index creation failure. SQL: " . self::statementArrayToText($statements));

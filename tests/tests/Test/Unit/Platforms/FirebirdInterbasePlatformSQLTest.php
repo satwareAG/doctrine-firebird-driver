@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
+use Doctrine\DBAL\Platforms\DateIntervalUnit;
 use Doctrine\DBAL\Schema\Table;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 
@@ -55,11 +56,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function dataProvider_testGetDateArithmeticIntervalExpression()
     {
         return [
-            ["DATEADD(DAY, 1, 2018-01-01)", "", 1, FirebirdInterbasePlatform::DATE_INTERVAL_UNIT_DAY],
-            ["DATEADD(DAY, -1, 2018-01-01)", "-", 1, FirebirdInterbasePlatform::DATE_INTERVAL_UNIT_DAY],
-            ["DATEADD(MONTH, 1, 2018-01-01)", "", 1, FirebirdInterbasePlatform::DATE_INTERVAL_UNIT_MONTH],
-            ["DATEADD(MONTH, 3, 2018-01-01)", "", 1, FirebirdInterbasePlatform::DATE_INTERVAL_UNIT_QUARTER],
-            ["DATEADD(MONTH, -3, 2018-01-01)", "-", 1, FirebirdInterbasePlatform::DATE_INTERVAL_UNIT_QUARTER],
+            ["DATEADD(DAY, 1, 2018-01-01)", "", 1, DateIntervalUnit::DAY],
+            ["DATEADD(DAY, -1, 2018-01-01)", "-", 1, DateIntervalUnit::DAY],
+            ["DATEADD(MONTH, 1, 2018-01-01)", "", 1, DateIntervalUnit::MONTH],
+            ["DATEADD(MONTH, 3, 2018-01-01)", "", 1, DateIntervalUnit::QUARTER],
+            ["DATEADD(MONTH, -3, 2018-01-01)", "-", 1, DateIntervalUnit::QUARTER],
         ];
     }
 
@@ -350,9 +351,21 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertArrayHasKey(3, $found);
         $this->assertEquals("ALTER TABLE mytable ALTER bar SET DEFAULT 'bla'", $found[3]);
         $this->assertArrayHasKey(4, $found);
+        /**
+         * Firebird 2.5
+         */
         $this->assertEquals("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[4]);
         $this->assertArrayHasKey(5, $found);
         $this->assertEquals("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[5]);
+
+        /**
+         * Firebird 3.0+
+         */
+        $found = $this->_platform3->getAlterTableSQL($tableDiff);
+        $this->assertEquals('ALTER TABLE mytable ALTER bar SET NOT NULL', $found[4]);
+        $this->assertArrayHasKey(5, $found);
+        $this->assertEquals('ALTER TABLE mytable ALTER metar DROP NOT NULL', $found[5]);
+
     }
 
     public function testReturnsBinaryTypeDeclarationSQL()
@@ -1197,11 +1210,26 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $this->assertArrayHasKey(3, $found);
         $this->assertSame('ALTER TABLE "foo" DROP baz', $found[3]);
         $this->assertArrayHasKey(4, $found);
+        /**
+         * Firebird 2.5
+         */
+
         $this->assertSame(
             'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') '
-             . 'AND UPPER(RDB$RELATION_NAME) = UPPER(\'foo\')',
-             $found[4]
-         );
+            . 'AND UPPER(RDB$RELATION_NAME) = UPPER(\'foo\')',
+            $found[4]
+        );
+
+        $found = $this->_platform3->getAlterTableSQL($tableDiff);
+        /**
+         * Firebird 3.0+
+         */
+        $this->assertSame(
+            'ALTER TABLE foo ALTER bar DROP NOT NULL',
+            $found[4]
+        );
+
+
         $this->assertArrayHasKey(5, $found);
         $this->assertSame('ALTER TABLE "foo" ALTER COLUMN id TO war', $found[5]);
         $this->assertArrayHasKey(6, $found);

@@ -4,9 +4,12 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 use Doctrine\DBAL\DBALException;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
+/**
+ * @runTestsInSeparateProcesses
  */
 class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTest
 {
@@ -796,11 +799,17 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $expected = [
             0 => "ALTER TABLE 'foo' ALTER COLUMN 'bar' TYPE baz",
             1 => "ALTER TABLE 'foo' ALTER 'bar' DROP DEFAULT",
-            2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('') AND UPPER(RDB\$RELATION_NAME) = UPPER('')",
+            2 =>  "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('') AND UPPER(RDB\$RELATION_NAME) = UPPER('')",
             3 => "ALTER TABLE 'foo' ALTER 'bar' DROP DEFAULT",
             4 => "ALTER TABLE 'foo' ALTER COLUMN 'bar' TYPE baz",
             5 => "COMMENT ON COLUMN 'foo'.'bar' IS ''",
         ];
+        $this->assertSame($expected, $found);
+
+        $found = $this->_platform3->getAlterTableSQL($diff);
+        $this->assertIsArray($found);
+        $this->assertCount(6, $found);
+        $expected[2] = 'ALTER TABLE  ALTER  DROP NOT NULL';
         $this->assertSame($expected, $found);
     }
 

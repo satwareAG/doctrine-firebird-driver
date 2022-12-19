@@ -1,2 +1,2 @@
-CONNECT 'firebird:/databases/music_library.fdb';
+CONNECT 'firebird:/firebird/data/music_library.fdb';
 DROP DATABASE;

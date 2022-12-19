@@ -3,12 +3,12 @@ version: '3.7'
 services:
   firebird:
     container_name: firebird-doctrine-firebird-driver
-    image: "jacobalberty/firebird:2.5-sc"
+    image: "jacobalberty/firebird:3.0"
     environment:
       - ISC_PASSWORD=masterkey
       - TC=Europe/Berlin
     volumes:
-      - ./databases:/databases
+      - ./databases:/firebird/data
   app:
     environment:
       PHP_IDE_CONFIG: "serverName=phpconsole"
