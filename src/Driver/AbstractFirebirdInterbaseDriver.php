@@ -24,14 +24,14 @@ abstract class AbstractFirebirdInterbaseDriver implements Driver, ExceptionConve
     {
         if (
             ! preg_match(
-                '/^LI-(V|T)(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
+                '/^(LI|WI)-(V|T)(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
                 $version,
                 $versionParts
             )
         ) {
             throw Exception::invalidPlatformVersionSpecified(
                 $version,
-                'LI-V<major_version>.<minor_version>.<patch_version>.<build_version>'
+                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>'
             );
         }
         $majorVersion = $versionParts['major'];
