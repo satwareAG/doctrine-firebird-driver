@@ -9,10 +9,18 @@
         },
         {
             "name": "Uffe Petersen"
+        },
+        {
+            "name": "Michael Wegener",
+            "email": "mw@satware.com"
         }
     ],
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "bamarni/composer-bin-plugin": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     },
     "autoload": {
         "psr-4": {
@@ -27,14 +35,18 @@
         }
     },
     "require": {
-        "php": ">=7.4",
-        "doctrine/annotations": "^1.14",
+        "php": "^7.1 || ^8",
         "doctrine/dbal": "^2.9.3",
+        "doctrine/cache": "^1.0|^2.0",
+        "doctrine/deprecations": "^0.5.3|^1",
+        "doctrine/event-manager": "^1.0",
+        "doctrine/annotations": "^1.14",
         "doctrine/orm": "^2.7",
-        "symfony/cache": "^5.4",
         "ext-pdo": "*"
     },
     "require-dev": {
+        "doctrine/coding-standard": "9.0.0",
+        "squizlabs/php_codesniffer": "3.6.2",
         "symfony/phpunit-bridge": "^6.2"
     }
 }

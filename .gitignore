@@ -4,5 +4,6 @@
 /var/
 /vendor/
 /tests/databases/
-
+/composer.lock
+.phpcs-cache
 
