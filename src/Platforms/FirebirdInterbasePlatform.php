@@ -5,7 +5,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 
 class FirebirdInterbasePlatform extends AbstractPlatform
@@ -1078,7 +1078,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getColumnDeclarationSQL($name, array $field)
     {
-        if (isset($field['type']) && strtolower($field['type']) == 'binary') {
+
+        if (isset($field['type']) && $field['type']->getName() === Types::BINARY) {
             $field['charset'] = 'binary';
             $field['collation'] = 'octets';
         }

@@ -7,3 +7,9 @@
 /composer.lock
 .phpcs-cache
 
+/tests/.phpunit.result.cache
+
+# isolated vendor bin
+vendor-bin/**/vendor
+vendor-bin/**/composer.lock
+.php-cs-fixer.cache

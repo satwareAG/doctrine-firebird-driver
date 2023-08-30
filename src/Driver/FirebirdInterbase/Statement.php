@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
+use Doctrine\DBAL\Driver\FetchUtils;
+use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 use ReturnTypeWillChange;
@@ -12,7 +14,7 @@ use ReturnTypeWillChange;
  *   - https://github.com/helicon-os/doctrine-dbal
  *   - https://github.com/doctrine/dbal/blob/2.6/lib/Doctrine/DBAL/Driver/SQLSrv/SQLSrvStatement.php
  */
-class Statement implements \IteratorAggregate, StatementInterface
+class Statement implements \IteratorAggregate, StatementInterface, Result
 {
     const DEFAULT_FETCH_CLASS = '\stdClass';
     const DEFAULT_FETCH_CLASS_CONSTRUCTOR_ARGS = [];
@@ -210,20 +212,14 @@ class Statement implements \IteratorAggregate, StatementInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @deprecated Use free() instead.
      */
     public function closeCursor()
     {
-        if ($this->ibaseResultRc && is_resource($this->ibaseResultRc)) {
-            $success = @ibase_free_result($this->ibaseResultRc);
-            if (false == $success) {
-                /**
-                 * Essentially untestable because Firebird has a tendency to fail hard with
-                 * "Segmentation fault (core dumped)."
-                 */
-                $this->connection->checkLastApiCall();
-            }
-        }
-        $this->ibaseResultRc = null;
+        $this->free();
+
+        return true;
     }
 
     /**
@@ -724,5 +720,59 @@ class Statement implements \IteratorAggregate, StatementInterface
             $convertedStatement .= substr($statement, $le);
             $this->statement = $convertedStatement;
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function fetchNumeric()
+    {
+        if ($this->ibaseResultRc) {
+            return $this->internalFetchNum();
+        }
+        return false;
+    }
+
+    public function fetchAssociative()
+    {
+        if ($this->ibaseResultRc) {
+            return $this->internalFetchAssoc();
+        }
+        return false;
+    }
+
+    public function fetchOne()
+    {
+        return FetchUtils::fetchOne($this);
+    }
+
+    public function fetchAllNumeric(): array
+    {
+        return FetchUtils::fetchAllNumeric($this);
+    }
+
+    public function fetchAllAssociative(): array
+    {
+        return FetchUtils::fetchAllAssociative($this);
+    }
+
+    public function fetchFirstColumn(): array
+    {
+        return FetchUtils::fetchFirstColumn($this);
+    }
+
+    public function free(): void
+    {
+        if ($this->ibaseResultRc && is_resource($this->ibaseResultRc)) {
+            $success = @ibase_free_result($this->ibaseResultRc);
+            if (!$success) {
+                /**
+                 * Essentially untestable because Firebird has a tendency to fail hard with
+                 * "Segmentation fault (core dumped)."
+                 */
+                $this->connection->checkLastApiCall();
+            }
+        }
+        $this->ibaseResultRc = null;
     }
 }

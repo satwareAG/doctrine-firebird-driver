@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\QueryBuild
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
+use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
  * @runTestsInSeparateProcesses
@@ -12,10 +13,17 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelect()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album');
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $from =$qb->getQuery()->getDQL();
         $sql = $qb->getQuery()->getSQL();
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -25,17 +33,28 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
     }
 
     public function testSelectColumn()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album.id')
-            ->from(Entity\Album::class, 'album');
-        $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album.id')
+                ->from(AttributeEntity\Album::class, 'album');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album.id')
+                ->from(Entity\Album::class, 'album');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_";
         $this->assertSame($expectedSQL, $qb->getQuery()->getSQL());
@@ -50,11 +69,20 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithJoin()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->join('album.artist', 'artist'); // Inherited join
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->join('album.artist', 'artist'); // Inherited join
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->join('album.artist', 'artist'); // Inherited join
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
+
         $expectedDQL .= " INNER JOIN album.artist artist";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -63,7 +91,12 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
         $this->assertSame(2, $albums[0]->getArtist()->getId());
     }
@@ -71,12 +104,22 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithManualJoin()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->join(Entity\Artist::class, 'artist', 'WITH', 'artist = album.artist'); // Manual join
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
-        $expectedDQL .= " INNER JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WITH artist = album.artist";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->join(AttributeEntity\Artist::class, 'artist', 'WITH', 'artist = album.artist'); // Manual join
+            $expectedDQL .= " INNER JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Artist artist WITH artist = album.artist";
+        } else {
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->join(Entity\Artist::class, 'artist', 'WITH', 'artist = album.artist'); // Manual join
+            $expectedDQL .= " INNER JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WITH artist = album.artist";
+        }
+
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
         $expectedSQL .= " a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_";
@@ -85,7 +128,12 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
         $this->assertSame(2, $albums[0]->getArtist()->getId());
     }
@@ -93,11 +141,20 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithLeftJoinWhereJoinedElementExists()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->leftJoin('album.artist', 'artist');
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->leftJoin('album.artist', 'artist');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->leftJoin('album.artist', 'artist');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
+
         $expectedDQL .= " LEFT JOIN album.artist artist";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -106,7 +163,11 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
         $this->assertSame(2, $albums[0]->getArtist()->getId());
     }
@@ -114,12 +175,22 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithLeftJoinWhereJoinedElementIsNull()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album', 'artist')
-            ->from(Entity\Album::class, 'album')
-            ->leftJoin(Entity\Artist::class, 'artist', 'WITH', 'artist.id = 0');
-        $expectedDQL = "SELECT album, artist FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
-        $expectedDQL .= " LEFT JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album', 'artist')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->leftJoin(AttributeEntity\Artist::class, 'artist', 'WITH', 'artist.id = 0');
+            $expectedDQL = "SELECT album, artist FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+            $expectedDQL .= " LEFT JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Artist artist";
+        } else {
+            $qb
+                ->select('album', 'artist')
+                ->from(Entity\Album::class, 'album')
+                ->leftJoin(Entity\Artist::class, 'artist', 'WITH', 'artist.id = 0');
+            $expectedDQL = "SELECT album, artist FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+            $expectedDQL .= " LEFT JOIN Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist";
+        }
+
         $expectedDQL .= " WITH artist.id = 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2, a1_.id AS ID_3,";
@@ -129,9 +200,19 @@ class AlbumTest extends AbstractIntegrationTest
         $results = $qb->getQuery()->getResult();
         $this->assertIsArray($results);
         $this->assertArrayHasKey(0, $results);
-        $this->assertInstanceOf(Entity\Album::class, $results[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $results[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $results[0]);
+        }
+
         $this->assertSame(1, $results[0]->getId());
-        $this->assertInstanceOf(Entity\Artist::class, $results[0]->getArtist());
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Artist::class, $results[0]->getArtist());
+        } else {
+            $this->assertInstanceOf(Entity\Artist::class, $results[0]->getArtist());
+        }
+
         $this->assertSame(2, $results[0]->getArtist()->getId());
         $this->assertNull($results[1]);
     }
@@ -139,11 +220,19 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithWhere()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where('album.id > 1');
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where('album.id > 1');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where('album.id > 1');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.id > 1";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -152,19 +241,32 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(2, $albums[0]->getId());
     }
 
     public function testSelectWithLimit()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where('album.id > 0')
-            ->setMaxResults(1);
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setMaxResults(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setMaxResults(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -174,19 +276,33 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
+
         $this->assertSame(1, $albums[0]->getId());
     }
 
     public function testSelectWithOffset()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where('album.id > 0')
-            ->setFirstResult(1);
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setFirstResult(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setFirstResult(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -195,20 +311,35 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+
+        }
         $this->assertSame(2, $albums[0]->getId());
     }
 
     public function testSelectWithOffsetAndLimit()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where('album.id > 0')
-            ->setFirstResult(1)
-            ->setMaxResults(1);
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setFirstResult(1)
+                ->setMaxResults(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where('album.id > 0')
+                ->setFirstResult(1)
+                ->setMaxResults(1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -218,19 +349,33 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
+
         $this->assertSame(2, $albums[0]->getId());
     }
 
     public function testSelectWithWhereAndParameters()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where('album.id = :id')
-            ->setParameter('id', 1);
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where('album.id = :id')
+                ->setParameter('id', 1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else  {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where('album.id = :id')
+                ->setParameter('id', 1);
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.id = :id";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -239,19 +384,32 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
     }
 
     public function testSelectWithGroupBy()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album.id')
-            ->from(Entity\Album::class, 'album')
-            ->join('album.artist', 'artist')
-            ->groupBy('album.id');
-        $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album.id')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->join('album.artist', 'artist')
+                ->groupBy('album.id');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album.id')
+                ->from(Entity\Album::class, 'album')
+                ->join('album.artist', 'artist')
+                ->groupBy('album.id');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " INNER JOIN album.artist artist GROUP BY album.id";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_ INNER JOIN ARTIST a1_ ON a0_.artist_id = a1_.id GROUP BY a0_.id";
@@ -267,13 +425,23 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithHaving()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album.id')
-            ->from(Entity\Album::class, 'album')
-            ->join('album.artist', 'artist')
-            ->groupBy('album.id')
-            ->having('album.id > 1');
-        $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album.id')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->join('album.artist', 'artist')
+                ->groupBy('album.id')
+                ->having('album.id > 1');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album.id')
+                ->from(Entity\Album::class, 'album')
+                ->join('album.artist', 'artist')
+                ->groupBy('album.id')
+                ->having('album.id > 1');
+            $expectedDQL = "SELECT album.id FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " INNER JOIN album.artist artist GROUP BY album.id HAVING album.id > 1";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_ INNER JOIN ARTIST a1_ ON a0_.artist_id = a1_.id";
@@ -290,11 +458,19 @@ class AlbumTest extends AbstractIntegrationTest
     public function testSelectWithOrderBy()
     {
         $qb = $this->_entityManager->createQueryBuilder();
-        $qb
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->orderBy('album.id', 'DESC');
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->orderBy('album.id', 'DESC');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->orderBy('album.id', 'DESC');
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " ORDER BY album.id DESC";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,";
@@ -303,7 +479,11 @@ class AlbumTest extends AbstractIntegrationTest
         $albums = $qb->getQuery()->getResult();
         $this->assertIsArray($albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertNotSame(1, $albums[0]->getId());
     }
 
@@ -311,17 +491,33 @@ class AlbumTest extends AbstractIntegrationTest
     {
         $qb1 = $this->_entityManager->createQueryBuilder();
         $qb2 = $this->_entityManager->createQueryBuilder();
-        $qb1
-            ->select('artist')
-            ->from(Entity\Artist::class, 'artist')
-            ->where('artist.id = 2');
-        $qb2
-            ->select('album')
-            ->from(Entity\Album::class, 'album')
-            ->where($qb2->expr()->in('album.artist', $qb1->getDQL()));
-        $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $qb1
+                ->select('artist')
+                ->from(AttributeEntity\Artist::class, 'artist')
+                ->where('artist.id = 2');
+            $qb2
+                ->select('album')
+                ->from(AttributeEntity\Album::class, 'album')
+                ->where($qb2->expr()->in('album.artist', $qb1->getDQL()));
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Album album";
+        } else {
+            $qb1
+                ->select('artist')
+                ->from(Entity\Artist::class, 'artist')
+                ->where('artist.id = 2');
+            $qb2
+                ->select('album')
+                ->from(Entity\Album::class, 'album')
+                ->where($qb2->expr()->in('album.artist', $qb1->getDQL()));
+            $expectedDQL = "SELECT album FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+        }
         $expectedDQL .= " WHERE album.artist IN(SELECT artist";
-        $expectedDQL .= " FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $expectedDQL .= " FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\AttributeEntity\\Artist artist WHERE artist.id = 2)";
+        } else {
+            $expectedDQL .= " FROM Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
+        }
         $this->assertSame($expectedDQL, $qb2->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2, a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.artist_id IN (SELECT a1_.id FROM ARTIST a1_ WHERE a1_.id = 2)";
         $this->assertSame($expectedSQL, $qb2->getQuery()->getSQL());
@@ -329,7 +525,11 @@ class AlbumTest extends AbstractIntegrationTest
         $this->assertIsArray($albums);
         $this->assertCount(1, $albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertSame(1, $albums[0]->getId());
     }
 }

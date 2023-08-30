@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\ORMSetup;
@@ -41,13 +42,9 @@ abstract class AbstractIntegrationTest extends TestCase
      */
     protected static function createEntityManager(Configuration $configuration, array $configurationArray)
     {
-        $doctrineConnection = new Connection(
-            $configurationArray,
-            new FirebirdInterbase\Driver,
-            $configuration
-        );
-        $doctrineConnection->setNestTransactionsWithSavepoints(true);
-        return EntityManager::create($doctrineConnection, $configuration);
+        $connection = DriverManager::getConnection($configurationArray, $configuration);
+        $connection->setNestTransactionsWithSavepoints(true);
+        return new EntityManager($connection, $configuration);
     }
 
     protected static function installFirebirdDatabase(array $configurationArray)
@@ -105,16 +102,29 @@ abstract class AbstractIntegrationTest extends TestCase
      */
     protected static function getSetUpDoctrineConfiguration(): Configuration
     {
-
-        $doctrineConfiguration = new Configuration;
         $cache = new ArrayAdapter();
-        $config = new \Doctrine\ORM\Configuration();
-        $config->setMetadataCache($cache);
-        $driverImpl = ORMSetup::createDefaultAnnotationDriver([ROOT_PATH . '/tests/resources/Test/Entity'], $cache);
-        $doctrineConfiguration->setMetadataDriverImpl($driverImpl);
-        $doctrineConfiguration->setProxyDir(ROOT_PATH . '/var/doctrine-proxies');
-        $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
-        $doctrineConfiguration->setAutoGenerateProxyClasses(true);
+        $proxyDir = ROOT_PATH . '/var/doctrine-proxies';
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+
+            $doctrineConfiguration = ORMSetup::createAttributeMetadataConfiguration(
+                [ROOT_PATH . '/tests/resources/Test/AttributeEntity'],
+                true,
+                $proxyDir . '-annotations',
+                $cache,
+                true
+            );
+            $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
+        } else {
+            $doctrineConfiguration = new Configuration;
+
+            $config = new \Doctrine\ORM\Configuration();
+            $config->setMetadataCache($cache);
+            $driverImpl = ORMSetup::createDefaultAnnotationDriver([ROOT_PATH . '/tests/resources/Test/Entity'], $cache);
+            $doctrineConfiguration->setMetadataDriverImpl($driverImpl);
+            $doctrineConfiguration->setProxyDir($proxyDir);
+            $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
+            $doctrineConfiguration->setAutoGenerateProxyClasses(true); // devmode = true
+        }
         return $doctrineConfiguration;
     }
 
@@ -129,6 +139,7 @@ abstract class AbstractIntegrationTest extends TestCase
             'user' => static::DEFAULT_DATABASE_USERNAME,
             'password' => static::DEFAULT_DATABASE_PASSWORD,
             'charset' => 'UTF-8',
+            'driverClass' => FirebirdInterbase\Driver::class
         ];
     }
 }

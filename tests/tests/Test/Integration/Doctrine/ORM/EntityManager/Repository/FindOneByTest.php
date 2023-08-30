@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityMana
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
+use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
  * @runTestsInSeparateProcesses
@@ -11,10 +12,19 @@ class FindOneByTest extends AbstractIntegrationTest
 {
     public function testFindOneByAlbum()
     {
-        $album = $this->_entityManager->getRepository(Entity\Album::class)->findOneBy([
-            "id" => 1,
-        ]);
-        $this->assertInstanceOf(Entity\Album::class, $album);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $album = $this->_entityManager->getRepository(AttributeEntity\Album::class)->findOneBy([
+                "id" => 1,
+            ]);
+            $this->assertInstanceOf(AttributeEntity\Album::class, $album);
+        } else {
+            $album = $this->_entityManager->getRepository(Entity\Album::class)->findOneBy([
+                "id" => 1,
+            ]);
+            $this->assertInstanceOf(Entity\Album::class, $album);
+        }
+
+
         $this->assertSame(1, $album->getId());
     }
 }

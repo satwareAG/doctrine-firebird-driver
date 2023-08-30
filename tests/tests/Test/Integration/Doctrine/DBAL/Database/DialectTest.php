@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
+use Doctrine\DBAL\Driver\Exception;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 
 /**
@@ -17,6 +18,10 @@ class DialectTest extends AbstractIntegrationTest
 
     }
 
+    /**
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function testDialect0And3()
     {
         foreach ([0,3] as $dialect) {
@@ -31,33 +36,29 @@ class DialectTest extends AbstractIntegrationTest
             $connection = $entityManager->getConnection();
 
             $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $result = $stmt->executeQuery()->fetchAssociative();
+
             $this->assertSame(100, strlen($result['TXT']));
             $this->assertStringStartsWith("2018-01-01", $result['TXT']);
 
             $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01 00:00:00' AS TIMESTAMP) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $result = $stmt->executeQuery()->fetchAssociative();
             $this->assertSame(100, strlen($result['TXT']));
             $this->assertSame("2018-01-01 00:00:00.0000", rtrim($result['TXT']));
 
             $stmt = $connection->prepare("SELECT CAST(CAST('00:00:00' AS TIME) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $result = $stmt->executeQuery()->fetchAssociative();
             $this->assertSame(100, strlen($result['TXT']));
             $this->assertSame("00:00:00.0000", rtrim($result['TXT']));
 
             $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $result = $stmt->executeQuery()->fetchAssociative();
             $this->assertIsArray($result);
             $this->assertArrayHasKey("ID", $result);
             $this->assertSame(1, $result["ID"]);
 
             $stmt = $connection->prepare("SELECT 1/3 AS NUMBER FROM RDB\$DATABASE");
-            $stmt->execute();
-            $result = $stmt->fetch();
+            $result = $stmt->executeQuery()->fetchAssociative();
             $this->assertIsArray($result);
             $this->assertArrayHasKey("NUMBER", $result);
             $this->assertIsInt($result["NUMBER"]);
@@ -79,20 +80,18 @@ class DialectTest extends AbstractIntegrationTest
             $this->markTestSkipped(sprintf('Platform %s is not supported yet', $connection->getDatabasePlatform()->getName()));
         }
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-        $stmt->execute();
-        $result = $stmt->fetch();
+        $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertSame(100, strlen($result['TXT']));
         $this->assertStringStartsWith("1-JAN-2018", $result['TXT']);
 
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01 00:00:00' AS TIMESTAMP) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-        $stmt->execute();
-        $result = $stmt->fetch();
+        $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertSame(100, strlen($result['TXT']));
         $this->assertSame("1-JAN-2018", rtrim($result['TXT']));
 
         $stmt = $connection->prepare("SELECT CAST(CAST('00:00:00' AS TIME) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         try {
-            $stmt->execute();
+            $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame('Doctrine\DBAL\Exception\SyntaxErrorException', get_class($t));
             $this->assertStringStartsWith('Error -104: An exception occurred while executing ', $t->getMessage());
@@ -103,7 +102,7 @@ class DialectTest extends AbstractIntegrationTest
 
         $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
         try {
-            $stmt->execute();
+            $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame('Doctrine\DBAL\Exception\SyntaxErrorException', get_class($t));
             $this->assertStringStartsWith('Error -104: An exception occurred while executing \'', $t->getMessage());
@@ -113,8 +112,7 @@ class DialectTest extends AbstractIntegrationTest
         }
 
         $stmt = $connection->prepare("SELECT 1/3 AS NUMBER FROM RDB\$DATABASE");
-        $stmt->execute();
-        $result = $stmt->fetch();
+        $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertIsArray($result);
         $this->assertArrayHasKey("NUMBER", $result);
         $this->assertIsFloat($result["NUMBER"]);
@@ -135,7 +133,7 @@ class DialectTest extends AbstractIntegrationTest
 
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         try {
-            $stmt->execute();
+            $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame('Doctrine\DBAL\Exception\SyntaxErrorException', get_class($t));
             $this->assertStringStartsWith('Error -104: An exception occurred while executing \'', $t->getMessage());
@@ -145,14 +143,13 @@ class DialectTest extends AbstractIntegrationTest
         }
 
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01 00:00:00' AS TIMESTAMP) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
-        $stmt->execute();
-        $result = $stmt->fetch();
+        $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertSame(100, strlen($result['TXT']));
         $this->assertSame("2018-01-01 00:00:00.0000", rtrim($result['TXT']));
 
         $stmt = $connection->prepare("SELECT CAST(CAST('00:00:00' AS TIME) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         try {
-            $stmt->execute();
+            $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame('Doctrine\DBAL\Exception\SyntaxErrorException', get_class($t));
             $this->assertStringStartsWith('Error -104: An exception occurred while executing ', $t->getMessage());
@@ -163,7 +160,7 @@ class DialectTest extends AbstractIntegrationTest
 
         $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
         try {
-            $stmt->execute();
+            $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame('Doctrine\DBAL\Exception\SyntaxErrorException', get_class($t));
             $this->assertStringStartsWith('Error -104: An exception occurred while executing \'', $t->getMessage());
@@ -173,8 +170,7 @@ class DialectTest extends AbstractIntegrationTest
         }
 
         $stmt = $connection->prepare("SELECT 1/3 AS NUMBER FROM RDB\$DATABASE");
-        $stmt->execute();
-        $result = $stmt->fetch();
+        $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertIsArray($result);
         $this->assertArrayHasKey("NUMBER", $result);
         $this->assertIsInt($result["NUMBER"]);

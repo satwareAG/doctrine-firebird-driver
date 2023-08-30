@@ -19,6 +19,7 @@ class StatementTest extends AbstractIntegrationTest
         $statement->setFetchMode(\PDO::FETCH_CLASS, '\stdClass');
         $statement->execute();
         $object = $statement->fetch();
+
         $this->assertIsObject($object);
         $this->assertInstanceOf('stdClass', $object);
         $this->assertSame(1, $object->ID);

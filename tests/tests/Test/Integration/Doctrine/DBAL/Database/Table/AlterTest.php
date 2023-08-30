@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table;
 
+use Doctrine\DBAL\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
@@ -10,10 +11,11 @@ class AlterTest extends AbstractIntegrationTest
 {
     public function testAlterTable()
     {
+        $this->assertTrue(true);
         $connection = $this->_entityManager->getConnection();
         $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
         $sql = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
-        $connection->exec($sql);
+        $connection->executeStatement($sql);
 
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff($tableName);
         $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
@@ -27,7 +29,7 @@ class AlterTest extends AbstractIntegrationTest
         $statements = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertCount(2, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql = (
@@ -38,8 +40,8 @@ class AlterTest extends AbstractIntegrationTest
             AND RF.RDB\$FIELD_NAME = 'FOO'
             AND F.RDB\$FIELD_TYPE = " . FirebirdInterbaseSchemaManager::META_FIELD_TYPE_VARCHAR
         );
-        $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Column change failed. SQL: " . self::statementArrayToText($statements));
+        $result = $connection->executeQuery($sql);
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Column change failed. SQL: " . self::statementArrayToText($statements));
     }
 }

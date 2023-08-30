@@ -8,6 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
+use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
  * @runTestsInSeparateProcesses
@@ -45,14 +46,23 @@ class ConnectionTest extends AbstractIntegrationTest
     {
         $id = $this->_entityManager->getConnection()->lastInsertId('ALBUM_ID_SEQ');
         $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup.sql
-        $albumA = new Entity\Album("Foo");
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $albumA = new AttributeEntity\Album("Foo");
+        } else {
+            $albumA = new Entity\Album("Foo");
+        }
+
         $this->_entityManager->persist($albumA);
-        $this->_entityManager->flush($albumA);
+        $this->_entityManager->flush();
         $idA = $this->_entityManager->getConnection()->lastInsertId('ALBUM_ID_SEQ');
         $this->assertSame(3, $idA);
-        $albumB = new Entity\Album("Foo");
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $albumB = new AttributeEntity\Album("Foo");
+        } else {
+            $albumB = new Entity\Album("Foo");
+        }
         $this->_entityManager->persist($albumB);
-        $this->_entityManager->flush($albumB);
+        $this->_entityManager->flush();
         $idB = $this->_entityManager->getConnection()->lastInsertId('ALBUM_ID_SEQ');
         $this->assertSame(4, $idB);
     }

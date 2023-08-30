@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityMana
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
+use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 class FindAllTest extends AbstractIntegrationTest
 {
@@ -11,12 +12,26 @@ class FindAllTest extends AbstractIntegrationTest
      */
     public function testFindByAlbum()
     {
-        $albums = $this->_entityManager->getRepository(Entity\Album::class)->findAll();
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $albums = $this->_entityManager->getRepository(AttributeEntity\Album::class)->findAll();
+        } else {
+
+            $albums = $this->_entityManager->getRepository(Entity\Album::class)->findAll();
+        }
         $this->assertGreaterThan(2, $albums);
         $this->assertArrayHasKey(0, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[0]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[0]);
+        }
         $this->assertArrayHasKey(1, $albums);
-        $this->assertInstanceOf(Entity\Album::class, $albums[1]);
+        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+            $this->assertInstanceOf(AttributeEntity\Album::class, $albums[1]);
+        } else {
+            $this->assertInstanceOf(Entity\Album::class, $albums[1]);
+
+        }
         $this->assertSame(1, $albums[0]->getId());
         $this->assertSame(2, $albums[1]->getId());
     }

@@ -1041,7 +1041,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->willReturn("baz");
         $type
             ->expects($this->any())
-            ->method('__toString')
+            ->method('getName')
             ->willReturn("binary");
         $found = $this->_platform->getColumnDeclarationSQL("foo", ['type' => $type]);
         $this->assertIsString($found);

@@ -19,12 +19,19 @@
         "sort-packages": true,
         "allow-plugins": {
             "bamarni/composer-bin-plugin": true,
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "composer/package-versions-deprecated": true
         }
     },
     "autoload": {
         "psr-4": {
             "Kafoso\\DoctrineFirebirdDriver\\": "src/"
+        }
+    },
+    "extra": {
+        "bamarni-bin": {
+            "bin-links": true,
+            "forward-command": true
         }
     },
     "autoload-dev": {
@@ -35,18 +42,26 @@
         }
     },
     "require": {
-        "php": "^7.1 || ^8",
-        "doctrine/dbal": "^2.9.3",
-        "doctrine/cache": "^1.0|^2.0",
+        "php": "^7.1 || ^8.0",
+        "ext-pdo": "*",
+        "doctrine/annotations": "^1.14",
+        "doctrine/cache": "^1.10|^2.0",
+        "doctrine/dbal": "^2.13",
         "doctrine/deprecations": "^0.5.3|^1",
         "doctrine/event-manager": "^1.0",
-        "doctrine/annotations": "^1.14",
-        "doctrine/orm": "^2.7",
-        "ext-pdo": "*"
+        "doctrine/orm": "^2.7"
     },
     "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.8",
         "doctrine/coding-standard": "9.0.0",
+        "jetbrains/phpstorm-stubs": "2021.1",
+        "phpstan/phpstan": "1.4.6",
+        "phpunit/phpunit": "^7.5.20|^8.5|9.5.16",
+        "psalm/plugin-phpunit": "0.16.1",
         "squizlabs/php_codesniffer": "3.6.2",
-        "symfony/phpunit-bridge": "^6.2"
+        "symfony/cache": "^4.4",
+        "symfony/console": "^2.0.5|^3.0|^4.0|^5.0",
+        "symfony/phpunit-bridge": "^6.2",
+        "vimeo/psalm": "4.22.0"
     }
 }
