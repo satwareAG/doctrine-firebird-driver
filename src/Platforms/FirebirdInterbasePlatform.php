@@ -628,7 +628,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         if (is_array($sql)) {
             $result = '';
             foreach ($sql as $stm) {
-                $result .= is_array($stm) ? $this->getCombinedSqlStatements($stm) : $stm . $aSeparator;
+                $result .= is_array($stm) ? $this->getCombinedSqlStatements($stm, $aSeparator) : $stm . $aSeparator;
             }
             return $result;
         }
@@ -982,7 +982,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getClobTypeDeclarationSQL(array $field)
     {
-        if (!empty($field['length']) && is_numeric($field['length']) &&
+        if (isset($field['length']) && is_numeric($field['length']) &&
                 $field['length'] <= $this->getVarcharMaxLength()) {
             return 'VARCHAR(' . $field['length'] . ')';
         }
@@ -1047,7 +1047,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getColumnCharsetDeclarationSQL($charset)
     {
-        if (!empty($charset)) {
+        if ($charset !== '') {
             return ' CHARACTER SET ' . $charset;
         }
         return '';
@@ -1151,6 +1151,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $query .= ' ON COMMIT PRESERVE ROWS';   // Session level temporary tables
         }
 
+        $sql = [];
         $sql[] = $query;
 
         // Create sequences and a trigger for autoinc-fields if necessary
@@ -1172,11 +1173,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             }
         }
 
-        if (isset($indexes) && !empty($indexes)) {
-            foreach ($indexes as $index) {
-                $sql[] = $this->getCreateIndexSQL($index, $tableName);
-            }
+
+        foreach ($indexes as $index) {
+            $sql[] = $this->getCreateIndexSQL($index, $tableName);
         }
+
 
         return $sql;
     }
