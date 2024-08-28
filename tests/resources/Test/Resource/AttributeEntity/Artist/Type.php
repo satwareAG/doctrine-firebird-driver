@@ -10,19 +10,22 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist;
 #[ORM\Entity]
 class Type
 {
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id;
+    private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private $name;
-
-    #[ORM\OneToMany(targetEntity: 'Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist', mappedBy: 'type')]
-    private $artists;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
     /**
-     * @param string $name
+     * @var \Doctrine\Common\Collections\Collection<int, \Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist>
+     */
+    #[ORM\OneToMany(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist::class, mappedBy: 'type')]
+    private \Doctrine\Common\Collections\Collection $artists;
+
+    /**
+     * @param \Doctrine\Common\Collections\Collection<int, \Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist> $name
      */
     public function __construct($name)
     {

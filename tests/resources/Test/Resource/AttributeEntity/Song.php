@@ -9,22 +9,22 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class Song
 {
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id = null;
+    private ?int $id = null;
 
-    #[ORM\Column(type: 'datetime')]
-    private $timeCreated;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $timeCreated = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private $name;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
     #[ORM\JoinTable(name: 'Album_SongMap')]
     #[ORM\JoinColumn(name: 'song_id', referencedColumnName: 'id')]
     #[ORM\InverseJoinColumn(name: 'album_id', referencedColumnName: 'id', unique: true)]
     #[ORM\ManyToMany(targetEntity: 'Album')]
-    private $albums;
+    private \Doctrine\Common\Collections\Collection $albums;
 
     #[ORM\ManyToOne(targetEntity: 'Genre', inversedBy: 'songs')]
     private $genre;

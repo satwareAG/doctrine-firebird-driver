@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 
-abstract class AbstractIntegrationTest extends TestCase
+abstract class AbstractIntegrationTestCase extends TestCase
 {
     const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
@@ -104,27 +104,14 @@ abstract class AbstractIntegrationTest extends TestCase
     {
         $cache = new ArrayAdapter();
         $proxyDir = ROOT_PATH . '/var/doctrine-proxies';
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-
-            $doctrineConfiguration = ORMSetup::createAttributeMetadataConfiguration(
-                [ROOT_PATH . '/tests/resources/Test/AttributeEntity'],
-                true,
-                $proxyDir . '-annotations',
-                $cache,
-                true
-            );
-            $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
-        } else {
-            $doctrineConfiguration = new Configuration;
-
-            $config = new \Doctrine\ORM\Configuration();
-            $config->setMetadataCache($cache);
-            $driverImpl = ORMSetup::createDefaultAnnotationDriver([ROOT_PATH . '/tests/resources/Test/Entity'], $cache);
-            $doctrineConfiguration->setMetadataDriverImpl($driverImpl);
-            $doctrineConfiguration->setProxyDir($proxyDir);
-            $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
-            $doctrineConfiguration->setAutoGenerateProxyClasses(true); // devmode = true
-        }
+        $doctrineConfiguration = ORMSetup::createAttributeMetadataConfiguration(
+            [ROOT_PATH . '/tests/resources/Test/AttributeEntity'],
+            true,
+            $proxyDir . '-annotations',
+            $cache,
+            true
+        );
+        $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
         return $doctrineConfiguration;
     }
 

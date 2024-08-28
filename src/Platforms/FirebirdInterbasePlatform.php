@@ -1,7 +1,9 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\DateIntervalUnit;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -44,7 +46,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      * @param Identifier|string   $aIdentifier    The identifier to check
      * @param integer                                   $maxLength      Length limit to check. Usually the result of
      *                                                                  {@link getMaxIdentifierLength()} should be passed
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws \Doctrine\DBAL\Exception
      */
     public function checkIdentifierLength($aIdentifier, $maxLength)
     {
@@ -53,7 +55,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
                 $aIdentifier->getName() : $aIdentifier;
 
         if (strlen($name) > $this->getMaxIdentifierLength()) {
-            throw \Doctrine\DBAL\DBALException::notSupported
+            throw \Doctrine\DBAL\Exception::notSupported
                     ('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $this->getMaxIdentifierLength());
         }
     }
@@ -73,7 +75,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         $fullId = '';
         $shortId = '';
         is_array($prefix) || $prefix = [$prefix];
-        $ml = floor(($maxLength - strlen($suffix)) / count($prefix));
+        $ml = floor(($maxLength - strlen((string) $suffix)) / count($prefix));
         foreach ($prefix as $p) {
             if (!$p instanceof AbstractAsset)
                 $p = new Identifier($p);
@@ -192,10 +194,10 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit)
     {
-        if (self::DATE_INTERVAL_UNIT_QUARTER === $unit) {
+        if (DateIntervalUnit::QUARTER === $unit) {
             // Firebird does not support QUARTER - convert to month
             $interval *= 3;
-            $unit = self::DATE_INTERVAL_UNIT_MONTH;
+            $unit = DateIntervalUnit::MONTH;
         }
         if ($operator == '-') {
             $interval *= -1;
@@ -426,11 +428,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws \Doctrine\DBAL\Exception
      */
     public function getDropDatabaseSQL($database)
     {
-        throw \Doctrine\DBAL\DBALException::notSupported(__METHOD__);
+        throw \Doctrine\DBAL\Exception::notSupported(__METHOD__);
     }
 
     public function getCreateViewSQL($name, $sql)
@@ -449,7 +451,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      * @param array|string $sql
      * @return string
      */
-    protected function getExecuteBlockSql(array $params = array())
+    protected function getExecuteBlockSql(array $params = [])
     {
         $params = array_merge(
             [
@@ -469,7 +471,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $indent = '';
         }
         $result = 'EXECUTE BLOCK ';
-        if (!empty($params['blockParams'])) {
+        if (isset($params['blockParams']) && is_array($params['blockParams']) && count($params['blockParams']) > 0) {
             $result .= '(';
             $n = 0;
             foreach ($params['blockParams'] as $paramName => $paramDelcaration) {
@@ -502,7 +504,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      * @param array $variableDeclarations
      * @return string
      */
-    protected function getExecuteBlockWithExecuteStatementsSql(array $params = array())
+    protected function getExecuteBlockWithExecuteStatementsSql(array $params = [])
     {
         $params = array_merge(
             [
@@ -910,7 +912,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $sql = array_merge($sql, $commentsSQL);
 
             if ($diff->newName !== false) {
-                throw \Doctrine\DBAL\DBALException::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+                throw \Doctrine\DBAL\Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
             }
 
             $sql = array_merge(
@@ -1105,13 +1107,13 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    protected function _getCreateTableSQL($tableName, array $columns, array $options = array())
+    protected function _getCreateTableSQL($tableName, array $columns, array $options = [])
     {
         $this->checkIdentifierLength($tableName, $this->getMaxIdentifierLength());
 
         $isTemporary = (isset($options['temporary']) && !empty($options['temporary']));
 
-        $indexes = isset($options['indexes']) ? $options['indexes'] : [];
+        $indexes = $options['indexes'] ?? [];
         $options['indexes'] = [];
 
 
@@ -1155,7 +1157,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
         foreach ($columns as $name => $column) {
             if (isset($column['sequence'])) {
-                $sql[] = $this->getCreateSequenceSQL($column['sequence'], 1);
+                $sql[] = $this->getCreateSequenceSQL($column['sequence']);
             }
 
             if (isset($column['autoincrement']) && $column['autoincrement'] ||
@@ -1365,7 +1367,7 @@ ___query___;
      */
     public function getSQLResultCasing($column)
     {
-        return strtoupper($column);
+        return strtoupper((string) $column);
     }
 
     private function unquotedIdentifierName($name)
@@ -1424,5 +1426,19 @@ ___query___;
         return $table->isQuoted()
             ? $this->quoteSingleIdentifier($identifierName)
             : $identifierName;
+    }
+
+    public function getCurrentDatabaseExpression(): string
+    {
+        return 'select current_connection from rdb$database;';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getRenameTableSQL(string $oldName, string $newName): array
+    {
+        throw Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+        return parent::getRenameTableSQL($oldName, $newName);
     }
 }

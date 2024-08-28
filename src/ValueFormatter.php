@@ -11,12 +11,12 @@ abstract class ValueFormatter
      * @param mixed $value                      Any data type.
      * @return string
      */
-    public static function cast($value)
+    public static function cast(mixed $value)
     {
         if (is_object($value)) {
             return sprintf(
                 "\\%s",
-                get_class($value)
+                $value::class
             );
         }
         if (is_array($value)) {
@@ -41,7 +41,7 @@ abstract class ValueFormatter
      * @param string $str
      * @return string
      */
-    public static function escapeAndQuote($str)
+    public static function escapeAndQuote(string $str): string
     {
         $quotingCharacters = '"';
         $escape = implode("", array_unique(preg_split('//', '\\' . $quotingCharacters)));
@@ -56,12 +56,12 @@ abstract class ValueFormatter
      * @param mixed $value                      Any data type.
      * @return string
      */
-    public static function found($value)
+    public static function found(mixed $value)
     {
         if (is_object($value)) {
             return sprintf(
                 "(object) \\%s",
-                get_class($value)
+                $value::class
             );
         }
         if (is_array($value)) {

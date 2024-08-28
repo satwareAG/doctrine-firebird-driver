@@ -5,33 +5,23 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="ARTIST")
- */
+#[ORM\Table(name: 'ARTIST')]
+#[ORM\Entity]
 class Artist
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id = null;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $name;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type", inversedBy="artists")
-     */
-    private $type;
+    #[ORM\ManyToOne(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type::class, inversedBy: 'artists')]
+    private ?\Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type $type = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="Album", mappedBy="artist")
-     */
-    private $albums;
+    #[ORM\OneToMany(targetEntity: \Album::class, mappedBy: 'artist')]
+    private \Doctrine\Common\Collections\Collection $albums;
 
     /**
      * @param string $name

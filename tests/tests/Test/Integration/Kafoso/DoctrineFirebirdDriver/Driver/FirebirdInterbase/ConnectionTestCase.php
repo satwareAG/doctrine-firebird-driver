@@ -6,14 +6,14 @@ use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class ConnectionTest extends AbstractIntegrationTest
+class ConnectionTestCase extends AbstractIntegrationTestCase
 {
     public function testBasics()
     {

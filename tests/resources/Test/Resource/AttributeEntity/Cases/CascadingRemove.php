@@ -7,16 +7,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class CascadingRemove
 {
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
-    private $id = 1;
+    private ?int $id = 1;
 
-    #[ORM\OneToOne(targetEntity: 'Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Cases\CascadingRemove\Subclass', cascade: ['remove'])]
-    private $subclass;
-
-    public function __construct(CascadingRemove\Subclass $subclass)
+    public function __construct(#[ORM\OneToOne(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Cases\CascadingRemove\Subclass::class, cascade: ['remove'])]
+    private ?\Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Cases\CascadingRemove\Subclass $subclass)
     {
-        $this->subclass = $subclass;
     }
 
     /**

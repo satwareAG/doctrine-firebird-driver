@@ -5,51 +5,31 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="SONG")
- */
+#[ORM\Table(name: 'SONG')]
+#[ORM\Entity]
 class Song
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id = null;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
 
-    /**
-     * @ORM\Column(type="datetime")
-     */
-    private $timeCreated;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $timeCreated = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $name;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
-    /**
-     * @ORM\ManyToMany(targetEntity="Album")
-     * @ORM\JoinTable(
-     *   name="Album_SongMap",
-     *   joinColumns={
-     *     @ORM\JoinColumn(name="song_id", referencedColumnName="id")
-     *   },
-     *   inverseJoinColumns={
-     *     @ORM\JoinColumn(name="album_id", referencedColumnName="id", unique=true)
-     *   }
-     * )
-     */
-    private $albums;
+    #[ORM\JoinTable(name: 'Album_SongMap')]
+    #[ORM\JoinColumn(name: 'song_id', referencedColumnName: 'id')]
+    #[ORM\InverseJoinColumn(name: 'album_id', referencedColumnName: 'id', unique: true)]
+    #[ORM\ManyToMany(targetEntity: \Album::class)]
+    private \Doctrine\Common\Collections\Collection $albums;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Genre", inversedBy="songs")
-     */
+    #[ORM\ManyToOne(targetEntity: \Genre::class, inversedBy: 'songs')]
     private $genre;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Artist", inversedBy="albums")
-     */
+    #[ORM\ManyToOne(targetEntity: \Artist::class, inversedBy: 'albums')]
     private $artist = null;
 
     /**

@@ -3,13 +3,13 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\
 
 use Doctrine\DBAL\Schema\Comparator;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class CreateWithColumnsTest extends AbstractIntegrationTest
+class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
 {
     /**
      * @dataProvider dataProvider_testCreateTableWithVariousColumnOptionCombinations

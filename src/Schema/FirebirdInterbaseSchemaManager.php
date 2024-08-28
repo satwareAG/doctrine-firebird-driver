@@ -2,6 +2,8 @@
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Sequence;
+use Doctrine\DBAL\Schema\View;
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
@@ -21,27 +23,19 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableDefinition($table)
     {
         $table = \array_change_key_case($table, CASE_LOWER);
-        return $this->getQuotedIdentifierName(trim($table['rdb$relation_name']));
+        return $this->getQuotedIdentifierName(trim((string) $table['rdb$relation_name']));
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function _getPortableViewDefinition($view)
+    protected function _getPortableViewDefinition($view): bool|View
     {
         $view = \array_change_key_case($view, CASE_LOWER);
-        return new \Doctrine\DBAL\Schema\View(
-            $this->getQuotedIdentifierName(trim($view['rdb$relation_name'])),
-            $this->getQuotedIdentifierName(trim($view['rdb$view_source']))
+        return new View(
+            $this->getQuotedIdentifierName(trim((string) $view['rdb$relation_name'])),
+            $this->getQuotedIdentifierName(trim((string) $view['rdb$view_source']))
         );
-    }
-
-    protected function _getPortableUserDefinition($user)
-    {
-        return [
-            'user' => $user['User'],
-            'password' => $user['Password'],
-        ];
     }
 
     /**
@@ -51,7 +45,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
     protected function _getPortableSequenceDefinition($sequence)
     {
         $sequence = \array_change_key_case($sequence, CASE_LOWER);
-        return new Sequence($this->getQuotedIdentifierName(trim($sequence['rdb$generator_name'])), 1, 1);
+        return new Sequence($this->getQuotedIdentifierName(trim((string) $sequence['rdb$generator_name'])), 1, 1);
     }
 
     protected function _getPortableDatabaseDefinition($database)
@@ -71,19 +65,14 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
      */
     private function getQuotedIdentifierName($identifier)
     {
-        if (preg_match('/[a-z]/', $identifier)) {
+        if (false !== preg_match('/[a-z]/', $identifier)) {
             return $this->_platform->quoteIdentifier($identifier);
         }
         return $identifier;
     }
 
     /**
-     * Gets a portable column definition.
-     *
-     * The database type is mapped to a corresponding Doctrine mapping type.
-     *
-     * @param $tableColumn
-     * @return array
+     * @inheritDoc
      */
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
@@ -92,7 +81,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 
         $tableColumn = array_change_key_case($tableColumn, CASE_UPPER);
 
-        $dbType = strtolower($tableColumn['FIELD_TYPE_NAME']);
+        $dbType = strtolower((string) $tableColumn['FIELD_TYPE_NAME']);
 
         $type = [];
         $fixed = null;
@@ -100,7 +89,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         if (!isset($tableColumn['FIELD_NAME'])) {
             $tableColumn['FIELD_NAME'] = '';
         }
-        $tableColumn['FIELD_NAME'] = strtolower($tableColumn['FIELD_NAME']);
+        $tableColumn['FIELD_NAME'] = strtolower((string) $tableColumn['FIELD_NAME']);
 
         $scale = isset($tableColumn['FIELD_SCALE']) ? $tableColumn['FIELD_SCALE'] * -1 : null;
         $precision = $tableColumn['FIELD_PRECISION'];
@@ -153,11 +142,11 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 
 
 
-        if (preg_match('/^.*default\s*\'(.*)\'\s*$/i', $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
+        if (false !== preg_match('/^.*default\s*\'(.*)\'\s*$/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
             // default definition is a string
             $options['default'] = $matches[1];
         } else {
-            if (preg_match('/^.*DEFAULT\s*(.*)\s*/i', $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
+            if (false !== preg_match('/^.*DEFAULT\s*(.*)\s*/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
                 // Default is numeric or a constant or a function
                 $options['default'] = $matches[1];
                 if (strtoupper(trim($options['default'])) == 'NULL') {
@@ -173,7 +162,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         $options = array_merge(
             $options,
             [
-                'unsigned' => (bool) (strpos($dbType, 'unsigned') !== false),
+                'unsigned' => str_contains($dbType, 'unsigned'),
                 'fixed' => (bool) $fixed,
                 'scale' => null,
                 'precision' => null,
@@ -210,8 +199,8 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
                     'onUpdate' => $value['on_update'],
                 ];
             }
-            $list[$value['constraint_name']]['local'][] = strtolower($value['field_name']);
-			$list[$value['constraint_name']]['foreign'][] = strtolower($value['references_field']);
+            $list[$value['constraint_name']]['local'][] = strtolower((string) $value['field_name']);
+			$list[$value['constraint_name']]['foreign'][] = strtolower((string) $value['references_field']);
         }
 
         $result = [];
@@ -238,14 +227,15 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 
             $tableIndex = \array_change_key_case($tableIndex, CASE_LOWER);
 
-            if (!$tableIndex['foreign_key'])
+            if (!isset($tableIndex['foreign_key']))
             {
 
             $mangledItem = $tableIndex;
 
-            $mangledItem['key_name'] = !empty($tableIndex['constraint_name']) ? $tableIndex['constraint_name'] : $tableIndex['index_name'];
+                $mangledItem['key_name'] = isset($tableIndex['constraint_name']) && ($tableIndex['constraint_name'] !== '') ? $tableIndex['constraint_name'] : $tableIndex['index_name'];
 
-            $mangledItem['non_unique'] = !(bool) $tableIndex['unique_flag'];
+
+                $mangledItem['non_unique'] = !(bool) $tableIndex['unique_flag'];
 
             $mangledItem['primary'] = ($tableIndex['constraint_type'] == 'PRIMARY KEY');
 
@@ -253,7 +243,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
                 $mangledItem['options']['descending'] = true;
             }
 
-            $mangledItem['column_name'] = strtolower($tableIndex['field_name']);
+            $mangledItem['column_name'] = strtolower((string) $tableIndex['field_name']);
 
             $mangledData[] = $mangledItem;
             }
@@ -261,7 +251,10 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         return parent::_getPortableTableIndexesList($mangledData, $tableName);
     }
 
-    public static function getFieldTypeIdToColumnTypeMap()
+    /**
+     * @return array<int, string>
+     */
+    public static function getFieldTypeIdToColumnTypeMap(): array
     {
         return [
             self::META_FIELD_TYPE_CHAR => "string",

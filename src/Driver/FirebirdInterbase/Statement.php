@@ -6,6 +6,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
+use Kafoso\DoctrineFirebirdDriver\SQLParserUtils;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 use ReturnTypeWillChange;
 
@@ -208,6 +209,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
                 throw new Exception('Cannot bind to unknown parameter ' . $column, null);
             }
         }
+        return true;
     }
 
     /**
@@ -226,7 +228,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
      * {@inheritdoc}
      * @throws \RuntimeException
      */
-    public function execute($params = null)
+    public function execute($params = null): Result
     {
         $this->affectedRows = 0;
 
@@ -412,7 +414,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
     /**
      * {@inheritDoc}
      */
-    public function rowCount()
+    public function rowCount(): int
     {
         return $this->affectedRows;
     }
@@ -420,7 +422,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
     /**
      * {@inheritdoc}
      */
-    public function columnCount()
+    public function columnCount(): int
     {
         return $this->numFields;
     }
@@ -468,7 +470,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
     {
         $rowData = $this->internalFetchNum();
         if (is_array($rowData)) {
-            return (isset($rowData[$columnIndex]) ? $rowData[$columnIndex] : null);
+            return ($rowData[$columnIndex] ?? null);
         }
         return false;
     }
@@ -702,7 +704,7 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
     {
         $this->statement = $statement;
         $this->namedParamsMap = [];
-        $pp = \Doctrine\DBAL\SQLParserUtils::getPlaceholderPositions($statement, false);
+        $pp = SQLParserUtils::getPlaceholderPositions($statement, false);
         if (!empty($pp)) {
             $pidx = 0; // index-position of the parameter
             $le = 0; // substr start position

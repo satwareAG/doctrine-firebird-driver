@@ -7,9 +7,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class Subclass
 {
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
-    private $id = 1;
+    private ?int $id = 1;
 
     /**
      * @return null|int

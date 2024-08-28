@@ -3,12 +3,12 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Kafoso\DoctrineFirebird
 
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class StatementTest extends AbstractIntegrationTest
+class StatementTestCase extends AbstractIntegrationTestCase
 {
     public function testFetchWorks()
     {

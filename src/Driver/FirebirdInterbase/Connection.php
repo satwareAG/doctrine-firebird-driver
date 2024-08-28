@@ -1,7 +1,6 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
-use Doctrine\DBAL\Driver\Connection as ConnectionInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
@@ -9,8 +8,9 @@ use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
+ * and Doctrine\DBAL\Driver\OCI8\Connection
  */
-class Connection implements ConnectionInterface, ServerInfoAwareConnection
+final class Connection implements ServerInfoAwareConnection
 {
     const DEFAULT_CHARSET = 'UTF-8';
     const DEFAULT_BUFFERS = 0;
@@ -48,11 +48,14 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     protected $dialect = 0;
 
     /**
-     * @var resource (ibase_pconnect or ibase_connect)
+     * @var false|resource (ibase_pconnect or ibase_connect)
      */
-    private $_ibaseConnectionRc = null;
+    private $_ibaseConnectionRc = false;
 
-    private $_ibaseService = null;
+    /**
+     * @var false|resource
+     */
+    private $_ibaseService = false;
 
     /**
      * @var int
@@ -60,9 +63,9 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     private $_ibaseTransactionLevel = 0;
 
     /**
-     * @var resource
+     * @var false|resource
      */
-    private $_ibaseActiveTransaction = null;
+    private $_ibaseActiveTransaction = false;
 
     /**
      * Isolation level used when a transaction is started.
@@ -82,22 +85,24 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      * @var boolean
      */
     protected $attrAutoCommit = true;
+    private ?string $password = null;
+    private ?string $username = null;
 
     /**
-     * @param string $params
+     * @param array<int|string,mixed> $params
      * @param null|string $username
      * @param null|string $password
-     * @param null|array $driverOptions
+     * @param array<int|string, mixed> $driverOptions
      * @throws \RuntimeException
      */
-    public function __construct(array $params, $username, $password, array $driverOptions = array())
+    public function __construct(array $params, $username, $password, array $driverOptions = [])
     {
         $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
 
         $this->connectString = self::generateConnectString($params);
         $this->host = $params['host'];
         if (isset($params['port'])) {
-            if (!$params['port']) {
+            if ((int)$params['port'] === 0) {
                 throw new \RuntimeException("Invalid \"port\" in argument \$params");
             }
             $this->host .= '/' . $params['port'];
@@ -109,7 +114,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
             $this->isPersistent = $params['isPersistent'];
         }
         $this->charset = self::DEFAULT_CHARSET;
-        if (isset($params['charset']) && is_string($params['charset']) && $params['charset']) {
+        if (isset($params['charset']) && is_string($params['charset'])) {
             $this->charset = $params['charset'];
         }
         $this->buffers = self::DEFAULT_BUFFERS;
@@ -125,11 +130,10 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
         }
         $this->username = $username;
         $this->password = $password;
-        if ($driverOptions) {
-            foreach ($driverOptions as $k => $v) {
-                $this->setAttribute($k, $v);
-            }
+        foreach ($driverOptions as $k => $v) {
+            $this->setAttribute($k, $v);
         }
+
         $this->getActiveTransaction(); // Connects to the database
     }
 
@@ -145,10 +149,9 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      * {@link AbstractFirebirdInterbaseDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL} can be used to control the
      * isolation level used for transactions.
      *
-     * @param string $attribute
-     * @param mixed $value
+     * @param string|int $attribute
      */
-    public function setAttribute($attribute, $value)
+    public function setAttribute($attribute, mixed $value): void
     {
         switch ($attribute) {
             case AbstractFirebirdInterbaseDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
@@ -165,7 +168,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     /**
      * {@inheritDoc}
      *
-     * @param string $attribute
+     * @param string|int $attribute
      * @return mixed
      */
     public function getAttribute($attribute)
@@ -178,10 +181,11 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
             case \PDO::ATTR_AUTOCOMMIT:
                 return $this->attrAutoCommit;
         }
+        return null;
     }
 
     /**
-     * @return resource (ibase_pconnect or ibase_connect)
+     * @return false|resource (ibase_pconnect or ibase_connect)
      */
     public function getInterbaseConnectionResource()
     {
@@ -193,13 +197,13 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      */
     public function getServerVersion()
     {
-        return ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION);
+        return is_resource($this->_ibaseService) ? ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION) : '';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function requiresQueryForServerVersion()
+    public function requiresQueryForServerVersion(): bool
     {
         return false;
     }
@@ -207,18 +211,17 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function prepare($prepareString)
+    public function prepare(string $sql): Statement
     {
-        return new Statement($this, $prepareString);
+        return new Statement($this, $sql);
     }
 
     /**
      * {@inheritdoc}
+     * @param string $sql
      */
-    public function query()
+    public function query(string $sql): Statement
     {
-        $args = func_get_args();
-        $sql = $args[0];
         $stmt = $this->prepare($sql);
         $stmt->execute();
         return $stmt;
@@ -239,7 +242,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function exec($statement)
+    public function exec(string $statement): int
     {
         $stmt = $this->prepare($statement);
         $stmt->execute();
@@ -283,25 +286,16 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     public function getStartTransactionSql(int $isolationLevel): string
     {
         $result = "";
-        switch ($isolationLevel) {
-            case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION';
-                break;
-            case TransactionIsolationLevel::READ_COMMITTED:
-                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION';
-                break;
-            case TransactionIsolationLevel::REPEATABLE_READ:
-                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT';
-                break;
-            case TransactionIsolationLevel::SERIALIZABLE:
-                $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY';
-                break;
-            default:
-                throw new Exception(sprintf(
-                    "Isolation level %s is not supported",
-                    ValueFormatter::cast($isolationLevel)
-                ));
-        }
+        match ($isolationLevel) {
+            TransactionIsolationLevel::READ_UNCOMMITTED => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION',
+            TransactionIsolationLevel::READ_COMMITTED => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION',
+            TransactionIsolationLevel::REPEATABLE_READ => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
+            TransactionIsolationLevel::SERIALIZABLE => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
+            default => throw new Exception(sprintf(
+                "Isolation level %s is not supported",
+                ValueFormatter::cast($isolationLevel)
+            )),
+        };
         if (($this->attrDcTransWait > 0)) {
             $result .= ' WAIT LOCK TIMEOUT ' . $this->attrDcTransWait;
         } elseif  (($this->attrDcTransWait === -1)) {
@@ -330,7 +324,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     public function commit()
     {
         if ($this->_ibaseTransactionLevel > 0) {
-            if (!$this->_ibaseActiveTransaction || false == is_resource($this->_ibaseActiveTransaction)) {
+            if (false == is_resource($this->_ibaseActiveTransaction)) {
                 throw new \RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
@@ -356,7 +350,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     public function autoCommit()
     {
         if ($this->attrAutoCommit && $this->_ibaseTransactionLevel < 1) {
-            if (!$this->_ibaseActiveTransaction || false == is_resource($this->_ibaseActiveTransaction)) {
+            if (false == is_resource($this->_ibaseActiveTransaction)) {
                 throw new \RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
@@ -378,7 +372,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     public function rollBack()
     {
         if ($this->_ibaseTransactionLevel > 0) {
-            if (!$this->_ibaseActiveTransaction || false == is_resource($this->_ibaseActiveTransaction)) {
+            if (false == is_resource($this->_ibaseActiveTransaction)) {
                 throw new \RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
@@ -397,18 +391,19 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function errorCode()
+    public function errorCode(): bool|int
     {
         return ibase_errcode();
     }
 
     /**
      * {@inheritdoc}
+     * @return array<string, mixed>
      */
-    public function errorInfo()
+    public function errorInfo(): array
     {
         $errorCode = $this->errorCode();
-        if ($errorCode) {
+        if (false !== $errorCode) {
             return [
                 'code' => $errorCode,
                 'message' => ibase_errmsg(),
@@ -426,7 +421,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      */
     public function getActiveTransaction()
     {
-        if (!$this->_ibaseConnectionRc || false == is_resource($this->_ibaseConnectionRc)) {
+        if (!is_resource($this->_ibaseConnectionRc)) {
             try {
                 if ($this->isPersistent) {
                     $this->_ibaseConnectionRc = @ibase_pconnect( // Notice the "p"
@@ -459,7 +454,7 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
                 throw new \RuntimeException("Failed to connect", 0, $e);
             }
         }
-        if (!$this->_ibaseActiveTransaction || false == is_resource($this->_ibaseActiveTransaction)) {
+        if (false == is_resource($this->_ibaseActiveTransaction)) {
             throw new \RuntimeException(sprintf(
                 "No active transaction. \$this->_ibaseTransactionLevel = %d",
                 $this->_ibaseTransactionLevel
@@ -473,10 +468,10 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
      *
      * @throws Exception
      */
-    public function checkLastApiCall()
+    public function checkLastApiCall(): void
     {
         $lastError = $this->errorInfo();
-        if (isset($lastError['code']) && $lastError['code']) {
+        if (isset($lastError['code']) && $lastError['code'] !== 0) {
             throw Exception::fromErrorInfo($lastError);
         }
     }
@@ -493,29 +488,29 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
         }
         $sql = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
         $result = @ibase_query($this->_ibaseConnectionRc, $sql);
-        if (false == is_resource($result)) {
+        if (!is_resource($result)) {
             $this->checkLastApiCall();
         }
         return $result;
     }
 
-    protected function close()
+    protected function close(): void
     {
-        if ($this->_ibaseActiveTransaction && is_resource($this->_ibaseActiveTransaction)) {
+        if (is_resource($this->_ibaseActiveTransaction)) {
             if ($this->_ibaseTransactionLevel > 0) {
-                $this->rollback(); // Auto-rollback explicite transactions
+                $this->rollBack(); // Auto-rollback explicite transactions
             }
             $this->autoCommit();
         }
         $success = true;
-        if ($this->_ibaseConnectionRc && is_resource($this->_ibaseConnectionRc)) {
+        if (is_resource($this->_ibaseConnectionRc)) {
             $success = @ibase_close($this->_ibaseConnectionRc);
         }
-        if ($this->_ibaseService && is_resource($this->_ibaseService)) {
+        if (is_resource($this->_ibaseService)) {
             $success = @ibase_service_detach($this->_ibaseService);
         }
-        $this->_ibaseConnectionRc = null;
-        $this->_ibaseActiveTransaction  = null;
+        $this->_ibaseConnectionRc = false;
+        $this->_ibaseActiveTransaction  = false;
         $this->_ibaseTransactionLevel = 0;
         if (false == $success) {
             $this->checkLastApiCall();
@@ -524,14 +519,15 @@ class Connection implements ConnectionInterface, ServerInfoAwareConnection
 
     /**
      * @throws \RuntimeException
+     * @param array<int|string, string> $params
      * @return string
      */
-    public static function generateConnectString(array $params)
+    public static function generateConnectString(array $params): string
     {
-        if (isset($params['host'], $params['dbname']) && $params['host'] && $params['dbname']) {
+        if (isset($params['host'], $params['dbname']) && $params['host'] !== '' && $params['dbname'] !== '') {
             $str = $params['host'];
             if (isset($params['port'])) {
-                if (!$params['port']) {
+                if ($params['port'] === '') {
                     throw new \RuntimeException("Invalid \"port\" in argument \$params");
                 }
                 $str .= '/' . $params['port'];

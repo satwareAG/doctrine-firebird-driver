@@ -162,7 +162,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
             $sql = array_merge($sql, $commentsSQL);
 
             if ($diff->newName !== false) {
-                throw \Doctrine\DBAL\DBALException::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+                throw \Doctrine\DBAL\Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
             }
 
             $sql = array_merge(

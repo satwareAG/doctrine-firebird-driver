@@ -1,27 +1,31 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
-use Doctrine\DBAL\Exception as DBALException;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
+use SensitiveParameter;
 
-class Driver extends AbstractFirebirdInterbaseDriver
+final class Driver extends AbstractFirebirdInterbaseDriver
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
+     *
+     * @return Connection
      */
-    public function connect(array $params, $username = null, $password = null, array $driverOptions = array())
-    {
-        $this->setDriverOptions($driverOptions);
-        try {
-            return new Connection(
-                $params,
-                $username,
-                $password,
-                $this->getDriverOptions() // Sanitized
-            );
-        } catch (Exception $e) {
-            throw DBALException::driverException($this, $e);
-        }
+    public function connect(
+        #[SensitiveParameter]
+        array $params
+    ) {
+        $this->setDriverOptions($params);
+        $username    = $params['user'] ?? '';
+        $password    = $params['password'] ?? '';
+
+
+        return new Connection(
+            $params,
+            $username,
+            $password,
+            $this->getDriverOptions() // Sanitized
+        );
     }
 
     /**
@@ -30,5 +34,10 @@ class Driver extends AbstractFirebirdInterbaseDriver
     public function getName()
     {
         return 'FirebirdInterbase';
+    }
+
+    public function getExceptionConverter(): ExceptionConverter
+    {
+        return new ExceptionConverter();
     }
 }

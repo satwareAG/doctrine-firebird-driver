@@ -6,31 +6,26 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="ARTIST_TYPE")
- */
+#[ORM\Table(name: 'ARTIST_TYPE')]
+#[ORM\Entity]
 class Type
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
-    private $id;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    private ?int $id = null;
+
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @var \Doctrine\Common\Collections\Collection<int, \Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist>
      */
-    private $name;
+    #[ORM\OneToMany(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist::class, mappedBy: 'type')]
+    private \Doctrine\Common\Collections\Collection $artists;
 
     /**
-     * @ORM\OneToMany(targetEntity="Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist", mappedBy="type")
-     */
-    private $artists;
-
-    /**
-     * @param string $name
+     * @param \Doctrine\Common\Collections\Collection<int, \Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Artist> $name
      */
     public function __construct($name)
     {

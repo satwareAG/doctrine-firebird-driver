@@ -2,16 +2,17 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
 /**
  * @runTestsInSeparateProcesses
  */
-class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTest
+class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTestCase
 {
     public function testGetName()
     {
@@ -38,7 +39,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testCheckIdentifierLengthThrowsExceptionWhenArgumentNameIsTooLong()
     {
         $this->expectExceptionMessage("Operation 'Identifier kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk is too long for firebird platform. Maximum identifier length is 31' is not supported by platform");
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
         $this->_platform->checkIdentifierLength(str_repeat("k", 32), null);
     }
 
@@ -79,7 +80,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->expectException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\Exception');
         $this->_platform->getDoctrineTypeMapping('foobar');
     }
 
@@ -91,14 +92,14 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testRegisterUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->expectException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\Exception');
         $this->_platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
     public function testCreateWithNoColumnsThrowsException()
     {
         $table = new \Doctrine\DBAL\Schema\Table('test');
-        $this->expectException('Doctrine\DBAL\DBALException');
+        $this->expectException('Doctrine\DBAL\Exception');
         $this->_platform->getCreateTableSQL($table);
     }
 
@@ -530,7 +531,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetSetTransactionIsolationSQLThrowsException()
     {
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
         $this->_platform->getSetTransactionIsolationSQL(null);
     }
 
@@ -1167,13 +1168,13 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetCreateDatabaseSQLThrowsException()
     {
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
         $this->_platform->getCreateDatabaseSQL('foo');
     }
 
     public function testGetDropDatabaseSQLThrowsException()
     {
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
         $this->_platform->getDropDatabaseSQL('foobar');
     }
 
@@ -1193,7 +1194,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $column = array(
             'length'  => 666,
             'notnull' => true,
-            'type'    => \Doctrine\DBAL\Types\Type::getType('json_array'),
+            'type'    => \Doctrine\DBAL\Types\Type::getType('json'),
         );
         $this->assertSame(
             $this->_platform->getClobTypeDeclarationSQL($column),

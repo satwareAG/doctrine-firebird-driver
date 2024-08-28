@@ -3,9 +3,9 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
-abstract class AbstractFirebirdInterbasePlatformTest extends AbstractIntegrationTest
+abstract class AbstractFirebirdInterbasePlatformTestCase extends AbstractIntegrationTestCase
 {
     protected $_platform;
     protected $_platform3;

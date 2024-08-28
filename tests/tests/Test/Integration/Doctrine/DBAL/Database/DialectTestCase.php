@@ -2,13 +2,13 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
 use Doctrine\DBAL\Driver\Exception;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * Tests based on table from:
  * @link https://www.firebirdsql.org/pdfmanual/html/isql-dialects.html
  */
-class DialectTest extends AbstractIntegrationTest
+class DialectTestCase extends AbstractIntegrationTestCase
 {
     /**
      * @override

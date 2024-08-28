@@ -1,0 +1,11 @@
+parameters:
+    level: 1
+    phpVersion: 80300
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - identifier: missingType.generics
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon

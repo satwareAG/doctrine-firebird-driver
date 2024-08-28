@@ -1,12 +1,10 @@
-version: '3.7'
-
 services:
   firebird:
     container_name: firebird-doctrine-firebird-driver
     image: "jacobalberty/firebird:3.0"
     environment:
       - ISC_PASSWORD=masterkey
-      - TC=Europe/Berlin
+      - TZ=Europe/Berlin
     volumes:
       - ./databases:/firebird/data
   app:

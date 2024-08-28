@@ -1,14 +1,14 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Repository;
 
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class FindOneByTest extends AbstractIntegrationTest
+class FindOneByTestCase extends AbstractIntegrationTestCase
 {
     public function testFindOneByAlbum()
     {

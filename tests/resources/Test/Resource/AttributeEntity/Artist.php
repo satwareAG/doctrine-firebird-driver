@@ -9,19 +9,19 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class Artist
 {
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private $id = null;
+    private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private $name;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    private ?string $name = null;
 
-    #[ORM\ManyToOne(targetEntity: 'Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist\Type', inversedBy: 'artists')]
-    private $type;
+    #[ORM\ManyToOne(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist\Type::class, inversedBy: 'artists')]
+    private ?\Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist\Type $type = null;
 
     #[ORM\OneToMany(targetEntity: 'Album', mappedBy: 'artist')]
-    private $albums;
+    private \Doctrine\Common\Collections\Collection $albums;
 
     /**
      * @param string $name

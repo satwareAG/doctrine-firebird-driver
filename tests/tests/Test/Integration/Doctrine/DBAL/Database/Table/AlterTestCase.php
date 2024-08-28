@@ -3,11 +3,11 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\
 
 use Doctrine\DBAL\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 
-class AlterTest extends AbstractIntegrationTest
+class AlterTestCase extends AbstractIntegrationTestCase
 {
     public function testAlterTable()
     {

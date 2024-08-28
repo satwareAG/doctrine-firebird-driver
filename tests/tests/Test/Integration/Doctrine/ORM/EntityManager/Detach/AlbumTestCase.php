@@ -1,14 +1,14 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\EntityManager\Detach;
 
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTest;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class AlbumTest extends AbstractIntegrationTest
+class AlbumTestCase extends AbstractIntegrationTestCase
 {
     public function testCanDetatch()
     {

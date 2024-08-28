@@ -4,17 +4,13 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemo
 use Doctrine\ORM\Mapping as ORM;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="CASES_CASCADINGREMOVE_SUBCLASS")
- */
+#[ORM\Table(name: 'CASES_CASCADINGREMOVE_SUBCLASS')]
+#[ORM\Entity]
 class Subclass
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     */
-    private $id = 1;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Id]
+    private ?int $id = 1;
 
     /**
      * @return null|int

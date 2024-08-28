@@ -3,26 +3,17 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Cases;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="CASES_CASCADINGREMOVE")
- */
+#[ORM\Table(name: 'CASES_CASCADINGREMOVE')]
+#[ORM\Entity]
 class CascadingRemove
 {
-    /**
-     * @ORM\Column(type="integer")
-     * @ORM\Id
-     */
-    private $id = 1;
+    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Id]
+    private ?int $id = 1;
 
-    /**
-     * @ORM\OneToOne(targetEntity="Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove\Subclass", cascade={"remove"})
-     */
-    private $subclass;
-
-    public function __construct(CascadingRemove\Subclass $subclass)
+    public function __construct(#[ORM\OneToOne(targetEntity: \Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove\Subclass::class, cascade: ['remove'])]
+    private CascadingRemove\Subclass $subclass)
     {
-        $this->subclass = $subclass;
     }
 
     /**

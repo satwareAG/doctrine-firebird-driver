@@ -2,7 +2,9 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
+use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\UniqueConstraint;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 
 /**
@@ -10,7 +12,7 @@ use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
  * Inspired by:
  * @link https://github.com/ISTDK/doctrine-dbal/blob/master/tests/Doctrine/Tests/DBAL/Platforms/OraclePlatformTest.php
  */
-class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatformTest
+class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatformTestCase
 {
     public function testGetBitAndComparisonExpression()
     {
@@ -284,7 +286,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testGeneratesIndexCreationSql()
     {
-        $indexDef = new \Doctrine\DBAL\Schema\Index('my_idx', ['user_name', 'last_login']);
+        $indexDef = new Index('my_idx', ['user_name', 'last_login']);
         $found = $this->_platform->getCreateIndexSQL($indexDef, 'mytable');
         $expected = 'CREATE INDEX my_idx ON mytable (user_name, last_login)';
         $this->assertSame($expected, $found);
@@ -292,7 +294,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testGeneratesUniqueIndexCreationSql()
     {
-        $indexDef = new \Doctrine\DBAL\Schema\Index('index_name', ['test', 'test2'], true);
+        $indexDef = new Index('index_name', ['test', 'test2'], true);
         $found = $this->_platform->getCreateIndexSQL($indexDef, 'test');
         $expected = 'CREATE UNIQUE INDEX index_name ON test (test, test2)';
         $this->assertEquals($expected, $found);
@@ -432,7 +434,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         );
         $comparator = new \Doctrine\DBAL\Schema\Comparator();
         $tableDiff = $comparator->diffTable($table1, $table2);
-        $this->assertInstanceOf('Doctrine\DBAL\Schema\TableDiff', $tableDiff);
+        $this->assertInstanceOf(\Doctrine\DBAL\Schema\TableDiff::class, $tableDiff);
         $this->assertSame(
             [
                 'COMMENT ON COLUMN "foo"."bar" IS \'baz\'',
@@ -467,14 +469,16 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
                     END
                 END;
         '));
-        $this->assertEquals($expectedCreateTrigger, preg_replace('/\s+/', ' ', trim($sql[2])));
+        $this->assertEquals($expectedCreateTrigger, preg_replace('/\s+/', ' ', trim((string) $sql[2])));
     }
 
     public function testGeneratesPartialIndexesSqlOnlyWhenSupportingPartialIndexes()
     {
         $where = 'test IS NULL AND test2 IS NOT NULL';
-        $indexDef = new \Doctrine\DBAL\Schema\Index('name', ['test', 'test2'], false, false, [], ['where' => $where]);
-        $uniqueIndex = new \Doctrine\DBAL\Schema\Index('name', ['test', 'test2'], true, false, [], ['where' => $where]);
+        $indexDef = new Index('name', ['test', 'test2'], false, false, [], ['where' => $where]);
+        // $uniqueIndex = new Index('name', ['test', 'test2'], true, false, [], ['where' => $where]);
+        $uniqueIndex = new UniqueConstraint('name', ['test', 'test2']);
+
         $expected = ' WHERE ' . $where;
         $actuals = [];
         $actuals[] = $this->_platform->getIndexDeclarationSQL('name', $indexDef);
@@ -499,11 +503,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testGeneratesConstraintCreationSql()
     {
-        $idx = new \Doctrine\DBAL\Schema\Index('constraint_name', ['test'], true, false);
+        $idx = new Index('constraint_name', ['test'], true, false);
         $found = $this->_platform->getCreateConstraintSQL($idx, 'test');
         $expected = 'ALTER TABLE test ADD CONSTRAINT constraint_name UNIQUE (test)';
         $this->assertEquals($expected, $found);
-        $pk = new \Doctrine\DBAL\Schema\Index('constraint_name', ['test'], true, true);
+        $pk = new Index('constraint_name', ['test'], true, true);
         $found = $this->_platform->getCreateConstraintSQL($pk, 'test');
         $expected = 'ALTER TABLE test ADD CONSTRAINT constraint_name PRIMARY KEY (test)';
         $this->assertEquals($expected, $found);
@@ -517,7 +521,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     public function testGeneratesTableAlterationSqlThrowsException()
     {
         $this->expectExceptionMessage("Operation 'Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform::getAlterTableSQL Cannot rename tables because firebird does not support it");
-        $this->expectException(\Doctrine\DBAL\DBALException::class);
+        $this->expectException(\Doctrine\DBAL\Exception::class);
         $table = new Table('mytable');
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->addColumn('foo', 'integer');
@@ -901,7 +905,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL()
     {
-        $index = new \Doctrine\DBAL\Schema\Index('select', ['foo'], true);
+        $index = new UniqueConstraint('select', ['foo']);
         $found = $this->_platform->getUniqueConstraintDeclarationSQL('select', $index);
         $this->assertSame('CONSTRAINT "select" UNIQUE (foo)', $found);
     }
@@ -911,7 +915,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesReservedKeywordInIndexDeclarationSQL()
     {
-        $index = new \Doctrine\DBAL\Schema\Index('select', ['foo']);
+        $index = new Index('select', ['foo']);
         $found = $this->_platform->getIndexDeclarationSQL('select', $index);
         $this->assertSame('INDEX "select" (foo)', $found);
     }
@@ -947,7 +951,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
-            'idx_foo' => new \Doctrine\DBAL\Schema\Index('idx_bar', ['id'])
+            'idx_foo' => new Index('idx_bar', ['id'])
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
@@ -969,8 +973,8 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
-            'create' => new \Doctrine\DBAL\Schema\Index('select', ['id']),
-            '`foo`'  => new \Doctrine\DBAL\Schema\Index('`bar`', ['id']),
+            'create' => new Index('select', ['id']),
+            '`foo`'  => new Index('`bar`', ['id']),
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
@@ -1044,7 +1048,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
-            'idx_foo' => new \Doctrine\DBAL\Schema\Index('idx_bar', ['id'])
+            'idx_foo' => new Index('idx_bar', ['id'])
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
@@ -1065,8 +1069,8 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
         $tableDiff->renamedIndexes = [
-            'create' => new \Doctrine\DBAL\Schema\Index('select', ['id']),
-            '`foo`'  => new \Doctrine\DBAL\Schema\Index('`bar`', ['id']),
+            'create' => new Index('select', ['id']),
+            '`foo`'  => new Index('`bar`', ['id']),
         ];
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
@@ -1280,7 +1284,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $primaryTable->addForeignKeyConstraint($foreignTable, ['bar'], ['id'], [], 'fk_bar');
         $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
         $tableDiff->fromTable = $primaryTable;
-        $tableDiff->renamedIndexes['idx_foo'] = new \Doctrine\DBAL\Schema\Index('idx_foo_renamed', ['foo']);
+        $tableDiff->renamedIndexes['idx_foo'] = new Index('idx_foo_renamed', ['foo']);
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
         $this->assertCount(2, $found);
