@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
@@ -211,7 +212,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function prepare(string $sql): Statement
+    public function prepare(string $sql): DriverStatement
     {
         return new Statement($this, $sql);
     }
@@ -220,7 +221,7 @@ final class Connection implements ServerInfoAwareConnection
      * {@inheritdoc}
      * @param string $sql
      */
-    public function query(string $sql): Statement
+    public function query(string $sql): DriverStatement
     {
         $stmt = $this->prepare($sql);
         $stmt->execute();
@@ -512,7 +513,7 @@ final class Connection implements ServerInfoAwareConnection
         $this->_ibaseConnectionRc = false;
         $this->_ibaseActiveTransaction  = false;
         $this->_ibaseTransactionLevel = 0;
-        if (false == $success) {
+        if (false === $success) {
             $this->checkLastApiCall();
         }
     }

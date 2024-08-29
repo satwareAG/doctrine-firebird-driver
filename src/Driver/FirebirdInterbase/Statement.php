@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Doctrine\DBAL\Driver\FetchUtils;
-use Doctrine\DBAL\Driver\Result;
+use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\SQLParserUtils;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 use ReturnTypeWillChange;
@@ -15,7 +17,7 @@ use ReturnTypeWillChange;
  *   - https://github.com/helicon-os/doctrine-dbal
  *   - https://github.com/doctrine/dbal/blob/2.6/lib/Doctrine/DBAL/Driver/SQLSrv/SQLSrvStatement.php
  */
-class Statement implements \IteratorAggregate, StatementInterface, Result
+class Statement implements \IteratorAggregate, StatementInterface
 {
     const DEFAULT_FETCH_CLASS = '\stdClass';
     const DEFAULT_FETCH_CLASS_CONSTRUCTOR_ARGS = [];
@@ -180,33 +182,58 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
     /**
      * {@inheritdoc}
      */
-    public function bindValue($param, $value, $type = \PDO::PARAM_STR)
+    public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
+        if (func_num_args() < 3) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/5558',
+                'Not passing $type to Statement::bindValue() is deprecated.'
+                . ' Pass the type corresponding to the parameter being bound.',
+            );
+        }
         return $this->bindParam($param, $value, $type, null);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function bindParam($column, &$variable, $type = \PDO::PARAM_STR, $length = null, $driverOptions = null)
+    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/5563',
+            '%s is deprecated. Use bindValue() instead.',
+            __METHOD__,
+        );
+
+        if (func_num_args() < 3) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/5558',
+                'Not passing $type to Statement::bindParam() is deprecated.'
+                . ' Pass the type corresponding to the parameter being bound.',
+            );
+        }
+
+
         if (is_object($variable)) {
             $variable = (string) $variable;
         }
-        if (is_numeric($column)) {
-            $this->queryParamBindings[$column - 1] = &$variable;
-            $this->queryParamTypes[$column - 1] = $type;
+        if (is_numeric($param)) {
+            $this->queryParamBindings[$param - 1] = &$variable;
+            $this->queryParamTypes[$param - 1] = $type;
         } else {
-            if (isset($this->namedParamsMap[$column])) {
+            if (isset($this->namedParamsMap[$param])) {
                 /**
                  * @var integer $pp *zero* based Parameter index
                  */
-                foreach ($this->namedParamsMap[$column] as $pp) {
+                foreach ($this->namedParamsMap[$param] as $pp) {
                     $this->queryParamBindings[$pp] = &$variable;
                     $this->queryParamTypes[$pp] = $type;
                 }
             } else {
-                throw new Exception('Cannot bind to unknown parameter ' . $column, null);
+                throw new Exception('Cannot bind to unknown parameter ' . $param, null);
             }
         }
         return true;
@@ -228,17 +255,24 @@ class Statement implements \IteratorAggregate, StatementInterface, Result
      * {@inheritdoc}
      * @throws \RuntimeException
      */
-    public function execute($params = null): Result
+    public function execute($params = null): ResultInterface
     {
         $this->affectedRows = 0;
 
-        // Bind passed parameters
-        if (is_array($params) && !empty($params)) {
-            $idxShift = array_key_exists(0, $params) ? 1 : 0;
-            $hasZeroIndex = array_key_exists(0, $params);
+        if ($params !== null) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/5556',
+                'Passing $params to Statement::execute() is deprecated. Bind parameters using'
+                . ' Statement::bindParam() or Statement::bindValue() instead.',
+            );
+
             foreach ($params as $key => $val) {
-                $key = (is_numeric($key)) ? $key + $idxShift : $key;
-                $this->bindValue($key, $val);
+                if (is_int($key)) {
+                    $this->bindValue($key + 1, $val, ParameterType::STRING);
+                } else {
+                    $this->bindValue($key, $val, ParameterType::STRING);
+                }
             }
         }
 

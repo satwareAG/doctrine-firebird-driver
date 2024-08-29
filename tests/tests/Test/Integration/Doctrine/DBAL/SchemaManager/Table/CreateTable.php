@@ -5,7 +5,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
 
-class CreateTestCase extends AbstractIntegrationTestCase
+class CreateTable extends AbstractIntegrationTestCase
 {
     public function testCreateTable()
     {

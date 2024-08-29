@@ -2,7 +2,6 @@
 namespace Kafoso\DoctrineFirebirdDriver\Driver;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
