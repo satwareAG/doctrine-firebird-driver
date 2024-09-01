@@ -1,17 +1,16 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\SchemaManager\Table;
+namespace Test\Integration\Doctrine\DBAL\SchemaManager\Table;
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
-use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
 
-class CreateTable extends AbstractIntegrationTestCase
+class CreateTableTest extends AbstractIntegrationTestCase
 {
     public function testCreateTable()
     {
         $connection = $this->_entityManager->getConnection();
         $sm = $connection->getSchemaManager();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $sm->createTable($table);
@@ -21,7 +20,7 @@ class CreateTable extends AbstractIntegrationTestCase
         $this->assertArrayHasKey("foo", $foundColumns);
         $foundColumn = $foundColumns["foo"];
         $this->assertSame("foo", $foundColumn->getName(), 'Invalid name');
-        $this->assertInstanceOf('Doctrine\DBAL\Types\StringType', $foundColumn->getType(), 'Invalid type');
+        $this->assertInstanceOf(\Doctrine\DBAL\Types\StringType::class, $foundColumn->getType(), 'Invalid type');
         $this->assertSame(255, $foundColumn->getLength(), 'Invalid length');
         $this->assertSame(10, $foundColumn->getPrecision(), 'Invalid precision');
         $this->assertSame(0, $foundColumn->getScale(), 'Invalid scale');

@@ -1,5 +1,5 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\EntityManager\Remove;
+namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Remove;
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;

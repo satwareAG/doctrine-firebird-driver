@@ -13,7 +13,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 /**
  * @runTestsInSeparateProcesses
  */
-class ConnectionTestCase extends AbstractIntegrationTestCase
+class ConnectionTest extends AbstractIntegrationTestCase
 {
     public function testBasics()
     {

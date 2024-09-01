@@ -3,7 +3,11 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
+use Doctrine\DBAL\Driver\Result as ResultInterface;
+
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\TransactionIsolationLevel;
+use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 
@@ -15,6 +19,11 @@ final class Connection implements ServerInfoAwareConnection
 {
     const DEFAULT_CHARSET = 'UTF-8';
     const DEFAULT_BUFFERS = 0;
+
+    /**
+     * here are a couple of additional caveats to keep in mind when using persistent connections
+     * https://www.php.net/manual/en/features.persistent-connections.php
+     */
     const DEFAULT_IS_PERSISTENT = true;
     const DEFAULT_DIALECT = 0;
 
@@ -221,17 +230,15 @@ final class Connection implements ServerInfoAwareConnection
      * {@inheritdoc}
      * @param string $sql
      */
-    public function query(string $sql): DriverStatement
+    public function query(string $sql): ResultInterface
     {
-        $stmt = $this->prepare($sql);
-        $stmt->execute();
-        return $stmt;
+        return $this->prepare($sql)->execute();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function quote($value, $type=\PDO::PARAM_STR)
+    public function quote($value, $type = ParameterType::STRING)
     {
         if (is_int($value) || is_float($value)) {
             return $value;
@@ -243,11 +250,9 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function exec(string $statement): int
+    public function exec(string $sql): int
     {
-        $stmt = $this->prepare($statement);
-        $stmt->execute();
-        return $stmt->rowCount();
+        return $this->prepare($sql)->execute()->rowCount();
     }
 
     /**
@@ -266,9 +271,16 @@ final class Connection implements ServerInfoAwareConnection
                 ValueFormatter::found($name)
             ));
         }
+
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/issues/4687',
+            'The usage of Connection::lastInsertId() with a sequence name is deprecated.',
+        );
+
         $maxGeneratorLength = 31;
         $regex = "/^\w{1,{$maxGeneratorLength}}\$/";
-        if (false == preg_match($regex, $name)) {
+        if (1 !== preg_match($regex, $name)) {
             throw new \UnexpectedValueException(sprintf(
                 "Expects argument \$name to match regular expression '%s'. Found: %s",
                 $regex,
@@ -322,10 +334,10 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function commit()
+    public function commit(): bool
     {
         if ($this->_ibaseTransactionLevel > 0) {
-            if (false == is_resource($this->_ibaseActiveTransaction)) {
+            if (!is_resource($this->_ibaseActiveTransaction)) {
                 throw new \RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
@@ -499,7 +511,7 @@ final class Connection implements ServerInfoAwareConnection
     {
         if (is_resource($this->_ibaseActiveTransaction)) {
             if ($this->_ibaseTransactionLevel > 0) {
-                $this->rollBack(); // Auto-rollback explicite transactions
+                $this->rollBack(); // Auto-rollback explicit transactions
             }
             $this->autoCommit();
         }
@@ -537,5 +549,13 @@ final class Connection implements ServerInfoAwareConnection
             return $str;
         }
         throw new \RuntimeException("Argument \$params must contain non-empty \"host\" and \"dbname\"");
+    }
+
+    /**
+     * @return false|resource
+     */
+    public function getNativeConnection()
+    {
+        return $this->_ibaseConnectionRc;
     }
 }

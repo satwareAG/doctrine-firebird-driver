@@ -423,6 +423,10 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getDummySelectSQL()
     {
+        $expression = func_num_args() > 0 ? func_get_arg(0) : '1';
+
+        return sprintf('SELECT %s', $expression);
+
         return 'SELECT 1 FROM RDB$DATABASE';
     }
 
@@ -1431,7 +1435,7 @@ ___query___;
 
     public function getCurrentDatabaseExpression(): string
     {
-        return 'select current_connection from rdb$database;';
+        return 'rdb$get_context(\'SYSTEM\', \'DB_NAME\') FROM rdb$database;';
     }
 
     /**

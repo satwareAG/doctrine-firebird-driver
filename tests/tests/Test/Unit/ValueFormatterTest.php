@@ -1,5 +1,5 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Kafoso\DoctrineFirebirdDriver;
+namespace Kafoso\DoctrineFirebirdDriver\Test\Unit;
 
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 use PHPUnit\Framework\TestCase;

@@ -9,7 +9,8 @@ services:
       - ./databases:/firebird/data
   app:
     environment:
-      PHP_IDE_CONFIG: "serverName=phpconsole"
+      - PHP_IDE_CONFIG="serverName=phpconsole"
+      - PHP_DISMOD=ioncube
     user: application
     working_dir: /app
     container_name: app-doctrine-firebird-driver

@@ -1,5 +1,5 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\EntityManager\Update;
+namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Update;
 
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;

@@ -7,12 +7,12 @@ use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 /**
  * @runTestsInSeparateProcesses
  */
-class TransactionTestCase extends AbstractIntegrationTestCase
+class TransactionTest extends AbstractIntegrationTestCase
 {
     public function testWillAutoCommitBottomLevelTransaction()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
         unset($connection);
@@ -22,20 +22,20 @@ class TransactionTestCase extends AbstractIntegrationTestCase
         $this->_platform = new FirebirdInterbasePlatform();
         $connection = $this->_entityManager->getConnection();
         $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
-        $value = $result->fetchColumn();
+        $value = $result->fetchOne();
         $this->assertSame(42, $value);
     }
 
     public function testCanSuccessfullyCommitASingleTransactionForInsert()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->commit();
         $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
-        $value = $result->fetchColumn();
+        $value = $result->fetchOne();
         $this->assertSame(42, $value);
         try {
             $connection->commit();
@@ -47,17 +47,17 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyCommitASingleTransactionForUpdate()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->beginTransaction();
         $connection->exec("UPDATE {$tableName} SET id = 43 WHERE id = 42");
         $connection->commit();
         $resultA = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
-        $valueA = $resultA->fetchColumn();
+        $valueA = $resultA->fetchOne();
         $this->assertSame(false, $valueA);
         $resultB = $connection->query("SELECT id FROM {$tableName} WHERE id = 43");
-        $valueB = $resultB->fetchColumn();
+        $valueB = $resultB->fetchOne();
         $this->assertSame(43, $valueB);
         try {
             $connection->commit();
@@ -69,7 +69,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyCommitMultipleTransactionsForInsert()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
@@ -78,22 +78,22 @@ class TransactionTestCase extends AbstractIntegrationTestCase
             $this->assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), "Expected transaction level");
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
             $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-            $count = $result->fetchColumn();
+            $count = $result->fetchOne();
             $this->assertSame($count, $connection->getTransactionNestingLevel(), "Count vs expected transaction level");
         }
         $connection->commit();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(2, $connection->getTransactionNestingLevel(), "Transaction level, 3rd");
         $this->assertSame(3, $count, "Count, 3rd");
         $connection->commit();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(1, $connection->getTransactionNestingLevel(), "Transaction level, 2nd");
         $this->assertSame(3, $count, "Count, 2nd");
         $connection->commit();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(0, $connection->getTransactionNestingLevel(), "Transaction level, 1st");
         $this->assertSame(3, $count, "Count, 1st");
         try {
@@ -112,7 +112,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
         ];
 
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
@@ -150,13 +150,13 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyRollbackASingleTransactionForInsert()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->rollback();
         $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
-        $value = $result->fetchColumn();
+        $value = $result->fetchOne();
         $this->assertFalse($value);
         try {
             $connection->rollback();
@@ -168,7 +168,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyRollbackASingleTransactionForUpdate()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
 
@@ -194,7 +194,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyRollbackMultipleTransactionsForInsert()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
@@ -203,22 +203,22 @@ class TransactionTestCase extends AbstractIntegrationTestCase
             $this->assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), "Expected transaction level");
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
             $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-            $count = $result->fetchColumn();
+            $count = $result->fetchOne();
             $this->assertSame($count, $connection->getTransactionNestingLevel(), "Count vs expected transaction level");
         }
         $connection->rollback();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(2, $connection->getTransactionNestingLevel(), "Transaction level, 3rd");
         $this->assertSame(2, $count, "Count, 3rd");
         $connection->rollback();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(1, $connection->getTransactionNestingLevel(), "Transaction level, 2nd");
         $this->assertSame(1, $count, "Count, 2nd");
         $connection->rollback();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(0, $connection->getTransactionNestingLevel(), "Transaction level, 1st");
         $this->assertSame(0, $count, "Count, 1st");
         try {
@@ -237,7 +237,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
         ];
 
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
@@ -278,7 +278,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
     public function testCanSuccessfullyCommitAndRollbackMultipleTransactionsForInsert()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44, 45] as $id) {
@@ -287,27 +287,27 @@ class TransactionTestCase extends AbstractIntegrationTestCase
             $this->assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), "Expected transaction level");
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
             $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-            $count = $result->fetchColumn();
+            $count = $result->fetchOne();
             $this->assertSame($count, $connection->getTransactionNestingLevel(), "Count vs expected transaction level");
         }
         $connection->rollback();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(3, $connection->getTransactionNestingLevel(), "Transaction level, 4th");
         $this->assertSame(3, $count, "Count, 4th");
         $connection->commit();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(2, $connection->getTransactionNestingLevel(), "Transaction level, 3rd");
         $this->assertSame(3, $count, "Count, 3rd");
         $connection->rollback();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(1, $connection->getTransactionNestingLevel(), "Transaction level, 2nd");
         $this->assertSame(1, $count, "Count, 2nd");
         $connection->commit();
         $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
-        $count = $result->fetchColumn();
+        $count = $result->fetchOne();
         $this->assertSame(0, $connection->getTransactionNestingLevel(), "Transaction level, 1st");
         $this->assertSame(1, $count, "Count, 1st");
         try {
@@ -332,7 +332,7 @@ class TransactionTestCase extends AbstractIntegrationTestCase
         ];
 
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");

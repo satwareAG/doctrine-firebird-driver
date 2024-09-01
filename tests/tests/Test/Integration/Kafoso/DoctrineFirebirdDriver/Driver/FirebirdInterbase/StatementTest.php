@@ -5,10 +5,11 @@ use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
+
 /**
  * @runTestsInSeparateProcesses
  */
-class StatementTestCase extends AbstractIntegrationTestCase
+class StatementTest extends AbstractIntegrationTestCase
 {
     public function testFetchWorks()
     {
@@ -166,21 +167,16 @@ class StatementTestCase extends AbstractIntegrationTestCase
         $sql = "SELECT * FROM Album";
         $statement = new Statement($connection, $sql);
 
-        $statement->execute();
-        $column = $statement->fetchColumn();
-        $this->assertSame(1, $column);
+        $result = $statement->execute();
+        $column = $result->fetchNumeric();
+        $this->assertSame(1, $column[0]);
 
-        $statement->execute();
-        $column = $statement->fetchColumn(1);
-        $this->assertSame('2017-01-01 15:00:00', $column);
 
-        $statement->execute();
-        $column = $statement->fetchColumn(2);
-        $this->assertSame('...Baby One More Time', $column);
+        $this->assertSame('2017-01-01 15:00:00', $column[1]);
 
-        $statement->execute();
-        $column = $statement->fetchColumn(3);
-        $this->assertSame(2, $column);
+        $this->assertSame('...Baby One More Time', $column[2]);
+
+        $this->assertSame(2, $column[3]);
     }
 
     public function testGetIteratorWorks()
@@ -223,7 +219,7 @@ class StatementTestCase extends AbstractIntegrationTestCase
         try {
             $statement->execute();
         } catch (\Throwable $t) {
-            $this->assertSame(Exception::class, get_class($t));
+            $this->assertSame(Exception::class, $t::class);
             $this->assertSame(0, $t->getCode());
             $this->assertSame("Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
             $this->assertNull($t->getPrevious());
@@ -243,7 +239,7 @@ class StatementTestCase extends AbstractIntegrationTestCase
         try {
             $statement->execute();
         } catch (\Throwable $t) {
-            $this->assertSame(Exception::class, get_class($t));
+            $this->assertSame(Exception::class, $t::class);
             $this->assertSame(0, $t->getCode());
             $this->assertSame("Failed to perform `doExecPrepared`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
             $this->assertNull($t->getPrevious());
@@ -261,7 +257,7 @@ class StatementTestCase extends AbstractIntegrationTestCase
         $statement = new Statement($connection, $sql);
         $statement->bindValue(0, 2);
         $statement->execute();
-        $value = $statement->fetchColumn();
+        $value = $statement->fetchOne();
         $this->assertSame(2, $value);
     }
 
@@ -273,7 +269,7 @@ class StatementTestCase extends AbstractIntegrationTestCase
         $id = 2;
         $statement->bindParam(':ID', $id);
         $statement->execute();
-        $value = $statement->fetchColumn();
+        $value = $statement->fetchOne();
         $this->assertSame(2, $value);
     }
 

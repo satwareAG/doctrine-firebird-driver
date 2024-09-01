@@ -1,18 +1,19 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table;
 
+use Doctrine\DBAL\Result;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class CreateTestCase extends AbstractIntegrationTestCase
+class CreateTest extends AbstractIntegrationTestCase
 {
     public function testCreateTable()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $statements = $this->_platform->getCreateTableSQL($table);
@@ -22,14 +23,14 @@ class CreateTestCase extends AbstractIntegrationTestCase
         }
         $sql = "SELECT 1 FROM RDB\$RELATIONS WHERE RDB\$RELATION_NAME = '{$tableName}'";
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Table creation failure. SQL: " . self::statementArrayToText($statements));
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Table creation failure. SQL: " . self::statementArrayToText($statements));
     }
 
     public function testCreateTableWithPrimaryKey()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
@@ -48,14 +49,14 @@ class CreateTestCase extends AbstractIntegrationTestCase
             AND RC.RDB\$RELATION_NAME = '{$tableName}'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Primary key \"id\" not found");
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Primary key \"id\" not found");
     }
 
     public function testCreateTableWithPrimaryKeyAndAutoIncrement()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
@@ -68,22 +69,22 @@ class CreateTestCase extends AbstractIntegrationTestCase
         $triggerName = "{$tableName}_D2IT";
         $sql = "SELECT 1 FROM RDB\$TRIGGERS WHERE RDB\$TRIGGER_NAME = '{$triggerName}'";
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Trigger creation failure. SQL: " . self::statementArrayToText($statements));
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Trigger creation failure. SQL: " . self::statementArrayToText($statements));
 
         $sequenceName = "{$tableName}_D2IS";
         foreach ([1, 2] as $id) {
             $sql = "SELECT NEXT VALUE FOR {$sequenceName} FROM RDB\$DATABASE;";
             $result = $connection->query($sql);
-            $this->assertInstanceOf(Statement::class, $result);
-            $this->assertSame($id, $result->fetchColumn(), "Incorrect autoincrement value");
+            $this->assertInstanceOf(Result::class, $result);
+            $this->assertSame($id, $result->fetchOne(), "Incorrect autoincrement value");
         }
     }
 
     public function testCreateTableWithIndex()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('foo', 'integer');
         $table->addIndex(["foo"]);
@@ -92,7 +93,7 @@ class CreateTestCase extends AbstractIntegrationTestCase
         foreach ($statements as $statement) {
             $connection->exec($statement);
         }
-        preg_match('/^CREATE INDEX (IDX_.+?) /', $statements[1], $match);
+        preg_match('/^CREATE INDEX (IDX_.+?) /', (string) $statements[1], $match);
         $this->assertNotEmpty($match, "Invalid match against \$statements[1]: {$statements[1]}");
         $indexName = $match[1];
 
@@ -130,14 +131,14 @@ class CreateTestCase extends AbstractIntegrationTestCase
 
 
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Index creation failure. SQL: " . self::statementArrayToText($statements));
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Index creation failure. SQL: " . self::statementArrayToText($statements));
     }
 
     public function testCreateTableWithUniqueIndex()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $table->addColumn('foo', 'integer');
         $table->addUniqueIndex(["foo"]);
@@ -146,7 +147,7 @@ class CreateTestCase extends AbstractIntegrationTestCase
         foreach ($statements as $statement) {
             $connection->exec($statement);
         }
-        preg_match('/^CREATE UNIQUE INDEX (UNIQ_.+?) /', $statements[1], $match);
+        preg_match('/^CREATE UNIQUE INDEX (UNIQ_.+?) /', (string) $statements[1], $match);
         $this->assertNotEmpty($match, "Invalid match against \$statements[1]: {$statements[1]}");
         $indexName = $match[1];
 
@@ -161,14 +162,14 @@ class CreateTestCase extends AbstractIntegrationTestCase
             AND SG.RDB\$FIELD_NAME = 'FOO'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Unique index creation failure. SQL: " . self::statementArrayToText($statements));
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Unique index creation failure. SQL: " . self::statementArrayToText($statements));
     }
 
     public function testCreateTableWithCommentedColumn()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $comment = 'Lorem ipsum';
         $table->addColumn('foo', 'integer', ['comment' => $comment]);
@@ -187,7 +188,7 @@ class CreateTestCase extends AbstractIntegrationTestCase
             AND RF.RDB\$DESCRIPTION = '{$comment}'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
-        $this->assertSame(1, $result->fetchColumn(), "Comment creation failure. SQL: " . self::statementArrayToText($statements));
+        $this->assertInstanceOf(Result::class, $result);
+        $this->assertSame(1, $result->fetchOne(), "Comment creation failure. SQL: " . self::statementArrayToText($statements));
     }
 }

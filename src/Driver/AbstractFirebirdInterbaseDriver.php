@@ -27,7 +27,7 @@ abstract class AbstractFirebirdInterbaseDriver implements VersionAwarePlatformDr
     public function createDatabasePlatformForVersion($version)
     {
         if (
-            false === preg_match(
+            1 !== preg_match(
                 '/^(LI|WI)-([VT])(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
                 $version,
                 $versionParts

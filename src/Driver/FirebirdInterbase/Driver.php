@@ -18,8 +18,6 @@ final class Driver extends AbstractFirebirdInterbaseDriver
         $this->setDriverOptions($params);
         $username    = $params['user'] ?? '';
         $password    = $params['password'] ?? '';
-        $charset     = $params['charset'] ?? 'UTF8';
-        $persistent = ! empty($params['persistent']);
 
         return new Connection(
             $params,

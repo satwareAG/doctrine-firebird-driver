@@ -73,8 +73,8 @@ abstract class AbstractIntegrationTestCase extends TestCase
             "isql-fb %s -input %s -password %s -user %s",
             escapeshellarg($configurationArray['host'] . ':'. $configurationArray['dbname']),
             escapeshellarg(ROOT_PATH . "/tests/resources/database_setup.sql"),
-            escapeshellarg($configurationArray['password']),
-            escapeshellarg($configurationArray['user'])
+            escapeshellarg((string) $configurationArray['password']),
+            escapeshellarg((string) $configurationArray['user'])
         );
         exec($cmd);
     }
@@ -84,9 +84,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
      */
     protected static function statementArrayToText(array $statements)
     {
-        $statements = array_filter($statements, function($statement){
-            return is_string($statement);
-        });
+        $statements = array_filter($statements, fn($statement) => is_string($statement));
         if ($statements) {
             $indent = "    ";
             array_walk($statements, function(&$v) use ($indent){
@@ -108,8 +106,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
             [ROOT_PATH . '/tests/resources/Test/AttributeEntity'],
             true,
             $proxyDir . '-annotations',
-            $cache,
-            true
+            $cache
         );
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
         return $doctrineConfiguration;

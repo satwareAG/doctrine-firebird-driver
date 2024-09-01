@@ -5,7 +5,7 @@ use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
@@ -58,7 +58,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $c = $this->_platform->getIdentifierQuoteCharacter();
         $this->assertEquals($c."test".$c, $this->_platform->quoteIdentifier("test"));
         $this->assertEquals($c."test".$c.".".$c."test".$c, $this->_platform->quoteIdentifier("test.test"));
-        $this->assertEquals(str_repeat($c, 4), $this->_platform->quoteIdentifier($c));
+        $this->assertEquals(str_repeat((string) $c, 4), $this->_platform->quoteIdentifier($c));
     }
 
     /**
@@ -69,7 +69,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $c = $this->_platform->getIdentifierQuoteCharacter();
         $this->assertEquals($c."test".$c, $this->_platform->quoteSingleIdentifier("test"));
         $this->assertEquals($c."test.test".$c, $this->_platform->quoteSingleIdentifier("test.test"));
-        $this->assertEquals(str_repeat($c, 4), $this->_platform->quoteSingleIdentifier($c));
+        $this->assertEquals(str_repeat((string) $c, 4), $this->_platform->quoteSingleIdentifier($c));
     }
 
     public function testGetInvalidForeignKeyReferentialActionSQLThrowsException()
@@ -80,7 +80,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testGetUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->expectException('Doctrine\DBAL\Exception');
+        $this->expectException(\Doctrine\DBAL\Exception::class);
         $this->_platform->getDoctrineTypeMapping('foobar');
     }
 
@@ -92,14 +92,14 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
 
     public function testRegisterUnknownDoctrineMappingTypeThrowsException()
     {
-        $this->expectException('Doctrine\DBAL\Exception');
+        $this->expectException(\Doctrine\DBAL\Exception::class);
         $this->_platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
     public function testCreateWithNoColumnsThrowsException()
     {
         $table = new \Doctrine\DBAL\Schema\Table('test');
-        $this->expectException('Doctrine\DBAL\Exception');
+        $this->expectException(\Doctrine\DBAL\Exception::class);
         $this->_platform->getCreateTableSQL($table);
     }
 
@@ -110,7 +110,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     {
         $keywordList = $this->_platform->getReservedKeywordsList();
         $this->assertInstanceOf(FirebirdInterbaseKeywords::class, $keywordList);
-        $this->assertInstanceOf('Doctrine\DBAL\Platforms\Keywords\KeywordList', $keywordList);
+        $this->assertInstanceOf(\Doctrine\DBAL\Platforms\Keywords\KeywordList::class, $keywordList);
         $this->assertTrue($keywordList->isKeyword('table'));
     }
 
@@ -353,7 +353,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetCreateSequenceSQL()
     {
         $sequence = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Sequence')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence
@@ -369,7 +369,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterSequenceSQL()
     {
         $sequence = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Sequence')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence
@@ -496,7 +496,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDropSequenceSQLWithSequence()
     {
         $sequence = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Sequence')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence
@@ -583,11 +583,11 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterTableSQLWorksWithNoChanges()
     {
         $diff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\TableDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\TableDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $diff
@@ -614,11 +614,11 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterTableSQLWorksWithAddedColumn()
     {
         $diff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\TableDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\TableDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name
@@ -634,7 +634,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getNewName')
             ->willReturn($name);
         $column = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Column')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
             ->disableOriginalConstructor()
             ->getMock();
         $column
@@ -642,7 +642,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getQuotedName')
             ->willReturn("'bar'");
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\BigIntType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -670,11 +670,11 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterTableSQLWorksWithRemovedColumn()
     {
         $diff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\TableDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\TableDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name
@@ -690,7 +690,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getNewName')
             ->willReturn($name);
         $column = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Column')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
             ->disableOriginalConstructor()
             ->getMock();
         $column
@@ -698,7 +698,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getQuotedName')
             ->willReturn("'bar'");
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\BigIntType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -726,11 +726,11 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterTableSQLWorksWithChangedColumn()
     {
         $diff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\TableDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\TableDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name
@@ -746,7 +746,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getNewName')
             ->willReturn($name);
         $column = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Column')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
             ->disableOriginalConstructor()
             ->getMock();
         $column
@@ -754,7 +754,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getQuotedName')
             ->willReturn("'bar'");
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\BigIntType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -770,12 +770,12 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('toArray')
             ->willReturn(['type' => $type]);
         $columnDiff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\ColumnDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\ColumnDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $columnDiff->column = $column;
         $identifierOld = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $identifierOld
@@ -817,11 +817,11 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetAlterTableSQLWorksWithRenamedColumn()
     {
         $diff = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\TableDiff')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\TableDiff::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Identifier')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Identifier::class)
             ->disableOriginalConstructor()
             ->getMock();
         $name
@@ -837,7 +837,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getNewName')
             ->willReturn($name);
         $column = $this
-            ->getMockBuilder('Doctrine\DBAL\Schema\Column')
+            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
             ->disableOriginalConstructor()
             ->getMock();
         $column
@@ -845,7 +845,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->method('getQuotedName')
             ->willReturn("'bar'");
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\BigIntType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -892,7 +892,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $found = $method->invoke($this->_platform);
         $this->assertIsString($found);
         $this->assertTrue(class_exists($found));
-        $this->assertTrue(is_subclass_of($found, 'Doctrine\DBAL\Platforms\Keywords\KeywordList'));
+        $this->assertTrue(is_subclass_of($found, \Doctrine\DBAL\Platforms\Keywords\KeywordList::class));
     }
 
     public function testGetSmallIntTypeDeclarationSQL()
@@ -1033,7 +1033,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetColumnDeclarationSQL()
     {
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\StringType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\StringType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -1069,7 +1069,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetCreateTableSQL($expected, $options)
     {
         $type = $this
-            ->getMockBuilder('Doctrine\DBAL\Types\StringType')
+            ->getMockBuilder(\Doctrine\DBAL\Types\StringType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
@@ -1191,11 +1191,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
      */
     public function testReturnsJsonTypeDeclarationSQL()
     {
-        $column = array(
-            'length'  => 666,
-            'notnull' => true,
-            'type'    => \Doctrine\DBAL\Types\Type::getType('json'),
-        );
+        $column = ['length'  => 666, 'notnull' => true, 'type'    => \Doctrine\DBAL\Types\Type::getType('json')];
         $this->assertSame(
             $this->_platform->getClobTypeDeclarationSQL($column),
             $this->_platform->getJsonTypeDeclarationSQL($column)

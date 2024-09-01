@@ -2,14 +2,15 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table\Column;
 
 use Doctrine\DBAL\Schema\Comparator;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
-use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
+use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * @runTestsInSeparateProcesses
  */
-class AlterColumnsTestCase extends AbstractIntegrationTestCase
+class AlterColumnsTest extends AbstractIntegrationTestCase
 {
     /**
      * @dataProvider dataProvider_testAlterTableWithVariousColumnOptionCombinations
@@ -22,7 +23,7 @@ class AlterColumnsTestCase extends AbstractIntegrationTestCase
     {
         $connection = $this->_entityManager->getConnection();
         $sm = $connection->getSchemaManager();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdInterbaseSchemaManager::getFieldTypeIdToColumnTypeMap()[$expectedFieldType];
         $sql = "CREATE TABLE {$tableName} ({$createColumnSql})";
         $connection->exec($sql);
@@ -60,7 +61,7 @@ class AlterColumnsTestCase extends AbstractIntegrationTestCase
             AND RF.RDB\$FIELD_NAME = 'FOO'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
+        $this->assertInstanceOf(\Doctrine\DBAL\Result::class, $result);
         $row = $result->fetch();
         $this->assertIsArray($row);
         $this->assertArrayHasKey('RDB$FIELD_TYPE', $row);

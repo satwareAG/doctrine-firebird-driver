@@ -1,7 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table\Column;
 
-use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
@@ -9,7 +9,7 @@ use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 /**
  * @runTestsInSeparateProcesses
  */
-class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
+class CreateWithColumnsTest extends AbstractIntegrationTestCase
 {
     /**
      * @dataProvider dataProvider_testCreateTableWithVariousColumnOptionCombinations
@@ -21,7 +21,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
     )
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdInterbaseSchemaManager::getFieldTypeIdToColumnTypeMap()[$inputFieldType];
 
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
@@ -41,7 +41,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
             AND RF.RDB\$FIELD_NAME = 'FOO'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
+        $this->assertInstanceOf(Result::class, $result);
         $row = $result->fetch();
         $this->assertIsArray($row);
         $this->assertArrayHasKey('RDB$FIELD_TYPE', $row);
@@ -141,7 +141,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
     public function testCreateTableWithManyDifferentColumns()
     {
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
 
         $table = new \Doctrine\DBAL\Schema\Table($tableName);
         $columns = [];
@@ -168,7 +168,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
             WHERE RF.RDB\$RELATION_NAME = '{$tableName}'"
         );
         $result = $connection->query($sql);
-        $this->assertInstanceOf(Statement::class, $result);
+        $this->assertInstanceOf(Result::class, $result);
         $rows = $result->fetchAll();
         $this->assertIsArray($rows);
         $this->assertCount(count($columns), $rows, 'Row count does not match column count');
@@ -179,7 +179,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
         }
 
         foreach ($rows as $row) {
-            $fieldName = trim($row['RDB$FIELD_NAME_01']);
+            $fieldName = trim((string) $row['RDB$FIELD_NAME_01']);
             $this->assertArrayHasKey($fieldName, $columnsIndexed);
             $column = $columnsIndexed[$fieldName];
             $this->assertArrayHasKey('RDB$FIELD_TYPE', $row);
@@ -188,8 +188,8 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
             $expectedPrecision = $column->getPrecision();
             $expectedFixed = $column->getFixed();
             $expectedDefault = $column->getDefault();
-            switch (get_class($column->getType())) {
-                case 'Doctrine\DBAL\Types\SmallIntType':
+            switch ($column->getType()::class) {
+                case \Doctrine\DBAL\Types\SmallIntType::class:
                     $expectedType = FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT;
                     if (10 === $expectedPrecision) {
                         $expectedPrecision = 0;
@@ -198,7 +198,7 @@ class CreateWithColumnsTestCase extends AbstractIntegrationTestCase
                         $expectedDefault = strval($expectedDefault);
                     }
                     break;
-                case 'Doctrine\DBAL\Types\StringType':
+                case \Doctrine\DBAL\Types\StringType::class:
                     $expectedType = FirebirdInterbaseSchemaManager::META_FIELD_TYPE_VARCHAR;
                     if ($column->getFixed()) {
                         $expectedType = FirebirdInterbaseSchemaManager::META_FIELD_TYPE_CHAR;

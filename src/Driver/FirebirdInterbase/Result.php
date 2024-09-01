@@ -7,20 +7,35 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 
-class Result implements ResultInterface
+final class Result implements ResultInterface
 {
+    /**
+     * Number of rows affected by last execute
+     * @var integer
+     */
+    protected $affectedRows = 0;
+
+    /**
+     * @var int
+     */
+    protected $numFields = 0;
+    private $columnCount = 0;
+    private Connection $connection;
     /**
      * @var resource
      */
-    private $statement;
+    private $ibaseResultResource;
 
     /**
-     * @internal The result can only be instantiated by its driver connection or statement.
-     * @param resource $statement
+     * @param resource|null $ibaseResultResource;
+     *@internal The result can only be instantiated by its driver connection or statement.
      */
-    public function __construct($statement)
+    public function __construct($ibaseResultResource, Connection $connection, $affectedRows, $columnCount)
     {
-        $this->statement = $statement;
+        $this->ibaseResultResource = $ibaseResultResource;
+        $this->affectedRows = $affectedRows;
+        $this->columnCount = $columnCount;
+        $this->connection = $connection;
     }
 
     /**
@@ -28,7 +43,10 @@ class Result implements ResultInterface
      */
     public function fetchNumeric()
     {
-        return @ibase_fetch_row($this->statement, IBASE_TEXT);
+        if (is_resource($this->ibaseResultResource)) {
+            return @ibase_fetch_row($this->ibaseResultResource, IBASE_TEXT);
+        }
+        return false;
     }
 
     /**
@@ -36,7 +54,10 @@ class Result implements ResultInterface
      */
     public function fetchAssociative()
     {
-        return @ibase_fetch_assoc($this->statement, IBASE_TEXT);
+        if (is_resource($this->ibaseResultResource)) {
+            return @ibase_fetch_assoc($this->ibaseResultResource, IBASE_TEXT);
+        }
+        return false;
     }
 
     /**
@@ -84,7 +105,7 @@ class Result implements ResultInterface
      */
     public function columnCount(): int
     {
-        // TODO: Implement columnCount() method.
+        return $this->columnCount;
     }
 
     /**
@@ -92,6 +113,16 @@ class Result implements ResultInterface
      */
     public function free(): void
     {
-        // TODO: Implement free() method.
+        if ($this->ibaseResultResource && is_resource($this->ibaseResultResource)) {
+            $success = @ibase_free_result($this->ibaseResultResource);
+            if (!$success) {
+                /**
+                 * Essentially untestable because Firebird has a tendency to fail hard with
+                 * "Segmentation fault (core dumped)."
+                 */
+                $this->connection->checkLastApiCall();
+            }
+        }
+        $this->ibaseResultResource = null;
     }
 }

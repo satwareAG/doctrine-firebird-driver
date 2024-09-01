@@ -7,13 +7,13 @@ use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 
-class AlterTestCase extends AbstractIntegrationTestCase
+class AlterTest extends AbstractIntegrationTestCase
 {
     public function testAlterTable()
     {
         $this->assertTrue(true);
         $connection = $this->_entityManager->getConnection();
-        $tableName = strtoupper("TABLE_" . substr(md5(__CLASS__ . ':' . __FUNCTION__), 0, 12));
+        $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $sql = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);
 

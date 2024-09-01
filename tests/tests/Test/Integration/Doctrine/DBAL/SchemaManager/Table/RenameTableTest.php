@@ -1,12 +1,9 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\SchemaManager\Table;
 
-use Doctrine\DBAL\Exception;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
-use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
-
-class RenameTable extends AbstractIntegrationTestCase
+class RenameTableTest extends AbstractIntegrationTestCase
 {
     public function testRenameTable()
     {

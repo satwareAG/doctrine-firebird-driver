@@ -65,7 +65,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
      */
     private function getQuotedIdentifierName($identifier)
     {
-        if (false !== preg_match('/[a-z]/', $identifier)) {
+        if (1 === preg_match('/[a-z]/', $identifier)) {
             return $this->_platform->quoteIdentifier($identifier);
         }
         return $identifier;
@@ -142,11 +142,11 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 
 
 
-        if (false !== preg_match('/^.*default\s*\'(.*)\'\s*$/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
+        if (1 === preg_match('/^.*default\s*\'(.*)\'\s*$/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
             // default definition is a string
             $options['default'] = $matches[1];
         } else {
-            if (false !== preg_match('/^.*DEFAULT\s*(.*)\s*/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
+            if (1 === preg_match('/^.*DEFAULT\s*(.*)\s*/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches)) {
                 // Default is numeric or a constant or a function
                 $options['default'] = $matches[1];
                 if (strtoupper(trim($options['default'])) == 'NULL') {
