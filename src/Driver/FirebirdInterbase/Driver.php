@@ -4,6 +4,9 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use SensitiveParameter;
 
+/**
+ * A Doctrine DBAL driver for the FirebirdSQL/php-firebird
+ */
 final class Driver extends AbstractFirebirdInterbaseDriver
 {
     /**

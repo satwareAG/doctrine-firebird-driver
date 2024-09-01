@@ -256,8 +256,8 @@ class StatementTest extends AbstractIntegrationTestCase
         $sql = "SELECT ID FROM Album WHERE ID = ?";
         $statement = new Statement($connection, $sql);
         $statement->bindValue(0, 2);
-        $statement->execute();
-        $value = $statement->fetchOne();
+        $result = $statement->execute();
+        $value = $result->fetchOne();
         $this->assertSame(2, $value);
     }
 
@@ -268,8 +268,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $statement = new Statement($connection, $sql);
         $id = 2;
         $statement->bindParam(':ID', $id);
-        $statement->execute();
-        $value = $statement->fetchOne();
+        $value = $statement->execute()->fetchOne();
         $this->assertSame(2, $value);
     }
 

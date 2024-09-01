@@ -11,7 +11,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class ConnectionTest extends AbstractIntegrationTestCase
 {
@@ -22,7 +22,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->assertInstanceOf(Connection::class, $connection);
         $this->assertNull($connection->getAttribute(-1));
         $this->assertSame(
-            \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED,
+            TransactionIsolationLevel::READ_COMMITTED,
             $connection->getAttribute(AbstractFirebirdInterbaseDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL)
         );
         $this->assertIsResource($connection->getInterbaseConnectionResource());
@@ -30,7 +30,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->assertInstanceOf(Statement::class, $connection->prepare("foo"));
         $this->assertSame("'''foo'''", $connection->quote("'foo'"));
         $this->assertIsString(
-            $connection->getStartTransactionSql(\Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED)
+            $connection->getStartTransactionSql(TransactionIsolationLevel::READ_COMMITTED,)
         );
         $this->assertSame(
             "foo/3333:bar",

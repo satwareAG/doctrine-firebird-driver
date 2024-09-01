@@ -289,7 +289,7 @@ final class Connection implements ServerInfoAwareConnection
         }
         $sql = "SELECT GEN_ID({$name}, 0) LAST_VAL FROM RDB\$DATABASE";
         $stmt = $this->query($sql);
-        $result = $stmt->fetchColumn(0);
+        $result = $stmt->fetchOne();
         return $result;
     }
 
