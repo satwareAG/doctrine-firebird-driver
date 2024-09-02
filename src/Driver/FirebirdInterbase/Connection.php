@@ -288,9 +288,7 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
         $sql = "SELECT GEN_ID({$name}, 0) LAST_VAL FROM RDB\$DATABASE";
-        $stmt = $this->query($sql);
-        $result = $stmt->fetchOne();
-        return $result;
+        return $this->query($sql)->fetchOne();
     }
 
     /**
@@ -509,25 +507,25 @@ final class Connection implements ServerInfoAwareConnection
 
     protected function close(): void
     {
-        if (is_resource($this->_ibaseActiveTransaction)) {
-            if ($this->_ibaseTransactionLevel > 0) {
-                $this->rollBack(); // Auto-rollback explicit transactions
+            if (is_resource($this->_ibaseActiveTransaction)) {
+                if ($this->_ibaseTransactionLevel > 0) {
+                    $this->rollBack(); // Auto-rollback explicit transactions
+                }
+                $this->autoCommit();
             }
-            $this->autoCommit();
-        }
-        $success = true;
-        if (is_resource($this->_ibaseConnectionRc)) {
+            $success = true;
+            if (is_resource($this->_ibaseConnectionRc)) {
             $success = @ibase_close($this->_ibaseConnectionRc);
-        }
-        if (is_resource($this->_ibaseService)) {
+            }
+            if (is_resource($this->_ibaseService)) {
             $success = @ibase_service_detach($this->_ibaseService);
-        }
-        $this->_ibaseConnectionRc = false;
-        $this->_ibaseActiveTransaction  = false;
-        $this->_ibaseTransactionLevel = 0;
-        if (false === $success) {
-            $this->checkLastApiCall();
-        }
+            }
+            $this->_ibaseConnectionRc = false;
+            $this->_ibaseActiveTransaction  = false;
+            $this->_ibaseTransactionLevel = 0;
+            if (false === $success) {
+               $this->checkLastApiCall();
+            }
     }
 
     /**

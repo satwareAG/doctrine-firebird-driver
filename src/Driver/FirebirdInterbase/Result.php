@@ -125,4 +125,9 @@ final class Result implements ResultInterface
         }
         $this->ibaseResultResource = null;
     }
+
+    public function __destruct()
+    {
+        $this->free();
+    }
 }

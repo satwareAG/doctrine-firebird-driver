@@ -11,7 +11,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class ConnectionTest extends AbstractIntegrationTestCase
 {
@@ -30,7 +30,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->assertInstanceOf(Statement::class, $connection->prepare("foo"));
         $this->assertSame("'''foo'''", $connection->quote("'foo'"));
         $this->assertIsString(
-            $connection->getStartTransactionSql(TransactionIsolationLevel::READ_COMMITTED,)
+            $connection->getStartTransactionSql(TransactionIsolationLevel::READ_UNCOMMITTED)
         );
         $this->assertSame(
             "foo/3333:bar",

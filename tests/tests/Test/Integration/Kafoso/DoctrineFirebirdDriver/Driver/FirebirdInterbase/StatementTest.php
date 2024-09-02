@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
@@ -17,67 +18,20 @@ class StatementTest extends AbstractIntegrationTestCase
         $sql = "SELECT * FROM Album";
         $statement = new Statement($connection, $sql);
 
-        $statement->setFetchMode(\PDO::FETCH_CLASS, '\stdClass');
-        $statement->execute();
-        $object = $statement->fetch();
-
-        $this->assertIsObject($object);
-        $this->assertInstanceOf('stdClass', $object);
-        $this->assertSame(1, $object->ID);
-        $this->assertSame('2017-01-01 15:00:00', $object->TIMECREATED);
-        $this->assertSame('...Baby One More Time', $object->NAME);
-        $this->assertSame(2, $object->ARTIST_ID);
-
-        $statement->setFetchMode(\PDO::FETCH_OBJ, '\stdClass');
-        $statement->execute();
-        $object = $statement->fetch();
-        $this->assertIsObject($object);
-        $this->assertInstanceOf('stdClass', $object);
-        $this->assertSame(1, $object->ID);
-        $this->assertSame('2017-01-01 15:00:00', $object->TIMECREATED);
-        $this->assertSame('...Baby One More Time', $object->NAME);
-        $this->assertSame(2, $object->ARTIST_ID);
-
-        $object = new class {
-            public $dummy = 42;
-        };
-        $statement->setFetchMode(\PDO::FETCH_INTO, $object);
-        $statement->execute();
-        $object2 = $statement->fetch();
-        $this->assertSame($object, $object2);
-        $this->assertSame(42, $object->dummy);
-        $this->assertSame(1, $object->ID);
-        $this->assertSame('2017-01-01 15:00:00', $object->TIMECREATED);
-        $this->assertSame('...Baby One More Time', $object->NAME);
-        $this->assertSame(2, $object->ARTIST_ID);
-
-        $statement->setFetchMode(\PDO::FETCH_ASSOC, $object);
-        $statement->execute();
-        $row = $statement->fetch();
+        $result = $statement->execute();
+        $row = $result->fetchAssociative();
         $this->assertSame(1, $row['ID']);
         $this->assertSame('2017-01-01 15:00:00', $row['TIMECREATED']);
         $this->assertSame('...Baby One More Time', $row['NAME']);
         $this->assertSame(2, $row['ARTIST_ID']);
 
-        $statement->setFetchMode(\PDO::FETCH_NUM, $object);
-        $statement->execute();
-        $row = $statement->fetch();
+        $result = $statement->execute();
+        $row = $result->fetchNumeric();
         $this->assertSame(1, $row[0]);
         $this->assertSame('2017-01-01 15:00:00', $row[1]);
         $this->assertSame('...Baby One More Time', $row[2]);
         $this->assertSame(2, $row[3]);
 
-        $statement->setFetchMode(\PDO::FETCH_BOTH, $object);
-        $statement->execute();
-        $row = $statement->fetch();
-        $this->assertSame(1, $row[0]);
-        $this->assertSame('2017-01-01 15:00:00', $row[1]);
-        $this->assertSame('...Baby One More Time', $row[2]);
-        $this->assertSame(2, $row[3]);
-        $this->assertSame(1, $row['ID']);
-        $this->assertSame('2017-01-01 15:00:00', $row['TIMECREATED']);
-        $this->assertSame('...Baby One More Time', $row['NAME']);
-        $this->assertSame(2, $row['ARTIST_ID']);
     }
 
     public function testFetchAllWorks()
@@ -86,27 +40,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $sql = "SELECT * FROM Album";
         $statement = new Statement($connection, $sql);
 
-        $statement->setFetchMode(\PDO::FETCH_CLASS, 'stdClass');
-        $statement->execute();
-        $array = $statement->fetchAll();
-        $this->assertIsArray($array);
-        $this->assertCount(2, $array);
-        $this->assertIsObject($array[0]);
-        $this->assertInstanceOf('stdClass', $array[0]);
-        $this->assertIsObject($array[1]);
-        $this->assertInstanceOf('stdClass', $array[1]);
-        $this->assertSame(1, $array[0]->ID);
-        $this->assertSame('2017-01-01 15:00:00', $array[0]->TIMECREATED);
-        $this->assertSame('...Baby One More Time', $array[0]->NAME);
-        $this->assertSame(2, $array[0]->ARTIST_ID);
-        $this->assertSame(2, $array[1]->ID);
-        $this->assertSame('2017-01-01 15:00:00', $array[1]->TIMECREATED);
-        $this->assertSame('Dark Horse', $array[1]->NAME);
-        $this->assertSame(3, $array[1]->ARTIST_ID);
-
-        $statement->setFetchMode(\PDO::FETCH_ASSOC);
-        $statement->execute();
-        $rows = $statement->fetchAll();
+        $rows = $statement->execute()->fetchAllAssociative();
         $this->assertIsArray($rows);
         $this->assertCount(2, $rows);
         $this->assertIsArray($rows[0]);
@@ -120,9 +54,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertSame('Dark Horse', $rows[1]['NAME'] ?? false);
         $this->assertSame(3, $rows[1]['ARTIST_ID'] ?? false);
 
-        $statement->setFetchMode(\PDO::FETCH_NUM);
-        $statement->execute();
-        $rows = $statement->fetchAll();
+        $rows = $statement->execute()->fetchAllNumeric();
         $this->assertIsArray($rows);
         $this->assertCount(2, $rows);
         $this->assertIsArray($rows[0]);
@@ -136,29 +68,6 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertSame('Dark Horse', $rows[1][2] ?? false);
         $this->assertSame(3, $rows[1][3] ?? false);
 
-        $statement->setFetchMode(\PDO::FETCH_BOTH);
-        $statement->execute();
-        $rows = $statement->fetchAll();
-        $this->assertIsArray($rows);
-        $this->assertCount(2, $rows);
-        $this->assertIsArray($rows[0]);
-        $this->assertIsArray($rows[1]);
-        $this->assertSame(1, $rows[0][0] ?? false);
-        $this->assertSame('2017-01-01 15:00:00', $rows[0][1] ?? false);
-        $this->assertSame('...Baby One More Time', $rows[0][2] ?? false);
-        $this->assertSame(2, $rows[0][3] ?? false);
-        $this->assertSame(1, $rows[0]['ID'] ?? false);
-        $this->assertSame('2017-01-01 15:00:00', $rows[0]['TIMECREATED'] ?? false);
-        $this->assertSame('...Baby One More Time', $rows[0]['NAME'] ?? false);
-        $this->assertSame(2, $rows[0]['ARTIST_ID'] ?? false);
-        $this->assertSame(2, $rows[1][0] ?? false);
-        $this->assertSame('2017-01-01 15:00:00', $rows[1][1] ?? false);
-        $this->assertSame('Dark Horse', $rows[1][2] ?? false);
-        $this->assertSame(3, $rows[1][3] ?? false);
-        $this->assertSame(2, $rows[1]['ID'] ?? false);
-        $this->assertSame('2017-01-01 15:00:00', $rows[1]['TIMECREATED'] ?? false);
-        $this->assertSame('Dark Horse', $rows[1]['NAME'] ?? false);
-        $this->assertSame(3, $rows[1]['ARTIST_ID'] ?? false);
     }
 
     public function testFetchColumnWorks()
@@ -184,9 +93,9 @@ class StatementTest extends AbstractIntegrationTestCase
         $connection = $this->_entityManager->getConnection()->getWrappedConnection();
         $sql = "SELECT * FROM Album";
         $statement = new Statement($connection, $sql);
-        $statement->execute();
+        $result = $statement->execute()->fetchAllAssociative();
         $array = [];
-        foreach ($statement as $row) {
+        foreach ($result as $row) {
             $array[] = $row;
         }
         $this->assertCount(2, $array);
@@ -201,7 +110,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $connection = $this->_entityManager->getConnection()->getWrappedConnection();
         $sql = "SELECT * FROM Album";
         $statement = new Statement($connection, $sql);
-        $this->assertTrue($statement->execute());
+        $this->assertInstanceOf(Result::class, $statement->execute());
     }
 
     public function testExecuteWorksWithParameters()
@@ -209,7 +118,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $connection = $this->_entityManager->getConnection()->getWrappedConnection();
         $sql = "SELECT * FROM Album WHERE ID = ?";
         $statement = new Statement($connection, $sql);
-        $this->assertTrue($statement->execute([1]));
+        $this->assertInstanceOf(Result::class, $statement->execute([1]));
     }
 
     public function testExecuteThrowsExceptionWhenSQLIsInvalid()
@@ -220,10 +129,10 @@ class StatementTest extends AbstractIntegrationTestCase
             $statement->execute();
         } catch (\Throwable $t) {
             $this->assertSame(Exception::class, $t::class);
-            $this->assertSame(0, $t->getCode());
+            $this->assertSame(-104, $t->getCode());
             $this->assertSame("Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
             $this->assertNull($t->getPrevious());
-            $this->assertSame(-104, $t->getErrorCode());
+            $this->assertSame(-104, $t->getCode());
             $this->assertNull($t->getSQLState());
             return;
         }
@@ -240,10 +149,10 @@ class StatementTest extends AbstractIntegrationTestCase
             $statement->execute();
         } catch (\Throwable $t) {
             $this->assertSame(Exception::class, $t::class);
-            $this->assertSame(0, $t->getCode());
+            $this->assertSame(-104, $t->getCode());
             $this->assertSame("Failed to perform `doExecPrepared`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
             $this->assertNull($t->getPrevious());
-            $this->assertSame(-104, $t->getErrorCode());
+            $this->assertSame(-104, $t->getCode());
             $this->assertNull($t->getSQLState());
             return;
         }

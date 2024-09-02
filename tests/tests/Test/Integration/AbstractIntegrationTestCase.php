@@ -1,10 +1,13 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration;
 
+use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Portability\Driver;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
@@ -109,6 +112,18 @@ abstract class AbstractIntegrationTestCase extends TestCase
             $cache
         );
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
+        $doctrineConfiguration->setIdentityGenerationPreferences([
+            FirebirdInterbasePlatform::class => ClassMetadata::GENERATOR_TYPE_SEQUENCE
+            ]);
+
+        /*
+        $doctrineConfiguration->setMiddlewares([
+            new \Doctrine\DBAL\Portability\Middleware(
+                \Doctrine\DBAL\Portability\Connection::PORTABILITY_ALL,
+                ColumnCase::UPPER
+            )
+        ]);
+        */
         return $doctrineConfiguration;
     }
 
