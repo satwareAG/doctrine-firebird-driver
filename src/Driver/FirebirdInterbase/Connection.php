@@ -10,6 +10,7 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
+use RuntimeException;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -24,23 +25,16 @@ final class Connection implements ServerInfoAwareConnection
      * here are a couple of additional caveats to keep in mind when using persistent connections
      * https://www.php.net/manual/en/features.persistent-connections.php
      */
-    const DEFAULT_IS_PERSISTENT = true;
+    const DEFAULT_IS_PERSISTENT = false;
     const DEFAULT_DIALECT = 0;
+    protected string $connectString;
 
-    /**
-     * @var null|string
-     */
-    protected $connectString = null;
-
-    /**
-     * @var null|string
-     **/
-    protected $host = null;
+    protected string $host;
 
     /**
      * @var bool
      */
-    protected $isPersistent = true;
+    protected $isPersistent = false;
 
     /**
      * @var string
@@ -95,17 +89,15 @@ final class Connection implements ServerInfoAwareConnection
      * @var boolean
      */
     protected $attrAutoCommit = true;
-    private ?string $password = null;
-    private ?string $username = null;
+    private string $password;
+    private string $username;
 
     /**
      * @param array<int|string,mixed> $params
-     * @param null|string $username
-     * @param null|string $password
      * @param array<int|string, mixed> $driverOptions
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
-    public function __construct(array $params, $username, $password, array $driverOptions = [])
+    public function __construct(array $params, string $username, string $password, array $driverOptions = [])
     {
         $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
 
@@ -113,7 +105,7 @@ final class Connection implements ServerInfoAwareConnection
         $this->host = $params['host'];
         if (isset($params['port'])) {
             if ((int)$params['port'] === 0) {
-                throw new \RuntimeException("Invalid \"port\" in argument \$params");
+                throw new RuntimeException("Invalid \"port\" in argument \$params");
             }
             $this->host .= '/' . $params['port'];
         }
@@ -149,7 +141,13 @@ final class Connection implements ServerInfoAwareConnection
 
     public function __destruct()
     {
-        $this->close();
+        try {
+            $this->close();
+        } catch (Exception $e) {
+            unset($this->_ibaseConnectionRc);
+            unset($this->_ibaseService);
+            unset($this->_ibaseTransactionLevel);
+        }
     }
 
     /**
@@ -336,7 +334,7 @@ final class Connection implements ServerInfoAwareConnection
     {
         if ($this->_ibaseTransactionLevel > 0) {
             if (!is_resource($this->_ibaseActiveTransaction)) {
-                throw new \RuntimeException(sprintf(
+                throw new RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
                 ));
@@ -355,14 +353,14 @@ final class Connection implements ServerInfoAwareConnection
 
     /**
      * Commits the transaction if autocommit is enabled no explicte transaction has been started.
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @return null|bool
      */
     public function autoCommit()
     {
         if ($this->attrAutoCommit && $this->_ibaseTransactionLevel < 1) {
             if (false == is_resource($this->_ibaseActiveTransaction)) {
-                throw new \RuntimeException(sprintf(
+                throw new RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
                 ));
@@ -378,13 +376,13 @@ final class Connection implements ServerInfoAwareConnection
 
     /**
      * {@inheritdoc)
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function rollBack()
     {
         if ($this->_ibaseTransactionLevel > 0) {
             if (false == is_resource($this->_ibaseActiveTransaction)) {
-                throw new \RuntimeException(sprintf(
+                throw new RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
                 ));
@@ -427,7 +425,7 @@ final class Connection implements ServerInfoAwareConnection
     }
 
     /**
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @return resource
      */
     public function getActiveTransaction()
@@ -462,11 +460,11 @@ final class Connection implements ServerInfoAwareConnection
                 $this->_ibaseActiveTransaction = $this->createTransaction(true);
                 $this->_ibaseService = ibase_service_attach($this->host, $this->username, $this->password);
             } catch (\Exception $e) {
-                throw new \RuntimeException("Failed to connect", 0, $e);
+                throw new RuntimeException("Failed to connect", 0, $e);
             }
         }
         if (false == is_resource($this->_ibaseActiveTransaction)) {
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 "No active transaction. \$this->_ibaseTransactionLevel = %d",
                 $this->_ibaseTransactionLevel
             ));
@@ -494,7 +492,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     protected function createTransaction($commitDefaultTransaction = true)
     {
-        if ($commitDefaultTransaction) {
+        if ($commitDefaultTransaction && is_resource($this->_ibaseConnectionRc)) {
             @ibase_commit($this->_ibaseConnectionRc);
         }
         $sql = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
@@ -529,7 +527,7 @@ final class Connection implements ServerInfoAwareConnection
     }
 
     /**
-     * @throws \RuntimeException
+     * @throws RuntimeException
      * @param array<int|string, string> $params
      * @return string
      */
@@ -539,14 +537,14 @@ final class Connection implements ServerInfoAwareConnection
             $str = $params['host'];
             if (isset($params['port'])) {
                 if ($params['port'] === '') {
-                    throw new \RuntimeException("Invalid \"port\" in argument \$params");
+                    throw new RuntimeException("Invalid \"port\" in argument \$params");
                 }
                 $str .= '/' . $params['port'];
             }
             $str .= ':' . $params['dbname'];
             return $str;
         }
-        throw new \RuntimeException("Argument \$params must contain non-empty \"host\" and \"dbname\"");
+        throw new RuntimeException("Argument \$params must contain non-empty \"host\" and \"dbname\"");
     }
 
     /**

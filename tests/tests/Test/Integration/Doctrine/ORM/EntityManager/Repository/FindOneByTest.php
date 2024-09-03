@@ -8,7 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 /**
  * @runTestsInSeparateProcesses
  */
-class FindOneByTestCase extends AbstractIntegrationTestCase
+class FindOneByTest extends AbstractIntegrationTestCase
 {
     public function testFindOneByAlbum()
     {

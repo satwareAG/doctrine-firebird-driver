@@ -10,6 +10,7 @@ use Doctrine\ORM\Configuration;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
+use Kafoso\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -30,6 +31,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
         static::installFirebirdDatabase($configurationArray);
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
+
         $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();
     }
 
@@ -115,7 +117,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
         $doctrineConfiguration->setIdentityGenerationPreferences([
             FirebirdInterbasePlatform::class => ClassMetadata::GENERATOR_TYPE_SEQUENCE
             ]);
-
+        $doctrineConfiguration->setQuoteStrategy(new FirebirdQuoteStrategy());
         /*
         $doctrineConfiguration->setMiddlewares([
             new \Doctrine\DBAL\Portability\Middleware(

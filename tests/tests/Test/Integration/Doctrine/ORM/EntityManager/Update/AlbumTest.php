@@ -8,7 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 /**
  * @runTestsInSeparateProcesses
  */
-class AlbumTestCase extends AbstractIntegrationTestCase
+class AlbumTest extends AbstractIntegrationTestCase
 {
     public function testCanUpdate()
     {

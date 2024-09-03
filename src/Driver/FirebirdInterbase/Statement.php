@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\SQLParserUtils;
-use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 
 /**
  * Based on:

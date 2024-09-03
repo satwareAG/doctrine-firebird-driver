@@ -9,7 +9,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 /**
  * @runTestsInSeparateProcesses
  */
-class FindTestCase extends AbstractIntegrationTestCase
+class FindTest extends AbstractIntegrationTestCase
 {
     public function testFindAlbum()
     {

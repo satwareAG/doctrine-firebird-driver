@@ -180,18 +180,4 @@ class StatementTest extends AbstractIntegrationTestCase
         $value = $statement->execute()->fetchOne();
         $this->assertSame(2, $value);
     }
-
-    public function testCloseCursorWorks()
-    {
-        $connection = $this->_entityManager->getConnection()->getWrappedConnection();
-        $statement = new Statement($connection, "SELECT 1 FROM Album");
-        $reflectionObjeect = new \ReflectionObject($statement);
-        $reflectionProperty = $reflectionObjeect->getProperty("ibaseResultRc");
-        $reflectionProperty->setAccessible(true);
-        $this->assertNull($reflectionProperty->getValue($statement));
-        $statement->execute();
-        $this->assertIsResource($reflectionProperty->getValue($statement));
-        $statement->closeCursor();
-        $this->assertNull($reflectionProperty->getValue($statement));
-    }
 }

@@ -1,5 +1,5 @@
 parameters:
-    level: 1
+    level: 8
     phpVersion: 80300
     paths:
         - src
@@ -7,5 +7,20 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - identifier: missingType.generics
+        # https://github.com/phpstan/phpstan-strict-rules/issues/103
+        -
+            message: '~^Construct empty\(\) is not allowed. Use more strict comparison\.~'
+            paths:
+                - src/Driver/*/Driver.php
+                - src/Platforms/*Platform.php
+                - src/Schema/*SchemaManager.php
+
+        # In some namespaces, we use array<string,mixed>, some elements of which are actually boolean
+        -
+            message: '~^Only booleans are allowed in .*, mixed given~'
+            paths:
+                - src/Platforms/*Platform.php
+                - src/Schema/*SchemaManager.php
+
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
