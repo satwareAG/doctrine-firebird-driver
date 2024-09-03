@@ -17,7 +17,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      *
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return "FirebirdInterbase";
     }
@@ -25,7 +25,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getMaxIdentifierLength()
+    public function getMaxIdentifierLength(): int
     {
         return 31;
     }
@@ -35,7 +35,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      *
      * @return integer
      */
-    public function getMaxConstraintIdentifierLength()
+    public function getMaxConstraintIdentifierLength(): int
     {
         return 27;
     }
@@ -46,17 +46,17 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      * @param Identifier|string   $aIdentifier    The identifier to check
      * @param integer                                   $maxLength      Length limit to check. Usually the result of
      *                                                                  {@link getMaxIdentifierLength()} should be passed
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
-    public function checkIdentifierLength($aIdentifier, $maxLength)
+    public function checkIdentifierLength($aIdentifier, ?int $maxLength = null): void
     {
         $maxLength || $maxLength = $this->getMaxIdentifierLength();
         $name = ($aIdentifier instanceof AbstractAsset) ?
                 $aIdentifier->getName() : $aIdentifier;
 
-        if (strlen($name) > $this->getMaxIdentifierLength()) {
-            throw \Doctrine\DBAL\Exception::notSupported
-                    ('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $this->getMaxIdentifierLength());
+        if (strlen($name) > $maxLength) {
+            throw Exception::notSupported
+                    ('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $maxLength);
         }
     }
 
@@ -432,11 +432,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDropDatabaseSQL($database)
     {
-        throw \Doctrine\DBAL\Exception::notSupported(__METHOD__);
+        throw Exception::notSupported(__METHOD__);
     }
 
     public function getCreateViewSQL($name, $sql)
@@ -916,7 +916,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $sql = array_merge($sql, $commentsSQL);
 
             if ($diff->newName !== false) {
-                throw \Doctrine\DBAL\Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+                throw Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
             }
 
             $sql = array_merge(
