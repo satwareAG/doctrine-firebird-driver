@@ -173,8 +173,8 @@ class ConnectionTest extends AbstractIntegrationTestCase
 
     public function testGenerateConnectStringThrowsExceptionWhenArrayIsMalformed()
     {
-        $this->expectExceptionMessage('Argument $params must contain non-empty "host" and "dbname"');
-        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('The "host" and "dbname" parameters are required for Connection');
+        $this->expectException(Exception\HostDbnameRequired::class);
         Connection::generateConnectString([]);
     }
 }

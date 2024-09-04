@@ -102,7 +102,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function __construct(array $params, string $username, string $password, array $driverOptions = [])
     {
-
+        $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
         $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
         if (isset($params['persistent'])) {
             $this->isPersistent = (bool)$params['persistent'];
@@ -148,7 +148,6 @@ final class Connection implements ServerInfoAwareConnection
 
         if (!$this->isPrivileged) {
             $this->connectString = self::generateConnectString($params);
-            $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
             $this->getActiveTransaction(); // Connects to the database
         }
     }
@@ -219,7 +218,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function getServerVersion()
     {
-        return is_resource($this->_ibaseService) ? @ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION) : '';
+        return is_resource($this->_ibaseService) ? ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION) : '';
     }
 
     /**
@@ -523,10 +522,10 @@ final class Connection implements ServerInfoAwareConnection
             }
             $success = true;
             if (is_resource($this->_ibaseConnectionRc)) {
-            $success = @ibase_close($this->_ibaseConnectionRc);
+                $success = @ibase_close($this->_ibaseConnectionRc);
             }
             if (is_resource($this->_ibaseService)) {
-            $success = @ibase_service_detach($this->_ibaseService);
+                $success = @ibase_service_detach($this->_ibaseService);
             }
             $this->_ibaseConnectionRc = false;
             $this->_ibaseActiveTransaction  = false;
