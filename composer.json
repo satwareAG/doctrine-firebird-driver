@@ -38,7 +38,8 @@
         "psr-4": {
             "Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\": "tests/resources/Test/Resource",
             "Kafoso\\DoctrineFirebirdDriver\\Test\\Integration\\": "tests/tests/Test/Integration",
-            "Kafoso\\DoctrineFirebirdDriver\\Test\\Unit\\": "tests/tests/Test/Unit"
+            "Kafoso\\DoctrineFirebirdDriver\\Test\\Unit\\": "tests/tests/Test/Unit",
+            "Kafoso\\DoctrineFirebirdDriver\\Test\\Functional\\": "tests/tests/Test/Functional"
         }
     },
     "require": {

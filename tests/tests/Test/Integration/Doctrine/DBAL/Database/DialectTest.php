@@ -77,7 +77,7 @@ class DialectTest extends AbstractIntegrationTestCase
         $entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
         $connection = $entityManager->getConnection();
         if($connection->getDatabasePlatform()->getName() !== 'FirebirdInterbase') {
-            $this->markTestSkipped(sprintf('Platform %s is not supported yet', $connection->getDatabasePlatform()->getName()));
+            $this->markTestSkipped(sprintf('Platform %s (for DB %s) is not supported yet', $connection->getDatabasePlatform()->getName(), $connection->getDatabase()));
         }
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         $result = $stmt->executeQuery()->fetchAssociative();

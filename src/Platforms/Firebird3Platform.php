@@ -16,7 +16,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
      *
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return "Firebird3";
     }

@@ -1,21 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
-         backupGlobals="false" cacheResult="true" executionOrder="depends,defects" stopOnRisky="true"
-         stopOnFailure="false" stopOnError="false" bootstrap="phpunit.bootstrap.php" colors="true"
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         colors="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTodoAnnotatedTests="true"
+         failOnRisky="true"
+         failOnWarning="true"
          convertDeprecationsToExceptions="true"
+         executionOrder="depends,defects"
+         bootstrap="phpunit.bootstrap.php"
 >
   <php>
     <ini name="error_reporting" value="-1"/>
-    <server name="APP_ENV" value="test" force="true"/>
-    <server name="SHELL_VERBOSITY" value="-1"/>
-    <server name="SYMFONY_PHPUNIT_REMOVE" value=""/>
-    <server name="SYMFONY_PHPUNIT_VERSION" value="10.5"/>
-    <env name="SYMFONY_DEPRECATIONS_HELPER" value="max[total]=0"/>
+    <var name="db_driver_class" value="Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Driver"/>
+    <var name="db_host" value="firebird"/>
+    <var name="db_user" value="sysdba"/>
+    <var name="db_password" value="masterkey"/>
+    <var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>
+    <var name="db_charset" value="UTF8" />
   </php>
   <testsuites>
+    <testsuite name="Functional">
+      <directory>tests/Test/Functional</directory>
+    </testsuite>
     <testsuite name="Unit">
       <directory>tests/Test/Unit</directory>
-      <directory>tests/Test/Integration</directory>
     </testsuite>
     <testsuite name="Integration">
       <directory>tests/Test/Integration</directory>

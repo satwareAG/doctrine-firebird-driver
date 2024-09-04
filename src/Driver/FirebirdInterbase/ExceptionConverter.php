@@ -41,7 +41,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
                     return new InvalidFieldNameException($exception, $query);
                 }
                 if (preg_match('/.*(dynamic sql error).*(column unknown).*/i', $message)) {
-                    return new InvalidFieldNameException($exception, $query);
+                    return new TableNotFoundException($exception, $query);
                 }
                 break;
             case -803:
@@ -51,6 +51,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
             case -607:
                 if (preg_match('/.*(unsuccessful metadata update Table).*(already exists).*/i', $message)) {
                     return new TableExistsException($exception, $query);
+                }
+                if (preg_match('/.*(unsuccessful metadata update DROP TABLE).*(does not exist).*/i', $message)) {
+                    return new TableNotFoundException($exception, $query);
                 }
                 break;
             case -902:

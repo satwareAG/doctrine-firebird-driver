@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception\HostDbnameRequired;
 use Kafoso\DoctrineFirebirdDriver\ValueFormatter;
 use RuntimeException;
 
@@ -89,31 +90,22 @@ final class Connection implements ServerInfoAwareConnection
      * @var boolean
      */
     protected $attrAutoCommit = true;
+
+    private bool $isPrivileged;
     private string $password;
     private string $username;
 
     /**
      * @param array<int|string,mixed> $params
      * @param array<int|string, mixed> $driverOptions
-     * @throws RuntimeException
+     * @throws HostDbnameRequired
      */
     public function __construct(array $params, string $username, string $password, array $driverOptions = [])
     {
-        $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
-
-        $this->connectString = self::generateConnectString($params);
-        $this->host = $params['host'];
-        if (isset($params['port'])) {
-            if ((int)$params['port'] === 0) {
-                throw new RuntimeException("Invalid \"port\" in argument \$params");
-            }
-            $this->host .= '/' . $params['port'];
-        }
-
 
         $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
-        if (isset($params['isPersistent']) && is_bool($params['isPersistent'])) {
-            $this->isPersistent = $params['isPersistent'];
+        if (isset($params['persistent'])) {
+            $this->isPersistent = (bool)$params['persistent'];
         }
         $this->charset = self::DEFAULT_CHARSET;
         if (isset($params['charset']) && is_string($params['charset'])) {
@@ -130,13 +122,35 @@ final class Connection implements ServerInfoAwareConnection
             && $params['dialect'] <= 3) {
             $this->dialect = $params['dialect'];
         }
+
+
+        if (isset($params['host']) && is_string($params['host'])) {
+            $this->host = $params['host'];
+        } else {
+            throw HostDbnameRequired::noHostParameter();
+        }
+
         $this->username = $username;
         $this->password = $password;
         foreach ($driverOptions as $k => $v) {
             $this->setAttribute($k, $v);
         }
 
-        $this->getActiveTransaction(); // Connects to the database
+        $this->isPrivileged = false;
+        if (isset($params['privileged'])) {
+            $this->isPrivileged = (bool)$params['privileged'];
+        }
+
+        $this->_ibaseService = @ibase_service_attach($this->host, $this->username, $this->password);
+        if (!is_resource($this->_ibaseService)) {
+            $this->checkLastApiCall();
+        }
+
+        if (!$this->isPrivileged) {
+            $this->connectString = self::generateConnectString($params);
+            $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
+            $this->getActiveTransaction(); // Connects to the database
+        }
     }
 
     public function __destruct()
@@ -205,7 +219,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function getServerVersion()
     {
-        return is_resource($this->_ibaseService) ? ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION) : '';
+        return is_resource($this->_ibaseService) ? @ibase_server_info($this->_ibaseService, IBASE_SVC_SERVER_VERSION) : '';
     }
 
     /**
@@ -454,11 +468,7 @@ final class Connection implements ServerInfoAwareConnection
                 if (!is_resource($this->_ibaseConnectionRc)) {
                     $this->checkLastApiCall();
                 }
-                if (!is_resource($this->_ibaseConnectionRc)) {
-                    throw Exception::fromErrorInfo($this->errorInfo());
-                }
                 $this->_ibaseActiveTransaction = $this->createTransaction(true);
-                $this->_ibaseService = ibase_service_attach($this->host, $this->username, $this->password);
             } catch (\Exception $e) {
                 throw new RuntimeException("Failed to connect", 0, $e);
             }
@@ -527,24 +537,24 @@ final class Connection implements ServerInfoAwareConnection
     }
 
     /**
-     * @throws RuntimeException
      * @param array<int|string, string> $params
      * @return string
+     * *@throws HostDbnameRequired
      */
     public static function generateConnectString(array $params): string
     {
         if (isset($params['host'], $params['dbname']) && $params['host'] !== '' && $params['dbname'] !== '') {
             $str = $params['host'];
             if (isset($params['port'])) {
-                if ($params['port'] === '') {
-                    throw new RuntimeException("Invalid \"port\" in argument \$params");
+                if ($params['port'] === '' || !is_numeric($params['port'])) {
+                    throw HostDbnameRequired::invalidPort();
                 }
                 $str .= '/' . $params['port'];
             }
             $str .= ':' . $params['dbname'];
             return $str;
         }
-        throw new RuntimeException("Argument \$params must contain non-empty \"host\" and \"dbname\"");
+        throw HostDbnameRequired::new();
     }
 
     /**

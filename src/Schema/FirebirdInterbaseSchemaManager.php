@@ -1,9 +1,12 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
+use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\View;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
@@ -46,6 +49,56 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
     {
         $sequence = \array_change_key_case($sequence, CASE_LOWER);
         return new Sequence($this->getQuotedIdentifierName(trim((string) $sequence['rdb$generator_name'])), 1, 1);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function dropDatabase($database)
+    {
+        $params = $this->_conn->getParams();
+        $params['dbname'] = $database;
+        $dbname = Connection::generateConnectString($params);
+        $connection = @ibase_connect($dbname, $params['user'], $params['password']);
+        if(!is_resource($connection)) {
+            $code = @ibase_errcode();
+            $msg = @ibase_errmsg();
+            if ($code === -902) {
+                throw \Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist::new($dbname);
+            }
+            throw new Exception($msg, null, $code);
+        }
+
+        $result  = @ibase_drop_db(
+            $connection
+        );
+        if (!$result) {
+            throw new Exception(@ibase_errmsg(), null, @ibase_errcode());
+        }
+    }
+
+    public function createDatabase($database)
+    {
+        $params = $this->_conn->getParams();
+        $params['dbname'] = $database;
+        $charset = $params['charset'] ?? 'UTF8';
+        $user = $params['user'] ?? '';
+        $password = $params['password'] ?? '';
+        $page_size = $params['page_size'] ?? '16384';
+        $dbname = Connection::generateConnectString($params);
+
+        $result = ibase_query(IBASE_CREATE,
+            sprintf("CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",$dbname,
+                (int)$page_size,
+                $user, $password, $charset));
+
+        if(!is_resource($result)) {
+            $code = @ibase_errcode();
+            $msg = @ibase_errmsg();
+            throw new Exception($msg, null, $code);
+        }
+
+
     }
 
     protected function _getPortableDatabaseDefinition($database)

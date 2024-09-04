@@ -1,14 +1,17 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
 use Doctrine\DBAL\Schema\AbstractAsset;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
+use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 class FirebirdInterbasePlatform extends AbstractPlatform
 {
@@ -420,14 +423,13 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
+     *
+     * See: How to run a select without table? https://www.firebirdfaq.org/faq30/
      */
     public function getDummySelectSQL()
     {
         $expression = func_num_args() > 0 ? func_get_arg(0) : '1';
-
-        return sprintf('SELECT %s', $expression);
-
-        return 'SELECT 1 FROM RDB$DATABASE';
+        return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 
     /**
@@ -1435,7 +1437,7 @@ ___query___;
 
     public function getCurrentDatabaseExpression(): string
     {
-        return 'rdb$get_context(\'SYSTEM\', \'DB_NAME\') FROM rdb$database;';
+        return 'rdb$get_context(\'SYSTEM\', \'DB_NAME\')';
     }
 
     /**
@@ -1444,6 +1446,13 @@ ___query___;
     public function getRenameTableSQL(string $oldName, string $newName): array
     {
         throw Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
-        return parent::getRenameTableSQL($oldName, $newName);
+        // return parent::getRenameTableSQL($oldName, $newName);
     }
+
+    public function createSchemaManager(Connection $connection): AbstractSchemaManager
+    {
+        return new FirebirdInterbaseSchemaManager($connection, $this);
+    }
+
+
 }
