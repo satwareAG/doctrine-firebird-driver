@@ -27,7 +27,7 @@ class AlterTest extends AbstractIntegrationTestCase
             ['type']
         );
         $statements = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertCount(2, $statements);
+        $this->assertCount(1, $statements);
         foreach ($statements as $statement) {
             $connection->executeStatement($statement);
         }

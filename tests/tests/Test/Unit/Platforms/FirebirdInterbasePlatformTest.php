@@ -10,7 +10,7 @@ use Test\Integration\AbstractIntegrationTestCase;
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTestCase
 {
@@ -744,7 +744,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
         $diff
             ->expects($this->any())
             ->method('getNewName')
-            ->willReturn($name);
+            ->willReturn(false);
         $column = $this
             ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
             ->disableOriginalConstructor()
@@ -769,6 +769,10 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->expects($this->any())
             ->method('toArray')
             ->willReturn(['type' => $type]);
+        $column
+            ->expects($this->any())
+            ->method('getName')
+            ->willReturn(false);
         $columnDiff = $this
             ->getMockBuilder(\Doctrine\DBAL\Schema\ColumnDiff::class)
             ->disableOriginalConstructor()
@@ -790,6 +794,8 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             ->expects($this->any())
             ->method('hasChanged')
             ->willReturn(true);
+
+
         $diff->addedColumns = [];
         $diff->removedColumns = [];
         $diff->changedColumns = [$columnDiff];
@@ -806,11 +812,54 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
             5 => "COMMENT ON COLUMN 'foo'.'bar' IS ''",
         ];
         $this->assertSame($expected, $found);
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasTypeChanged')
+            ->willReturn(true);
+
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasDefaultChanged')
+            ->willReturn(true);
+
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasNotNullChanged')
+            ->willReturn(true);
+
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasAutoIncrementChanged')
+            ->willReturn(true);
+
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasCommentChanged')
+            ->willReturn(true);
+        $columnDiff
+            ->expects($this->any())
+            ->method('hasLengthChanged')
+            ->willReturn(true);
+        $columnDiff
+            ->expects($this->any())
+            ->method('getNewColumn')
+            ->willReturn($column);
+        $diff
+            ->expects($this->any())
+            ->method('getNewName')
+            ->willReturn(false);
+
+        $diff
+            ->expects($this->any())
+            ->method('getModifiedColumns')
+            ->willReturn([$columnDiff]);
+
 
         $found = $this->_platform3->getAlterTableSQL($diff);
         $this->assertIsArray($found);
         $this->assertCount(6, $found);
-        $expected[2] = 'ALTER TABLE  ALTER  DROP NOT NULL';
+        $expected[2] = 'ALTER TABLE \'foo\' ALTER \'bar\' DROP NOT NULL';
+        $expected[4] = 'ALTER TABLE \'foo\' ALTER \'bar\' TYPE baz';
         $this->assertSame($expected, $found);
     }
 

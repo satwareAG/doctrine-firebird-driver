@@ -7,6 +7,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Types;
@@ -85,7 +86,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $fullId .= $p->getName() . '_';
             if (strlen($p->getName()) >= $ml) {
                 $c = crc32($p->getName());
-                $shortId .= substr_replace($p->getName(), sprintf("X%04x", $c & 0xFFFF), $ml - 5) . '_';
+                $shortId .= substr_replace($p->getName(), sprintf("X%04x", $c & 0xFFFF), $ml - 6) . '_';
+                $length = strlen($shortId);
             } else {
                 $shortId .= $p->getName() . '_';
             }
@@ -320,7 +322,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function supportsLimitOffset()
     {
-        return TRUE;
+        return true;
     }
 
     /**
@@ -1454,5 +1456,21 @@ ___query___;
         return new FirebirdInterbaseSchemaManager($connection, $this);
     }
 
+    protected function getOldColumnComment(ColumnDiff $columnDiff): ?string
+    {
+        $oldColumn = $columnDiff->getOldColumn();
 
+        if ($oldColumn !== null) {
+            return $this->getColumnComment($oldColumn);
+        }
+
+        return null;
+    }
+
+
+    public function getLengthExpression($column)
+    {
+        $max = $this->getVarcharMaxLength();
+        return $column === '?' ? 'CHAR_LENGTH(CAST(? AS VARCHAR('.$max.')))' : 'CHAR_LENGTH(' . $column . ')';
+    }
 }

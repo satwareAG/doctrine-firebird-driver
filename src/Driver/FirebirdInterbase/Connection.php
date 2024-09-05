@@ -26,7 +26,7 @@ final class Connection implements ServerInfoAwareConnection
      * here are a couple of additional caveats to keep in mind when using persistent connections
      * https://www.php.net/manual/en/features.persistent-connections.php
      */
-    const DEFAULT_IS_PERSISTENT = false;
+    const DEFAULT_IS_PERSISTENT = true;
     const DEFAULT_DIALECT = 0;
     protected string $connectString;
 
@@ -35,7 +35,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * @var bool
      */
-    protected $isPersistent = false;
+    protected $isPersistent = true;
 
     /**
      * @var string

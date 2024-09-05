@@ -7,7 +7,9 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional\Connection;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function sprintf;
-
+/**
+ * @runTestsInSeparateProcesses
+ */
 final class FetchEmptyTest extends FunctionalTestCase
 {
     private string $query;

@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
@@ -36,59 +37,82 @@ class Firebird3Platform extends FirebirdInterbasePlatform
      */
     public function getAlterTableSQL(TableDiff $diff)
     {
-        $sql = [];
+        $sql         = [];
         $commentsSQL = [];
-        $columnSql = [];
+        $columnSql   = [];
 
-        foreach ($diff->addedColumns as $column) {
-            if ($this->onSchemaAlterTableAddColumn($column, $diff, $columnSql)) {
+        $table = $diff->getOldTable() ?? $diff->getName($this);
+        $tableNameSQL = $table->getQuotedName($this);
+
+        foreach ($diff->getAddedColumns() as $addedColumn) {
+            if ($this->onSchemaAlterTableAddColumn($addedColumn, $diff, $columnSql)) {
                 continue;
             }
 
-            $query = 'ADD ' . $this->getColumnDeclarationSQL($column->getQuotedName($this), $column->toArray());
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            $query = 'ADD ' . $this->getColumnDeclarationSQL(
+                $addedColumn->getQuotedName($this),
+                $addedColumn->toArray()
+            );
 
-            $comment = $this->getColumnComment($column);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
 
-            if (null !== $comment && '' !== $comment) {
-                $commentsSQL[] = $this->getCommentOnColumnSQL(
-                        $diff->getName($this)->getQuotedName($this), $column->getQuotedName($this), $comment
-                );
-            }
-        }
+            $comment = $this->getColumnComment($addedColumn);
 
-        foreach ($diff->removedColumns as $column) {
-            if ($this->onSchemaAlterTableRemoveColumn($column, $diff, $columnSql)) {
+            if ($comment === null || $comment === '') {
                 continue;
             }
 
-            $query = 'DROP ' . $column->getQuotedName($this);
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            $commentsSQL[] = $this->getCommentOnColumnSQL(
+                    $tableNameSQL,
+                    $addedColumn->getQuotedName($this),
+                    $comment,
+            );
+
         }
 
-        foreach ($diff->changedColumns as $columnDiff) {
-            /** @var $columnDiff \Doctrine\DBAL\Schema\ColumnDiff */
+        foreach ($diff->getDroppedColumns() as $droppedColumn) {
+            if ($this->onSchemaAlterTableRemoveColumn($droppedColumn, $diff, $columnSql)) {
+                continue;
+            }
+
+            $query = 'DROP ' . $droppedColumn->getQuotedName($this);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
+        }
+
+        foreach ($diff->getModifiedColumns() as $columnDiff) {
+
             if ($this->onSchemaAlterTableChangeColumn($columnDiff, $diff, $columnSql)) {
                 continue;
             }
 
-            $oldColumnName = $columnDiff->getOldColumnName()->getQuotedName($this);
-            $column = $columnDiff->column;
+            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->getOldColumnName();
+            $newColumn = $columnDiff->getNewColumn();
 
-            if ($columnDiff->hasChanged('type') || $columnDiff->hasChanged('precision') || $columnDiff->hasChanged('scale') || $columnDiff->hasChanged('fixed')) {
-                $type = $column->getType();
+            $oldColumnName = $oldColumn->getQuotedName($this);
 
-                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSqlDeclaration($column->toArray(), $this);
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            if (
+                $columnDiff->hasTypeChanged()
+                || $columnDiff->hasPrecisionChanged()
+                || $columnDiff->hasScaleChanged()
+                || $columnDiff->hasFixedChanged()
+            ) {
+                $type = $newColumn->getType();
+                $columnDefinition                  = $newColumn->toArray();
+                $columnDefinition['autoincrement'] = false;
+
+                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSqlDeclaration($columnDefinition, $this);
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('default') || $columnDiff->hasChanged('type')) {
-                $defaultClause = null === $column->getDefault() ? ' DROP DEFAULT' : ' SET' . $this->getDefaultValueDeclarationSQL($column->toArray());
+            if ($columnDiff->hasDefaultChanged()) {
+                $defaultClause = null === $newColumn->getDefault()
+                    ? ' DROP DEFAULT'
+                    : ' SET' . $this->getDefaultValueDeclarationSQL($newColumn->toArray());
                 $query = 'ALTER ' . $oldColumnName . $defaultClause;
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('notnull')) {
+            if ($columnDiff->hasNotNullChanged()) {
 
                 /**
                  * https://www.delphipraxis.net/191043-firebird-3-0-rdb%24relation_fields-update.html
@@ -97,62 +121,62 @@ class Firebird3Platform extends FirebirdInterbasePlatform
                  * ALTER DOMAIN <domain name> { DROP | SET } [NOT] NU
                  */
 
-                /**
-                 * Firebird 2.5 Code
-                 */
-                /**
-                    $newNullFlag = $column->getNotnull() ? 1 : 'NULL';
-                    $sql[] = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' .
-                    $newNullFlag . ' ' .
-                    'WHERE UPPER(RDB$FIELD_NAME) = ' .
-                    'UPPER(\'' . $columnDiff->getOldColumnName()->getName() . '\') AND ' .
-                    'UPPER(RDB$RELATION_NAME) = UPPER(\'' . $diff->getName($this)->getName() . '\')';
-                 */
-
-                if($column->getNotnull()) {
-                    $sql[] = 'ALTER TABLE '. $diff->getName($this)->getName().' ALTER ' . $columnDiff->getOldColumnName()->getName() . ' SET NOT NULL';
-                } else {
-                    $sql[] = 'ALTER TABLE '. $diff->getName($this)->getName().' ALTER ' . $columnDiff->getOldColumnName()->getName() . ' DROP NOT NULL';
-                }
-
+                $query = 'ALTER ' . $oldColumnName . ' ' . ($newColumn->getNotnull() ? 'SET' : 'DROP') . ' NOT NULL';
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('autoincrement')) {
-                if ($column->getAutoincrement()) {
+            if ($columnDiff->hasAutoIncrementChanged()) {
+                if ($newColumn->getAutoincrement()) {
                     // add autoincrement
-                    $seqName = $this->getIdentitySequenceName($diff->name, $oldColumnName);
+                    $seqName = $this->getIdentitySequenceName(
+                        $table->getName(),
+                        $oldColumnName,
+                    );
 
-                    $sql[] = "CREATE SEQUENCE " . $seqName;
-                    $sql[] = "SELECT setval('" . $seqName . "', (SELECT MAX(" . $oldColumnName . ") FROM " . $diff->getName($this)->getQuotedName($this) . "))";
-                    $query = "ALTER " . $oldColumnName . " SET DEFAULT nextval('" . $seqName . "')";
-                    $sql[] = "ALTER TABLE " . $diff->getName($this)->getQuotedName($this) . " " . $query;
+                    $sql[] = 'CREATE SEQUENCE ' . $seqName;
+                    $sql[] = "SELECT setval('" . $seqName . "', (SELECT MAX(" . $oldColumnName . ') FROM '
+                        . $tableNameSQL . '))';
+                    $query = 'ALTER ' . $oldColumnName . " SET DEFAULT nextval('" . $seqName . "')";
                 } else {
                     // Drop autoincrement, but do NOT drop the sequence. It might be re-used by other tables or have
-                    $query = "ALTER " . $oldColumnName . " " . "DROP DEFAULT";
-                    $sql[] = "ALTER TABLE " . $diff->getName($this)->getQuotedName($this) . " " . $query;
+                    $query = 'ALTER ' . $oldColumnName . ' DROP DEFAULT';
                 }
+
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('comment')) {
+            $oldComment = $this->getOldColumnComment($columnDiff);
+            $newComment = $this->getColumnComment($newColumn);
+
+
+            if (
+                $columnDiff->hasCommentChanged()
+                || ($columnDiff->getOldColumn() !== null && $oldComment !== $newComment)
+            ) {
                 $commentsSQL[] = $this->getCommentOnColumnSQL(
-                        $diff->getName($this)->getQuotedName($this), $column->getQuotedName($this), $this->getColumnComment($column)
+                    $tableNameSQL,
+                    $newColumn->getQuotedName($this),
+                    $newComment,
                 );
             }
 
-            if ($columnDiff->hasChanged('length')) {
-                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $column->getType()->getSqlDeclaration($column->toArray(), $this);
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            if (! $columnDiff->hasLengthChanged()) {
+                continue;
             }
+
+            $query = 'ALTER ' . $oldColumnName . ' TYPE '
+                . $newColumn->getType()->getSQLDeclaration($newColumn->toArray(), $this);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
-        foreach ($diff->renamedColumns as $oldColumnName => $column) {
+        foreach ($diff->getRenamedColumns() as $oldColumnName => $column) {
             if ($this->onSchemaAlterTableRenameColumn($oldColumnName, $column, $diff, $columnSql)) {
                 continue;
             }
 
             $oldColumnName = new Identifier($oldColumnName);
 
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) .
+            $sql[] = 'ALTER TABLE ' .$tableNameSQL .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);
         }
 
@@ -161,8 +185,11 @@ class Firebird3Platform extends FirebirdInterbasePlatform
         if (!$this->onSchemaAlterTable($diff, $tableSql)) {
             $sql = array_merge($sql, $commentsSQL);
 
-            if ($diff->newName !== false) {
-                throw \Doctrine\DBAL\Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+            $newName = $diff->getNewName();
+
+
+            if ($newName !== false) {
+                throw Exception::notSupported(__METHOD__ . ' Cannot rename table because firebird does not support it');
             }
 
             $sql = array_merge(

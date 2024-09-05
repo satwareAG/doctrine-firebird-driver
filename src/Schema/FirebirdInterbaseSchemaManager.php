@@ -253,7 +253,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
                 ];
             }
             $list[$value['constraint_name']]['local'][] = strtolower((string) $value['field_name']);
-			$list[$value['constraint_name']]['foreign'][] = strtolower((string) $value['references_field']);
+            $list[$value['constraint_name']]['foreign'][] = strtolower((string) $value['references_field']);
         }
 
         $result = [];
@@ -283,22 +283,22 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             if (!isset($tableIndex['foreign_key']))
             {
 
-            $mangledItem = $tableIndex;
+                $mangledItem = $tableIndex;
 
                 $mangledItem['key_name'] = isset($tableIndex['constraint_name']) && ($tableIndex['constraint_name'] !== '') ? $tableIndex['constraint_name'] : $tableIndex['index_name'];
 
 
                 $mangledItem['non_unique'] = !(bool) $tableIndex['unique_flag'];
 
-            $mangledItem['primary'] = ($tableIndex['constraint_type'] == 'PRIMARY KEY');
+                $mangledItem['primary'] = ($tableIndex['constraint_type'] == 'PRIMARY KEY');
 
-            if ($tableIndex['index_type']) {
-                $mangledItem['options']['descending'] = true;
-            }
+                if ($tableIndex['index_type']) {
+                    $mangledItem['options']['descending'] = true;
+                }
 
-            $mangledItem['column_name'] = strtolower((string) $tableIndex['field_name']);
+                $mangledItem['column_name'] = strtolower((string) $tableIndex['field_name']);
 
-            $mangledData[] = $mangledItem;
+                $mangledData[] = $mangledItem;
             }
         }
         return parent::_getPortableTableIndexesList($mangledData, $tableName);

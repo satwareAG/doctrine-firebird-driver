@@ -12,6 +12,9 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 
 use function iterator_to_array;
 
+/**
+ * @runTestsInSeparateProcesses
+ */
 class FetchTest extends FunctionalTestCase
 {
     private string $query;

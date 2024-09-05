@@ -270,6 +270,22 @@ class Statement implements StatementInterface
                 }
             }
             $callArgs = $this->queryParamBindings;
+            foreach ($callArgs as $id => $arg) {
+                if (is_resource($arg)) {
+                    $type = get_resource_type($arg);
+                    $blob_id = @ibase_blob_create($this->connection->getActiveTransaction());
+                    while (!feof($arg)) {
+                        $chunk = fread($arg, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                        if ($chunk !== false && strlen($chunk) > 0) {
+                            @ibase_blob_add($blob_id, $chunk);
+                        }
+                    }
+                    // Close the BLOB
+                    $blob_id = ibase_blob_close($blob_id);
+                    fclose($arg);
+                    $callArgs[$id] = $blob_id;
+                }
+            }
             array_unshift($callArgs, $this->ibaseStatementRc);
             $resultResource = @call_user_func_array('ibase_execute', $callArgs);
             if (false === $resultResource) {

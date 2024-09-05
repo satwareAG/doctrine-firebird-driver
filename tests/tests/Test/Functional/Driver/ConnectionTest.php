@@ -9,7 +9,10 @@ use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception\HostDbnameR
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-/** @requires extension interbase */
+/**
+ * @requires extension interbase
+ * @runTestsInSeparateProcesses
+ * */
 class ConnectionTest extends FunctionalTestCase
 {
     public function testHostnameDbNameIsRequired(): void

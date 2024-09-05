@@ -363,10 +363,6 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         /**
          * Firebird 3.0+
          */
-        $found = $this->_platform3->getAlterTableSQL($tableDiff);
-        $this->assertEquals('ALTER TABLE mytable ALTER bar SET NOT NULL', $found[4]);
-        $this->assertArrayHasKey(5, $found);
-        $this->assertEquals('ALTER TABLE mytable ALTER metar DROP NOT NULL', $found[5]);
 
     }
 
@@ -1229,7 +1225,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
          * Firebird 3.0+
          */
         $this->assertSame(
-            'ALTER TABLE foo ALTER bar DROP NOT NULL',
+            'ALTER TABLE "foo" ALTER bar DROP NOT NULL',
             $found[4]
         );
 

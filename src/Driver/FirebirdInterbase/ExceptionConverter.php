@@ -52,6 +52,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 if (preg_match('/.*(unsuccessful metadata update Table).*(already exists).*/i', $message)) {
                     return new TableExistsException($exception, $query);
                 }
+                if (preg_match('/.*(unsuccessful metadata update Create Table).*(already exists).*/i', $message)) {
+                    return new TableExistsException($exception, $query);
+                }
                 if (preg_match('/.*(unsuccessful metadata update DROP TABLE).*(does not exist).*/i', $message)) {
                     return new TableNotFoundException($exception, $query);
                 }
