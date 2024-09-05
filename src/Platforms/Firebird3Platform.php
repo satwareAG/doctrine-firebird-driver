@@ -202,4 +202,10 @@ class Firebird3Platform extends FirebirdInterbasePlatform
         return array_merge($sql, $tableSql, $columnSql);
     }
 
+    public function supportsIdentityColumns()
+    {
+        return true;
+    }
+
+
 }

@@ -25,8 +25,8 @@ use const E_ALL;
 use const E_WARNING;
 use const PHP_OS_FAMILY;
 
-/** @psalm-import-type Params from DriverManager */
 /**
+ * @psalm-import-type Params from DriverManager
  * @runTestsInSeparateProcesses
  */
 class ExceptionTest extends FunctionalTestCase

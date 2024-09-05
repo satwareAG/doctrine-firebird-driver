@@ -38,10 +38,10 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 break;
             case -206:
                 if (preg_match('/.*(dynamic sql error).*(table unknown).*/i', $message)) {
-                    return new InvalidFieldNameException($exception, $query);
+                    return new TableNotFoundException($exception, $query);
                 }
                 if (preg_match('/.*(dynamic sql error).*(column unknown).*/i', $message)) {
-                    return new TableNotFoundException($exception, $query);
+                    return new InvalidFieldNameException($exception, $query);
                 }
                 break;
             case -803:
