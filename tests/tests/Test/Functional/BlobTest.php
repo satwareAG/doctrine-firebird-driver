@@ -11,7 +11,7 @@ use function fopen;
 use function str_repeat;
 use function stream_get_contents;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class BlobTest extends FunctionalTestCase
 {

@@ -10,7 +10,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function sprintf;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class DateExpressionTest extends FunctionalTestCase
 {

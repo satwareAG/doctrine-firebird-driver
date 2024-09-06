@@ -14,7 +14,7 @@ use Throwable;
 use function array_filter;
 use function strtolower;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class WriteTest extends FunctionalTestCase
 {

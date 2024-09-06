@@ -26,12 +26,7 @@ class Statement implements StatementInterface
      */
     protected $connection;
 
-    /**
-     * @var null|resource   Resource of the prepared statement
-     */
-    protected $ibaseStatementRc;
-
-    /**
+      /**
      * The SQL or DDL statement.
      * @var string
      */
@@ -260,15 +255,14 @@ class Statement implements StatementInterface
     protected function doExecPrepared()
     {
         try {
-            if (!$this->ibaseStatementRc || !is_resource($this->ibaseStatementRc)) {
-                $this->ibaseStatementRc = @ibase_prepare(
+            $preparedStatement = @ibase_prepare(
                     $this->connection->getActiveTransaction(),
                     $this->statement
                 );
-                if (!$this->ibaseStatementRc || !is_resource($this->ibaseStatementRc)) {
+                if (!is_resource($preparedStatement)) {
                     $this->connection->checkLastApiCall();
                 }
-            }
+
             $callArgs = $this->queryParamBindings;
             foreach ($callArgs as $id => $arg) {
                 if (is_resource($arg)) {
@@ -286,12 +280,13 @@ class Statement implements StatementInterface
                     $callArgs[$id] = $blob_id;
                 }
             }
-            array_unshift($callArgs, $this->ibaseStatementRc);
+            array_unshift($callArgs, $preparedStatement);
             $resultResource = @call_user_func_array('ibase_execute', $callArgs);
             if (false === $resultResource) {
                 $this->connection->checkLastApiCall();
                 throw new Exception("Result resource is `false`");
             }
+            @ibase_free_query($preparedStatement);
         } catch (Exception $e) {
             throw new Exception(sprintf(
                 "Failed to perform `doExecPrepared`: %s",

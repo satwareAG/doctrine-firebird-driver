@@ -297,12 +297,10 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
-     *
-     * Firebird does not allow to create databases via SQL
      */
     public function supportsCreateDropDatabase()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -712,7 +710,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBooleanTypeDeclarationSQL(array $field)
+    public function getBooleanTypeDeclarationSQL(array $column)
     {
         return 'BOOLEAN';
     }
@@ -720,9 +718,9 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getIntegerTypeDeclarationSQL(array $field)
+    public function getIntegerTypeDeclarationSQL(array $column)
     {
-        return 'INTEGER';
+        return 'INTEGER' . $this->_getCommonIntegerTypeDeclarationSQL($column);
     }
 
     /**
@@ -730,7 +728,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getBigIntTypeDeclarationSQL(array $field)
     {
-        return 'BIGINT';
+        return 'BIGINT' . $this->_getCommonIntegerTypeDeclarationSQL($column);
     }
 
     /**
@@ -776,7 +774,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             'integer' => 'integer',
             'serial' => 'integer',
             'int64' => 'bigint',
-            'long' => 'bigint',
+            'long' => 'integer',
             'char' => 'string',
             'text' => 'string', // Yes, really. 'char' is internally called text.
             'varchar' => 'string',
@@ -972,7 +970,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    protected function _getCommonIntegerTypeDeclarationSQL(array $columnDef)
+    protected function _getCommonIntegerTypeDeclarationSQL(array $column)
     {
         return '';
     }
@@ -1091,7 +1089,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
         if (isset($field['type']) && $field['type']->getName() === Types::BINARY) {
             $field['charset'] = 'binary';
-            $field['collation'] = 'octets';
+            // $field['collation'] = 'octets';
         }
         return parent::getColumnDeclarationSQL($name, $field);
     }
@@ -1473,4 +1471,15 @@ ___query___;
         $max = $this->getVarcharMaxLength();
         return $column === '?' ? 'CHAR_LENGTH(CAST(? AS VARCHAR('.$max.')))' : 'CHAR_LENGTH(' . $column . ')';
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function supportsColumnCollation()
+    {
+        return true;
+    }
+
+
+
 }

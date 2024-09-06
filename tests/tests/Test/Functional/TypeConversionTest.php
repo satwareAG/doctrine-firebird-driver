@@ -11,7 +11,7 @@ use stdClass;
 
 use function str_repeat;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class TypeConversionTest extends FunctionalTestCase
 {

@@ -8,7 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 final class BitwiseExpressionTest extends FunctionalTestCase
 {

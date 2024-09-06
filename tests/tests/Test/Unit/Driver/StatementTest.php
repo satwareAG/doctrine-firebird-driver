@@ -8,7 +8,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  * @covers \Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement
  */
 class StatementTest extends TestCase

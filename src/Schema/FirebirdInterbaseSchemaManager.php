@@ -2,11 +2,15 @@
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\View;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
+use Throwable;
+
+use function _PHPStan_4f7beffdf\React\Async\parallel;
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
@@ -59,7 +63,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         $params = $this->_conn->getParams();
         $params['dbname'] = $database;
         $dbname = Connection::generateConnectString($params);
-        $connection = @ibase_connect($dbname, $params['user'], $params['password']);
+        $connection = @ibase_pconnect($dbname, $params['user'], $params['password']);
         if(!is_resource($connection)) {
             $code = @ibase_errcode();
             $msg = @ibase_errmsg();
@@ -68,7 +72,6 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             }
             throw new Exception($msg, null, $code);
         }
-
         $result  = @ibase_drop_db(
             $connection
         );
@@ -77,6 +80,10 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         }
     }
 
+    public function dropTable($tablename)
+    {
+        parent::dropTable($tablename);
+    }
     public function createDatabase($database)
     {
         $params = $this->_conn->getParams();

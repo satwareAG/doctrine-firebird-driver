@@ -13,7 +13,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 use function iterator_to_array;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class FetchTest extends FunctionalTestCase
 {

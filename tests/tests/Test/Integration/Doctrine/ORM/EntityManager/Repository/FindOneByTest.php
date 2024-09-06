@@ -6,7 +6,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class FindOneByTest extends AbstractIntegrationTestCase
 {

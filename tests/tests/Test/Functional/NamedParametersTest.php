@@ -13,7 +13,7 @@ use function array_change_key_case;
 
 use const CASE_LOWER;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class NamedParametersTest extends FunctionalTestCase
 {

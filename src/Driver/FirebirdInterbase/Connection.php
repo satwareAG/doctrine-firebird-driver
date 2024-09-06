@@ -352,13 +352,14 @@ final class Connection implements ServerInfoAwareConnection
                     $this->_ibaseTransactionLevel
                 ));
             }
-            $success = @ibase_commit($this->_ibaseActiveTransaction);
+            $success = @ibase_commit_ret($this->_ibaseActiveTransaction);
             if (false == $success) {
                 $this->checkLastApiCall();
             }
             $this->_ibaseTransactionLevel--;
         }
         if (0 == $this->_ibaseTransactionLevel) {
+            @ibase_commit($this->_ibaseActiveTransaction);
             $this->_ibaseActiveTransaction = $this->createTransaction(true);
         }
         return true;
@@ -394,7 +395,7 @@ final class Connection implements ServerInfoAwareConnection
     public function rollBack()
     {
         if ($this->_ibaseTransactionLevel > 0) {
-            if (false == is_resource($this->_ibaseActiveTransaction)) {
+            if (false === is_resource($this->_ibaseActiveTransaction)) {
                 throw new RuntimeException(sprintf(
                     "No active transaction. \$this->_ibaseTransactionLevel = %d",
                     $this->_ibaseTransactionLevel
@@ -512,15 +513,17 @@ final class Connection implements ServerInfoAwareConnection
         return $result;
     }
 
-    protected function close(): void
+    public function close(): void
     {
             if (is_resource($this->_ibaseActiveTransaction)) {
                 if ($this->_ibaseTransactionLevel > 0) {
                     $this->rollBack(); // Auto-rollback explicit transactions
                 }
                 $this->autoCommit();
+                @ibase_commit($this->_ibaseActiveTransaction);
             }
             $success = true;
+
             if (is_resource($this->_ibaseConnectionRc)) {
                 $success = @ibase_close($this->_ibaseConnectionRc);
             }
@@ -563,4 +566,5 @@ final class Connection implements ServerInfoAwareConnection
     {
         return $this->_ibaseConnectionRc;
     }
+
 }

@@ -11,7 +11,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function array_keys;
 use function strtolower;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class RenameColumnTest extends FunctionalTestCase
 {

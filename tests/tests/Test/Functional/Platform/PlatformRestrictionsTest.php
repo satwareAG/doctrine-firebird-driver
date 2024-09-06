@@ -13,7 +13,7 @@ use function str_repeat;
 /**
  * This class holds tests that make sure generated SQL statements respect to platform restrictions
  * like maximum element name length
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class PlatformRestrictionsTest extends FunctionalTestCase
 {

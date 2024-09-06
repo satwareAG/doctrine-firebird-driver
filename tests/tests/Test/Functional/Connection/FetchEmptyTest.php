@@ -8,7 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function sprintf;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 final class FetchEmptyTest extends FunctionalTestCase
 {
