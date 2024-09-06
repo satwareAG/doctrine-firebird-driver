@@ -218,6 +218,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         }
 
         $options['notnull'] = (bool) $tableColumn['FIELD_NOT_NULL_FLAG'];
+        $options['autoincrement'] = $tableColumn['IDENTITY_TYPE'] !== null;
 
         $options = array_merge(
             $options,

@@ -224,6 +224,11 @@ class Firebird3Platform extends FirebirdInterbasePlatform
         return [];
     }
 
+    public function getDropAutoincrementSql($table)
+    {
+        return [];
+    }
+
     protected function _getCommonIntegerTypeDeclarationSQL(array $column)
     {
         $autoinc = '';
@@ -256,7 +261,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
             TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
             f.RDB$COLLATION_ID as "COLLATION_ID",
             TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME",
-            COALESCE(f.RDB$IDENTITY_TYPE, NULL) AS "IDENTITY_TYPE" 
+            TRIM(r.RDB$IDENTITY_TYPE) AS "IDENTITY_TYPE" 
             FROM RDB$RELATION_FIELDS r
             LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
             LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
@@ -276,7 +281,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
                      "COLLATION_ID",
                      "COLLATION_NAME",
                      "FIELD_DESCRIPTION",
-                     f.RDB$IDENTITY_TYPE
+                     "IDENTITY_TYPE"
             ORDER BY "FIELD_POSITION"
 ___query___;
         return str_replace(':TABLE', $table, $query);
