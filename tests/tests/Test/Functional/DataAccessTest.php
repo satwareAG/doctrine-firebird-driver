@@ -17,7 +17,7 @@ use function strtotime;
 
 use const CASE_LOWER;
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class DataAccessTest extends FunctionalTestCase
 {

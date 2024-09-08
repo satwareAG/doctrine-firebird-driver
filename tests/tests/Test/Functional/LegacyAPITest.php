@@ -13,7 +13,7 @@ use function array_map;
 
 use const CASE_LOWER;
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class LegacyAPITest extends FunctionalTestCase
 {

@@ -13,7 +13,7 @@ use function array_keys;
 use function array_merge;
 use function strlen;
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class PortabilityTest extends FunctionalTestCase
 {

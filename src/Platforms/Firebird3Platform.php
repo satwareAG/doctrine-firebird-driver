@@ -7,6 +7,8 @@ use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
+use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 
@@ -32,8 +34,6 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
     /**
      * {@inheritDoc}
-     *
-     * Taken from the PostgreSql-Driver and adapted for Firebird
      */
     public function getAlterTableSQL(TableDiff $diff)
     {
@@ -126,23 +126,25 @@ class Firebird3Platform extends FirebirdInterbasePlatform
             }
 
             if ($columnDiff->hasAutoIncrementChanged()) {
-                if ($newColumn->getAutoincrement()) {
-                    // add autoincrement
-                    $seqName = $this->getIdentitySequenceName(
-                        $table->getName(),
-                        $oldColumnName,
+                // Step 1: Add a new temporary column with the desired data type
+                $temp_column = $this->getTemporaryColumnName($oldColumnName);
+                $type = $newColumn->getType();
+                $columnDefinition                  = $newColumn->toArray();
+
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD ' . $this->getColumnDeclarationSQL(
+                        $temp_column,
+                        $columnDefinition
                     );
 
-                    $sql[] = 'CREATE SEQUENCE ' . $seqName;
-                    $sql[] = "SELECT setval('" . $seqName . "', (SELECT MAX(" . $oldColumnName . ') FROM '
-                        . $tableNameSQL . '))';
-                    $query = 'ALTER ' . $oldColumnName . " SET DEFAULT nextval('" . $seqName . "')";
-                } else {
-                    // Drop autoincrement, but do NOT drop the sequence. It might be re-used by other tables or have
-                    $query = 'ALTER ' . $oldColumnName . ' DROP DEFAULT';
-                }
-
-                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
+                // Step 2: Copy the data from the original column to the temporary column
+                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $temp_column . '='. $oldColumnName .' )';
+                // Step 3: Drop the original column
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP ' . $oldColumnName;
+                // Step 4: Rename the temporary column to the original column name
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' . $temp_column . ' TO '. $oldColumnName;
+                // ToDo: Step 5: (Optional) Recreate any indexes or constraints on the new column
+                // For example, if my_column was part of the primary key, you would need to re-add the primary key constraint
+                // $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD PRIMARY KEY ('. $oldColumnName . ')';
             }
 
             $oldComment = $this->getOldColumnComment($columnDiff);
@@ -287,4 +289,34 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function usesSequenceEmulatedIdentityColumns()
+    {
+        return false;
+    }
+
+    public function createSelectSQLBuilder(): SelectSQLBuilder
+    {
+        return new DefaultSelectSQLBuilder($this, 'FOR UPDATE', 'SKIP LOCKED');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+
+    public function getCreateSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    {
+        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this) . ' START WITH ' . $sequence->getInitialValue()  . ' INCREMENT BY ' . $sequence->getAllocationSize();
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getAlterSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    {
+        return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) . ' RESTART WITH ' . $sequence->getInitialValue() . ' INCREMENT BY ' . $sequence->getAllocationSize();
+    }
 }

@@ -10,6 +10,8 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
+use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
@@ -239,6 +241,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         return true;
     }
 
+    protected function getTemporaryColumnName($columnName)
+    {
+        return $this->generateIdentifier('tmp_', $columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -368,6 +375,9 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         return $query . ' ROWS ' . $from . ' TO ' . $to;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getListTablesSQL()
     {
         return 'SELECT TRIM(RDB$RELATION_NAME) AS RDB$RELATION_NAME
@@ -1166,7 +1176,6 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             if (isset($column['sequence'])) {
                 $sql[] = $this->getCreateSequenceSQL($column['sequence']);
             }
-
             if (isset($column['autoincrement']) && $column['autoincrement'] ||
                     (isset($column['autoinc']) && $column['autoinc'])) {
                 $sql = array_merge($sql, $this->getCreateAutoincrementSql($name, $tableName));
@@ -1480,6 +1489,41 @@ ___query___;
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function getNowExpression()
+    {
+        return 'CURRENT_TIMESTAMP';
+    }
+
+    public function createSelectSQLBuilder(): SelectSQLBuilder
+    {
+        return new DefaultSelectSQLBuilder($this, 'FOR UPDATE', null);
+    }
+
+    public function getListTableConstraintsSQL($table)
+    {
+        $table = new Identifier($table);
+        $table = $this->quoteStringLiteral($table->getName());
+
+        return sprintf(
+            <<<'SQL'
+SELECT
+    cc.RDB$CONSTRAINT_NAME AS constraint_name,
+    rc.RDB$CONSTRAINT_TYPE AS constraint_type,
+    cc.RDB$TRIGGER_SOURCE AS check_condition
+FROM
+    RDB$CHECK_CONSTRAINTS cc
+JOIN
+    RDB$RELATION_CONSTRAINTS rc ON cc.RDB$CONSTRAINT_NAME = rc.RDB$CONSTRAINT_NAME
+WHERE
+    rc.RDB$RELATION_NAME = %s
+SQL
+            ,
+            $table,
+        );
+    }
 
 
 }

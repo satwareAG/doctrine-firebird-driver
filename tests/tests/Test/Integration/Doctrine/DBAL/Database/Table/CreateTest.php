@@ -6,7 +6,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class CreateTest extends AbstractIntegrationTestCase
 {

@@ -6,7 +6,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 use Kafoso\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class AlbumTest extends AbstractIntegrationTestCase
 {

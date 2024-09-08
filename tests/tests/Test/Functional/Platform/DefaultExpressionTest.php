@@ -16,7 +16,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function sprintf;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class DefaultExpressionTest extends FunctionalTestCase
 {

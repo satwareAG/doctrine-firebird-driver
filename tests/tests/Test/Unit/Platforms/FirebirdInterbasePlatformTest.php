@@ -10,7 +10,7 @@ use Test\Integration\AbstractIntegrationTestCase;
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTestCase
 {

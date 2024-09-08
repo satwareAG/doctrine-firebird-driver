@@ -8,7 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class AlterColumnsTest extends AbstractIntegrationTestCase
 {

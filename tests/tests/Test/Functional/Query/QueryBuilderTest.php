@@ -22,7 +22,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 final class QueryBuilderTest extends FunctionalTestCase
 {

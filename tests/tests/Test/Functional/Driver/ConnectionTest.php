@@ -11,7 +11,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 /**
  * @requires extension interbase
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  * */
 class ConnectionTest extends FunctionalTestCase
 {

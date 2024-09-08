@@ -58,6 +58,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 if (preg_match('/.*(unsuccessful metadata update DROP TABLE).*(does not exist).*/i', $message)) {
                     return new TableNotFoundException($exception, $query);
                 }
+                if (preg_match('/.*(unsuccessful metadata update).*(is not defined).*/i', $message)) {
+                    return new DatabaseObjectNotFoundException($exception, $query);
+                }
                 break;
             case -902:
                 return new ConnectionException($exception, $query);

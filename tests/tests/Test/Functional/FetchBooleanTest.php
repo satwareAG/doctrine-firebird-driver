@@ -7,7 +7,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 use Doctrine\DBAL\DriverManager;
 
 /**
-  * @ runTestsInSeparateProcesses
+  * @runTestsInSeparateProcesses
  */
 class FetchBooleanTest extends FunctionalTestCase
 {

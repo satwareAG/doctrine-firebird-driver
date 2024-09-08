@@ -19,7 +19,7 @@ use function stream_get_contents;
 use const CASE_LOWER;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class BinaryDataAccessTest extends FunctionalTestCase
 {

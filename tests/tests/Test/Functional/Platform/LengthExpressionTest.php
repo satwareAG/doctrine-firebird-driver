@@ -8,7 +8,7 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 final class LengthExpressionTest extends FunctionalTestCase
 {

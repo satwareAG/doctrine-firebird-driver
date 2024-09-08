@@ -13,7 +13,7 @@ use function count;
 
 use const CASE_LOWER;
 /**
- * @ runTestsInSeparateProcesses
+ * @runTestsInSeparateProcesses
  */
 class ModifyLimitQueryTest extends FunctionalTestCase
 {
