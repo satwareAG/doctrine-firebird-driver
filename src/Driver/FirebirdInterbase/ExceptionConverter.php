@@ -24,7 +24,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
 {
     public function convert(Exception $exception, ?Query $query): DriverException
     {
-        $message = 'Error ' . $exception->getCode() . ': ' . $exception->getMessage();
+        $message = $exception->getMessage();
         switch ($exception->getCode()) {
             case -104:
                 return new SyntaxErrorException($exception, $query);

@@ -1563,6 +1563,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         try {
             $this->schemaManager->dropSequence($sequence->getName());
         } catch (DatabaseObjectNotFoundException $e) {
+            $message = $e->getMessage();
         }
 
         $this->schemaManager->createSequence($sequence);

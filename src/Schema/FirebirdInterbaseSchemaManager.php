@@ -59,7 +59,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         $cache = $sequenceConfiguration['cache'] ?? null;
 
 
-        return new Sequence($this->getQuotedIdentifierName(trim((string) $sequence['rdb$generator_name'])), $allocationSize, $initialValue, $cache);
+        return new Sequence($this->getQuotedIdentifierName(trim(strtolower((string) $sequence['rdb$generator_name']))), $allocationSize, $initialValue, $cache);
     }
 
     /**

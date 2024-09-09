@@ -27,7 +27,7 @@ use function file_exists;
 use function unlink;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class ConnectionTest extends FunctionalTestCase
 {
@@ -291,6 +291,10 @@ class ConnectionTest extends FunctionalTestCase
         }
     }
 
+    /**
+     * @return void
+     * @throws Throwable
+     */
     public function testTransactional(): void
     {
         $this->createTestTable();

@@ -14,7 +14,7 @@ use Throwable;
 use function array_filter;
 use function strtolower;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class WriteTest extends FunctionalTestCase
 {
@@ -151,13 +151,12 @@ class WriteTest extends FunctionalTestCase
 
     public function testLastInsertId(): void
     {
-        // todo: Implement Identity Columns in Firebird Driver
         if (! $this->connection->getDatabasePlatform()->supportsIdentityColumns()) {
             self::markTestSkipped('Test only works on platforms with identity columns.');
         }
 
         self::assertEquals(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
-        $num = $this->lastInsertId();
+        $num = $this->connection->lastInsertId($this->connection->getDatabasePlatform()->getIdentitySequenceName('write_table', 'id'));
 
         self::assertGreaterThan(0, $num, 'LastInsertId() should be non-negative number.');
     }

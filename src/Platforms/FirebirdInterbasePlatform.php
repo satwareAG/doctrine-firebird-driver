@@ -580,9 +580,23 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getCreateSequenceSQL(Sequence $sequence)
     {
-        return 'CREATE SEQUENCE ' . $this->quoteIdentifier($sequence->getName($this));
+
+        return 'CREATE SEQUENCE ' . $this->normalizeIdentifier($sequence)->getQuotedName($this);
     }
 
+
+    /**
+     * Returns the insert SQL for an empty insert statement.
+     *
+     * @param string $quotedTableName
+     * @param string $quotedIdentifierColumnName
+     *
+     * @return string
+     */
+    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
+    {
+        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
+    }
 
     /**
      * {@inheritDoc}
@@ -663,6 +677,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         if ($sequence instanceof Sequence) {
             $sequence = $sequence->getQuotedName($this);
         }
+        $sequence = $this->normalizeIdentifier($sequence)->getQuotedName($this);
 
         if (stripos($sequence, '_D2IS')) {
             // Seems to be a autoinc-sequence. Try to drop trigger before
@@ -740,7 +755,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBigIntTypeDeclarationSQL(array $field)
+    public function getBigIntTypeDeclarationSQL(array $column)
     {
         return 'BIGINT' . $this->_getCommonIntegerTypeDeclarationSQL($column);
     }
@@ -976,7 +991,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getSmallIntTypeDeclarationSQL(array $field)
+    public function getSmallIntTypeDeclarationSQL(array $column)
     {
         return 'SMALLINT';
     }
@@ -1013,7 +1028,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBlobTypeDeclarationSQL(array $field)
+    public function getBlobTypeDeclarationSQL(array $column)
     {
         return 'BLOB';
     }
@@ -1021,7 +1036,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateTimeTypeDeclarationSQL(array $fieldDeclaration)
+    public function getDateTimeTypeDeclarationSQL(array $column)
     {
         return 'TIMESTAMP';
     }
@@ -1029,12 +1044,15 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getTimeTypeDeclarationSQL(array $fieldDeclaration)
+    public function getTimeTypeDeclarationSQL(array $column)
     {
         return 'TIME';
     }
 
-    public function getDateTypeDeclarationSQL(array $fieldDeclaration)
+    /**
+     * @inheritDoc
+     */
+    public function getDateTypeDeclarationSQL(array $column)
     {
         return 'DATE';
     }
@@ -1422,22 +1440,16 @@ ___query___;
      *
      * @return Identifier The normalized identifier.
      */
-    private function normalizeIdentifier($name)
+    protected function normalizeIdentifier($name)
     {
         if ($name instanceof AbstractAsset) {
-            $result = new Identifier($name->getQuotedName($this));
+            $identifier = new Identifier($name->getQuotedName($this));
         } else {
-            $result = new Identifier($name);
+            $identifier = new Identifier($name);
         }
-        if ($result->isQuoted()) {
-            return $result;
-        } else {
-            if (strtolower($result->getName()) == $result->getName()) {
-                return new Identifier(strtoupper($result->getName()));
-            } else {
-                return new Identifier($this->quoteIdentifier($result->getName()));
-            }
-        }
+
+
+        return $identifier->isQuoted() ? $identifier : new Identifier(strtoupper($identifier->getName()));
     }
 
     private function getAutoincrementIdentifierName(Identifier $table)

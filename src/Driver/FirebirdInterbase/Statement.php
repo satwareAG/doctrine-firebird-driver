@@ -265,6 +265,8 @@ class Statement implements StatementInterface
                 }
 
             $callArgs = $this->queryParamBindings;
+                // sort
+            ksort($callArgs);
             foreach ($callArgs as $id => $arg) {
                 if (is_resource($arg)) {
                     $type = get_resource_type($arg);

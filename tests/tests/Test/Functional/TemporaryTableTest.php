@@ -10,7 +10,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Throwable;
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class TemporaryTableTest extends FunctionalTestCase
 {

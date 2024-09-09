@@ -207,7 +207,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
     public function supportsIdentityColumns()
     {
-        return true;
+        return false;
     }
 
     public function prefersIdentityColumns()
@@ -322,7 +322,7 @@ ___query___;
 
     public function getCreateSequenceCommentSQL(Sequence $sequence)
     {
-        return 'COMMENT ON SEQUENCE ' . $this->quoteIdentifier($sequence->getName()) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
+        return 'COMMENT ON SEQUENCE ' . $sequence->getQuotedName($this) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
     }
 
     /**

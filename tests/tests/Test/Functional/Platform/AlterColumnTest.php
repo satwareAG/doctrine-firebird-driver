@@ -13,7 +13,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function array_keys;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class AlterColumnTest extends FunctionalTestCase
 {

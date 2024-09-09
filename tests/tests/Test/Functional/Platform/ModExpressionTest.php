@@ -9,7 +9,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 final class ModExpressionTest extends FunctionalTestCase
 {
