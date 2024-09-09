@@ -168,3 +168,15 @@ Make a copy of tests/dbproperties.xml.dev and adjust the values to your driver s
 Create three new classes implementing \Doctrine\DBAL\Driver\Connection, \Doctrine\DBAL\Driver\Statement and Doctrine\DBAL\Driver. You can take a look at the Doctrine\DBAL\Driver\OCI8 driver.
 You can run the test suite of your new database driver by calling phpunit. You can set your own settings in the phpunit.xml file.
 Start implementing AbstractPlatform and AbstractSchemaManager. Other implementations should serve as good examples.
+
+### AI Context-Setting Statement
+
+As an AI specialized in coding, your task is to implement a PHP Doctrine DBAL driver for the Firebird SQL databases, 
+specifically versions 2.5 and 3.0. The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension (ibase_*). You can reference the following resources for guidance:
+
+- Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
+- Firebird SQL 2.5 language reference: [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html)
+- Firebird SQL 3.0 language reference: [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html)
+- PHP Firebird Extension Source: [PHP Firebird extension](https://github.com/FirebirdSQL/php-firebird)
+
+The PHP Driver will be implemented for PHP 8.1+ and should be covered with PHP Unit Tests. Download all given resources for reference.

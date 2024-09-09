@@ -1,16 +1,14 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
-use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\View;
+use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
-use Throwable;
 
-use function _PHPStan_4f7beffdf\React\Async\parallel;
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
@@ -52,7 +50,16 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
     protected function _getPortableSequenceDefinition($sequence)
     {
         $sequence = \array_change_key_case($sequence, CASE_LOWER);
-        return new Sequence($this->getQuotedIdentifierName(trim((string) $sequence['rdb$generator_name'])), 1, 1);
+        $comment = (string)$sequence['comment'];
+
+        $sequenceConfiguration = json_decode($comment, true) ?? [];
+
+        $allocationSize = $sequenceConfiguration['allocationSize'] ?? 1;
+        $initialValue = $sequenceConfiguration['initialValue'] ?? 1;
+        $cache = $sequenceConfiguration['cache'] ?? null;
+
+
+        return new Sequence($this->getQuotedIdentifierName(trim((string) $sequence['rdb$generator_name'])), $allocationSize, $initialValue, $cache);
     }
 
     /**
@@ -331,5 +338,64 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             self::META_FIELD_TYPE_SHORT => "smallint",
             self::META_FIELD_TYPE_LONG => "bigint",
         ];
+    }
+
+
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated Use {@see introspectTable()} instead.
+     */
+    public function listTableDetails($name)
+    {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/5595',
+            '%s is deprecated. Use introspectTable() instead.',
+            __METHOD__,
+        );
+
+        return $this->doListTableDetails($name);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function fetchTableOptionsByTable(string $databaseName, ?string $tableName = null): array
+    {
+        $sql = <<<'___query___'
+SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME, RDB$DESCRIPTION AS COMMENT
+FROM RDB$RELATIONS
+WHERE RDB$RELATION_TYPE = 0 -- 0 indicates a table, 1 indicates a view
+
+___query___;
+
+        if ($tableName !== null) {
+            $sql .= "AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $tableName. "')";
+        }
+
+
+
+        /** @var array<string,array<string,mixed>> $metadata */
+        $metadata = $this->_conn->executeQuery($sql)
+            ->fetchAllAssociativeIndexed();
+
+        $tableOptions = [];
+        foreach ($metadata as $table => $data) {
+            $data = array_change_key_case($data, CASE_LOWER);
+
+            $tableOptions[$table] = [
+                'comment' => $data['comment'],
+            ];
+        }
+
+        return $tableOptions;
+    }
+
+    protected function normalizeName(string $name): string
+    {
+        $identifier = new Identifier($name);
+
+        return $identifier->isQuoted() ? $identifier->getName() : strtoupper($name);
     }
 }

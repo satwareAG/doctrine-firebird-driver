@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
@@ -486,7 +487,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $break = ' ';
             $indent = '';
         }
-        $result = 'EXECUTE BLOCK ';
+        $result = '
+        EXECUTE BLOCK ';
         if (isset($params['blockParams']) && is_array($params['blockParams']) && count($params['blockParams']) > 0) {
             $result .= '(';
             $n = 0;
@@ -576,19 +578,21 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getCreateSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    public function getCreateSequenceSQL(Sequence $sequence)
     {
-        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
+        return 'CREATE SEQUENCE ' . $this->quoteIdentifier($sequence->getName($this));
     }
+
 
     /**
      * {@inheritDoc}
      */
-    public function getAlterSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    public function getAlterSequenceSQL(Sequence $sequence)
     {
         return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) .
                 ' RESTART WITH ' . ($sequence->getInitialValue() - 1);
     }
+
 
     /**
      * Generates a execute statement PSQL-Statement
@@ -606,7 +610,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     protected function getPlainDropSequenceSQL($sequence)
     {
-        return 'DROP SEQUENCE ' . $this->getQuotedNameOf($sequence);
+        return 'DROP SEQUENCE ' . $this->quoteIdentifier($sequence);
     }
 
     /**
@@ -656,7 +660,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getDropSequenceSQL($sequence)
     {
-        if ($sequence instanceof \Doctrine\DBAL\Schema\Sequence) {
+        if ($sequence instanceof Sequence) {
             $sequence = $sequence->getQuotedName($this);
         }
 
@@ -1207,7 +1211,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         $tableName = new Identifier($tableName);
         $sequenceName = $this->getIdentitySequenceName($tableName, $column);
         $triggerName = $this->getIdentitySequenceTriggerName($tableName, $column);
-        $sequence = new \Doctrine\DBAL\Schema\Sequence($sequenceName, 1, 1);
+        $sequence = new Sequence($sequenceName, 1, 1);
 
         $sql[] = $this->getCreateSequenceSQL($sequence);
 
@@ -1252,7 +1256,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getListSequencesSQL($database)
     {
-        return 'select trim(rdb$generator_name) as rdb$generator_name from rdb$generators where rdb$system_flag is distinct from 1';
+        return 'select trim(rdb$generator_name) as rdb$generator_name, trim(RDB$DESCRIPTION) as comment from rdb$generators where rdb$system_flag is distinct from 1';
     }
 
     /**
@@ -1315,7 +1319,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
                      "FIELD_DESCRIPTION"
             ORDER BY "FIELD_POSITION"
 ___query___;
-        return str_replace(':TABLE', $table, $query);
+        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
     }
 
     public function getListTableForeignKeysSQL($table, $database = null)
@@ -1344,7 +1348,7 @@ ___query___;
       ORDER BY rc.RDB$CONSTRAINT_NAME, s.RDB$FIELD_POSITION
 ___query___;
 
-        return str_replace(':TABLE', $table, $query);
+        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
     }
 
     /**
@@ -1373,7 +1377,7 @@ ___query___;
      WHERE UPPER(RDB$INDICES.RDB$RELATION_NAME) = UPPER(':TABLE')
      ORDER BY RDB$INDICES.RDB$INDEX_NAME, RDB$RELATION_CONSTRAINTS.RDB$CONSTRAINT_NAME, RDB$INDEX_SEGMENTS.RDB$FIELD_POSITION
 ___query___;
-        return str_replace(':TABLE', $table, $query);
+        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
     }
 
     /**
@@ -1386,14 +1390,14 @@ ___query___;
         return strtoupper((string) $column);
     }
 
-    private function unquotedIdentifierName($name)
+    protected function unquotedIdentifierName($name)
     {
         $name instanceof AbstractAsset || $name = new Identifier($name);
         return $name->getName();
     }
 
     /**
-     * Returns a quoted name if necessar
+     * Returns a quoted name if necessary
      *
      * @param string|Identifier $name
      * @return string

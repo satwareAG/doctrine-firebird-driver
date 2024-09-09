@@ -289,15 +289,23 @@ final class Connection implements ServerInfoAwareConnection
             'The usage of Connection::lastInsertId() with a sequence name is deprecated.',
         );
 
-        $maxGeneratorLength = 31;
-        $regex = "/^\w{1,{$maxGeneratorLength}}\$/";
-        if (1 !== preg_match($regex, $name)) {
-            throw new \UnexpectedValueException(sprintf(
-                "Expects argument \$name to match regular expression '%s'. Found: %s",
-                $regex,
-                ValueFormatter::found($name)
-            ));
+        if(\str_starts_with($name, 'SELECT RDB')) {
+            $name = $this->query($name)->fetchOne();
+        } else {
+            $maxGeneratorLength = 31;
+            $regex = "/^\w{1,{$maxGeneratorLength}}\$/";
+            if (1 !== preg_match($regex, $name)) {
+                throw new \UnexpectedValueException(sprintf(
+                    "Expects argument \$name to match regular expression '%s'. Found: %s",
+                    $regex,
+                    ValueFormatter::found($name)
+                ));
+            }
         }
+
+
+
+
         $sql = "SELECT GEN_ID({$name}, 0) LAST_VAL FROM RDB\$DATABASE";
         return $this->query($sql)->fetchOne();
     }
@@ -487,10 +495,21 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws Exception
      */
-    public function checkLastApiCall(): void
+    public function checkLastApiCall($preparedStatement = null, $transaction = null): void
     {
         $lastError = $this->errorInfo();
         if (isset($lastError['code']) && $lastError['code'] !== 0) {
+            if (isset($transaction) && $this->_ibaseActiveTransaction < 1) {
+                $result = @ibase_rollback($transaction);
+                if($result) {
+                    $this->_ibaseActiveTransaction = $this->createTransaction(true);
+                }
+            }
+
+            if($preparedStatement) {
+                $result =  @ibase_free_query($preparedStatement);
+            }
+
             throw Exception::fromErrorInfo($lastError);
         }
     }

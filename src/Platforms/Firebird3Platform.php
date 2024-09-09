@@ -5,6 +5,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
@@ -211,11 +212,11 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
     public function prefersIdentityColumns()
     {
-        return true;
+        return false;
     }
     public function prefersSequences()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -286,7 +287,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
                      "IDENTITY_TYPE"
             ORDER BY "FIELD_POSITION"
 ___query___;
-        return str_replace(':TABLE', $table, $query);
+        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
     }
 
     /**
@@ -294,7 +295,7 @@ ___query___;
      */
     public function usesSequenceEmulatedIdentityColumns()
     {
-        return false;
+        return true;
     }
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
@@ -306,17 +307,83 @@ ___query___;
      * {@inheritDoc}
      */
 
-    public function getCreateSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    public function getCreateSequenceSQL(Sequence $sequence)
     {
-        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this) . ' START WITH ' . $sequence->getInitialValue()  . ' INCREMENT BY ' . $sequence->getAllocationSize();
+        return $this->getExecuteBlockWithExecuteStatementsSql([
+            'statements' => [ parent::getCreateSequenceSQL($sequence)
+                . ' START WITH ' . $sequence->getInitialValue()
+                . ' INCREMENT BY ' . $sequence->getAllocationSize()
+                . $this->getSequenceCacheSQL($sequence) ,
+                $this->getCreateSequenceCommentSQL($sequence)
+                ],
+            'formatLineBreak' => true,
+        ]);
+    }
 
+    public function getCreateSequenceCommentSQL(Sequence $sequence)
+    {
+        return 'COMMENT ON SEQUENCE ' . $this->quoteIdentifier($sequence->getName()) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
+    }
+
+    /**
+     * Returns the Sequence Config as JSON
+     */
+    private function getSequenceCommentString(Sequence $sequence)
+    {
+        return json_encode([
+            'name' => $sequence->getName(),
+            'initialValue' => $sequence->getInitialValue(),
+            'allocationSize' => $sequence->getAllocationSize(),
+            'cache' => $sequence->getCache()
+        ]);
+    }
+
+    /**
+     * Cache definition for sequences
+     */
+    private function getSequenceCacheSQL(Sequence $sequence): string
+    {
+        if ($sequence->getCache() > 1) {
+            return ' CACHE ' . $sequence->getCache();
+        }
+
+        return '';
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getAlterSequenceSQL(\Doctrine\DBAL\Schema\Sequence $sequence)
+    public function getAlterSequenceSQL(Sequence $sequence)
     {
-        return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) . ' RESTART WITH ' . $sequence->getInitialValue() . ' INCREMENT BY ' . $sequence->getAllocationSize();
+        return $this->getExecuteBlockWithExecuteStatementsSql([
+            'statements' => [ 'ALTER SEQUENCE ' . $sequence->getQuotedName($this)
+                . ' RESTART WITH ' . $sequence->getInitialValue()
+                . ' INCREMENT BY ' . $sequence->getAllocationSize()
+                . $this->getSequenceCacheSQL($sequence) ,
+                $this->getSequenceCommentString($sequence)
+            ],
+            'formatLineBreak' => true,
+        ]);
     }
+
+    /**
+     * @inheritDoc
+     *
+     * In Firebird 3
+     */
+    public function getIdentitySequenceName($tableName, $columnName)
+    {
+        $table = new Identifier($tableName);
+        $colum = new Identifier($columnName);
+        $query = "SELECT RDB\$GENERATOR_NAME as GENERATOR_NAME
+              FROM RDB\$RELATION_FIELDS rf
+              JOIN RDB\$FIELDS f ON rf.RDB\$FIELD_SOURCE = f.RDB\$FIELD_NAME
+              WHERE rf.RDB\$RELATION_NAME = UPPER('" .$table->getQuotedName($this) . "')
+                AND rf.RDB\$FIELD_NAME = UPPER('" .$colum->getQuotedName($this) . "')
+                AND rf.RDB\$IDENTITY_TYPE IS NOT NULL";  // Identity column flag
+
+        return $query;
+
+    }
+
 }

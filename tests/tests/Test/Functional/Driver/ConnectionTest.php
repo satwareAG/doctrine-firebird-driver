@@ -32,7 +32,7 @@ class ConnectionTest extends FunctionalTestCase
         $this->connection->executeStatement('INSERT INTO DBAL2595 (foo) VALUES (1)');
 
         $platform = $this->connection->getDatabasePlatform();
-        $sequence = $platform->getIdentitySequenceName($table, 'id');
+        $sequence = $platform->getIdentitySequenceName($table->getName(), 'id');
 
         self::assertSame(1, $this->connection->lastInsertId($sequence));
     }

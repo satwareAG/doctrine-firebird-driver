@@ -62,6 +62,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
                     return new DatabaseObjectNotFoundException($exception, $query);
                 }
                 break;
+            case -804:
+                return new  NotNullConstraintViolationException($exception, $query);
+
             case -902:
                 return new ConnectionException($exception, $query);
         }

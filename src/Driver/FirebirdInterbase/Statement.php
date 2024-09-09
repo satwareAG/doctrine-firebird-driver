@@ -255,8 +255,9 @@ class Statement implements StatementInterface
     protected function doExecPrepared()
     {
         try {
+            $activeTransaction = $this->connection->getActiveTransaction();
             $preparedStatement = @ibase_prepare(
-                    $this->connection->getActiveTransaction(),
+                    $activeTransaction,
                     $this->statement
                 );
                 if (!is_resource($preparedStatement)) {
@@ -281,9 +282,9 @@ class Statement implements StatementInterface
                 }
             }
             array_unshift($callArgs, $preparedStatement);
-            $resultResource = @call_user_func_array('ibase_execute', $callArgs);
+            $resultResource = @call_user_func_array('ibase_execute', $callArgs); // Won't work: $resultResource = @ibase_execute(...$callArgs);
             if (false === $resultResource) {
-                $this->connection->checkLastApiCall();
+                $this->connection->checkLastApiCall($preparedStatement, $activeTransaction);
                 throw new Exception("Result resource is `false`");
             }
             @ibase_free_query($preparedStatement);
