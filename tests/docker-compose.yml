@@ -1,12 +1,20 @@
 services:
-  firebird:
-    container_name: firebird-doctrine-firebird-driver
+  firebird25:
+    container_name: firebird25-doctrine-firebird-driver
+    image: "jacobalberty/firebird:2.5-sc"
+    environment:
+      - ISC_PASSWORD=masterkey
+      - TZ=Europe/Berlin
+    volumes:
+      - ./databases/firebird25:/firebird/data
+  firebird3:
+    container_name: firebird3-doctrine-firebird-driver
     image: "jacobalberty/firebird:3.0"
     environment:
       - ISC_PASSWORD=masterkey
       - TZ=Europe/Berlin
     volumes:
-      - ./databases:/firebird/data
+      - ./databases/firebird3:/firebird/data
     ports:
       - "3050:3050"
   app:
@@ -21,7 +29,8 @@ services:
     volumes:
       - ./../:/app
     depends_on:
-      - firebird
+      - firebird25
+      - firebird3
     tmpfs:
       - /tmp:mode=1777
 

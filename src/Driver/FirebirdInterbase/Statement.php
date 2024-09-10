@@ -203,29 +203,6 @@ class Statement implements StatementInterface
 
     }
 
-    public function errorCode()
-    {
-        return ibase_errcode();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function errorInfo()
-    {
-        $errorCode = $this->errorCode();
-        if ($errorCode) {
-            return [
-                'code' => $this->errorCode(),
-                'message' => ibase_errmsg(),
-            ];
-        }
-        return [
-            'code' => 0,
-            'message' => null,
-        ];
-    }
-
     /**
      * @return true|int|resource
      * @throws Exception

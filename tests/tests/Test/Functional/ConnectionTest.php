@@ -260,6 +260,7 @@ class ConnectionTest extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 2]);
         $this->connection->commit();
         self::assertSame(0, $this->connection->getTransactionNestingLevel());
+        $this->connection->close();
     }
 
     public function testTransactionalWithException(): void

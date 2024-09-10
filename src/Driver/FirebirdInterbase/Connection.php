@@ -361,8 +361,8 @@ final class Connection implements ServerInfoAwareConnection
                 ));
             }
             $success = @ibase_commit_ret($this->_ibaseActiveTransaction);
-            if (false == $success) {
-                $this->checkLastApiCall();
+            if (false === $success) {
+                $this->checkLastApiCall(null, $this->_ibaseActiveTransaction);
             }
             $this->_ibaseTransactionLevel--;
         }
@@ -419,13 +419,6 @@ final class Connection implements ServerInfoAwareConnection
         return true;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function errorCode(): bool|int
-    {
-        return ibase_errcode();
-    }
 
     /**
      * {@inheritdoc}
@@ -433,7 +426,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function errorInfo(): array
     {
-        $errorCode = $this->errorCode();
+        $errorCode = ibase_errcode();
         if (false !== $errorCode) {
             return [
                 'code' => $errorCode,
@@ -478,7 +471,7 @@ final class Connection implements ServerInfoAwareConnection
                 }
                 $this->_ibaseActiveTransaction = $this->createTransaction(true);
             } catch (\Exception $e) {
-                throw new RuntimeException("Failed to connect", 0, $e);
+                throw $e;
             }
         }
         if (false == is_resource($this->_ibaseActiveTransaction)) {
@@ -552,6 +545,10 @@ final class Connection implements ServerInfoAwareConnection
             $this->_ibaseConnectionRc = false;
             $this->_ibaseActiveTransaction  = false;
             $this->_ibaseTransactionLevel = 0;
+            $unclosed = 0;
+            while(@ibase_close()) {
+                $unclosed++;
+            }
             if (false === $success) {
                $this->checkLastApiCall();
             }

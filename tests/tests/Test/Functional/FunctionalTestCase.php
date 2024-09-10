@@ -67,6 +67,7 @@ abstract class FunctionalTestCase extends TestCase
         unset($this->connection);
 
         $this->isConnectionReusable = true;
+
     }
 
     /**

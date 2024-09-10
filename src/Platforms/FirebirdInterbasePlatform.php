@@ -244,7 +244,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     protected function getTemporaryColumnName($columnName)
     {
-        return $this->generateIdentifier('tmp_', $columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
+        return $this->generateIdentifier('tmp_',$columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
     /**
@@ -487,8 +487,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $break = ' ';
             $indent = '';
         }
-        $result = '
-        EXECUTE BLOCK ';
+        $result = 'EXECUTE BLOCK ';
         if (isset($params['blockParams']) && is_array($params['blockParams']) && count($params['blockParams']) > 0) {
             $result .= '(';
             $n = 0;
@@ -581,7 +580,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     public function getCreateSequenceSQL(Sequence $sequence)
     {
 
-        return 'CREATE SEQUENCE ' . $this->normalizeIdentifier($sequence)->getQuotedName($this);
+        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
     }
 
 
@@ -624,7 +623,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     protected function getPlainDropSequenceSQL($sequence)
     {
-        return 'DROP SEQUENCE ' . $this->quoteIdentifier($sequence);
+        return $this->getDropSequenceSQL($sequence);
     }
 
     /**
@@ -674,22 +673,21 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getDropSequenceSQL($sequence)
     {
+        $dropSequenceSql = parent::getDropSequenceSQL($sequence);
         if ($sequence instanceof Sequence) {
             $sequence = $sequence->getQuotedName($this);
         }
-        $sequence = $this->normalizeIdentifier($sequence)->getQuotedName($this);
-
         if (stripos($sequence, '_D2IS')) {
             // Seems to be a autoinc-sequence. Try to drop trigger before
             $triggerName = str_replace('_D2IS', '_D2IT', $sequence);
             return $this->getExecuteBlockWithExecuteStatementsSql([
                 'statements' => [
                     $this->getDropTriggerIfExistsPSql($triggerName, true),
-                    $this->getPlainDropSequenceSQL($sequence)
+                    $dropSequenceSql
                 ],
             ]);
         }
-        return $this->getPlainDropSequenceSQL($sequence);
+        return $dropSequenceSql;
     }
 
     /**
@@ -803,7 +801,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             'integer' => 'integer',
             'serial' => 'integer',
             'int64' => 'bigint',
-            'long' => 'integer',
+            'long' => 'integer', // YES, really. Not bigint.
             'char' => 'string',
             'text' => 'string', // Yes, really. 'char' is internally called text.
             'varchar' => 'string',

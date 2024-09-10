@@ -55,14 +55,15 @@ abstract class AbstractIntegrationTestCase extends TestCase
     protected static function installFirebirdDatabase(array $configurationArray)
     {
         $output = $result = '';
-        if (file_exists(ROOT_PATH . '/tests/databases/music_library.fdb')) {
+        foreach(['25', '3'] as $fb) {
+        if (file_exists(ROOT_PATH . '/tests/databases/firebird'.$fb.'/music_library.fdb')) {
             $cmd = sprintf(
-                "gfix -user SYSDBA -password masterkey -shut -force 0 firebird:/firebird/data/music_library.fdb 2>&1",
+                "gfix -user SYSDBA -password masterkey -shutdown -force 0 firebird$fb:/firebird/data/music_library.fdb 2>&1",
             );
             $ret = exec($cmd, $output, $result);
             $cmd = sprintf(
                 "isql-fb -u SYSDBA -p masterkey -input %s 2>&1",
-                escapeshellarg(ROOT_PATH . "/tests/resources/database_drop.sql")
+                escapeshellarg(ROOT_PATH . "/tests/resources/database_drop$fb.sql")
             );
 
             $ret = exec($cmd, $output, $result);
@@ -70,18 +71,19 @@ abstract class AbstractIntegrationTestCase extends TestCase
 
         $cmd = sprintf(
             "isql-fb -input %s 2>&1",
-            escapeshellarg(ROOT_PATH . "/tests/resources/database_create.sql")
+            escapeshellarg(ROOT_PATH . "/tests/resources/database_create$fb.sql")
         );
         exec($cmd);
 
         $cmd = sprintf(
             "isql-fb %s -input %s -password %s -user %s",
-            escapeshellarg($configurationArray['host'] . ':'. $configurationArray['dbname']),
+            escapeshellarg('firebird'.$fb. ':/firebird/data/music_library.fdb'),
             escapeshellarg(ROOT_PATH . "/tests/resources/database_setup.sql"),
             escapeshellarg((string) $configurationArray['password']),
             escapeshellarg((string) $configurationArray['user'])
         );
         exec($cmd);
+        }
     }
 
     /**
@@ -135,7 +137,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
     protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
     {
         return [
-            'host' => 'firebird',
+            'host' => 'firebird3',
             'dbname' => static::DEFAULT_DATABASE_FILE_PATH,
             'user' => static::DEFAULT_DATABASE_USERNAME,
             'password' => static::DEFAULT_DATABASE_PASSWORD,

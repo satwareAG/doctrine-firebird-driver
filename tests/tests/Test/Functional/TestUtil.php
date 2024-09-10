@@ -4,6 +4,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Driver\AbstractSQLiteDriver\Middleware\EnableForeignKeys;
 use Doctrine\DBAL\Driver\OCI8\Middleware\InitializeSession;
 use Doctrine\DBAL\DriverManager;
@@ -13,6 +14,7 @@ use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
 use PHPUnit\Framework\Assert;
 
@@ -106,8 +108,6 @@ class TestUtil
         }
 
         $sm->createDatabase($dbname);
-
-
         $privConn->close();
     }
 

@@ -13,7 +13,7 @@
   <php>
     <ini name="error_reporting" value="-1"/>
     <var name="db_driver_class" value="Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Driver"/>
-    <var name="db_host" value="firebird3"/>
+    <var name="db_host" value="firebird25"/>
     <var name="db_user" value="sysdba"/>
     <var name="db_password" value="masterkey"/>
     <var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>

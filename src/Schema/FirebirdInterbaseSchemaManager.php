@@ -12,18 +12,18 @@ use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
+    const META_FIELD_TYPE_SMALLINT = 7; // Integer Type
+    const META_FIELD_TYPE_INTEGER = 8; // Integer Type
+    const META_FIELD_TYPE_FLOAT = 10;
+    const META_FIELD_TYPE_DATE = 12;
+    const META_FIELD_TYPE_TIME = 13;
     const META_FIELD_TYPE_CHAR = 14;
+    const META_FIELD_TYPE_BIGINT = 16; // 64 Bit Integer
+    const META_FIELD_TYPE_DOUBLE = 27;
+    const META_FIELD_TYPE_TIMESTAMP = 35;
     const META_FIELD_TYPE_VARCHAR = 37;
     const META_FIELD_TYPE_CSTRING = 40; // XXX Does not exist in Firebird 2.5
     const META_FIELD_TYPE_BLOB = 261;
-    const META_FIELD_TYPE_DATE = 12;
-    const META_FIELD_TYPE_TIME = 13;
-    const META_FIELD_TYPE_TIMESTAMP = 35;
-    const META_FIELD_TYPE_DOUBLE = 27;
-    const META_FIELD_TYPE_FLOAT = 10;
-    const META_FIELD_TYPE_INT64 = 16;
-    const META_FIELD_TYPE_SHORT = 7;
-    const META_FIELD_TYPE_LONG = 8;
 
     protected function _getPortableTableDefinition($table)
     {
@@ -170,9 +170,9 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             case self::META_FIELD_TYPE_CHAR:
                 $fixed = true;
                 break;
-            case self::META_FIELD_TYPE_SHORT:
-            case self::META_FIELD_TYPE_LONG:
-            case self::META_FIELD_TYPE_INT64:
+            case self::META_FIELD_TYPE_SMALLINT:
+            case self::META_FIELD_TYPE_INTEGER:
+            case self::META_FIELD_TYPE_BIGINT:
             case self::META_FIELD_TYPE_DOUBLE:
             case self::META_FIELD_TYPE_FLOAT:
                 // Firebirds reflection of the datatype is quite "creative": If a numeric or decimal field is defined,
@@ -334,9 +334,9 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             self::META_FIELD_TYPE_TIMESTAMP => "timestamp",
             self::META_FIELD_TYPE_DOUBLE => "double",
             self::META_FIELD_TYPE_FLOAT => "float",
-            self::META_FIELD_TYPE_INT64 => "integer",
-            self::META_FIELD_TYPE_SHORT => "smallint",
-            self::META_FIELD_TYPE_LONG => "bigint",
+            self::META_FIELD_TYPE_BIGINT => "bigint",
+            self::META_FIELD_TYPE_SMALLINT => "smallint",
+            self::META_FIELD_TYPE_INTEGER => "integer",
         ];
     }
 
