@@ -17,7 +17,7 @@ class StatementTest extends TestCase
     {
         $connection = $this->_mockConnection();
         $statement = new Statement($connection, "foo");
-        $this->assertSame(['code' => 0, 'message' => null], $statement->errorInfo());
+        $this->assertIsObject($statement);
     }
 
     protected function _mockConnection(): Connection

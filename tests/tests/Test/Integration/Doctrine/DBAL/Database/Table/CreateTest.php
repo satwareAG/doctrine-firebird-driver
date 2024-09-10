@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table;
 
 use Doctrine\DBAL\Result;
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 
@@ -35,7 +36,12 @@ class CreateTest extends AbstractIntegrationTestCase
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
         $statements = $this->_platform->getCreateTableSQL($table);
-        $this->assertCount(3, $statements);
+        if ($this->_platform instanceof Firebird3Platform) {
+            $this->assertCount(1, $statements);
+        } else {
+            $this->assertCount(3, $statements);
+        }
+
         foreach ($statements as $statement) {
             $connection->exec($statement);
         }
@@ -61,23 +67,39 @@ class CreateTest extends AbstractIntegrationTestCase
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
         $statements = $this->_platform->getCreateTableSQL($table);
-        $this->assertCount(3, $statements);
+        if($this->_platform instanceof Firebird3Platform) {
+            $this->assertCount(1, $statements);
+        } else {
+            $this->assertCount(3, $statements);
+        }
+
+
         foreach ($statements as $statement) {
             $connection->exec($statement);
         }
+        if($this->_platform instanceof Firebird3Platform) {
+            foreach ([1, 2] as $id) {
+                $sql = "INSERT INTO " . $tableName . " DEFAULT VALUES RETURNING ID";
+                $result = $connection->query($sql);
+                $this->assertInstanceOf(Result::class, $result);
+                $this->assertSame($id, $result->fetchOne(), "Incorrect autoincrement value");
+            }
+        } else {
 
-        $triggerName = "{$tableName}_D2IT";
-        $sql = "SELECT 1 FROM RDB\$TRIGGERS WHERE RDB\$TRIGGER_NAME = '{$triggerName}'";
-        $result = $connection->query($sql);
-        $this->assertInstanceOf(Result::class, $result);
-        $this->assertSame(1, $result->fetchOne(), "Trigger creation failure. SQL: " . self::statementArrayToText($statements));
 
-        $sequenceName = "{$tableName}_D2IS";
-        foreach ([1, 2] as $id) {
-            $sql = "SELECT NEXT VALUE FOR {$sequenceName} FROM RDB\$DATABASE;";
+            $triggerName = "{$tableName}_D2IT";
+            $sql = "SELECT 1 FROM RDB\$TRIGGERS WHERE RDB\$TRIGGER_NAME = '{$triggerName}'";
             $result = $connection->query($sql);
             $this->assertInstanceOf(Result::class, $result);
-            $this->assertSame($id, $result->fetchOne(), "Incorrect autoincrement value");
+            $this->assertSame(1, $result->fetchOne(), "Trigger creation failure. SQL: " . self::statementArrayToText($statements));
+
+            $sequenceName = "{$tableName}_D2IS";
+            foreach ([1, 2] as $id) {
+                $sql = "SELECT NEXT VALUE FOR {$sequenceName} FROM RDB\$DATABASE;";
+                $result = $connection->query($sql);
+                $this->assertInstanceOf(Result::class, $result);
+                $this->assertSame($id, $result->fetchOne(), "Incorrect autoincrement value");
+            }
         }
     }
 

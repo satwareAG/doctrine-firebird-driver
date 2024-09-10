@@ -579,7 +579,6 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getCreateSequenceSQL(Sequence $sequence)
     {
-
         return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
     }
 

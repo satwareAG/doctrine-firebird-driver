@@ -12,6 +12,7 @@ use Doctrine\ORM\ORMSetup;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Kafoso\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
+use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
@@ -28,6 +29,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
     public function setUp(): void
     {
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
+
         static::installFirebirdDatabase($configurationArray);
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
@@ -54,8 +56,13 @@ abstract class AbstractIntegrationTestCase extends TestCase
 
     protected static function installFirebirdDatabase(array $configurationArray)
     {
+        $params = TestUtil::getConnectionParams();
+        $fb = '25';
+        if ($params['host'] === 'firebird3') {
+            $fb = '3';
+        }
         $output = $result = '';
-        foreach(['25', '3'] as $fb) {
+
         if (file_exists(ROOT_PATH . '/tests/databases/firebird'.$fb.'/music_library.fdb')) {
             $cmd = sprintf(
                 "gfix -user SYSDBA -password masterkey -shutdown -force 0 firebird$fb:/firebird/data/music_library.fdb 2>&1",
@@ -70,10 +77,10 @@ abstract class AbstractIntegrationTestCase extends TestCase
         }
 
         $cmd = sprintf(
-            "isql-fb -input %s 2>&1",
+            "isql-fb -input %s  2>&1",
             escapeshellarg(ROOT_PATH . "/tests/resources/database_create$fb.sql")
         );
-        exec($cmd);
+        $ret = exec($cmd,$output, $result);
 
         $cmd = sprintf(
             "isql-fb %s -input %s -password %s -user %s",
@@ -82,8 +89,8 @@ abstract class AbstractIntegrationTestCase extends TestCase
             escapeshellarg((string) $configurationArray['password']),
             escapeshellarg((string) $configurationArray['user'])
         );
-        exec($cmd);
-        }
+        $ret = exec($cmd,$output, $result);
+
     }
 
     /**
@@ -136,8 +143,9 @@ abstract class AbstractIntegrationTestCase extends TestCase
      */
     protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
     {
+        $params = TestUtil::getConnectionParams();
         return [
-            'host' => 'firebird3',
+            'host' => $params['host'],
             'dbname' => static::DEFAULT_DATABASE_FILE_PATH,
             'user' => static::DEFAULT_DATABASE_USERNAME,
             'password' => static::DEFAULT_DATABASE_PASSWORD,

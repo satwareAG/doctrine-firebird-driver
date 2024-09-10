@@ -164,14 +164,19 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
                 "foo FLOAT DEFAULT NULL",
             ],
             [
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SMALLINT,
                 ['notnull' => true, 'default' => 3],
                 "foo SMALLINT DEFAULT NULL",
             ],
             [
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_LONG,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INTEGER,
                 ['notnull' => true, 'default' => 3],
                 "foo INTEGER DEFAULT NULL",
+            ],
+            [
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_BIGINT,
+                ['notnull' => true, 'default' => 3],
+                "foo BIGINT DEFAULT NULL",
             ],
         ];
     }

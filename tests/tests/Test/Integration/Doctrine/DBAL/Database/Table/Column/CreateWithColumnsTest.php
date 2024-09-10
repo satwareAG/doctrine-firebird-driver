@@ -3,6 +3,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\
 
 use Doctrine\DBAL\Result;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
@@ -126,14 +127,19 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
                 ['notnull' => true, 'default' => 3.14],
             ],
             [
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT,
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SMALLINT,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SMALLINT,
                 ['notnull' => true, 'default' => 3],
             ],
             [
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_LONG,
-                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INT64,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INTEGER,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INTEGER,
                 ['notnull' => true, 'default' => 3],
+            ],
+            [
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_BIGINT,
+                FirebirdInterbaseSchemaManager::META_FIELD_TYPE_BIGINT,
+                ['notnull' => true, 'default' => PHP_INT_MAX]
             ],
         ];
     }
@@ -156,7 +162,12 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         $columns[] = $table->addColumn('varchar_d', 'string', ['default' => 'Lorem']);
 
         $statements = $this->_platform->getCreateTableSQL($table);
-        $this->assertCount(3, $statements);
+        if ($this->_platform instanceof Firebird3Platform) {
+            $this->assertCount(1, $statements);
+        } else {
+            $this->assertCount(3, $statements);
+        }
+
         foreach ($statements as $statement) {
             $connection->exec($statement);
         }
@@ -190,7 +201,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             $expectedDefault = $column->getDefault();
             switch ($column->getType()::class) {
                 case \Doctrine\DBAL\Types\SmallIntType::class:
-                    $expectedType = FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT;
+                    $expectedType = FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SMALLINT;
                     if (10 === $expectedPrecision) {
                         $expectedPrecision = 0;
                     }
@@ -225,9 +236,9 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
                     case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_FLOAT:
                         $expectedDefaultSource = strval($expectedDefaultSource);
                         break;
-                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INT64:
-                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_LONG:
-                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SHORT:
+                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_BIGINT:
+                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_INTEGER:
+                    case FirebirdInterbaseSchemaManager::META_FIELD_TYPE_SMALLINT:
                         $expectedDefaultSource = intval($expectedDefaultSource);
                         break;
                 }
