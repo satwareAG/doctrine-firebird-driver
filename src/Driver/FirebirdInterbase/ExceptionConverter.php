@@ -61,7 +61,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 ) {
                     return new TableNotFoundException($exception, $query);
                 }
-                if (preg_match('/.*(unsuccessful metadata update).*(is not defined).*/i', $message)) {
+                if (preg_match('/.*(unsuccessful metadata update).*(is not defined).*/i', $message)
+                || preg_match('/.*(unsuccessful metadata update).*(not found).*/i', $message)
+                ) {
                     return new DatabaseObjectNotFoundException($exception, $query);
                 }
                 break;

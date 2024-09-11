@@ -4,18 +4,18 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ConnectionException;
-use Doctrine\DBAL\Driver\AbstractSQLiteDriver\Middleware\EnableForeignKeys;
-use Doctrine\DBAL\Driver\OCI8\Middleware\InitializeSession;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
+use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\DB2Platform;
-use Doctrine\DBAL\Platforms\OraclePlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
 use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
+use Monolog\Formatter\JsonFormatter;
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+use Monolog\Processor\IntrospectionProcessor;
+use Monolog\Processor\MemoryPeakUsageProcessor;
+use Monolog\Processor\MemoryUsageProcessor;
 use PHPUnit\Framework\Assert;
 
 use function array_keys;
@@ -30,6 +30,8 @@ use function strlen;
 use function strpos;
 use function substr;
 use function unlink;
+
+use const _PHPStan_4f7beffdf\__;
 
 /**
  * TestUtil is a class with static utility methods used during tests.
@@ -129,6 +131,18 @@ class TestUtil
         $configuration = new Configuration();
 
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
+
+        $logger = new Logger('sql_logger');
+        $logger
+            ->pushProcessor(new MemoryUsageProcessor())
+            ->pushHandler(
+            (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug))
+        );
+
+
+        $configuration->setMiddlewares([
+            new Middleware($logger),
+        ]);
 
         return $configuration;
     }

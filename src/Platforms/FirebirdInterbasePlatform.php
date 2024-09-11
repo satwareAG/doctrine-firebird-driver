@@ -1557,5 +1557,12 @@ SQL
         );
     }
 
+    public function getGuidTypeDeclarationSQL(array $column)
+    {
+        $column['length'] = 36;
+        $column['fixed']  = false;
+
+        return $this->getStringTypeDeclarationSQL($column);
+    }
 
 }
