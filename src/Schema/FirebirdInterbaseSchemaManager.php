@@ -25,6 +25,25 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
     const META_FIELD_TYPE_CSTRING = 40; // XXX Does not exist in Firebird 2.5
     const META_FIELD_TYPE_BLOB = 261;
 
+    /**
+     * @internal The method should be only used from within the FirebirdInterbaseSchemaManager class hierarchy.
+     *
+     * @param string $table
+     *
+     * @return bool
+     *
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function dropAutoincrement($table)
+    {
+        $sql = $this->_platform->getDropAutoincrementSql($table);
+        foreach ($sql as $query) {
+            $this->_conn->executeStatement($query);
+        }
+
+        return true;
+    }
+
     protected function _getPortableTableDefinition($table)
     {
         $table = \array_change_key_case($table, CASE_LOWER);
@@ -89,6 +108,8 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 
     public function dropTable($tablename)
     {
+        $this->tryMethod('dropAutoincrement', $tablename);
+
         parent::dropTable($tablename);
     }
     public function createDatabase($database)
@@ -225,7 +246,8 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         }
 
         $options['notnull'] = (bool) $tableColumn['FIELD_NOT_NULL_FLAG'];
-        $options['autoincrement'] = $tableColumn['IDENTITY_TYPE'] !== null;
+        // Only available for Firebird 3+
+        $options['autoincrement'] = ($tableColumn['IDENTITY_TYPE'] ?? null) !== null;
 
         $options = array_merge(
             $options,

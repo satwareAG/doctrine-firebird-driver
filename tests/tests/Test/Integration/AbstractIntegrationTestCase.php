@@ -63,18 +63,18 @@ abstract class AbstractIntegrationTestCase extends TestCase
         }
         $output = $result = '';
 
-        if (file_exists(ROOT_PATH . '/tests/databases/firebird'.$fb.'/music_library.fdb')) {
-            $cmd = sprintf(
-                "gfix -user SYSDBA -password masterkey -shutdown -force 0 firebird$fb:/firebird/data/music_library.fdb 2>&1",
-            );
-            $ret = exec($cmd, $output, $result);
-            $cmd = sprintf(
-                "isql-fb -u SYSDBA -p masterkey -input %s 2>&1",
-                escapeshellarg(ROOT_PATH . "/tests/resources/database_drop$fb.sql")
-            );
 
-            $ret = exec($cmd, $output, $result);
-        }
+        $cmd = sprintf(
+            "gfix -user SYSDBA -password masterkey -shutdown -force 0 firebird$fb:/firebird/data/music_library.fdb 2>&1",
+        );
+        $ret = exec($cmd, $output, $result);
+        $cmd = sprintf(
+            "isql-fb -u SYSDBA -p masterkey -input %s 2>&1",
+            escapeshellarg(ROOT_PATH . "/tests/resources/database_drop$fb.sql")
+        );
+
+        $ret = exec($cmd, $output, $result);
+
 
         $cmd = sprintf(
             "isql-fb -input %s  2>&1",

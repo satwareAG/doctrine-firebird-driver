@@ -94,7 +94,7 @@ class DialectTest extends AbstractIntegrationTestCase
             $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
-            $this->assertStringStartsWith('Error -104: An exception occurred while executing ', $t->getMessage());
+            $this->assertStringStartsWith('An exception occurred while executing a query: ', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception::class, $t->getPrevious()::class);
             $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Client SQL dialect 1 does not support reference to TIME datatype', $t->getPrevious()->getMessage());
@@ -105,7 +105,7 @@ class DialectTest extends AbstractIntegrationTestCase
             $stmt->executeQuery();
         } catch (\Throwable $t) {
             $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
-            $this->assertStringStartsWith('Error -104: An exception occurred while executing \'', $t->getMessage());
+            $this->assertStringStartsWith('An exception occurred while executing', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception::class, $t->getPrevious()::class);
             $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Token unknown - line 1, column 10 "ID"', $t->getPrevious()->getMessage());

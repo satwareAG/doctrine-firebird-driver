@@ -378,26 +378,13 @@ class ConnectionTest extends FunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        if (
-            $platform instanceof SqlitePlatform
-            || $platform instanceof SQLServerPlatform
-        ) {
-            self::markTestSkipped('The platform does not support persistent connections');
-        }
-
         $params               = TestUtil::getConnectionParams();
         $params['persistent'] = true;
 
         $connection       = DriverManager::getConnection($params);
         $driverConnection = $connection->getWrappedConnection();
 
-        if (! $driverConnection instanceof PDOConnection) {
-            self::markTestSkipped('Unable to test if the connection is persistent');
-        }
-
-        $pdo = $driverConnection->getNativeConnection();
-
-        self::assertTrue($pdo->getAttribute(PDO::ATTR_PERSISTENT));
+        self::assertTrue($driverConnection->getAttribute(PDO::ATTR_PERSISTENT));
     }
 
     public function testExceptionOnExecuteStatement(): void

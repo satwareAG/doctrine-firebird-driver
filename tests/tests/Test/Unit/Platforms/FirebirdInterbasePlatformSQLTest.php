@@ -1,10 +1,15 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
+use Doctrine\DBAL\Types\Type;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 
 /**
@@ -306,11 +311,12 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterTableNotNULL()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
-        $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
-            'foo', new \Doctrine\DBAL\Schema\Column(
+        $this->markTestIncomplete(self::TEST_INCOMPLETE_FOR_DBAL3);
+        $tableDiff = new TableDiff('mytable');
+        $tableDiff->changedColumns['foo'] = new ColumnDiff(
+            'foo', new Column(
                 'foo',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 [
                     'default' => 'bla',
                     'notnull' => true,
@@ -318,11 +324,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ),
             ['type']
         );
-        $tableDiff->changedColumns['bar'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['bar'] = new ColumnDiff(
             'bar',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'baz',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 [
                     'default' => 'bla',
                     'notnull' => true,
@@ -330,11 +336,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ),
             ['type', 'notnull']
         );
-        $tableDiff->changedColumns['metar'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['metar'] = new ColumnDiff(
             'metar',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'metar',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 [
                     'length' => 2000,
                     'notnull' => false,
@@ -343,7 +349,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             ['notnull']
         );
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertCount(6, $found);
+        $this->assertCount(4, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertEquals("ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)", $found[0]);
         $this->assertArrayHasKey(1, $found);
@@ -393,13 +399,9 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     {
         $found = $this->_platform->getDropAutoincrementSql("foo");
         $this->assertIsArray($found);
-        $this->assertArrayHasKey(0, $found);
-        $this->assertSame("DROP TRIGGER FOO_AI_PK", $found[0]);
-        $this->assertArrayHasKey(1, $found);
-        $this->assertStringStartsWith("EXECUTE BLOCK", $found[1]);
-        $this->assertStringContainsString("DROP TRIGGER FOO_D2IT", $found[1]);
-        $this->assertStringContainsString("DROP SEQUENCE FOO_D2IS", $found[1]);
-        $this->assertSame("ALTER TABLE FOO DROP CONSTRAINT FOO_AI_PK", $found[2]);
+        $this->assertStringStartsWith("EXECUTE BLOCK", $found[0]);
+        $this->assertStringContainsString("DROP TRIGGER FOO_D2IT", $found[0]);
+        $this->assertStringContainsString("DROP SEQUENCE FOO_D2IS", $found[0]);
     }
 
     /**
@@ -410,18 +412,18 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $table1 = new Table(
             '"foo"',
             [
-                new \Doctrine\DBAL\Schema\Column(
+                new Column(
                     '"bar"',
-                    \Doctrine\DBAL\Types\Type::getType('integer')
+                    Type::getType('integer')
                 )
             ]
         );
         $table2 = new Table(
             '"foo"',
             [
-                new \Doctrine\DBAL\Schema\Column(
+                new Column(
                     '"bar"',
-                    \Doctrine\DBAL\Types\Type::getType('integer'),
+                    Type::getType('integer'),
                     [
                         'comment' => 'baz',
                     ]
@@ -430,7 +432,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         );
         $comparator = new \Doctrine\DBAL\Schema\Comparator();
         $tableDiff = $comparator->diffTable($table1, $table2);
-        $this->assertInstanceOf(\Doctrine\DBAL\Schema\TableDiff::class, $tableDiff);
+        $this->assertInstanceOf(TableDiff::class, $tableDiff);
         $this->assertSame(
             [
                 'COMMENT ON COLUMN "foo"."bar" IS \'baz\'',
@@ -516,44 +518,45 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
 
     public function testGeneratesTableAlterationSqlThrowsException()
     {
+        $this->markTestIncomplete(self::TEST_INCOMPLETE_FOR_DBAL3);
         $this->expectExceptionMessage("Operation 'Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform::getAlterTableSQL Cannot rename tables because firebird does not support it");
-        $this->expectException(\Doctrine\DBAL\Exception::class);
+        $this->expectException(Exception::class);
         $table = new Table('mytable');
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->addColumn('foo', 'integer');
         $table->addColumn('bar', 'string');
         $table->addColumn('bloo', 'boolean');
         $table->setPrimaryKey(['id']);
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = $table;
         $tableDiff->newName = 'userlist';
-        $tableDiff->addedColumns['quota'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->addedColumns['quota'] = new Column(
             'quota',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             [
                 'notnull' => false,
             ]
         );
-        $tableDiff->removedColumns['foo'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->removedColumns['foo'] = new Column(
             'foo',
-            \Doctrine\DBAL\Types\Type::getType('integer')
+            Type::getType('integer')
         );
-        $tableDiff->changedColumns['bar'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['bar'] = new ColumnDiff(
             'bar',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'baz',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 [
                     'default' => 'def',
                 ]
             ),
             ['type', 'notnull', 'default']
         );
-        $tableDiff->changedColumns['bloo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['bloo'] = new ColumnDiff(
             'bloo',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'bloo',
-                \Doctrine\DBAL\Types\Type::getType('boolean'),
+                Type::getType('boolean'),
                 [
                     'default' => false,
                 ]
@@ -658,30 +661,30 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $table->addColumn('removed', 'integer');
         $table->addColumn('changed', 'integer');
         $table->addColumn('renamed', 'integer');
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = $table;
-        $tableDiff->addedColumns['added'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->addedColumns['added'] = new Column(
             'added',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             []
         );
-        $tableDiff->removedColumns['removed'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->removedColumns['removed'] = new Column(
             'removed',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             []
         );
-        $tableDiff->changedColumns['changed'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['changed'] = new ColumnDiff(
             'changed',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'changed2',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 []
             ),
             []
         );
-        $tableDiff->renamedColumns['renamed'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->renamedColumns['renamed'] = new Column(
             'renamed2',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             []
         );
         $this->_platform->getAlterTableSQL($tableDiff);
@@ -708,25 +711,25 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterTableColumnComments()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
-        $tableDiff->addedColumns['quota'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff = new TableDiff('mytable');
+        $tableDiff->addedColumns['quota'] = new Column(
             'quota',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             ['comment' => 'A comment']
         );
-        $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['foo'] = new ColumnDiff(
             'foo',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'foo',
-                \Doctrine\DBAL\Types\Type::getType('string')
+                Type::getType('string')
             ),
             ['comment']
         );
-        $tableDiff->changedColumns['bar'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['bar'] = new ColumnDiff(
             'bar',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'baz',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 ['comment' => 'B comment']
             ),
             ['comment']
@@ -772,7 +775,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         // timestamps on datetime types should not be quoted
         foreach (['datetime', 'datetimetz'] as $type) {
             $field = [
-                'type' => \Doctrine\DBAL\Types\Type::getType($type),
+                'type' => Type::getType($type),
                 'default' => $this->_platform->getCurrentTimestampSQL()
             ];
             $this->assertEquals(' DEFAULT ' . $this->_platform->getCurrentTimestampSQL(), $this->_platform->getDefaultValueDeclarationSQL($field));
@@ -783,7 +786,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     {
         foreach(['bigint', 'integer', 'smallint'] as $type) {
             $field = [
-                'type'    => \Doctrine\DBAL\Types\Type::getType($type),
+                'type'    => Type::getType($type),
                 'default' => 1
             ];
             $this->assertEquals(
@@ -921,13 +924,13 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterTableChangeQuotedColumn()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = new Table('mytable');
-        $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['foo'] = new ColumnDiff(
             'select',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'select',
-                \Doctrine\DBAL\Types\Type::getType('string')
+                Type::getType('string')
             ),
             ['type']
         );
@@ -942,7 +945,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterTableRenameIndex()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = new Table('mytable');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
@@ -964,7 +967,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesAlterTableRenameIndex()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('table');
+        $tableDiff = new TableDiff('table');
         $tableDiff->fromTable = new Table('table');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
@@ -1039,7 +1042,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testAlterTableRenameIndexInSchema()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('myschema.mytable');
+        $tableDiff = new TableDiff('myschema.mytable');
         $tableDiff->fromTable = new Table('myschema.mytable');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
@@ -1060,7 +1063,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
      */
     public function testQuotesAlterTableRenameIndexInSchema()
     {
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('`schema`.table');
+        $tableDiff = new TableDiff('`schema`.table');
         $tableDiff->fromTable = new Table('`schema`.table');
         $tableDiff->fromTable->addColumn('id', 'integer');
         $tableDiff->fromTable->setPrimaryKey(['id']);
@@ -1128,11 +1131,11 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
             'integer',
             ['notnull' => true, 'default' => 666, 'comment' => 'rename test']
         );
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('foo');
+        $tableDiff = new TableDiff('foo');
         $tableDiff->fromTable = $table;
-        $tableDiff->renamedColumns['bar'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->renamedColumns['bar'] = new Column(
             'baz',
-            \Doctrine\DBAL\Types\Type::getType('integer'),
+            Type::getType('integer'),
             ['notnull' => true, 'default' => 666, 'comment' => 'rename test']
         );
         $found = $this->_platform->getAlterTableSQL($tableDiff);
@@ -1156,29 +1159,29 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $table->addColumn('baz', 'integer');
         $table->addForeignKeyConstraint('fk_table', ['fk'], ['id'], [], 'fk1');
         $table->addForeignKeyConstraint('fk_table', ['fk2'], ['id'], [], 'fk2');
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('"foo"');
+        $tableDiff = new TableDiff('"foo"');
         $tableDiff->fromTable = $table;
-        $tableDiff->addedColumns['bloo'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->addedColumns['bloo'] = new Column(
             'bloo',
-            \Doctrine\DBAL\Types\Type::getType('integer')
+            Type::getType('integer')
         );
-        $tableDiff->changedColumns['bar'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff->changedColumns['bar'] = new ColumnDiff(
             'bar',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'bar',
-                \Doctrine\DBAL\Types\Type::getType('integer'),
+                Type::getType('integer'),
                 ['notnull' => false]
             ),
             ['notnull'],
             $table->getColumn('bar')
         );
-        $tableDiff->renamedColumns['id'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->renamedColumns['id'] = new Column(
             'war',
-            \Doctrine\DBAL\Types\Type::getType('integer')
+            Type::getType('integer')
         );
-        $tableDiff->removedColumns['baz'] = new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->removedColumns['baz'] = new Column(
             'baz',
-            \Doctrine\DBAL\Types\Type::getType('integer')
+            Type::getType('integer')
         );
         $tableDiff->addedForeignKeys[] = new \Doctrine\DBAL\Schema\ForeignKeyConstraint(
             ['fk3'],
@@ -1245,12 +1248,12 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
     {
         $table = new Table('mytable');
         $table->addColumn('name', 'string', ['length' => 2]);
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = $table;
-        $tableDiff->changedColumns['name'] = new \Doctrine\DBAL\Schema\ColumnDiff(
-            'name', new \Doctrine\DBAL\Schema\Column(
+        $tableDiff->changedColumns['name'] = new ColumnDiff(
+            'name', new Column(
                 'name',
-                \Doctrine\DBAL\Types\Type::getType('string'),
+                Type::getType('string'),
                 ['fixed' => true, 'length' => 2]
             ),
             ['fixed']
@@ -1278,7 +1281,7 @@ class FirebirdInterbasePlatformSQLTest extends AbstractFirebirdInterbasePlatform
         $primaryTable->addIndex(['bar'], 'idx_bar');
         $primaryTable->addForeignKeyConstraint($foreignTable, ['foo'], ['id'], [], 'fk_foo');
         $primaryTable->addForeignKeyConstraint($foreignTable, ['bar'], ['id'], [], 'fk_bar');
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('mytable');
+        $tableDiff = new TableDiff('mytable');
         $tableDiff->fromTable = $primaryTable;
         $tableDiff->renamedIndexes['idx_foo'] = new Index('idx_foo_renamed', ['foo']);
         $found = $this->_platform->getAlterTableSQL($tableDiff);

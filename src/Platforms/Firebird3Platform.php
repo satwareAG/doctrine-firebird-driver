@@ -2,16 +2,15 @@
 namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Schema\AbstractAsset;
+
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
-use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 
 class Firebird3Platform extends FirebirdInterbasePlatform
 {
@@ -114,12 +113,9 @@ class Firebird3Platform extends FirebirdInterbasePlatform
             }
 
             if ($columnDiff->hasNotNullChanged()) {
-
                 /**
                  * https://www.delphipraxis.net/191043-firebird-3-0-rdb%24relation_fields-update.html
                  * Firebird 3.0.1 Release Notes S. 70:
-                 * ALTER TABLE <table name> ALTER <field name> { DROP | SET } [NOT] NULL
-                 * ALTER DOMAIN <domain name> { DROP | SET } [NOT] NU
                  */
 
                 $query = 'ALTER ' . $oldColumnName . ' ' . ($newColumn->getNotnull() ? 'SET' : 'DROP') . ' NOT NULL';
@@ -150,8 +146,6 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
             $oldComment = $this->getOldColumnComment($columnDiff);
             $newComment = $this->getColumnComment($newColumn);
-
-
             if (
                 $columnDiff->hasCommentChanged()
                 || ($columnDiff->getOldColumn() !== null && $oldComment !== $newComment)
@@ -162,6 +156,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
                     $newComment,
                 );
             }
+
 
             if (! $columnDiff->hasLengthChanged()) {
                 continue;
@@ -190,11 +185,6 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
             $newName = $diff->getNewName();
 
-
-            if ($newName !== false) {
-                throw Exception::notSupported(__METHOD__ . ' Cannot rename table because firebird does not support it');
-            }
-
             $sql = array_merge(
                 $this->getPreAlterTableIndexForeignKeySQL($diff),
                 $sql,
@@ -207,14 +197,13 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
     public function supportsIdentityColumns()
     {
-        return false;
+        return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function prefersIdentityColumns()
-    {
-        return false;
-    }
-    public function prefersSequences()
     {
         return true;
     }
@@ -295,7 +284,7 @@ ___query___;
      */
     public function usesSequenceEmulatedIdentityColumns()
     {
-        return true;
+        return true; //
     }
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
@@ -385,5 +374,21 @@ ___query___;
         return $query;
 
     }
+    /**
+     * {@inheritDoc}
+     */
+    protected function initializeDoctrineTypeMappings()
+    {
+        parent::initializeDoctrineTypeMappings();
 
+        $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getBooleanTypeDeclarationSQL(array $column)
+    {
+        return 'BOOLEAN';
+    }
 }

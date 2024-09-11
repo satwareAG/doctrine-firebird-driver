@@ -4,7 +4,6 @@ namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
-
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
@@ -102,7 +101,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function __construct(array $params, string $username, string $password, array $driverOptions = [])
     {
-        $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
+        $this->close(true); // Close/reset; because calling __construct after instantiation is apparently a thing
         $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
         if (isset($params['persistent'])) {
             $this->isPersistent = (bool)$params['persistent'];
@@ -201,6 +200,8 @@ final class Connection implements ServerInfoAwareConnection
                 return $this->attrDcTransWait;
             case \PDO::ATTR_AUTOCOMMIT:
                 return $this->attrAutoCommit;
+            case \PDO::ATTR_PERSISTENT:
+                return $this->isPersistent;
         }
         return null;
     }
@@ -525,7 +526,7 @@ final class Connection implements ServerInfoAwareConnection
         return $result;
     }
 
-    public function close(): void
+    public function close($firstrun = false): void
     {
             if (is_resource($this->_ibaseActiveTransaction)) {
                 if ($this->_ibaseTransactionLevel > 0) {
@@ -546,9 +547,11 @@ final class Connection implements ServerInfoAwareConnection
             $this->_ibaseActiveTransaction  = false;
             $this->_ibaseTransactionLevel = 0;
             $unclosed = 0;
-            while(@ibase_close()) {
+
+            while(!$firstrun && @ibase_close()) {
                 $unclosed++;
             }
+
             if (false === $success) {
                $this->checkLastApiCall();
             }
@@ -582,5 +585,4 @@ final class Connection implements ServerInfoAwareConnection
     {
         return $this->_ibaseConnectionRc;
     }
-
 }

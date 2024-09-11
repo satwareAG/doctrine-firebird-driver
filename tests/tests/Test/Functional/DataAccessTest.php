@@ -434,7 +434,7 @@ class DataAccessTest extends FunctionalTestCase
         $platform = $this->connection->getDatabasePlatform();
 
         if (! $platform instanceof SqlitePlatform) {
-            self::markTestSkipped('test is for sqlite only');
+          //  self::markTestSkipped('test is for sqlite only');
         }
 
         $table = new Table('fetch_table_date_math');

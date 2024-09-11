@@ -332,18 +332,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     }
 
     /**
-     * Whether the platform prefers sequences for ID generation.
-     *
-     * Firebird/Interbase do not have autoinc-fields, thus sequences need to
-     * be used for sequence generation.
-     *
-     * @return boolean
+     * @inheritDoc
      */
-    public function prefersSequences()
-    {
-        return true;
-    }
-
     public function prefersIdentityColumns()
     {
         return false;
@@ -738,7 +728,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getBooleanTypeDeclarationSQL(array $column)
     {
-        return 'BOOLEAN';
+        return 'SMALLINT';
     }
 
     /**
@@ -792,34 +782,34 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     protected function initializeDoctrineTypeMappings()
     {
         $this->doctrineTypeMapping = [
-            'boolean' => 'boolean',
-            'tinyint' => 'smallint',
-            'smallint' => 'smallint',
-            'mediumint' => 'integer',
-            'int' => 'integer',
-            'integer' => 'integer',
-            'serial' => 'integer',
-            'int64' => 'bigint',
-            'long' => 'integer', // YES, really. Not bigint.
-            'char' => 'string',
-            'text' => 'string', // Yes, really. 'char' is internally called text.
-            'varchar' => 'string',
-            'varying' => 'string',
-            'longvarchar' => 'string',
-            'cstring' => 'string',
-            'date' => 'date',
-            'timestamp' => 'datetime',
-            'time' => 'time',
-            'float' => 'float',
-            'double' => 'float',
-            'real' => 'float',
-            'decimal' => 'decimal',
-            'numeric' => 'decimal',
-            'blob' => 'blob',
-            'binary' => 'blob',
-            'blob sub_type text' => 'text',
-            'blob sub_type binary' => 'blob',
-            'short' => 'smallint',
+            'boolean'       => TYPES::SMALLINT,
+            'blob'          => Types::BLOB,
+            'binary'        =>  Types::BLOB,
+            'blob sub_type text' => Types::TEXT,
+            'blob sub_type binary' => Types::BLOB,
+            'cstring'       => Types::STRING,
+            'char'          => Types::STRING,
+            'double'        => Types::FLOAT,
+            'decimal'       => Types::DECIMAL,
+            'date'          => Types::DATE_MUTABLE,
+            'float'         => Types::FLOAT,
+            'int'           => Types::INTEGER,
+            'integer'       => Types::INTEGER,
+            'int64'         => Types::BIGINT,
+            'long'          => Types::INTEGER, // YES, really. Not bigint.
+            'longvarchar'   => Types::STRING,
+            'mediumint'     => Types::INTEGER,
+            'numeric'       => Types::DECIMAL,
+            'smallint'      => TYPES::SMALLINT,
+            'serial'        => Types::INTEGER,
+            'tinyint'       => TYPES::SMALLINT,
+            'text'          => Types::STRING, // Yes, really. 'char' is internally called text.
+            'time'          => Types::TIME_MUTABLE,
+            'real'          => Types::FLOAT,
+            'short'         => TYPES::SMALLINT,
+            'timestamp'     => Types::DATETIME_MUTABLE,
+            'varchar'       => Types::STRING,
+            'varying'       => Types::STRING,
         ];
     }
 
@@ -838,60 +828,83 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getAlterTableSQL(TableDiff $diff)
     {
-        $sql = [];
+        $sql         = [];
         $commentsSQL = [];
-        $columnSql = [];
+        $columnSql   = [];
 
-        foreach ($diff->addedColumns as $column) {
-            if ($this->onSchemaAlterTableAddColumn($column, $diff, $columnSql)) {
+        $table = $diff->getOldTable() ?? $diff->getName($this);
+        $tableNameSQL = $table->getQuotedName($this);
+
+        foreach ($diff->getAddedColumns() as $addedColumn) {
+            if ($this->onSchemaAlterTableAddColumn($addedColumn, $diff, $columnSql)) {
                 continue;
             }
 
-            $query = 'ADD ' . $this->getColumnDeclarationSQL($column->getQuotedName($this), $column->toArray());
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            $query = 'ADD ' . $this->getColumnDeclarationSQL(
+                $addedColumn->getQuotedName($this),
+                $addedColumn->toArray()
+            );
 
-            $comment = $this->getColumnComment($column);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
 
-            if (null !== $comment && '' !== $comment) {
-                $commentsSQL[] = $this->getCommentOnColumnSQL(
-                        $diff->getName($this)->getQuotedName($this), $column->getQuotedName($this), $comment
-                );
-            }
-        }
+            $comment = $this->getColumnComment($addedColumn);
 
-        foreach ($diff->removedColumns as $column) {
-            if ($this->onSchemaAlterTableRemoveColumn($column, $diff, $columnSql)) {
+            if ($comment === null || $comment === '') {
                 continue;
             }
 
-            $query = 'DROP ' . $column->getQuotedName($this);
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            $commentsSQL[] = $this->getCommentOnColumnSQL(
+                    $tableNameSQL,
+                    $addedColumn->getQuotedName($this),
+                    $comment,
+            );
+
         }
 
-        foreach ($diff->changedColumns as $columnDiff) {
-            /** @var $columnDiff \Doctrine\DBAL\Schema\ColumnDiff */
+        foreach ($diff->getDroppedColumns() as $droppedColumn) {
+            if ($this->onSchemaAlterTableRemoveColumn($droppedColumn, $diff, $columnSql)) {
+                continue;
+            }
+
+            $query = 'DROP ' . $droppedColumn->getQuotedName($this);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
+        }
+
+        foreach ($diff->getModifiedColumns() as $columnDiff) {
+
             if ($this->onSchemaAlterTableChangeColumn($columnDiff, $diff, $columnSql)) {
                 continue;
             }
 
-            $oldColumnName = $columnDiff->getOldColumnName()->getQuotedName($this);
-            $column = $columnDiff->column;
+            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->getOldColumnName();
+            $newColumn = $columnDiff->getNewColumn();
 
-            if ($columnDiff->hasChanged('type') || $columnDiff->hasChanged('precision') || $columnDiff->hasChanged('scale') || $columnDiff->hasChanged('fixed')) {
-                $type = $column->getType();
+            $oldColumnName = $oldColumn->getQuotedName($this);
 
-                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSqlDeclaration($column->toArray(), $this);
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            if (
+                $columnDiff->hasTypeChanged()
+                || $columnDiff->hasPrecisionChanged()
+                || $columnDiff->hasScaleChanged()
+                || $columnDiff->hasFixedChanged()
+            ) {
+                $type = $newColumn->getType();
+                $columnDefinition                  = $newColumn->toArray();
+                $columnDefinition['autoincrement'] = false;
+
+                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSqlDeclaration($columnDefinition, $this);
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('default') || $columnDiff->hasChanged('type')) {
-                $defaultClause = null === $column->getDefault() ? ' DROP DEFAULT' : ' SET' . $this->getDefaultValueDeclarationSQL($column->toArray());
+            if ($columnDiff->hasDefaultChanged()) {
+                $defaultClause = null === $newColumn->getDefault()
+                    ? ' DROP DEFAULT'
+                    : ' SET' . $this->getDefaultValueDeclarationSQL($newColumn->toArray());
                 $query = 'ALTER ' . $oldColumnName . $defaultClause;
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
-            if ($columnDiff->hasChanged('notnull')) {
-                $newNullFlag = $column->getNotnull() ? 1 : 'NULL';
+            if ($columnDiff->hasNotNullChanged()) {
+                $newNullFlag = $newColumn->getNotnull() ? 1 : 'NULL';
                 $sql[] = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' .
                         $newNullFlag . ' ' .
                         'WHERE UPPER(RDB$FIELD_NAME) = ' .
@@ -899,8 +912,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
                         'UPPER(RDB$RELATION_NAME) = UPPER(\'' . $diff->getName($this)->getName() . '\')';
             }
 
-            if ($columnDiff->hasChanged('autoincrement')) {
-                if ($column->getAutoincrement()) {
+            if ($columnDiff->hasAutoIncrementChanged()) {
+                if ($newColumn->getAutoincrement()) {
                     // add autoincrement
                     $seqName = $this->getIdentitySequenceName($diff->name, $oldColumnName);
 
@@ -915,26 +928,36 @@ class FirebirdInterbasePlatform extends AbstractPlatform
                 }
             }
 
-            if ($columnDiff->hasChanged('comment')) {
+            $oldComment = $this->getOldColumnComment($columnDiff);
+            $newComment = $this->getColumnComment($newColumn);
+            if (
+                $columnDiff->hasCommentChanged()
+                || ($columnDiff->getOldColumn() !== null && $oldComment !== $newComment)
+            ) {
                 $commentsSQL[] = $this->getCommentOnColumnSQL(
-                        $diff->getName($this)->getQuotedName($this), $column->getQuotedName($this), $this->getColumnComment($column)
+                    $tableNameSQL,
+                    $newColumn->getQuotedName($this),
+                    $newComment,
                 );
             }
 
-            if ($columnDiff->hasChanged('length')) {
-                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $column->getType()->getSqlDeclaration($column->toArray(), $this);
-                $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+            if (! $columnDiff->hasLengthChanged()) {
+                continue;
             }
+
+            $query = 'ALTER ' . $oldColumnName . ' TYPE '
+                . $newColumn->getType()->getSQLDeclaration($newColumn->toArray(), $this);
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
-        foreach ($diff->renamedColumns as $oldColumnName => $column) {
+        foreach ($diff->getRenamedColumns() as $oldColumnName => $column) {
             if ($this->onSchemaAlterTableRenameColumn($oldColumnName, $column, $diff, $columnSql)) {
                 continue;
             }
 
             $oldColumnName = new Identifier($oldColumnName);
 
-            $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) .
+            $sql[] = 'ALTER TABLE ' .$tableNameSQL .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);
         }
 
@@ -943,9 +966,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         if (!$this->onSchemaAlterTable($diff, $tableSql)) {
             $sql = array_merge($sql, $commentsSQL);
 
-            if ($diff->newName !== false) {
-                throw Exception::notSupported(__METHOD__ . ' Cannot rename tables because firebird does not support it');
-            }
+            $newName = $diff->getNewName();
 
             $sql = array_merge(
                 $this->getPreAlterTableIndexForeignKeySQL($diff),
@@ -1111,16 +1132,16 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      * @param string $name
-     * @param array $field
+     * @param array $column
      */
-    public function getColumnDeclarationSQL($name, array $field)
+    public function getColumnDeclarationSQL($name, array $column)
     {
 
-        if (isset($field['type']) && $field['type']->getName() === Types::BINARY) {
-            $field['charset'] = 'binary';
-            // $field['collation'] = 'octets';
+        if (isset($column['type']) && $column['type']->getName() === Types::BINARY) {
+            $column['charset'] = 'octets';
+            // $column['collation'] = 'octets';
         }
-        return parent::getColumnDeclarationSQL($name, $field);
+        return parent::getColumnDeclarationSQL($name, $column);
     }
 
     /**
@@ -1142,9 +1163,9 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    protected function _getCreateTableSQL($tableName, array $columns, array $options = [])
+    protected function _getCreateTableSQL($name, array $columns, array $options = [])
     {
-        $this->checkIdentifierLength($tableName, $this->getMaxIdentifierLength());
+        $this->checkIdentifierLength($name, $this->getMaxIdentifierLength());
 
         $isTemporary = (isset($options['temporary']) && !empty($options['temporary']));
 
@@ -1154,14 +1175,14 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
         $columnListSql = $this->getColumnDeclarationListSQL($columns);
 
-        if (isset($options['uniqueConstraints']) && !empty($options['uniqueConstraints'])) {
-            foreach ($options['uniqueConstraints'] as $name => $definition) {
-                $columnListSql .= ', ' . $this->getUniqueConstraintDeclarationSQL($name, $definition);
+        if (!empty($options['uniqueConstraints'])) {
+            foreach ($options['uniqueConstraints'] as $constraintName => $definition) {
+                $columnListSql .= ', ' . $this->getUniqueConstraintDeclarationSQL($constraintName, $definition);
             }
         }
 
         if (isset($options['primary']) && !empty($options['primary'])) {
-            $columnListSql .= ', CONSTRAINT ' . $this->generatePrimaryKeyConstraintName($tableName) . ' PRIMARY KEY (' . implode(', ', array_unique(array_values($options['primary']))) . ')';
+            $columnListSql .= ', CONSTRAINT ' . $this->generatePrimaryKeyConstraintName($name) . ' PRIMARY KEY (' . implode(', ', array_unique(array_values($options['primary']))) . ')';
         }
 
         if (isset($options['indexes']) && !empty($options['indexes'])) {
@@ -1172,7 +1193,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
         $query = 'CREATE ' .
                 ($isTemporary ? $this->getTemporaryTableSQL() . ' ' : '') .
-                'TABLE ' . $tableName;
+                'TABLE ' . $name;
 
         $query .= ' (' . $columnListSql;
 
@@ -1191,25 +1212,25 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
         // Create sequences and a trigger for autoinc-fields if necessary
 
-        foreach ($columns as $name => $column) {
+        foreach ($columns as $columnName => $column) {
             if (isset($column['sequence'])) {
                 $sql[] = $this->getCreateSequenceSQL($column['sequence']);
             }
             if (isset($column['autoincrement']) && $column['autoincrement'] ||
                     (isset($column['autoinc']) && $column['autoinc'])) {
-                $sql = array_merge($sql, $this->getCreateAutoincrementSql($name, $tableName));
+                $sql = array_merge($sql, $this->getCreateAutoincrementSql($columnName, $name));
             }
         }
 
         if (isset($options['foreignKeys'])) {
             foreach ((array) $options['foreignKeys'] as $definition) {
-                $sql[] = $this->getCreateForeignKeySQL($definition, $tableName);
+                $sql[] = $this->getCreateForeignKeySQL($definition, $name);
             }
         }
 
 
         foreach ($indexes as $index) {
-            $sql[] = $this->getCreateIndexSQL($index, $tableName);
+            $sql[] = $this->getCreateIndexSQL($index, $name);
         }
 
 
@@ -1260,9 +1281,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             ''
         );
         $sql = [];
-        $sql[] = 'DROP TRIGGER ' . $autoincrementIdentifierName;
         $sql[] = $this->getDropSequenceSQL($identitySequenceName);
-        $sql[] = $this->getDropConstraintSQL($autoincrementIdentifierName, $table->getQuotedName($this));
         return $sql;
     }
 

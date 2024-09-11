@@ -5,16 +5,12 @@ services:
     environment:
       - ISC_PASSWORD=masterkey
       - TZ=Europe/Berlin
-    volumes:
-      - ./databases/firebird25:/firebird/data
   firebird3:
     container_name: firebird3-doctrine-firebird-driver
     image: "jacobalberty/firebird:3.0"
     environment:
       - ISC_PASSWORD=masterkey
       - TZ=Europe/Berlin
-    volumes:
-      - ./databases/firebird3:/firebird/data
     ports:
       - "3050:3050"
   app:

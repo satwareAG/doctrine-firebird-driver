@@ -2,6 +2,10 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table;
 
 use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnDiff;
+use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\Type;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Statement;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
@@ -17,17 +21,17 @@ class AlterTest extends AbstractIntegrationTestCase
         $sql = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);
 
-        $tableDiff = new \Doctrine\DBAL\Schema\TableDiff($tableName);
-        $tableDiff->changedColumns['foo'] = new \Doctrine\DBAL\Schema\ColumnDiff(
+        $tableDiff = new TableDiff($tableName);
+        $tableDiff->changedColumns['foo'] = new ColumnDiff(
             'foo',
-            new \Doctrine\DBAL\Schema\Column(
+            new Column(
                 'bar',
-                \Doctrine\DBAL\Types\Type::getType('string')
+                Type::getType('string')
             ),
             ['type']
         );
         $statements = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertCount(2, $statements);
+        $this->assertCount(1, $statements);
         foreach ($statements as $statement) {
             $connection->executeStatement($statement);
         }
