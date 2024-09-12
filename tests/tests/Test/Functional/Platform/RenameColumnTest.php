@@ -10,9 +10,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function array_keys;
 use function strtolower;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class RenameColumnTest extends FunctionalTestCase
 {
     /** @dataProvider columnNameProvider */

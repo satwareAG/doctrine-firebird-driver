@@ -7,9 +7,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 final class LengthExpressionTest extends FunctionalTestCase
 {
     /**

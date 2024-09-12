@@ -10,15 +10,50 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Doctrine\DBAL\Types\SmallIntType;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\TypeRegistry;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 class FirebirdInterbasePlatform extends AbstractPlatform
 {
+    /**
+     * Firebird 2.5 has no native Boolean Type
+     */
+    protected bool $hasNativeBooleanType = false;
+    private string $charTrue = 'Y';
+
+    private string $charFalse = 'N';
+
+    /**
+     * If false we use CHAR(1) field instead of SMALLINT for Boolean Type
+     */
+    private bool $useSmallIntBoolean = true;
+
+    public function setCharTrue(string $char): FirebirdInterbasePlatform
+    {
+        $this->charTrue = $char;
+        return $this;
+    }
+
+    public function setCharFalse(string $char): FirebirdInterbasePlatform
+    {
+        $this->charFalse = $char;
+        return $this;
+    }
+
+    public function setUseSmallIntBoolean(bool $useSmallIntBoolean): self
+    {
+        $this->useSmallIntBoolean = $useSmallIntBoolean;
+        return $this;
+    }
+
     /**
      * {@inheritDoc}
      *
@@ -569,7 +604,27 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getCreateSequenceSQL(Sequence $sequence)
     {
-        return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
+        if ($sequence->getInitialValue() === 1) {
+            return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
+        }
+
+        // Firebird 2.5 only supports setting a start Value for an generator
+        if ($sequence->getAllocationSize() > 1) {
+            throw Exception::notSupported(sprintf(__METHOD__ . ' with an allocation size > 1 (%s given)', $sequence->getAllocationSize()));
+        }
+
+        if ($sequence->getCache() !== null) {
+            throw Exception::notSupported(sprintf(__METHOD__ . ' with cache not null (%s given)', $sequence->getCache()));
+        }
+
+        return $this->getExecuteBlockWithExecuteStatementsSql([
+            'statements' => [
+                'CREATE SEQUENCE ' . $sequence->getQuotedName($this),
+                'SET GENERATOR '  . $sequence->getQuotedName($this) . ' TO ' . $sequence->getInitialValue()
+            ],
+            'formatLineBreak' => true,
+        ]);
+
     }
 
 
@@ -1136,7 +1191,6 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getColumnDeclarationSQL($name, array $column)
     {
-
         if (isset($column['type']) && $column['type']->getName() === Types::BINARY) {
             $column['charset'] = 'octets';
             // $column['collation'] = 'octets';
@@ -1158,6 +1212,25 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     public function getTemporaryTableSQL()
     {
         return 'GLOBAL TEMPORARY';
+    }
+
+    /**
+     * {@inheritdoc }
+     */
+    public function getCreateTableSQL(Table $table, $createFlags = self::CREATE_INDEXES)
+    {
+        if (!$this->hasNativeBooleanType) {
+            foreach ($table->getColumns() as $column) {
+                if($column->getType()->getName() === Types::BOOLEAN) {
+                    $column->setComment(($column->getComment() ?? '') . $this->getDoctrineTypeComment(Type::getType(Types::BOOLEAN)));
+                    if (!$this->useSmallIntBoolean) {
+                        $column->setType(Type::getType(Types::STRING));
+                        $column->setLength(1);
+                    }
+                }
+            }
+        }
+        return parent::getCreateTableSQL($table, $createFlags);
     }
 
     /**
@@ -1565,4 +1638,85 @@ SQL
         return $this->getStringTypeDeclarationSQL($column);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function isCommentedDoctrineType(Type $doctrineType)
+    {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/5058',
+            '%s() is deprecated and will be removed in Doctrine DBAL 4.0. Use Type::requiresSQLCommentHint() instead.',
+            __METHOD__,
+        );
+
+        if ($doctrineType->getName() === Types::BOOLEAN) {
+            // We require a commented boolean type in order to distinguish between boolean and smallint
+            // as both (have to) map to the same native type.
+            return true;
+        }
+
+        return parent::isCommentedDoctrineType($doctrineType);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function convertBooleans($item)
+    {
+        if ($this->hasNativeBooleanType) {
+            return parent::convertBooleans($item);
+        }
+
+        if (is_array($item)) {
+            foreach ($item as $k => $value) {
+                if (!is_bool($value)) {
+                    continue;
+                }
+                $item[$k] = $this->getBooleanDatabaseValue($value);
+            }
+        } elseif (is_bool($item)) {
+            $item = $this->getBooleanDatabaseValue($item);
+        }
+        return $item;
+    }
+
+    /**
+     * @param $value
+     * @return int|string
+     */
+    private function getBooleanDatabaseValue($value)
+    {
+        return $this->useSmallIntBoolean ? (int) $value : ( $value ? $this->charTrue : $this->charFalse);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function convertFromBoolean($item)
+    {
+        if ($this->hasNativeBooleanType) {
+            return parent::convertBooleans($item);
+        }
+        // Handle both SMALLINT and CHAR representations
+        if ($item === null) {
+            return null;
+        }
+
+        if ($this->useSmallIntBoolean) {
+            return (bool) $item; // SMALLINT (0, 1)
+        }
+        return $item === $this->charTrue;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function convertBooleansToDatabaseValue($item)
+    {
+        if ($this->hasNativeBooleanType) {
+            return parent::convertBooleans($item);
+        }
+        return $this->convertBooleans($item);
+    }
 }

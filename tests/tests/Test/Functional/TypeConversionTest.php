@@ -10,9 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use stdClass;
 
 use function str_repeat;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class TypeConversionTest extends FunctionalTestCase
 {
     private static int $typeCounter = 0;

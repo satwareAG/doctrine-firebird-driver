@@ -21,9 +21,7 @@ use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 final class QueryBuilderTest extends FunctionalTestCase
 {
     protected function setUp(): void

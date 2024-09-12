@@ -3,17 +3,24 @@ namespace Kafoso\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Exception;
 
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 
 class Firebird3Platform extends FirebirdInterbasePlatform
 {
+    /**
+     * Firebird 3 has a native Boolean Type
+     */
+    protected bool $hasNativeBooleanType = true;
+
     /**
      * {@inheritDoc}
      *
@@ -299,12 +306,13 @@ ___query___;
     public function getCreateSequenceSQL(Sequence $sequence)
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
-            'statements' => [ parent::getCreateSequenceSQL($sequence)
-                . ' START WITH ' . $sequence->getInitialValue()
-                . ' INCREMENT BY ' . $sequence->getAllocationSize()
-                . $this->getSequenceCacheSQL($sequence) ,
+            'statements' => [
+                'CREATE SEQUENCE ' . $sequence->getQuotedName($this) .
+                    ' START WITH ' . $sequence->getInitialValue() .
+                    ' INCREMENT BY ' . $sequence->getAllocationSize() .
+                    $this->getSequenceCacheSQL($sequence),
                 $this->getCreateSequenceCommentSQL($sequence)
-                ],
+            ],
             'formatLineBreak' => true,
         ]);
     }
@@ -390,5 +398,13 @@ ___query___;
     public function getBooleanTypeDeclarationSQL(array $column)
     {
         return 'BOOLEAN';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function isCommentedDoctrineType(Type $doctrineType)
+    {
+        return AbstractPlatform::isCommentedDoctrineType($doctrineType);
     }
 }

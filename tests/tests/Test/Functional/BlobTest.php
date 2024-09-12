@@ -10,9 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use function fopen;
 use function str_repeat;
 use function stream_get_contents;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class BlobTest extends FunctionalTestCase
 {
     protected function setUp(): void

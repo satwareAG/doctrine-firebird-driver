@@ -12,9 +12,7 @@ use function array_change_key_case;
 use function array_map;
 
 use const CASE_LOWER;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class LegacyAPITest extends FunctionalTestCase
 {
     use VerifyDeprecations;

@@ -45,7 +45,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
     public function testLastInsertIdWorks()
     {
         $id = $this->_entityManager->getConnection()->lastInsertId('ALBUM_ID_SEQ');
-        $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup.sql
+        $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup25.sql
         if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
             $albumA = new AttributeEntity\Album("Foo");
         } else {

@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 
-use Doctrine\DBAL\DriverManager;
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
-/**
-  * @ runTestsInSeparateProcesses
- */
 class FetchBooleanTest extends FunctionalTestCase
 {
+    protected function setUp(): void
+    {
+        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
+            return;
+        }
+
+        self::markTestSkipped('Only Firebird 3+ supports boolean values natively');
+    }
+
     /** @dataProvider booleanLiteralProvider */
     public function testBooleanConversionSqlLiteral(string $literal, bool $expected): void
     {

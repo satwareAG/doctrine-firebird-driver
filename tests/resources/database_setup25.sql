@@ -54,6 +54,7 @@ RECREATE TABLE Song (
     genre_id INT NOT NULL,
     artist_id INT NOT NULL,
     durationInSeconds INT DEFAULT NULL,
+    isTophit SMALLINT DEFAULT NULL,
     PRIMARY KEY(id)
 );
 
@@ -89,8 +90,8 @@ INSERT INTO Genre (id, name) VALUES (4, 'Classical');
 INSERT INTO Album (id, timeCreated, name, artist_id) VALUES (1, '2017-01-01 15:00:00', '...Baby One More Time', 2);
 INSERT INTO Album (id, timeCreated, name, artist_id) VALUES (2, '2017-01-01 15:00:00', 'Dark Horse', 3);
 
-INSERT INTO Song (id, timeCreated, name, genre_id, artist_id, durationInSeconds) VALUES (1, '2017-01-01 15:00:00', '...Baby One More Time', 3, 2, 211);
-INSERT INTO Song (id, timeCreated, name, genre_id, artist_id, durationInSeconds) VALUES (2, '2017-01-01 15:00:00', '(You Drive Me) Crazy', 3, 2, 200);
+INSERT INTO Song (id, timeCreated, name, genre_id, artist_id, durationInSeconds, isTophit) VALUES (1, '2017-01-01 15:00:00', '...Baby One More Time', 3, 2, 211, 0);
+INSERT INTO Song (id, timeCreated, name, genre_id, artist_id, durationInSeconds, isTophit) VALUES (2, '2017-01-01 15:00:00', '(You Drive Me) Crazy', 3, 2, 200, 1);
 
 INSERT INTO Album_SongMap (album_id, song_id) VALUES (1, 1);
 INSERT INTO Album_SongMap (album_id, song_id) VALUES (1, 2);

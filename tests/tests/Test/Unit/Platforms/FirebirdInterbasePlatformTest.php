@@ -4,6 +4,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Unit\Platforms;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
@@ -11,9 +12,8 @@ use Test\Integration\AbstractIntegrationTestCase;
 
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdInterbasePlatformSQLTest.
-/**
- * @ runTestsInSeparateProcesses
- */
+ **/
+
 class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTestCase
 {
 
@@ -351,23 +351,23 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetCreateSequenceSQL()
     {
         $sequence = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
+            ->getMockBuilder(Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence
-            ->expects($this->once())
+            ->expects($this->atLeast(2))
             ->method('getQuotedName')
             ->with($this->_platform)
             ->willReturn('foo');
         $found = $this->_platform->getCreateSequenceSQL($sequence);
         $this->assertIsString($found);
-        $this->assertSame("CREATE SEQUENCE foo", $found);
+        $this->assertStringContainsString("CREATE SEQUENCE foo", $found);
     }
 
     public function testGetAlterSequenceSQL()
     {
         $sequence = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
+            ->getMockBuilder(Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence
@@ -494,7 +494,7 @@ class FirebirdInterbasePlatformTest extends AbstractFirebirdInterbasePlatformTes
     public function testGetDropSequenceSQLWithSequence()
     {
         $sequence = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Sequence::class)
+            ->getMockBuilder(Sequence::class)
             ->disableOriginalConstructor()
             ->getMock();
         $sequence

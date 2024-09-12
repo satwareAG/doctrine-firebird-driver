@@ -18,7 +18,6 @@ use function sprintf;
 /**
  * Tests introspection of a custom column type with an underlying decimal column
  * on Firebird Platforms
- * @ runTestsInSeparateProcesses
 */
 class CustomIntrospectionTest extends FunctionalTestCase
 {

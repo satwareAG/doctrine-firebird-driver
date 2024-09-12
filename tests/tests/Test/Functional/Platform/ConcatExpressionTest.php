@@ -7,9 +7,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 final class ConcatExpressionTest extends FunctionalTestCase
 {
     /**

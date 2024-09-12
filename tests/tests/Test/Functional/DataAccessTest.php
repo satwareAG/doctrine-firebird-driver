@@ -16,9 +16,7 @@ use function date;
 use function strtotime;
 
 use const CASE_LOWER;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class DataAccessTest extends FunctionalTestCase
 {
     use VerifyDeprecations;

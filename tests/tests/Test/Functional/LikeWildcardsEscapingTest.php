@@ -4,9 +4,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 
 
 use function sprintf;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 final class LikeWildcardsEscapingTest extends FunctionalTestCase
 {
     public function testFetchLikeExpressionResult(): void

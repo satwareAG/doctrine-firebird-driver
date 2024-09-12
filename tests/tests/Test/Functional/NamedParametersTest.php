@@ -12,9 +12,7 @@ use Throwable;
 use function array_change_key_case;
 
 use const CASE_LOWER;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class NamedParametersTest extends FunctionalTestCase
 {
     /** @return iterable<int, array<int, mixed>> */

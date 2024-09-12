@@ -8,9 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function key;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class QuotingTest extends FunctionalTestCase
 {
     /** @dataProvider stringLiteralProvider */

@@ -12,9 +12,7 @@ use function array_change_key_case;
 use function count;
 
 use const CASE_LOWER;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class ModifyLimitQueryTest extends FunctionalTestCase
 {
     protected function setUp(): void

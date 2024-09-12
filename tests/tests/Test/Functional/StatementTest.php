@@ -16,9 +16,7 @@ use const E_ALL;
 use const E_WARNING;
 use const PHP_VERSION_ID;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class StatementTest extends FunctionalTestCase
 {
     protected function setUp(): void

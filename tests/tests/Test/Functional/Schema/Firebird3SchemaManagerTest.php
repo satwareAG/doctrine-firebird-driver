@@ -9,9 +9,7 @@ use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
     protected function supportsPlatform(AbstractPlatform $platform): bool

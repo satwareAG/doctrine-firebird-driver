@@ -26,9 +26,7 @@ use Throwable;
 use function file_exists;
 use function unlink;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class ConnectionTest extends FunctionalTestCase
 {
     use VerifyDeprecations;

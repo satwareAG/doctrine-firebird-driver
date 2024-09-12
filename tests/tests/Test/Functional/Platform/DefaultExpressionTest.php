@@ -15,9 +15,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function sprintf;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class DefaultExpressionTest extends FunctionalTestCase
 {
     public function testCurrentDate(): void

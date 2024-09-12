@@ -18,9 +18,7 @@ use function stream_get_contents;
 
 use const CASE_LOWER;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class BinaryDataAccessTest extends FunctionalTestCase
 {
     protected function setUp(): void

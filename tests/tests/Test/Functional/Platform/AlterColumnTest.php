@@ -12,9 +12,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function array_keys;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class AlterColumnTest extends FunctionalTestCase
 {
     public function testColumnPositionRetainedAfterAltering(): void

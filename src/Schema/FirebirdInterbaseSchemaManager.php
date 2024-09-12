@@ -2,12 +2,15 @@
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\View;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
+use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
 
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
@@ -94,7 +97,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             $code = @ibase_errcode();
             $msg = @ibase_errmsg();
             if ($code === -902) {
-                throw \Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist::new($dbname);
+                throw DatabaseDoesNotExist::new($dbname);
             }
             throw new Exception($msg, null, $code);
         }
@@ -264,7 +267,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             $options['precision'] = $precision;
         }
 
-        return new \Doctrine\DBAL\Schema\Column($tableColumn['FIELD_NAME'], \Doctrine\DBAL\Types\Type::getType($type), $options);
+        return new Column($tableColumn['FIELD_NAME'], Type::getType($type), $options);
     }
 
     protected function _getPortableTableForeignKeysList($tableForeignKeys)

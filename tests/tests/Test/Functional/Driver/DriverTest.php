@@ -8,8 +8,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 
 
 /**
- * @ runTestsInSeparateProcesses
- * @requires extension interbase
+  * @requires extension interbase
  */
 class DriverTest extends AbstractDriverTestCase
 {

@@ -36,6 +36,7 @@ use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
@@ -129,6 +130,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         if (! $platform->supportsSequences()) {
             self::markTestSkipped('The platform does not support sequences.');
+        }
+
+        if (!($platform instanceof Firebird3Platform)) {
+            $this->expectException(Exception::class);
+            $this->expectExceptionMessageMatches('/.*not supported.*/');
         }
 
         $this->schemaManager->createSequence(
@@ -1522,6 +1528,20 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $sequence2               = new Sequence($sequence2Name, $sequence2AllocationSize, $sequence2InitialValue);
 
         $this->schemaManager->createSequence($sequence1);
+
+        if (!($this->connection->getDatabasePlatform() instanceof Firebird3Platform)) {
+            $this->expectException(Exception::class);
+            $this->expectExceptionMessageMatches('/.*not supported.*/');
+            $actualSequences = [];
+            foreach ($this->schemaManager->listSequences() as $sequence) {
+                $actualSequences[$sequence->getName()] = $sequence;
+            }
+            $actualSequence1 = $actualSequences[$sequence1Name];
+            self::assertSame($sequence1Name, $actualSequence1->getName());
+            $this->schemaManager->createSequence($sequence2);
+            return;
+        }
+
         $this->schemaManager->createSequence($sequence2);
 
         /** @var Sequence[] $actualSequences */
@@ -1551,10 +1571,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        if (! $platform->supportsSequences()) {
-            self::markTestSkipped('This test is only supported on platforms that support sequences.');
-        }
-
         $sequenceName           = 'sequence_auto_detect_test';
         $sequenceAllocationSize = 5;
         $sequenceInitialValue   = 10;
@@ -1565,6 +1581,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         } catch (DatabaseObjectNotFoundException $e) {
         }
 
+        if (!($platform instanceof Firebird3Platform)) {
+            $this->expectException(Exception::class);
+            $this->expectExceptionMessageMatches('/.*not supported.*/');
+
+        }
         $this->schemaManager->createSequence($sequence);
 
         $createdSequence = array_values(

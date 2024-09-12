@@ -85,7 +85,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
         $cmd = sprintf(
             "isql-fb %s -input %s -password %s -user %s",
             escapeshellarg('firebird'.$fb. ':/firebird/data/music_library.fdb'),
-            escapeshellarg(ROOT_PATH . "/tests/resources/database_setup.sql"),
+            escapeshellarg(ROOT_PATH . "/tests/resources/database_setup$fb.sql"),
             escapeshellarg((string) $configurationArray['password']),
             escapeshellarg((string) $configurationArray['user'])
         );

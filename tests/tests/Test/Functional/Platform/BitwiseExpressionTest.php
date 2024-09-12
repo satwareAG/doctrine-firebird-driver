@@ -7,9 +7,7 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 final class BitwiseExpressionTest extends FunctionalTestCase
 {
     public function testBitwiseAnd(): void

@@ -8,9 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class OtherSchemaTest extends FunctionalTestCase
 {
     public function testATableCanBeCreatedInAnotherSchema(): void

@@ -6,9 +6,7 @@ use Doctrine\DBAL\Id\TableGenerator;
 use Doctrine\DBAL\Id\TableGeneratorSchemaVisitor;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class TableGeneratorTest extends FunctionalTestCase
 {
     private TableGenerator $generator;

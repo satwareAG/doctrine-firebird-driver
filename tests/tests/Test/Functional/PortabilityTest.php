@@ -12,9 +12,7 @@ use Doctrine\DBAL\Types\Types;
 use function array_keys;
 use function array_merge;
 use function strlen;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class PortabilityTest extends FunctionalTestCase
 {
     protected function tearDown(): void

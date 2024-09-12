@@ -3,22 +3,28 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Table(name: 'SONG')]
 #[ORM\Entity]
 class Song
 {
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::DATETIME_MUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $timeCreated = null;
 
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255)]
     private ?string $name = null;
+
+    #[ORM\Column(type: Types::BOOLEAN)]
+    private ?bool $isTophit = null;
+
+
 
     #[ORM\JoinTable(name: 'Album_SongMap')]
     #[ORM\JoinColumn(name: 'song_id', referencedColumnName: 'id')]
@@ -146,5 +152,16 @@ class Song
     public function getTimeCreated()
     {
         return \DateTimeImmutable::createFromMutable($this->timeCreated);
+    }
+
+    public function getIsTophit(): ?bool
+    {
+        return $this->isTophit;
+    }
+
+    public function setIsTophit(?bool $isTophit): Song
+    {
+        $this->isTophit = $isTophit;
+        return $this;
     }
 }

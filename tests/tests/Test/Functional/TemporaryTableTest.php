@@ -9,9 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Throwable;
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class TemporaryTableTest extends FunctionalTestCase
 {
     public function testDropTemporaryTableNotAutoCommitTransaction(): void

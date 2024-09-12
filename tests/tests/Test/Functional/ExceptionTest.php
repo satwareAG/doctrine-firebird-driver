@@ -27,7 +27,6 @@ use const PHP_OS_FAMILY;
 
 /**
  * @psalm-import-type Params from DriverManager
- * @ runTestsInSeparateProcesses
  */
 class ExceptionTest extends FunctionalTestCase
 {

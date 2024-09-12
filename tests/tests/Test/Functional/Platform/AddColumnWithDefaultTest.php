@@ -8,9 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class AddColumnWithDefaultTest extends FunctionalTestCase
 {
     public function testAddColumnWithDefault(): void

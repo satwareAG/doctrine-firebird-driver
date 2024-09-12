@@ -46,6 +46,8 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 break;
             case -803:
                 return new UniqueConstraintViolationException($exception, $query);
+            case -303:
+                return new DriverException($exception, $query); // Example: -303 arithmetic exception, numeric overflow, or string truncation string right truncation
             case -530:
                 return new ForeignKeyConstraintViolationException($exception, $query);
             case -607:

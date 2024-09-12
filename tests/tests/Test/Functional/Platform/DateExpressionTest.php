@@ -9,9 +9,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function sprintf;
 
-/**
- * @ runTestsInSeparateProcesses
- */
+
 class DateExpressionTest extends FunctionalTestCase
 {
     /** @dataProvider differenceProvider */
