@@ -45,14 +45,14 @@
     "require": {
         "php": "^8.1",
         "composer-runtime-api": "^2",
-        "doctrine/dbal": "^3.9",
-        "doctrine/orm": "^3.2",
         "ext-interbase": "*",
         "ext-pdo": "*"
     },
     "require-dev": {
         "bamarni/composer-bin-plugin": "^1.8",
         "dg/bypass-finals": "^1.8",
+        "doctrine/dbal": "3.6",
+        "doctrine/orm": "^3.0",
         "fig/log-test": "^1",
         "jetbrains/phpstorm-stubs": "2023.1",
         "monolog/monolog": "^3.7",
