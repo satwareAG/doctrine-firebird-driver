@@ -1664,10 +1664,6 @@ SQL
      */
     public function convertBooleans($item)
     {
-        if ($this->hasNativeBooleanType) {
-            return parent::convertBooleans($item);
-        }
-
         if (is_array($item)) {
             foreach ($item as $k => $value) {
                 if (!is_bool($value)) {
@@ -1687,6 +1683,9 @@ SQL
      */
     private function getBooleanDatabaseValue($value)
     {
+        if ($this->hasNativeBooleanType) {
+            return (bool) $value;
+        }
         return $this->useSmallIntBoolean ? (int) $value : ( $value ? $this->charTrue : $this->charFalse);
     }
 
@@ -1695,12 +1694,13 @@ SQL
      */
     public function convertFromBoolean($item)
     {
-        if ($this->hasNativeBooleanType) {
-            return parent::convertBooleans($item);
-        }
         // Handle both SMALLINT and CHAR representations
         if ($item === null) {
             return null;
+        }
+
+        if ($this->hasNativeBooleanType) {
+            return (bool) $item;
         }
 
         if ($this->useSmallIntBoolean) {
@@ -1715,7 +1715,7 @@ SQL
     public function convertBooleansToDatabaseValue($item)
     {
         if ($this->hasNativeBooleanType) {
-            return parent::convertBooleans($item);
+            return (bool) $item;
         }
         return $this->convertBooleans($item);
     }
