@@ -125,7 +125,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         $page_size = $params['page_size'] ?? '16384';
         $dbname = Connection::generateConnectString($params);
 
-        $result = ibase_query(IBASE_CREATE,
+        $result = @ibase_query(IBASE_CREATE,
             sprintf("CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",$dbname,
                 (int)$page_size,
                 $user, $password, $charset));

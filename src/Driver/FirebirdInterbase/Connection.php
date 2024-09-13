@@ -427,11 +427,11 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function errorInfo(): array
     {
-        $errorCode = ibase_errcode();
+        $errorCode = @ibase_errcode();
         if (false !== $errorCode) {
             return [
                 'code' => $errorCode,
-                'message' => ibase_errmsg(),
+                'message' => @ibase_errmsg(),
             ];
         }
         return [
