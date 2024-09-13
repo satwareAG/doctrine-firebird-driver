@@ -34,7 +34,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * @var bool
      */
-    protected $isPersistent = true;
+    protected $isPersistent;
 
     /**
      * @var string
@@ -52,14 +52,14 @@ final class Connection implements ServerInfoAwareConnection
     protected $dialect = 0;
 
     /**
-     * @var false|resource (ibase_pconnect or ibase_connect)
+     * @var null|false|resource (ibase_pconnect or ibase_connect)
      */
-    private $_ibaseConnectionRc = false;
+    private $_ibaseConnectionRc = null;
 
     /**
-     * @var false|resource
+     * @var null|false|resource
      */
-    private $_ibaseService = false;
+    private $_ibaseService = null;
 
     /**
      * @var int
@@ -67,7 +67,7 @@ final class Connection implements ServerInfoAwareConnection
     private $_ibaseTransactionLevel = 0;
 
     /**
-     * @var false|resource
+     * @var null|false|resource
      */
     private $_ibaseActiveTransaction = false;
 
@@ -156,9 +156,9 @@ final class Connection implements ServerInfoAwareConnection
         try {
             $this->close();
         } catch (Exception $e) {
-            unset($this->_ibaseConnectionRc);
-            unset($this->_ibaseService);
-            unset($this->_ibaseTransactionLevel);
+            $this->_ibaseConnectionRc = null;
+            $this->_ibaseService = null;
+            $this->_ibaseTransactionLevel = null;
         }
     }
 
@@ -526,31 +526,33 @@ final class Connection implements ServerInfoAwareConnection
         return $result;
     }
 
-    public function close($firstrun = false): void
+    public function close(): void
     {
-            if (is_resource($this->_ibaseActiveTransaction)) {
+            if (
+                   is_resource($this->_ibaseActiveTransaction)
+                && 'Unknown' !== get_resource_type($this->_ibaseActiveTransaction)) {
+
                 if ($this->_ibaseTransactionLevel > 0) {
                     $this->rollBack(); // Auto-rollback explicit transactions
                 }
+
                 $this->autoCommit();
                 @ibase_commit($this->_ibaseActiveTransaction);
+                @ibase_close($this->_ibaseActiveTransaction);
             }
             $success = true;
 
-            if (is_resource($this->_ibaseConnectionRc)) {
+            while (
+                    is_resource($this->_ibaseConnectionRc)
+                && 'Unknown' !== get_resource_type($this->_ibaseConnectionRc)) {
                 $success = @ibase_close($this->_ibaseConnectionRc);
             }
             if (is_resource($this->_ibaseService)) {
                 $success = @ibase_service_detach($this->_ibaseService);
             }
-            $this->_ibaseConnectionRc = false;
-            $this->_ibaseActiveTransaction  = false;
+            $this->_ibaseConnectionRc = null;
+            $this->_ibaseActiveTransaction  = null;
             $this->_ibaseTransactionLevel = 0;
-            $unclosed = 0;
-
-            while(!$firstrun && @ibase_close()) {
-                $unclosed++;
-            }
 
             if (false === $success) {
                $this->checkLastApiCall();

@@ -78,7 +78,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             return;
         }
 
-        //TODO: SchemaDiff does not drop removed namespaces?
         try {
             //sql server versions below 2016 do not support 'IF EXISTS' so we have to catch the exception here
             $this->connection->executeStatement('DROP SCHEMA testschema');
@@ -163,7 +162,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         try {
             $this->schemaManager->dropDatabase('test_create_database');
-        } catch (DatabaseDoesNotExist $e) {
+        } catch (Exception\DatabaseDoesNotExist $e) {
         }
 
         $this->schemaManager->createDatabase('test_create_database');

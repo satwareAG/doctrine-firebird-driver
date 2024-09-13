@@ -18,6 +18,7 @@
     <var name="db_password" value="masterkey"/>
     <var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>
     <var name="db_charset" value="UTF8" />
+    <var name="db_test_logging" value="0" />
     <var name="PHP_IDE_CONFIG" value="serverName=phpconsole" />
   </php>
   <testsuites>

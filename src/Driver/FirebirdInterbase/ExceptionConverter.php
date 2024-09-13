@@ -71,8 +71,10 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 break;
             case -804:
                 return new  NotNullConstraintViolationException($exception, $query);
-
             case -902:
+                if (preg_match('/.*(no such file or directory).*/i', $message)) {
+                    return new DatabaseDoesNotExist($exception, $query);
+                }
                 return new ConnectionException($exception, $query);
         }
         return new DriverException($exception, $query);

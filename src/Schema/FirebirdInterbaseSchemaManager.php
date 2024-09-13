@@ -1,6 +1,7 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Schema;
 
+use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Identifier;
@@ -10,7 +11,6 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
-use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
 
 
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
@@ -97,7 +97,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             $code = @ibase_errcode();
             $msg = @ibase_errmsg();
             if ($code === -902) {
-                throw DatabaseDoesNotExist::new($dbname);
+                throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
             }
             throw new Exception($msg, null, $code);
         }
@@ -107,6 +107,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
         if (!$result) {
             throw new Exception(@ibase_errmsg(), null, @ibase_errcode());
         }
+        @ibase_close($connection);
     }
 
     public function dropTable($tablename)
@@ -135,7 +136,7 @@ class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
             $msg = @ibase_errmsg();
             throw new Exception($msg, null, $code);
         }
-
+        @ibase_close($result);
 
     }
 

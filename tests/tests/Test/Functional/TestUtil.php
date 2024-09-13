@@ -5,16 +5,13 @@ namespace Kafoso\DoctrineFirebirdDriver\Test\Functional;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use Kafoso\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
-use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
-use Monolog\Processor\IntrospectionProcessor;
-use Monolog\Processor\MemoryPeakUsageProcessor;
 use Monolog\Processor\MemoryUsageProcessor;
 use PHPUnit\Framework\Assert;
 
@@ -22,16 +19,12 @@ use function array_keys;
 use function array_map;
 use function array_values;
 use function extension_loaded;
-use function file_exists;
 use function implode;
 use function in_array;
 use function is_string;
 use function strlen;
 use function strpos;
 use function substr;
-use function unlink;
-
-use const _PHPStan_4f7beffdf\__;
 
 /**
  * TestUtil is a class with static utility methods used during tests.
