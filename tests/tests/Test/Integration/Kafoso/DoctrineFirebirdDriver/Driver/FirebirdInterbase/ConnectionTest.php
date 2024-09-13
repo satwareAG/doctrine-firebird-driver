@@ -150,14 +150,14 @@ class ConnectionTest extends AbstractIntegrationTestCase
 
         $reflectionObject = new \ReflectionObject($connection);
 
-        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty("_ibaseTransactionLevel");
+        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty("ibaseTransactionLevel");
         $reflectionPropertyIbaseTransactionLevel->setAccessible(true);
         $level = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
 
-        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty("_ibaseTransactionLevel");
+        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty("ibaseTransactionLevel");
         $reflectionPropertyIbaseTransactionLevel->setAccessible(true);
         $level = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
-        $reflectionPropertyIbaseActiveTransaction = $reflectionObject->getProperty("_ibaseActiveTransaction");
+        $reflectionPropertyIbaseActiveTransaction = $reflectionObject->getProperty("ibaseActiveTransaction");
         $reflectionPropertyIbaseActiveTransaction->setAccessible(true);
         $transactionA = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
         $this->assertSame(0, $level);
