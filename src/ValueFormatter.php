@@ -44,7 +44,8 @@ abstract class ValueFormatter
     public static function escapeAndQuote(string $str): string
     {
         $quotingCharacters = '"';
-        $escape = implode("", array_unique(preg_split('//', '\\' . $quotingCharacters)));
+        $splitCharacters = preg_split('//', '\\' . $quotingCharacters);
+        $escape = implode("", array_unique($splitCharacters !== false ? $splitCharacters : []));
         return $quotingCharacters . addcslashes($str, $escape) . $quotingCharacters;
     }
 

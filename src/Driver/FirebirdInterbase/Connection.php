@@ -560,7 +560,7 @@ final class Connection implements ServerInfoAwareConnection
     }
 
     /**
-     * @param array<int|string, string> $params
+     * @param array<int|string, mixed> $params
      * @return string
      * *@throws HostDbnameRequired
      */

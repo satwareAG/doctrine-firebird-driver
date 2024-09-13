@@ -8,6 +8,7 @@ class ValueFormatterTest extends TestCase
 {
     public function testEscapeAndQuote()
     {
+        $this->assertSame('""', ValueFormatter::escapeAndQuote(''));
         $this->assertSame('"2"', ValueFormatter::escapeAndQuote('2'));
         $this->assertSame('"2\""', ValueFormatter::escapeAndQuote('2"'));
         $this->assertSame('"2\\\\"', ValueFormatter::escapeAndQuote('2\\'));

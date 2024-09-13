@@ -14,9 +14,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
-use Doctrine\DBAL\Types\SmallIntType;
 use Doctrine\DBAL\Types\Type;
-use Doctrine\DBAL\Types\TypeRegistry;
 use Doctrine\DBAL\Types\Types;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
@@ -92,7 +90,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function checkIdentifierLength($aIdentifier, ?int $maxLength = null): void
     {
-        $maxLength || $maxLength = $this->getMaxIdentifierLength();
+        $maxLength ?? $maxLength = $this->getMaxIdentifierLength();
         $name = ($aIdentifier instanceof AbstractAsset) ?
                 $aIdentifier->getName() : $aIdentifier;
 
@@ -104,20 +102,20 @@ class FirebirdInterbasePlatform extends AbstractPlatform
 
     /**
      * Generates an internal ID based on the table name and a suffix
-     * @param array|string|Identifier $prefix     Name, Identifier object or array of names or
+     * @param string[]|string|AbstractAsset|AbstractAsset[] $prefix     Name, Identifier object or array of names or
      *                                                                  identifier objects to use as prefix.
      * @param integer                                       $maxLength  Length limit to check. Usually the result of
      *                                                                  {@link getMaxIdentifierLength()} should be passed
      *
      * @return Identifier
      */
-    protected function generateIdentifier($prefix, $suffix, $maxLength)
+    protected function generateIdentifier($prefix, string $suffix, int $maxLength)
     {
         $needQuote = false;
         $fullId = '';
         $shortId = '';
-        is_array($prefix) || $prefix = [$prefix];
-        $ml = floor(($maxLength - strlen((string) $suffix)) / count($prefix));
+        $prefix = is_array($prefix) ? $prefix : [$prefix];
+        $ml = (int)floor(($maxLength - strlen($suffix)) / count($prefix));
         foreach ($prefix as $p) {
             if (!$p instanceof AbstractAsset)
                 $p = new Identifier($p);
@@ -125,11 +123,12 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             if (strlen($p->getName()) >= $ml) {
                 $c = crc32($p->getName());
                 $shortId .= substr_replace($p->getName(), sprintf("X%04x", $c & 0xFFFF), $ml - 6) . '_';
-                $length = strlen($shortId);
             } else {
                 $shortId .= $p->getName() . '_';
             }
-            $needQuote = $needQuote | $p->isQuoted();
+            if (!$needQuote) {
+                $needQuote = $p->isQuoted();
+            }
         }
         $fullId .= $suffix;
         $shortId .= $suffix;
@@ -239,11 +238,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     {
         if (DateIntervalUnit::QUARTER === $unit) {
             // Firebird does not support QUARTER - convert to month
-            $interval *= 3;
+            $interval = (int)$interval * 3;
             $unit = DateIntervalUnit::MONTH;
         }
         if ($operator == '-') {
-            $interval *= -1;
+            $interval = (int)$interval * -1;
         }
         return 'DATEADD(' . $unit . ', ' . $interval . ', ' . $date . ')';
     }

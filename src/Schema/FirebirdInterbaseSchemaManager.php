@@ -11,8 +11,14 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception;
+use Kafoso\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 
-
+/**
+ * Firebird Schema Manager.
+ *
+ * @extends AbstractSchemaManager<FirebirdInterbasePlatform|Firebird3Platform>
+ */
 class FirebirdInterbaseSchemaManager extends AbstractSchemaManager
 {
     const META_FIELD_TYPE_SMALLINT = 7; // Integer Type
