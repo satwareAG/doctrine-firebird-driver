@@ -5,7 +5,7 @@ use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class TransactionTest extends AbstractIntegrationTestCase
 {
@@ -15,7 +15,7 @@ class TransactionTest extends AbstractIntegrationTestCase
         $tableName = strtoupper("TABLE_" . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
-        unset($connection);
+        $connection->close();
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
         $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);

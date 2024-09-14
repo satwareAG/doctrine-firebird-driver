@@ -1,11 +1,14 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
 use Kafoso\DoctrineFirebirdDriver\Driver\AbstractFirebirdInterbaseDriver;
 use SensitiveParameter;
 
 /**
- * A Doctrine DBAL driver for the FirebirdSQL/php-firebird
+ * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
  */
 final class Driver extends AbstractFirebirdInterbaseDriver
 {
@@ -16,26 +19,18 @@ final class Driver extends AbstractFirebirdInterbaseDriver
      */
     public function connect(
         #[SensitiveParameter]
-        array $params
-    ) {
+        array $params,
+    ): Connection {
         $this->setDriverOptions($params);
-        $username    = $params['user'] ?? '';
-        $password    = $params['password'] ?? '';
+        $username = $params['user'] ?? '';
+        $password = $params['password'] ?? '';
 
         return new Connection(
             $params,
             $username,
             $password,
-            $this->getDriverOptions() // Sanitized
+            $this->getDriverOptions(), // Sanitized
         );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return 'FirebirdInterbase';
     }
 
     public function getExceptionConverter(): ExceptionConverter

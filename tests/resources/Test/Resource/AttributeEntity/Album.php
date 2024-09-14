@@ -11,7 +11,8 @@ class Album
 {
     #[ORM\Id]
     #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\GeneratedValue(strategy: 'SEQUENCE')]
+    #[ORM\SequenceGenerator(sequenceName: 'ALBUM_D2IS')]
     private ?int $id = null;
 
     #[ORM\Column(type: \Doctrine\DBAL\Types\Types::DATETIME_MUTABLE)]

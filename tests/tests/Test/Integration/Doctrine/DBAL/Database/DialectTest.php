@@ -2,6 +2,7 @@
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
 use Doctrine\DBAL\Driver\Exception;
+use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 /**
@@ -13,11 +14,6 @@ class DialectTest extends AbstractIntegrationTestCase
     /**
      * @override
      */
-    public function setUp($fresh_db = false): void
-    {
-
-    }
-
     /**
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
@@ -25,15 +21,10 @@ class DialectTest extends AbstractIntegrationTestCase
     public function testDialect0And3()
     {
         foreach ([0,3] as $dialect) {
-            $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
-            $configurationArray = static::getSetUpDoctrineConfigurationArray([
+
+            $connection = TestUtil::getConnection([
                 'dialect' => $dialect
             ]);
-            if ($dialect === 0) {
-                static::installFirebirdDatabase($configurationArray);
-            }
-            $entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
-            $connection = $entityManager->getConnection();
 
             $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
             $result = $stmt->executeQuery()->fetchAssociative();
@@ -69,13 +60,9 @@ class DialectTest extends AbstractIntegrationTestCase
 
     public function testDialect1()
     {
-        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
-        $configurationArray = static::getSetUpDoctrineConfigurationArray([
+        $connection = TestUtil::getConnection([
             'dialect' => 1
         ]);
-        static::installFirebirdDatabase($configurationArray);
-        $entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
-        $connection = $entityManager->getConnection();
         if($connection->getDatabasePlatform()->getName() !== 'FirebirdInterbase') {
             $this->markTestSkipped(sprintf('Platform %s (for DB %s) is not supported yet', $connection->getDatabasePlatform()->getName(), $connection->getDatabase()));
         }
@@ -117,18 +104,11 @@ class DialectTest extends AbstractIntegrationTestCase
         $this->assertArrayHasKey("NUMBER", $result);
         $this->assertIsFloat($result["NUMBER"]);
         $this->assertSame("0.33333333", number_format($result["NUMBER"], 8));
-
-        $entityManager->getConnection()->close();
     }
 
     public function testDialect2()
     {
-        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
-        $configurationArray = static::getSetUpDoctrineConfigurationArray([
-            'dialect' => 2
-        ]);
-        static::installFirebirdDatabase($configurationArray);
-        $entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
+
         $connection = $entityManager->getConnection();
 
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
@@ -179,11 +159,4 @@ class DialectTest extends AbstractIntegrationTestCase
         $entityManager->getConnection()->close();
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
-    {
-        return array_merge(parent::getSetUpDoctrineConfigurationArray(), $overrideConfigs);
-    }
 }

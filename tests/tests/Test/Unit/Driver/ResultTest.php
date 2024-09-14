@@ -9,7 +9,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  * @covers \Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Result
  */
 class ResultTest extends TestCase

@@ -11,7 +11,8 @@ class Artist
 {
     #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\GeneratedValue(strategy: 'SEQUENCE')]
+    #[ORM\SequenceGenerator(sequenceName: 'ARTIST_D2IS')]
     private ?int $id = null;
 
     #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]

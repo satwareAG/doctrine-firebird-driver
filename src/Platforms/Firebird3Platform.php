@@ -12,6 +12,7 @@ use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 
 class Firebird3Platform extends FirebirdInterbasePlatform
@@ -28,6 +29,11 @@ class Firebird3Platform extends FirebirdInterbasePlatform
      */
     public function getName(): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/issues/4749',
+            'PostgreSQLPlatform::getName() is deprecated. Identify platforms by their class.',
+        );
         return "Firebird3";
     }
 
@@ -225,7 +231,7 @@ class Firebird3Platform extends FirebirdInterbasePlatform
 
     public function getDropAutoincrementSql($table)
     {
-        return [];
+        return '';
     }
 
     protected function _getCommonIntegerTypeDeclarationSQL(array $column)

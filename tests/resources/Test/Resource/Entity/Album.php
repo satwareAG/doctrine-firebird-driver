@@ -26,7 +26,7 @@ class Album
     #[ORM\JoinTable(name: 'Album_SongMap')]
     #[ORM\JoinColumn(name: 'album_id', referencedColumnName: 'id')]
     #[ORM\InverseJoinColumn(name: 'song_id', referencedColumnName: 'id', unique: true)]
-    #[ORM\ManyToMany(targetEntity: \Song::class)]
+    #[ORM\ManyToMany(targetEntity: Song::class)]
     private \Doctrine\Common\Collections\Collection $songs;
 
     /**

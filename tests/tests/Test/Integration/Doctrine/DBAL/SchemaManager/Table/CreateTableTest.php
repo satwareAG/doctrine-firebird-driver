@@ -5,7 +5,7 @@ use Kafoso\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
 
 /**
- * @runTestsInSeparateProcesses
+ * @ runTestsInSeparateProcesses
  */
 class CreateTableTest extends AbstractIntegrationTestCase
 {

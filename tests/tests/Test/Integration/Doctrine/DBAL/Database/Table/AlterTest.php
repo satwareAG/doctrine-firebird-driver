@@ -13,6 +13,10 @@ use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
 class AlterTest extends AbstractIntegrationTestCase
 {
+    public function setUp(): void
+    {
+       parent::setUp();
+    }
     public function testAlterTable()
     {
         $this->assertTrue(true);

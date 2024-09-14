@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 
+use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Exception as DriverException;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
@@ -100,6 +101,7 @@ final class Connection implements ServerInfoAwareConnection
      * True if auto-commit is enabled
      */
     protected bool $attrAutoCommit = true;
+    private static bool $initialIbaseCloseCalled = false;
 
     private bool $isPrivileged;
 
@@ -173,7 +175,7 @@ final class Connection implements ServerInfoAwareConnection
     {
         try {
             $this->close();
-        } catch (Exception) {
+        } catch (DriverException) {
             $this->ibaseConnectionRc     = null;
             $this->ibaseService          = null;
             $this->ibaseTransactionLevel = 0;
@@ -312,7 +314,7 @@ final class Connection implements ServerInfoAwareConnection
         return $this->query($sql)->fetchOne();
     }
 
-    /** @throws Exception */
+    /** @throws DriverException */
     public function getStartTransactionSql(int $isolationLevel): string
     {
         $result = '';
@@ -325,7 +327,7 @@ final class Connection implements ServerInfoAwareConnection
                 => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
             TransactionIsolationLevel::SERIALIZABLE
                 => $result .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
-            default => throw new Exception(sprintf(
+            default => throw new DriverException(sprintf(
                 'Isolation level %s is not supported',
                 ValueFormatter::cast($isolationLevel),
             )),
@@ -508,7 +510,7 @@ final class Connection implements ServerInfoAwareConnection
      * @param resource|null $preparedStatement
      * @param resource|null $transaction
      *
-     * @throws Exception
+     * @throws DriverException
      */
     public function checkLastApiCall($preparedStatement = null, $transaction = null): void
     {
@@ -528,13 +530,13 @@ final class Connection implements ServerInfoAwareConnection
             $result =  @ibase_free_query($preparedStatement);
         }
 
-        throw Exception::fromErrorInfo($lastError);
+        throw DriverException::fromErrorInfo($lastError);
     }
 
     /**
      * @return resource The ibase transaction.
      *
-     * @throws Exception
+     * @throws DriverException
      */
     protected function createTransaction(bool $commitDefaultTransaction = true)
     {
@@ -551,8 +553,16 @@ final class Connection implements ServerInfoAwareConnection
         return $result;
     }
 
+    /**
+     * @throws DriverException
+     */
     public function close(): void
     {
+        if (!self::$initialIbaseCloseCalled) {
+            @ibase_close();
+            self::$initialIbaseCloseCalled = true;
+            return;
+        }
         if (
                    is_resource($this->ibaseActiveTransaction)
                 && get_resource_type($this->ibaseActiveTransaction) !== 'Unknown'
@@ -576,7 +586,8 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if (is_resource($this->ibaseService)) {
-            $success = @ibase_service_detach($this->ibaseService);
+            @ibase_service_detach($this->ibaseService);
+            $success = @ibase_close($this->ibaseService);
         }
 
             $this->ibaseConnectionRc      = null;

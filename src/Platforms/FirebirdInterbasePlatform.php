@@ -16,6 +16,7 @@ use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\Deprecation;
 use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdInterbaseKeywords;
 use Kafoso\DoctrineFirebirdDriver\Schema\FirebirdInterbaseSchemaManager;
 
@@ -59,6 +60,11 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getName(): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/issues/4749',
+            'PostgreSQLPlatform::getName() is deprecated. Identify platforms by their class.',
+        );
         return "FirebirdInterbase";
     }
 
@@ -699,6 +705,26 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         return $result;
     }
 
+    protected function getDropSequenceIfExistsPSql($aSequence, $inBlock = false)
+    {
+        $result = sprintf(
+            'IF (EXISTS(SELECT 1 
+                              FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(\'' . $this->unquotedIdentifierName($aSequence) . '\') 
+                                AND (RDB$SYSTEM_FLAG IS NULL OR RDB$SYSTEM_FLAG = 0) 
+                                )
+                              )) THEN BEGIN %s; END',
+            $this->getExecuteStatementPSql(parent::getDropSequenceSQL($aSequence)),
+        );
+        if ($inBlock) {
+            return $this->getExecuteBlockSql([
+                'statements' => $result,
+                'formatLineBreak' => false,
+            ]);
+        }
+        return $result;
+    }
+
     protected function getCombinedSqlStatements($sql, $aSeparator)
     {
         if (is_array($sql)) {
@@ -716,18 +742,19 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      */
     public function getDropSequenceSQL($sequence)
     {
-        $dropSequenceSql = parent::getDropSequenceSQL($sequence);
-        if ($sequence instanceof Sequence) {
-            $sequence = $sequence->getQuotedName($this);
+        if (!($sequence instanceof Sequence)) {
+            $sequence = new Sequence($sequence);
         }
-        if (stripos($sequence, '_D2IS')) {
+        $sequenceName = $this->getQuotedNameOf($sequence);
+        if (stripos($sequenceName, '_D2IS')) {
             // Seems to be a autoinc-sequence. Try to drop trigger before
-            $triggerName = str_replace('_D2IS', '_D2IT', $sequence);
+            $triggerName = str_replace('_D2IS', '_D2IT', $sequenceName);
             return $this->getExecuteBlockWithExecuteStatementsSql([
                 'statements' => [
                     $this->getDropTriggerIfExistsPSql($triggerName, true),
-                    $dropSequenceSql
+                    $this->getDropSequenceIfExistsPsql($sequence, true),
                 ],
+                'formatLineBreak' => false,
             ]);
         }
         return $dropSequenceSql;
@@ -812,13 +839,20 @@ class FirebirdInterbasePlatform extends AbstractPlatform
     {
         $dropTriggerIfExistsPSql = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table, null), true);
         $dropRelatedViewsPSql = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
-        $dropTableSql = parent::getDropTableSQL($table);
+        $dropAutoincrementSql = $this->getDropAutoincrementSql($table);
+        $dropTableSql =
+        $this->getExecuteBlockWithExecuteStatementsSql([
+            'statements' => [
+                 parent::getDropTableSQL($table)
+            ],
+            'formatLineBreak' => false,
+        ]);
         return $this->getExecuteBlockWithExecuteStatementsSql([
             'statements' => [
-                $dropTriggerIfExistsPSql,
                 $dropRelatedViewsPSql,
+                $dropAutoincrementSql,
                 $dropTableSql,
-            ],
+            ]
         ]);
     }
 
@@ -1321,6 +1355,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
         $triggerName = $this->getIdentitySequenceTriggerName($tableName, $column);
         $sequence = new Sequence($sequenceName, 1, 1);
 
+
         $sql[] = $this->getCreateSequenceSQL($sequence);
 
         $sql[] = 'CREATE TRIGGER ' . $triggerName . ' FOR ' . $tableName->getQuotedName($this) . '
@@ -1342,7 +1377,7 @@ class FirebirdInterbasePlatform extends AbstractPlatform
      *
      * @param string $table The table name to drop the autoincrement for.
      *
-     * @return array
+     * @return string
      */
     public function getDropAutoincrementSql($table)
     {
@@ -1352,9 +1387,8 @@ class FirebirdInterbasePlatform extends AbstractPlatform
             $table->isQuoted() ? $table->getQuotedName($this) : $table->getName(),
             ''
         );
-        $sql = [];
-        $sql[] = $this->getDropSequenceSQL($identitySequenceName);
-        return $sql;
+
+        return $this->getDropSequenceSQL($identitySequenceName);
     }
 
     /**

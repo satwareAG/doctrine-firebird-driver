@@ -1,10 +1,12 @@
 <?php
 namespace Kafoso\DoctrineFirebirdDriver\Test\Integration;
 
-use Doctrine\DBAL\ColumnCase;
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Portability\Driver;
+use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -12,12 +14,15 @@ use Doctrine\ORM\ORMSetup;
 use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase;
 use Kafoso\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Kafoso\DoctrineFirebirdDriver\Platforms\FirebirdInterbasePlatform;
+use Kafoso\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Kafoso\DoctrineFirebirdDriver\Test\Functional\TestUtil;
+use Kafoso\DoctrineFirebirdDriver\Test\Resource\AttributeEntity\Artist;
 use PHPUnit\Framework\TestCase;
+use SebastianBergmann\Timer\Timer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 
-abstract class AbstractIntegrationTestCase extends TestCase
+
+abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 {
     const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
@@ -29,67 +34,143 @@ abstract class AbstractIntegrationTestCase extends TestCase
     public function setUp(): void
     {
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
-
-        static::installFirebirdDatabase($configurationArray);
+        $this->installFirebirdDatabase($configurationArray);
+        // $this->installFirebirdDatabase($configurationArray);
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
-        $this->_entityManager = static::createEntityManager($doctrineConfiguration, $configurationArray);
+        $this->connect();
+        $this->connection->setNestTransactionsWithSavepoints(true);
+        $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration);
+
 
         $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();
+
     }
 
     public function tearDown(): void
     {
-        if ($this->_entityManager) {
-            $this->_entityManager->getConnection()->close();
-        }
+        $this->markConnectionNotReusable();
     }
 
-    /**
-     * @return EntityManager
-     */
-    protected static function createEntityManager(Configuration $configuration, array $configurationArray)
-    {
-        $connection = DriverManager::getConnection($configurationArray, $configuration);
-        $connection->setNestTransactionsWithSavepoints(true);
-        return new EntityManager($connection, $configuration);
-    }
-
-    protected static function installFirebirdDatabase(array $configurationArray)
-    {
-        $params = TestUtil::getConnectionParams();
-        $fb = '25';
-        if ($params['host'] === 'firebird3') {
-            $fb = '3';
+    private function stopIfOver(int $seconds, string $cmd) {
+        static $timer;
+        if (!$timer) {
+            $timer = new Timer();
+            $timer->start();
         }
-        $output = $result = '';
 
 
-        $cmd = sprintf(
-            "gfix -user SYSDBA -password masterkey -shutdown -force 0 firebird$fb:/firebird/data/music_library.fdb 2>&1",
-        );
-        $ret = exec($cmd, $output, $result);
-        $cmd = sprintf(
-            "isql-fb -u SYSDBA -p masterkey -input %s 2>&1",
-            escapeshellarg(ROOT_PATH . "/tests/resources/database_drop$fb.sql")
-        );
+        if (($took = $timer->stop()->asSeconds()) > $seconds) {
+            $timer->start();
+            $this->addWarning("Execution time for $cmd took {$took} seconds exceeding maximum execute Time of  {$seconds} seconds.");
 
-        $ret = exec($cmd, $output, $result);
+        }
+        $timer->start();
+
+    }
+    protected function installFirebirdDatabase(array $configurationArray)
+    {
+        $this->stopIfOver(999, 'installFirebirdDatabase');
+        $sm = $this->connection->createSchemaManager();
+
+        $schema = new Schema();
+        $tAlbum = $schema->createTable('Album');
+        $tAlbum->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tAlbum->addColumn('timeCreated', 'datetime', ['notnull' => true]);
+        $tAlbum->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
+        $tAlbum->addColumn('artist_id', 'integer', ['notnull' => false]);
+        $tAlbum->setPrimaryKey(['id']);
 
 
-        $cmd = sprintf(
-            "isql-fb -input %s  2>&1",
-            escapeshellarg(ROOT_PATH . "/tests/resources/database_create$fb.sql")
-        );
-        $ret = exec($cmd,$output, $result);
+        $tAlbumSongmap = $schema->createTable('Album_Songmap');
+        $tAlbumSongmap->addColumn('album_id', 'integer', ['notnull' => true]);
+        $tAlbumSongmap->addColumn('song_id', 'integer', ['notnull' => true]);
 
-        $cmd = sprintf(
-            "isql-fb %s -input %s -password %s -user %s",
-            escapeshellarg('firebird'.$fb. ':/firebird/data/music_library.fdb'),
-            escapeshellarg(ROOT_PATH . "/tests/resources/database_setup$fb.sql"),
-            escapeshellarg((string) $configurationArray['password']),
-            escapeshellarg((string) $configurationArray['user'])
-        );
-        $ret = exec($cmd,$output, $result);
+        $tArtist = $schema->createTable('Artist');
+        $tArtist->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tArtist->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
+        $tArtist->addColumn('type_id', 'integer', ['notnull' => false]);
+        $tArtist->setPrimaryKey(['id']);
+
+
+        $tArtistType = $schema->createTable('Artist_Type');
+        $tArtistType->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tArtistType->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
+        $tArtistType->setPrimaryKey(['id']);
+
+        $tCasesCascadingremove = $schema->createTable('CASES_CASCADINGREMOVE');
+        $tCasesCascadingremove->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tCasesCascadingremove->addColumn('subclass_id', 'integer', ['notnull' => true]);
+        $tCasesCascadingremove->setPrimaryKey(['id']);
+
+        $tCasesCascadingremoveSubclass = $schema->createTable('CASES_CASCADINGREMOVE_SUBCLASS');
+        $tCasesCascadingremoveSubclass->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tCasesCascadingremoveSubclass->setPrimaryKey(['id']);
+
+        $tGenre = $schema->createTable('Genre');
+        $tGenre->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tGenre->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
+        $tGenre->setPrimaryKey(['id']);
+
+        $tSong = $schema->createTable('Song');
+        $tSong->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
+        $tSong->addColumn('timeCreated', 'datetime', ['notnull' => true]);
+        $tSong->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
+        $tSong->addColumn('genre_id', 'integer', ['notnull' => true]);
+        $tSong->addColumn('artist_id', 'integer', ['notnull' => true]);
+        $tSong->addColumn('durationInSeconds', 'integer', ['notnull' => true]);
+        $tSong->addColumn('tophit', 'boolean', ['notnull' => true]);
+        $tSong->setPrimaryKey(['id']);
+
+
+        $tAlbum->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [],'FK_Album_artist_id');
+        $tAlbumSongmap->addForeignKeyConstraint($tAlbum, ['album_id'], ['id'], [], 'FK_Album_SongMap_album_id');
+        $tAlbumSongmap->addForeignKeyConstraint($tSong, ['song_id'], ['id'], [], 'FK_Album_Songmap_song_id');
+        $tAlbumSongmap->addUniqueConstraint(['album_id', 'song_id'],  'UK_Album_SongMap');
+        $tCasesCascadingremove->addForeignKeyConstraint($tCasesCascadingremoveSubclass, ['subclass_id'], ['id'], [], 'UK_CASES_CASCREM_SUBCLASS_id');
+        $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
+        $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
+
+        $queriesRemove = $schema->toDropSql($this->connection->getDatabasePlatform());
+        $queriesInsert = $schema->toSql($this->connection->getDatabasePlatform());
+        foreach ($queriesRemove as $query) {
+            try {
+                $this->connection->executeStatement($query);
+            } catch (DatabaseObjectNotFoundException $e) {
+
+
+            } catch (\Exception  $e) {}
+        }
+
+
+
+
+        foreach ($queriesInsert as $sql) {
+            $this->connection->executeStatement($sql);
+        }
+
+        foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $id => $name) {
+            $this->connection->insert($tArtistType->getName(), ['name' => $name]);
+        }
+        $id = 0;
+        foreach (['Unknown' => 1, 'Britney Spears' => 2, 'Nickelback' => 6, 'AC/DC' => 6] as $name => $type) {
+            $this->connection->insert($tArtist->getName(), ['name' => $name, 'type_id' => $type]);
+        }
+
+
+        foreach (['Unclassified genre', 'Rock', 'Pop', 'Classical'] as $id => $name) {
+            $this->connection->insert($tGenre->getName(), ['name' => $name]);
+        }
+
+        $this->connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2]);
+        $this->connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3]);
+
+        $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0]);
+        $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1]);
+
+        $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 1]);
+        $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
+
+
 
     }
 
@@ -124,7 +205,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
         );
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
         $doctrineConfiguration->setIdentityGenerationPreferences([
-            FirebirdInterbasePlatform::class => ClassMetadata::GENERATOR_TYPE_SEQUENCE
+            FirebirdInterbasePlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
             ]);
         $doctrineConfiguration->setQuoteStrategy(new FirebirdQuoteStrategy());
         /*

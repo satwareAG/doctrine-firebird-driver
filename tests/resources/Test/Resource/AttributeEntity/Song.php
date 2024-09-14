@@ -12,7 +12,8 @@ class Song
 {
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\GeneratedValue(strategy: 'SEQUENCE')]
+    #[ORM\SequenceGenerator(sequenceName: 'SONG_D2IS')]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -22,7 +23,7 @@ class Song
     private ?string $name = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    private ?bool $isTophit = null;
+    private ?bool $tophit = null;
 
 
 
@@ -154,14 +155,14 @@ class Song
         return \DateTimeImmutable::createFromMutable($this->timeCreated);
     }
 
-    public function getIsTophit(): ?bool
+    public function isTophit(): ?bool
     {
-        return $this->isTophit;
+        return $this->tophit;
     }
 
-    public function setIsTophit(?bool $isTophit): Song
+    public function setTophit(?bool $tophit): Song
     {
-        $this->isTophit = $isTophit;
+        $this->tophit = $tophit;
         return $this;
     }
 }
