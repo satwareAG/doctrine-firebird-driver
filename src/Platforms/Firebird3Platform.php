@@ -14,6 +14,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
+use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
 class Firebird3Platform extends FirebirdPlatform
 {
@@ -302,9 +303,8 @@ ___query___;
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
     {
-        return new DefaultSelectSQLBuilder($this, 'FOR UPDATE', 'SKIP LOCKED');
+        return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
-
     /**
      * {@inheritDoc}
      */

@@ -118,8 +118,6 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
     public function dropTable($tablename)
     {
-        $this->tryMethod('dropAutoincrement', $tablename);
-
         parent::dropTable($tablename);
     }
     public function createDatabase($database)

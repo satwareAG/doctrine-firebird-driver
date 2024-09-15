@@ -18,6 +18,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
+use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
 /**
@@ -567,7 +568,7 @@ class FirebirdPlatform extends AbstractPlatform
             $params
         );
         $statements = [];
-        foreach ((array) $params['statements'] as $s) {
+        foreach ((array)$params['statements'] as $s) {
             $statements[] = $this->getExecuteStatementPSql($s) . ';';
         }
         $params['statements'] = $statements;
@@ -666,7 +667,7 @@ class FirebirdPlatform extends AbstractPlatform
      * @param string $aStatement
      * @return string
      */
-    protected function getExecuteStatementPSql($aStatement)
+    protected function getExecuteStatementPSql(string $aStatement)
     {
         return 'EXECUTE STATEMENT ' . $this->quoteSql($aStatement);
     }
@@ -841,10 +842,16 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getDropTableSQL($table)
     {
-        $dropTriggerIfExistsPSql = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table, null), true);
-        $dropRelatedViewsPSql = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
+        $statements = [];
+
+        $statements[] = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table, null), true);
+        $statements[] = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
+
         $dropAutoincrementSql = $this->getDropAutoincrementSql($table);
-        $dropTableSql =
+        if($dropAutoincrementSql !== '') {
+            $statements[] = $dropAutoincrementSql;
+        }
+        $statements[] =
         $this->getExecuteBlockWithExecuteStatementsSql([
             'statements' => [
                  parent::getDropTableSQL($table)
@@ -852,12 +859,7 @@ class FirebirdPlatform extends AbstractPlatform
             'formatLineBreak' => false,
         ]);
         return $this->getExecuteBlockWithExecuteStatementsSql([
-            'statements' => [
-                $dropTriggerIfExistsPSql,
-                $dropRelatedViewsPSql,
-                $dropAutoincrementSql,
-                $dropTableSql,
-            ]
+            'statements' => $statements
         ]);
     }
 
@@ -1387,7 +1389,6 @@ class FirebirdPlatform extends AbstractPlatform
     public function getDropAutoincrementSql($table)
     {
         $table = $this->normalizeIdentifier($table);
-        $autoincrementIdentifierName = $this->getAutoincrementIdentifierName($table);
         $identitySequenceName = $this->getIdentitySequenceName(
             $table->isQuoted() ? $table->getQuotedName($this) : $table->getName(),
             ''
@@ -1642,7 +1643,7 @@ ___query___;
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
     {
-        return new SQL\Builder\SelectSQLBuilder\SelectSQLBuilder($this, 'FOR UPDATE', null);
+        return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
 
     public function getListTableConstraintsSQL($table)
