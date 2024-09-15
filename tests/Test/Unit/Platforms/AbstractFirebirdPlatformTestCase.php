@@ -13,7 +13,6 @@ abstract class AbstractFirebirdPlatformTestCase extends AbstractIntegrationTestC
 
     public function setUp(): void
     {
-        $this->_platform = new FirebirdPlatform;
-        $this->_platform3 = new Firebird3Platform;
+        $this->_platform = $this->connection->getDatabasePlatform();
     }
 }

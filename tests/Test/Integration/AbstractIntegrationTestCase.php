@@ -132,26 +132,28 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         $queriesRemove = $schema->toDropSql($this->connection->getDatabasePlatform());
         $queriesInsert = $schema->toSql($this->connection->getDatabasePlatform());
+
+        $this->connection->beginTransaction();
         foreach ($queriesRemove as $query) {
             try {
                 $this->connection->executeStatement($query);
             } catch (DatabaseObjectNotFoundException $e) {
-
-
             } catch (\Exception  $e) {}
         }
+        $this->connection->commit();
 
 
-
-
+        $this->connection->beginTransaction();
         foreach ($queriesInsert as $sql) {
             $this->connection->executeStatement($sql);
         }
+        $this->connection->commit();
 
+        $this->connection->beginTransaction();
         foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $id => $name) {
             $this->connection->insert($tArtistType->getName(), ['name' => $name]);
         }
-        $id = 0;
+
         foreach (['Unknown' => 1, 'Britney Spears' => 2, 'Nickelback' => 6, 'AC/DC' => 6] as $name => $type) {
             $this->connection->insert($tArtist->getName(), ['name' => $name, 'type_id' => $type]);
         }
@@ -170,7 +172,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 1]);
         $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
 
-
+        $this->connection->commit();
 
     }
 

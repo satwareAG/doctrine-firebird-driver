@@ -1233,7 +1233,6 @@ class FirebirdPlatform extends AbstractPlatform
     {
         if (isset($column['type']) && $column['type']->getName() === Types::BINARY) {
             $column['charset'] = 'octets';
-            // $column['collation'] = 'octets';
         }
         return parent::getColumnDeclarationSQL($name, $column);
     }

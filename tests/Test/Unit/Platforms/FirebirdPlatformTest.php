@@ -4,8 +4,11 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Sequence;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Test\Integration\AbstractIntegrationTestCase;
@@ -527,10 +530,12 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $found = $this->_platform->getBooleanTypeDeclarationSQL([]);
         $this->assertIsString($found);
-        $this->assertSame('SMALLINT', $found);
-        $found = $this->_platform3->getBooleanTypeDeclarationSQL([]);
-        $this->assertIsString($found);
-        $this->assertSame('BOOLEAN', $found);
+        if ($this->_platform instanceof Firebird3Platform) {
+            $this->assertSame('BOOLEAN', $found);
+        } else {
+            $this->assertSame('SMALLINT', $found);
+        }
+
     }
 
     public function testGetIntegerTypeDeclarationSQL()
@@ -662,54 +667,17 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     public function testGetAlterTableSQLWorksWithRemovedColumn()
     {
 
-        $diff = $this
-            ->getMockBuilder(TableDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'foo'");
-        $diff
-            ->expects($this->any())
-            ->method('getName')
-            ->willReturn($name);
-        $diff
-            ->expects($this->any())
-            ->method('getNewName')
-            ->willReturn(false);
-        $column = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $column
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'bar'");
-        $type = $this
-            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $type
-            ->expects($this->any())
-            ->method('getSQLDeclaration')
-            ->willReturn("baz");
-        $column
-            ->expects($this->any())
-            ->method('getType')
-            ->willReturn($type);
-        $column
-            ->expects($this->any())
-            ->method('toArray')
-            ->willReturn(['type' => $type]);
-        $diff->addedColumns = [];
-        $diff->removedColumns = [$column];
-        $diff->changedColumns = [];
-        $diff->renamedColumns = [];
+        $table = new Table("'foo'");
+        $table->addColumn("'bar'", 'bigint');
+
+        $table2 = clone ($table);
+        $table2->dropColumn("'bar'");
+
+        $sm = $this->connection->createSchemaManager();
+        $comparator = $sm->createComparator();
+
+        $diff = $comparator->compareTables($table, $table2);
+
         $found = $this->_platform->getAlterTableSQL($diff);
         $this->assertIsArray($found);
         $this->assertCount(1, $found);
@@ -858,54 +826,15 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     public function testGetAlterTableSQLWorksWithRenamedColumn()
     {
 
-        $diff = $this
-            ->getMockBuilder(TableDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'foo'");
-        $diff
-            ->expects($this->any())
-            ->method('getName')
-            ->willReturn($name);
-        $diff
-            ->expects($this->any())
-            ->method('getNewName')
-            ->willReturn(false);
-        $column = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $column
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'bar'");
-        $type = $this
-            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $type
-            ->expects($this->any())
-            ->method('getSQLDeclaration')
-            ->willReturn("baz");
-        $column
-            ->expects($this->any())
-            ->method('getType')
-            ->willReturn($type);
-        $column
-            ->expects($this->any())
-            ->method('toArray')
-            ->willReturn(['type' => $type]);
-        $diff->addedColumns = [];
-        $diff->removedColumns = [];
-        $diff->changedColumns = [];
-        $diff->renamedColumns = [$column];
+        $sm = $this->connection->createSchemaManager();
+
+        $table = new Table("'foo'");
+        $table->addColumn("0", 'bigint');
+
+        $table2 = clone $table;
+        $table2->dropColumn("0");
+        $table2->addColumn("'bar'", 'bigint');
+        $diff = $sm->createComparator()->compareTables($table, $table2);
         $found = $this->_platform->getAlterTableSQL($diff);
         $this->assertIsArray($found);
         $this->assertCount(1, $found);
@@ -1089,7 +1018,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
             ->willReturn("binary");
         $found = $this->_platform->getColumnDeclarationSQL("foo", ['type' => $type]);
         $this->assertIsString($found);
-        $this->assertSame("foo baz  CHARACTER SET binary DEFAULT NULL", $found);
+        $this->assertSame("foo baz  CHARACTER SET octets DEFAULT NULL", $found);
     }
 
     public function testGetCreateTemporaryTableSnippetSQL()

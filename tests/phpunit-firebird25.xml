@@ -23,13 +23,13 @@
   </php>
   <testsuites>
     <testsuite name="Functional">
-      <directory>tests/Test/Functional</directory>
+      <directory>Test/Functional</directory>
     </testsuite>
     <testsuite name="Unit">
-      <directory>tests/Test/Unit</directory>
+      <directory>Test/Unit</directory>
     </testsuite>
     <testsuite name="Integration">
-      <directory>tests/Test/Integration</directory>
+      <directory>Test/Integration</directory>
     </testsuite>
   </testsuites>
 </phpunit>
