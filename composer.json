@@ -1,18 +1,18 @@
 {
-    "name": "kafoso/doctrine-firebird-driver",
+    "name": "satag/doctrine-firebird-driver",
     "type": "library",
     "license": "MIT",
     "authors": [
+        {
+            "name": "Michael Wegener",
+            "email": "mw@satware.com"
+        },
         {
             "name": "Kasper Søfren",
             "email": "soefritz@gmail.com"
         },
         {
             "name": "Uffe Petersen"
-        },
-        {
-            "name": "Michael Wegener",
-            "email": "mw@satware.com"
         }
     ],
     "config": {
@@ -25,7 +25,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Kafoso\\DoctrineFirebirdDriver\\": "src/"
+            "Satag\\DoctrineFirebirdDriver\\": "src/"
         }
     },
     "extra": {
@@ -36,10 +36,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Kafoso\\DoctrineFirebirdDriver\\Test\\Resource\\": "tests/resources/Test/Resource",
-            "Kafoso\\DoctrineFirebirdDriver\\Test\\Integration\\": "tests/tests/Test/Integration",
-            "Kafoso\\DoctrineFirebirdDriver\\Test\\Unit\\": "tests/tests/Test/Unit",
-            "Kafoso\\DoctrineFirebirdDriver\\Test\\Functional\\": "tests/tests/Test/Functional"
+            "Satag\\DoctrineFirebirdDriver\\Test\\": "tests/Test"
         }
     },
     "require": {

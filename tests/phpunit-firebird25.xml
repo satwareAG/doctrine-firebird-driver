@@ -12,7 +12,7 @@
 >
   <php>
     <ini name="error_reporting" value="-1"/>
-    <var name="db_driver_class" value="Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Driver"/>
+    <var name="db_driver_class" value="Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver"/>
     <var name="db_host" value="firebird25"/>
     <var name="db_user" value="sysdba"/>
     <var name="db_password" value="masterkey"/>

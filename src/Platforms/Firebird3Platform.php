@@ -1,5 +1,5 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver\Platforms;
+namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Exception;
 
@@ -13,9 +13,9 @@ use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
-use Kafoso\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
+use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 
-class Firebird3Platform extends FirebirdInterbasePlatform
+class Firebird3Platform extends FirebirdPlatform
 {
     /**
      * Firebird 3 has a native Boolean Type

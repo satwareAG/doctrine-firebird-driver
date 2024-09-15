@@ -1,6 +1,6 @@
 <?php
 
-namespace Kafoso\DoctrineFirebirdDriver\ORM\Mapping;
+namespace Satag\DoctrineFirebirdDriver\ORM\Mapping;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\Mapping\ClassMetadata;

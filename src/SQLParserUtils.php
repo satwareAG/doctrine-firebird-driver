@@ -1,10 +1,10 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver;
+namespace Satag\DoctrineFirebirdDriver;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Types\Type;
 
-use Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Connection;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 
 use function array_fill;
 use function array_fill_keys;

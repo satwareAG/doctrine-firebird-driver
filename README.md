@@ -62,7 +62,7 @@ doctrine:
         default_connection: default
         connections:
             default:
-                driver_class:   Kafoso\DoctrineFirebirdDriver\Driver\FirebirdInterbase\Driver
+                driver_class:   Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver
                 host:           "%database_host%"
                 port:           "%database_port%"
                 dbname:         "%database_name%"

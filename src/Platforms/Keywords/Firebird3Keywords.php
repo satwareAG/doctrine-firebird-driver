@@ -17,9 +17,9 @@
  * <http://www.doctrine-project.org>.
  */
 
-namespace Kafoso\DoctrineFirebirdDriver\Platforms\Keywords;
+namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-class Firebird3Keywords extends FirebirdInterbaseKeywords
+class Firebird3Keywords extends FirebirdKeywords
 {
     /**
      * {@inheritdoc}

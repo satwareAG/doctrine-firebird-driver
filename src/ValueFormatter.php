@@ -1,5 +1,5 @@
 <?php
-namespace Kafoso\DoctrineFirebirdDriver;
+namespace Satag\DoctrineFirebirdDriver;
 
 abstract class ValueFormatter
 {

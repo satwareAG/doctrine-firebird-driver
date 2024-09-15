@@ -1,6 +1,6 @@
 <?php
 
-namespace Kafoso\DoctrineFirebirdDriver;
+namespace Satag\DoctrineFirebirdDriver;
 
 use Doctrine\DBAL\Exception;
 
