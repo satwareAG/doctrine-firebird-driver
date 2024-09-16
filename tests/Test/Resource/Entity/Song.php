@@ -12,8 +12,7 @@ class Song
 {
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'SEQUENCE')]
-    #[ORM\SequenceGenerator(sequenceName: 'SONG_D2IS')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]

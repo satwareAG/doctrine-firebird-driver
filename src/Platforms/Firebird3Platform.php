@@ -370,25 +370,6 @@ ___query___;
     }
 
     /**
-     * @inheritDoc
-     *
-     * In Firebird 3
-     */
-    public function getIdentitySequenceName($tableName, $columnName)
-    {
-        $table = new Identifier($tableName);
-        $colum = new Identifier($columnName);
-        $query = "SELECT RDB\$GENERATOR_NAME as GENERATOR_NAME
-              FROM RDB\$RELATION_FIELDS rf
-              JOIN RDB\$FIELDS f ON rf.RDB\$FIELD_SOURCE = f.RDB\$FIELD_NAME
-              WHERE rf.RDB\$RELATION_NAME = UPPER('" .$table->getQuotedName($this) . "')
-                AND rf.RDB\$FIELD_NAME = UPPER('" .$colum->getQuotedName($this) . "')
-                AND rf.RDB\$IDENTITY_TYPE IS NOT NULL";  // Identity column flag
-
-        return $query;
-
-    }
-    /**
      * {@inheritDoc}
      */
     protected function initializeDoctrineTypeMappings()

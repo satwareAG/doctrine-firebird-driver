@@ -212,7 +212,7 @@ class Statement implements StatementInterface
             if ($resultResource === false) {
                 $this->connection->checkLastApiCall();
 
-                throw new Exception('Result resource is `false`');
+                throw new Exception('Result resource is `false` for ' . $this->statement);
             }
         } catch (Exception $e) {
             throw new Exception(sprintf(

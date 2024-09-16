@@ -289,7 +289,7 @@ class FirebirdPlatform extends AbstractPlatform
 
     protected function getTemporaryColumnName($columnName)
     {
-        return $this->generateIdentifier('tmp_',$columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
+        return $this->generateIdentifier('tmp',$columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
     /**

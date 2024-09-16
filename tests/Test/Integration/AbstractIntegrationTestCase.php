@@ -1,6 +1,9 @@
 <?php
 namespace Satag\DoctrineFirebirdDriver\Test\Integration;
 
+use Satag\DoctrineFirebirdDriver\ORM\FirebirdEntityManager;
+use Doctrine\Common\EventManager;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
@@ -9,10 +12,13 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird;
+use Satag\DoctrineFirebirdDriver\ORM\EventSubscriber\InsertReturningSubscriber;
 use Satag\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
@@ -35,11 +41,21 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     {
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         $this->installFirebirdDatabase($configurationArray);
-        // $this->installFirebirdDatabase($configurationArray);
-        $doctrineConfiguration = static::getSetUpDoctrineConfiguration();
+
+
         $this->connect();
+        $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
-        $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration);
+        $eventManager = new EventManager();
+        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
+            $subscriber =  new InsertReturningSubscriber();
+            $eventManager->addEventSubscriber($subscriber);
+
+
+        }
+
+
+        $this->_entityManager = new FirebirdEntityManager($this->connection, $doctrineConfiguration, $eventManager);
 
 
         $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();
@@ -195,7 +211,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     /**
      * @return Configuration
      */
-    protected static function getSetUpDoctrineConfiguration(): Configuration
+    protected static function getSetUpDoctrineConfiguration(Connection $connection): Configuration
     {
         $cache = new ArrayAdapter();
         $proxyDir = ROOT_PATH . '/var/doctrine-proxies';
@@ -206,18 +222,18 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             $cache
         );
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
-        $doctrineConfiguration->setIdentityGenerationPreferences([
-            FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
+        if ($connection->getDatabasePlatform() instanceof Firebird3Platform) {
+            $doctrineConfiguration->setIdentityGenerationPreferences([
+                FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
             ]);
+        } else {
+            $doctrineConfiguration->setIdentityGenerationPreferences([
+                FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
+            ]);
+        }
+
         $doctrineConfiguration->setQuoteStrategy(new FirebirdQuoteStrategy());
-        /*
-        $doctrineConfiguration->setMiddlewares([
-            new \Doctrine\DBAL\Portability\Middleware(
-                \Doctrine\DBAL\Portability\Connection::PORTABILITY_ALL,
-                ColumnCase::UPPER
-            )
-        ]);
-        */
+
         return $doctrineConfiguration;
     }
 
