@@ -12,7 +12,11 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Monolog\Handler\IFTTTHandler;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+
+use function Sodium\add;
 
 /**
  * Tests SQL generation. For functional tests, see FirebirdPlatformTest.
@@ -315,68 +319,36 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     {
         $sm = $this->connection->createSchemaManager();
         $fromTable = new Table('mytable');
-        $fromTable
-            ->addColumn('foo', Types::STRING, ['notnull' => true, 'default' => 'bla']);
+        $fromTable->addColumn('foo', Types::TEXT, ['length' => 255, 'notnull' => false]);
+        $fromTable->addColumn('bar', Types::STRING, ['length' => 10, 'notnull' => false]);
+        $fromTable->addColumn('metar', 'string', ['notnull' => true]);
 
-        $toTable = clone($fromTable);
-        $toTable->getColumn('foo')
-            ->setType(Type::getType(Types::TEXT));
+        $toTable = clone $fromTable;
+        $toTable->dropColumn('foo');
+        $toTable->addColumn('foo', Types::STRING, ['length' => 255, 'notnull' => true, 'default' => 'bla']);
+        $toTable->dropColumn('bar');;
+        $toTable->addColumn('bar', Types::STRING, ['length' => 255, 'default' => 'bla',  'notnull' => true]);
+        $toTable->dropColumn('metar');;
+         $toTable->addColumn('metar', 'string', ['notnull' => false, 'length' => 255]);
 
 
-        $tableDiff = new TableDiff('mytable');
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'foo', new Column(
-                'foo',
-                Type::getType('string'),
-                [
-                    'default' => 'bla',
-                    'notnull' => true,
-                ]
-            ),
-            ['type']
-        );
-        $tableDiff->changedColumns['bar'] = new ColumnDiff(
-            'bar',
-            new Column(
-                'baz',
-                Type::getType('string'),
-                [
-                    'default' => 'bla',
-                    'notnull' => true,
-                ]
-            ),
-            ['type', 'notnull']
-        );
-        $tableDiff->changedColumns['metar'] = new ColumnDiff(
-            'metar',
-            new Column(
-                'metar',
-                Type::getType('string'),
-                [
-                    'length' => 2000,
-                    'notnull' => false,
-                ]
-            ),
-            ['notnull']
-        );
-        $found = $this->_platform->getAlterTableSQL($tableDiff);
-        $this->assertEquals([], $found);
-        $this->assertCount(4, $found);
+        $tableDiff = $sm->createComparator()->compareTables($fromTable, $toTable);
+
+
+        $found = $this->connection->getDatabasePlatform()->getAlterTableSQL($tableDiff);
+        $this->assertCount(7, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertEquals("ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)", $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertEquals("ALTER TABLE mytable ALTER foo SET DEFAULT 'bla'", $found[1]);
-        $this->assertArrayHasKey(2, $found);
-        $this->assertEquals("ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)", $found[2]);
+        $this->assertArrayHasKey(5, $found);
+        $this->assertEquals("ALTER TABLE mytable ALTER bar TYPE VARCHAR(255)", $found[5]);
         $this->assertArrayHasKey(3, $found);
         $this->assertEquals("ALTER TABLE mytable ALTER bar SET DEFAULT 'bla'", $found[3]);
         $this->assertArrayHasKey(4, $found);
-        /**
-         * Firebird 2.5
-         */
         $this->assertEquals("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[4]);
-        $this->assertArrayHasKey(5, $found);
-        $this->assertEquals("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[5]);
+        $this->assertArrayHasKey(6, $found);
+        $this->assertEquals("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[6]);
 
         /**
          * Firebird 3.0+
@@ -529,7 +501,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     public function testGeneratesTableAlterationSqlThrowsException()
     {
-        $this->expectExceptionMessage("Operation 'Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::getAlterTableSQL Cannot rename tables because firebird does not support it");
+        $this->expectExceptionMessageMatches("/.*firebird does not support it.*/i");
         $this->expectException(Exception::class);
         $table = new Table('mytable');
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
@@ -573,7 +545,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
             ),
             ['type', 'notnull', 'default']
         );
-        $this->_platform->getAlterTableSQL($tableDiff);
+        $sm = $this->connection->createSchemaManager();
+        $sm->renameTable('old', 'new');
+        $result = $this->_platform->getAlterTableSQL($tableDiff);
     }
 
     public function testGetCustomColumnDeclarationSql()
@@ -1169,86 +1143,56 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $table->addColumn('baz', 'integer');
         $table->addForeignKeyConstraint('fk_table', ['fk'], ['id'], [], 'fk1');
         $table->addForeignKeyConstraint('fk_table', ['fk2'], ['id'], [], 'fk2');
-        $tableDiff = new TableDiff('"foo"');
-        $tableDiff->fromTable = $table;
-        $tableDiff->addedColumns['bloo'] = new Column(
-            'bloo',
-            Type::getType('integer')
-        );
-        $tableDiff->changedColumns['bar'] = new ColumnDiff(
-            'bar',
-            new Column(
-                'bar',
-                Type::getType('integer'),
-                ['notnull' => false]
-            ),
-            ['notnull'],
-            $table->getColumn('bar')
-        );
-        $tableDiff->renamedColumns['id'] = new Column(
-            'war',
-            Type::getType('integer')
-        );
-        $tableDiff->removedColumns['baz'] = new Column(
-            'baz',
-            Type::getType('integer')
-        );
-        $tableDiff->addedForeignKeys[] = new ForeignKeyConstraint(
-            ['fk3'],
-            'fk_table',
-            ['id'],
-            'fk_add'
-        );
-        $tableDiff->changedForeignKeys[] = new ForeignKeyConstraint(
-            ['fk2'],
-            'fk_table2',
-            ['id'],
-            'fk2'
-        );
-        $tableDiff->removedForeignKeys[] = new ForeignKeyConstraint(
-            ['fk'],
-            'fk_table',
-            ['id'],
-            'fk1'
-        );
+
+        $table2 = clone $table;
+
+        $table2->addColumn('bloo', 'integer');
+        $table2->dropColumn('bar');
+        $table2->addColumn('bar', 'integer', ['notnull' => false]);
+        $table2->dropColumn('id');
+        $table2->addColumn('war', 'integer');
+        $table2->dropColumn('baz');
+
+
+        $table2->addForeignKeyConstraint('fk_table', ['fk3'], ['id'], [], 'fk_add');
+        $table2->removeForeignKey('fk2');
+        $table2->addForeignKeyConstraint('fk_table2', ['fk2'], ['id'], [], 'fk2');
+        $table2->removeForeignKey('fk1');
+
+        $tableDiff = $this->connection->createSchemaManager()->createComparator()->compareTables($table, $table2);
+
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         $this->assertIsArray($found);
-        $this->assertCount(8, $found);
+        $this->assertCount(10, $found);
         $this->assertArrayHasKey(0, $found);
         $this->assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk1', $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk2', $found[1]);
         $this->assertArrayHasKey(2, $found);
         $this->assertSame('ALTER TABLE "foo" ADD bloo INTEGER NOT NULL', $found[2]);
-        $this->assertArrayHasKey(3, $found);
-        $this->assertSame('ALTER TABLE "foo" DROP baz', $found[3]);
-        $this->assertArrayHasKey(4, $found);
-        /**
-         * Firebird 2.5
-         */
-
-        $this->assertSame(
-            'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') '
-            . 'AND UPPER(RDB$RELATION_NAME) = UPPER(\'foo\')',
-            $found[4]
-        );
-
-        $found = $this->_platform3->getAlterTableSQL($tableDiff);
-        /**
-         * Firebird 3.0+
-         */
-        $this->assertSame(
-            'ALTER TABLE "foo" ALTER bar DROP NOT NULL',
-            $found[4]
-        );
-
-
         $this->assertArrayHasKey(5, $found);
-        $this->assertSame('ALTER TABLE "foo" ALTER COLUMN id TO war', $found[5]);
+        $this->assertSame('ALTER TABLE "foo" DROP baz', $found[5]);
         $this->assertArrayHasKey(6, $found);
-        $this->assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk_add FOREIGN KEY (fk3) REFERENCES fk_table (id)', $found[6]);
+        /**
+         * Firebird 3
+         */
+        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
+            $this->assertSame(
+                'ALTER TABLE "foo" ALTER bar DROP NOT NULL',
+                $found[6]
+            );
+        } else {
+            $this->assertSame(
+                'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') '
+                . 'AND UPPER(RDB$RELATION_NAME) = UPPER(\'foo\')',
+                $found[6]
+            );
+        }
+
         $this->assertArrayHasKey(7, $found);
-        $this->assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[7]);
+        $this->assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk_add FOREIGN KEY (fk3) REFERENCES fk_table (id)', $found[7]);
+        $this->assertArrayHasKey(8, $found);
+        $this->assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[8]);
     }
 
     /**

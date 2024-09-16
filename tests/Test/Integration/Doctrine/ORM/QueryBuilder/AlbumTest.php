@@ -16,12 +16,12 @@ class AlbumTest extends AbstractIntegrationTestCase
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $from =$qb->getQuery()->getDQL();
         $sql = $qb->getQuery()->getSQL();
@@ -47,12 +47,12 @@ class AlbumTest extends AbstractIntegrationTestCase
             $qb
                 ->select('album.id')
                 ->from(Entity\Album::class, 'album');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album.id')
                 ->from(Entity\Album::class, 'album');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0 FROM ALBUM a0_";
@@ -73,13 +73,13 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->join('album.artist', 'artist'); // Inherited join
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->join('album.artist', 'artist'); // Inherited join
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
 
         $expectedDQL .= " INNER JOIN album.artist artist";
@@ -104,19 +104,19 @@ class AlbumTest extends AbstractIntegrationTestCase
     {
         $qb = $this->_entityManager->createQueryBuilder();
         if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->join(Entity\Artist::class, 'artist', 'WITH', 'artist = album.artist'); // Manual join
-            $expectedDQL .= " INNER JOIN Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist WITH artist = album.artist";
+            $expectedDQL .= " INNER JOIN Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WITH artist = album.artist";
         } else {
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->join(Entity\Artist::class, 'artist', 'WITH', 'artist = album.artist'); // Manual join
-            $expectedDQL .= " INNER JOIN Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist WITH artist = album.artist";
+            $expectedDQL .= " INNER JOIN Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WITH artist = album.artist";
         }
 
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -145,13 +145,13 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->leftJoin('album.artist', 'artist');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->leftJoin('album.artist', 'artist');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
 
         $expectedDQL .= " LEFT JOIN album.artist artist";
@@ -179,15 +179,15 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album', 'artist')
                 ->from(Entity\Album::class, 'album')
                 ->leftJoin(Entity\Artist::class, 'artist', 'WITH', 'artist.id = 0');
-            $expectedDQL = "SELECT album, artist FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
-            $expectedDQL .= " LEFT JOIN Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist";
+            $expectedDQL = "SELECT album, artist FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+            $expectedDQL .= " LEFT JOIN Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist";
         } else {
             $qb
                 ->select('album', 'artist')
                 ->from(Entity\Album::class, 'album')
                 ->leftJoin(Entity\Artist::class, 'artist', 'WITH', 'artist.id = 0');
-            $expectedDQL = "SELECT album, artist FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
-            $expectedDQL .= " LEFT JOIN Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist";
+            $expectedDQL = "SELECT album, artist FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
+            $expectedDQL .= " LEFT JOIN Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist";
         }
 
         $expectedDQL .= " WITH artist.id = 0";
@@ -224,13 +224,13 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 1');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 1');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.id > 1";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -257,14 +257,14 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 0')
                 ->setMaxResults(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 0')
                 ->setMaxResults(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -293,14 +293,14 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 0')
                 ->setFirstResult(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id > 0')
                 ->setFirstResult(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -329,7 +329,7 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->where('album.id > 0')
                 ->setFirstResult(1)
                 ->setMaxResults(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
@@ -337,7 +337,7 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->where('album.id > 0')
                 ->setFirstResult(1)
                 ->setMaxResults(1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.id > 0";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -366,14 +366,14 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id = :id')
                 ->setParameter('id', 1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else  {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where('album.id = :id')
                 ->setParameter('id', 1);
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.id = :id";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -400,14 +400,14 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->from(Entity\Album::class, 'album')
                 ->join('album.artist', 'artist')
                 ->groupBy('album.id');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album.id')
                 ->from(Entity\Album::class, 'album')
                 ->join('album.artist', 'artist')
                 ->groupBy('album.id');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " INNER JOIN album.artist artist GROUP BY album.id";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -431,7 +431,7 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->join('album.artist', 'artist')
                 ->groupBy('album.id')
                 ->having('album.id > 1');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album.id')
@@ -439,7 +439,7 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->join('album.artist', 'artist')
                 ->groupBy('album.id')
                 ->having('album.id > 1');
-            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album.id FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " INNER JOIN album.artist artist GROUP BY album.id HAVING album.id > 1";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -462,13 +462,13 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->orderBy('album.id', 'DESC');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->orderBy('album.id', 'DESC');
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " ORDER BY album.id DESC";
         $this->assertSame($expectedDQL, $qb->getQuery()->getDQL());
@@ -499,7 +499,7 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where($qb2->expr()->in('album.artist', $qb1->getDQL()));
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         } else {
             $qb1
                 ->select('artist')
@@ -509,13 +509,13 @@ class AlbumTest extends AbstractIntegrationTestCase
                 ->select('album')
                 ->from(Entity\Album::class, 'album')
                 ->where($qb2->expr()->in('album.artist', $qb1->getDQL()));
-            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Album album";
+            $expectedDQL = "SELECT album FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Album album";
         }
         $expectedDQL .= " WHERE album.artist IN(SELECT artist";
         if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $expectedDQL .= " FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
+            $expectedDQL .= " FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
         } else {
-            $expectedDQL .= " FROM Satag\\DoctrineFirebirdDriverTest\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
+            $expectedDQL .= " FROM Satag\\DoctrineFirebirdDriver\\Test\\Resource\\Entity\\Artist artist WHERE artist.id = 2)";
         }
         $this->assertSame($expectedDQL, $qb2->getQuery()->getDQL());
         $expectedSQL = "SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2, a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.artist_id IN (SELECT a1_.id FROM ARTIST a1_ WHERE a1_.id = 2)";

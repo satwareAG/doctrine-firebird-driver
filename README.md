@@ -171,7 +171,7 @@ Start implementing AbstractPlatform and AbstractSchemaManager. Other implementat
 
 ### AI Context-Setting Statement
 
-As an AI specialized in coding, your task is to improve an existing PHP Doctrine DBAL driver for the Firebird SQL databases, 
+As an AI specialized in coding, your task is to support me, a PHP Programmer, to improve our PHP Doctrine DBAL driver for the Firebird SQL databases, 
 specifically versions 2.5 and 3.0. The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension interbase.so (using fbird_* function aliases for ibase_* functions). You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branch with the current development: https://github.com/satwareAG/doctrine-firebird-driver/tree/testdbalupgrade Remark: This is the most important source of information. The Git Repository is updated on daily bases.
@@ -180,4 +180,4 @@ specifically versions 2.5 and 3.0. The Driver is not based on Firebird PDO, it i
 - Firebird SQL 3.0 language reference: [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html)
 - PHP Firebird Extension Source: [PHP Firebird extension](https://github.com/FirebirdSQL/php-firebird)
 
-The PHP Driver will be implemented for PHP 8.1+ and should be covered with PHP Unit Tests. Download all given resources for reference.
+The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit Tests. You can download all given resources for reference.

@@ -8,6 +8,9 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\BooleanType;
+use Doctrine\DBAL\Types\IntegerType;
+use Doctrine\DBAL\Types\Type;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
@@ -609,59 +612,17 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public function testGetAlterTableSQLWorksWithAddedColumn()
     {
+        $table = new Table("'foo'");
+        $table2 = clone $table;
+        $table2->dropColumn("'bar'");
+        Type::addType('baz', IntegerType::class);
+        $table2->addColumn("'bar'", 'baz', ['default' => false]);
 
-        $diff = $this
-            ->getMockBuilder(TableDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'foo'");
-        $diff
-            ->expects($this->any())
-            ->method('getName')
-            ->willReturn($name);
-        $diff
-            ->expects($this->any())
-            ->method('getNewName')
-            ->willReturn(false);
-        $column = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $column
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'bar'");
-        $type = $this
-            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $type
-            ->expects($this->any())
-            ->method('getSQLDeclaration')
-            ->willReturn("baz");
-        $column
-            ->expects($this->any())
-            ->method('getType')
-            ->willReturn($type);
-        $column
-            ->expects($this->any())
-            ->method('toArray')
-            ->willReturn(['type' => $type]);
-        $diff->addedColumns = [$column];
-        $diff->removedColumns = [];
-        $diff->changedColumns = [];
-        $diff->renamedColumns = [];
+        $diff = $this->connection->createSchemaManager()->createComparator()->compareTables($table, $table2);
         $found = $this->_platform->getAlterTableSQL($diff);
         $this->assertIsArray($found);
         $this->assertCount(1, $found);
-        $this->assertSame([0 => "ALTER TABLE 'foo' ADD 'bar' baz DEFAULT NULL"], $found);
+        $this->assertSame([0 => "ALTER TABLE 'foo' ADD 'bar' INTEGER DEFAULT  NOT NULL"], $found);
     }
 
     public function testGetAlterTableSQLWorksWithRemovedColumn()
@@ -686,141 +647,28 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public function testGetAlterTableSQLWorksWithChangedColumn()
     {
+        $table = new Table("foo");
+        $table->addColumn("bar", 'string', ['notnull' => true, 'length' => 255, 'default' => 'myDefault']);
 
-        $diff = $this
-            ->getMockBuilder(TableDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'foo'");
-        $diff
-            ->expects($this->any())
-            ->method('getName')
-            ->willReturn($name);
-        $diff
-            ->expects($this->any())
-            ->method('getNewName')
-            ->willReturn(false);
-        $column = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\Column::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $column
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'bar'");
-        $type = $this
-            ->getMockBuilder(\Doctrine\DBAL\Types\BigIntType::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $type
-            ->expects($this->any())
-            ->method('getSqlDeclaration')
-            ->willReturn('baz');
-        $column
-            ->expects($this->any())
-            ->method('getType')
-            ->willReturn($type);
-        $column
-            ->expects($this->any())
-            ->method('toArray')
-            ->willReturn(['type' => $type]);
-        $column
-            ->expects($this->any())
-            ->method('getName')
-            ->willReturn(false);
-        $columnDiff = $this
-            ->getMockBuilder(\Doctrine\DBAL\Schema\ColumnDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $columnDiff->column = $column;
-        $identifierOld = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $identifierOld
-            ->expects($this->any())
-            ->method('getQuotedName')
-            ->willReturn("'bar'");
-        $columnDiff
-            ->expects($this->any())
-            ->method('getOldColumnName')
-            ->willReturn($identifierOld);
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasChanged')
-            ->willReturn(true);
+        $table2 = clone $table;
 
+        $table2->dropColumn("bar");
+        $table2->addColumn("bar", 'bigint', ['notnull' => false, 'autoincrement' => true, 'default' => null, 'comment' => '']);
 
-        $diff->addedColumns = [];
-        $diff->removedColumns = [];
-        $diff->changedColumns = [$columnDiff];
-        $diff->renamedColumns = [];
-        $found = $this->_platform->getAlterTableSQL($diff);
+        $diff = $this->connection->createSchemaManager()->createComparator()->compareTables($table, $table2);
+        $found = $this->connection->getDatabasePlatform()->getAlterTableSQL($diff);
         $this->assertIsArray($found);
-        $this->assertCount(6, $found);
+        $this->assertCount(7, $found);
         $expected = [
-            0 => "ALTER TABLE 'foo' ALTER COLUMN 'bar' TYPE baz",
-            1 => "ALTER TABLE 'foo' ALTER 'bar' DROP DEFAULT",
-            2 =>  "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('') AND UPPER(RDB\$RELATION_NAME) = UPPER('')",
-            3 => "ALTER TABLE 'foo' ALTER 'bar' DROP DEFAULT",
-            4 => "ALTER TABLE 'foo' ALTER COLUMN 'bar' TYPE baz",
-            5 => "COMMENT ON COLUMN 'foo'.'bar' IS ''",
+            0 => 'ALTER TABLE foo ALTER COLUMN bar TYPE BIGINT',
+            1 => 'ALTER TABLE foo ALTER bar DROP DEFAULT',
+            2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('foo')",
+            3 => 'CREATE SEQUENCE foo_D2IS',
+            4 => "SELECT setval('foo_D2IS', (SELECT MAX(bar) FROM foo))",
+            5 => "ALTER TABLE foo ALTER bar SET DEFAULT nextval('foo_D2IS')",
+            6 => "COMMENT ON COLUMN foo.bar IS ''",
         ];
         $this->assertSame($expected, $found);
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasTypeChanged')
-            ->willReturn(true);
-
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasDefaultChanged')
-            ->willReturn(true);
-
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasNotNullChanged')
-            ->willReturn(true);
-
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasAutoIncrementChanged')
-            ->willReturn(true);
-
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasCommentChanged')
-            ->willReturn(true);
-        $columnDiff
-            ->expects($this->any())
-            ->method('hasLengthChanged')
-            ->willReturn(true);
-        $columnDiff
-            ->expects($this->any())
-            ->method('getNewColumn')
-            ->willReturn($column);
-        $diff
-            ->expects($this->any())
-            ->method('getNewName')
-            ->willReturn(false);
-
-        $diff
-            ->expects($this->any())
-            ->method('getModifiedColumns')
-            ->willReturn([$columnDiff]);
-
-
-        $found = $this->_platform3->getAlterTableSQL($diff);
-        $this->assertIsArray($found);
-        $this->assertCount(9, $found);
-
     }
 
     public function testGetAlterTableSQLWorksWithRenamedColumn()
