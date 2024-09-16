@@ -639,12 +639,7 @@ class FirebirdPlatform extends AbstractPlatform
 
 
     /**
-     * Returns the insert SQL for an empty insert statement.
-     *
-     * @param string $quotedTableName
-     * @param string $quotedIdentifierColumnName
-     *
-     * @return string
+     * {@inheritDoc}
      */
     public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
     {

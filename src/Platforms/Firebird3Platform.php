@@ -394,4 +394,9 @@ ___query___;
     {
         return AbstractPlatform::isCommentedDoctrineType($doctrineType);
     }
+
+    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
+    {
+        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES RETURNING ' . $quotedIdentifierColumnName;
+    }
 }

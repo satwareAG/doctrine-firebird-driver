@@ -55,7 +55,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         }
 
 
-        $this->_entityManager = new FirebirdEntityManager($this->connection, $doctrineConfiguration, $eventManager);
+        $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration, $eventManager);
 
 
         $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();

@@ -36,7 +36,24 @@ class InsertReturningSubscriber implements EventSubscriber
     }
     public function preFlush(PreFlushEventArgs $args)
     {
+        $om = $args->getObjectManager();
+        $uow = $om->getUnitOfWork();
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            $metadata = $om->getClassMetadata(get_class($entity));
 
+            // Check if the entity has an identity/auto-increment column
+            if ($this->hasIdentityColumn($metadata)) {
+                // Set the custom persister for this entity
+                $persister = $uow->getEntityPersister(get_class($entity));
+                $insertSql = $persister->getInsertSQL();
+                //$insertSql .= " RETURNING " . $platform->quoteIdentifier($idColumn);
+
+
+
+
+
+            }
+        }
     }
 
     public function onFlush(OnFlushEventArgs $args)
