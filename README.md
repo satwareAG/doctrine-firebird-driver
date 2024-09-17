@@ -181,3 +181,15 @@ specifically versions 2.5 and 3.0. The Driver is not based on Firebird PDO, it i
 - PHP Firebird Extension Source: [PHP Firebird extension](https://github.com/FirebirdSQL/php-firebird)
 
 The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit Tests. You can download all given resources for reference.
+
+
+### Debugging Crashes
+```
+gdb --args php vendor/bin/phpunit -c tests/phpunit-firebird25.xml 
+run 
+```
+
+```
+ulimit -n 8192
+valgrind --leak-check=full --track-origins=yes php vendor/bin/phpunit -c tests/phpunit-firebird25.xml 
+```

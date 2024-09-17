@@ -20,6 +20,9 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
     static protected ?int $lastInsertIdentityId = null;
 
     static protected array $lastInsertIdenties = [];
+    private static ?string $lastInsertSequence = null;
+    private static array $lastInsertSequences =  [];
+
     public function prepare(string $sql): Statement
     {
         if ( stripos($sql, 'INSERT INTO') === 0 ) {
@@ -30,10 +33,7 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
                     $sql .= ' RETURNING ' . $identityColumn;
                 };
             } else {
-                $sequenceName = $this->getSequenceNameForTable($tableName);
-                if($sequenceName !== null) {
-                    self::$lastInsertSequences[$tableName] = $sequenceName;
-                }
+                $this->addSequenceNameForTable($tableName);
             }
 
         }
@@ -74,7 +74,10 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
                 $identityColumn = $this->getIdentityColumnForTable($tableName);
                 if($identityColumn !== null) {
                     $sql .= ' RETURNING ' . $identityColumn;
-                };
+                } else {
+                    $this->addSequenceNameForTable($tableName);
+                }
+
             }
             return $connection->exec($sql);
         } catch (DBALException $e) {
@@ -189,6 +192,9 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
         }
 
         $identityColumn = $this->getIdentityColumnForTable($table);
+        if (!$identityColumn) {
+            $this->addSequenceNameForTable($table);
+        }
         $sql = 'INSERT INTO ' . $table . ' (' . implode(', ', $columns) . ')' .
             ' VALUES (' . implode(', ', $set) . ')';
         return $this->executeStatement(
@@ -238,9 +244,9 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
     public function lastInsertId($name = null)
     {
 
-        if(self::$lastInsertIdentityId !== null && $name === null || str_contains((string)$name, '_D2IS')) {
+        if(self::$lastInsertIdentityId !== null && $name === null) {
             return self::$lastInsertIdentityId;
-        };
+        }
 
         if (str_contains((string)$name, '.')) {
             list($table, $column) = preg_split('/\./', $name);
@@ -248,7 +254,10 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
             return end($tableInsertIds);
         }
 
+        if(self::$lastInsertSequence !== null && $name === null) {
+            $name = self::$lastInsertSequence;
 
+        }
         return parent::lastInsertId($name);
     }
 
@@ -268,18 +277,19 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
         return [$value, $bindingType];
     }
 
-    private function getSequenceNameForTable(?string $tableName)
+    private function addSequenceNameForTable(?string $tableName)
     {
         $schemaManager = $this->createSchemaManager();
 
         // Get the columns for the table
-        //$sequenceForTable = $this->
+        $sequenceForTable = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, null);
         $sequences = $schemaManager->listSequences();
         foreach($sequences as $sequence) {
-            if ($sequence->getName() === $tableName) {
-
+            if (strtolower($sequence->getName()) === strtolower($sequenceForTable)) {
+                $D2IS = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
+                self::$lastInsertSequences[$tableName] = $D2IS;
+                self::$lastInsertSequence = $D2IS;
             }
         }
     }
-
 }
