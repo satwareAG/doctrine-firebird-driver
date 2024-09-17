@@ -26,7 +26,11 @@ final class Result implements ResultInterface
         private Connection $connection,
         private int $affectedRows = 0,
         private int $columnCount = 0,
+        string $sql = ''
     ) {
+        if ( stripos($sql, 'INSERT INTO') === 0 && stripos($sql, ' RETURNING ') !== false ) {
+            Firebird3Connection::addLastInsertId($this->fetchOne(), $sql);
+        }
     }
 
     /** @inheritDoc */

@@ -36,30 +36,11 @@ class InsertReturningSubscriber implements EventSubscriber
     }
     public function preFlush(PreFlushEventArgs $args)
     {
-        $om = $args->getObjectManager();
-        $uow = $om->getUnitOfWork();
-        foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            $metadata = $om->getClassMetadata(get_class($entity));
 
-            // Check if the entity has an identity/auto-increment column
-            if ($this->hasIdentityColumn($metadata)) {
-                // Set the custom persister for this entity
-                $persister = $uow->getEntityPersister(get_class($entity));
-                $insertSql = $persister->getInsertSQL();
-                //$insertSql .= " RETURNING " . $platform->quoteIdentifier($idColumn);
-
-
-
-
-
-            }
-        }
     }
 
     public function onFlush(OnFlushEventArgs $args)
     {
-
-
 
     }
 
@@ -68,13 +49,6 @@ class InsertReturningSubscriber implements EventSubscriber
      */
     private function hasIdentityColumn(ClassMetadata $metadata): bool
     {
-        // Check for auto-generated identifiers (IDENTITY columns)
-        foreach ($metadata->getFieldNames() as $fieldName) {
-            $fieldMapping = $metadata->getFieldMapping($fieldName);
-            if (!empty($fieldMapping['id']) && $metadata->isIdGeneratorIdentity()) {
-                return true;
-            }
-        }
-        return false;
+
     }
 }

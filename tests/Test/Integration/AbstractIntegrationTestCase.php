@@ -227,9 +227,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                 FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
             ]);
         } else {
-            $doctrineConfiguration->setIdentityGenerationPreferences([
-                FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
-            ]);
+
         }
 
         $doctrineConfiguration->setQuoteStrategy(new FirebirdQuoteStrategy());

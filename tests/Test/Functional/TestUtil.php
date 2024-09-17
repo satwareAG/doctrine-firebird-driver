@@ -15,6 +15,8 @@ use Monolog\Logger;
 use Monolog\Processor\MemoryUsageProcessor;
 use PHPUnit\Framework\Assert;
 
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Firebird3Connection;
+
 use function array_keys;
 use function array_map;
 use function array_values;
@@ -204,6 +206,7 @@ class TestUtil
         }
 
         $parameters['driverClass'] = $configuration['db_driver_class'];
+        $parameters['wrapperClass'] = Firebird3Connection::class;
         return $parameters;
     }
 

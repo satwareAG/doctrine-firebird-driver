@@ -154,7 +154,7 @@ class WriteTest extends FunctionalTestCase
         }
 
         self::assertEquals(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
-        $num = $this->connection->lastInsertId($this->connection->getDatabasePlatform()->getIdentitySequenceName('write_table', 'id'));
+        $num = $this->connection->lastInsertId();
 
         self::assertGreaterThan(0, $num, 'LastInsertId() should be non-negative number.');
     }

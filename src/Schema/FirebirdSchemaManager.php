@@ -428,4 +428,5 @@ ___query___;
 
         return $identifier->isQuoted() ? $identifier->getName() : strtoupper($name);
     }
+
 }

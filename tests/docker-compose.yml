@@ -1,4 +1,16 @@
 services:
+  firebird5:
+    container_name: firebird5-doctrine-firebird-driver
+    image: "jacobalberty/firebird:v5"
+    environment:
+      - ISC_PASSWORD=masterkey
+      - TZ=Europe/Berlin
+  firebird4:
+    container_name: firebird4-doctrine-firebird-driver
+    image: "jacobalberty/firebird:v4"
+    environment:
+      - ISC_PASSWORD=masterkey
+      - TZ=Europe/Berlin
   firebird25:
     container_name: firebird25-doctrine-firebird-driver
     image: "jacobalberty/firebird:2.5-sc"
@@ -7,7 +19,7 @@ services:
       - TZ=Europe/Berlin
   firebird3:
     container_name: firebird3-doctrine-firebird-driver
-    image: "jacobalberty/firebird:3.0"
+    image: "jacobalberty/firebird:v3"
     environment:
       - ISC_PASSWORD=masterkey
       - TZ=Europe/Berlin

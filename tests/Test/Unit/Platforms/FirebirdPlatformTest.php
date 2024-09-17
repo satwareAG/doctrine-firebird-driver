@@ -161,14 +161,24 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $found = $this->_platform->usesSequenceEmulatedIdentityColumns();
         $this->assertIsBool($found);
-        $this->assertTrue($found);
+        if ($this->_platform instanceof Firebird3Platform) {
+            $this->assertFalse($found);
+        } else {
+            $this->assertTrue($found);
+        }
+
     }
 
     public function testGetIdentitySequenceName()
     {
         $found = $this->_platform->getIdentitySequenceName('foo', 'bar');
         $this->assertIsString($found);
-        $this->assertSame("foo_D2IS", $found);
+        if ($this->_platform instanceof Firebird3Platform) {
+            $this->assertSame("foo.bar", $found);
+        } else {
+            $this->assertSame("foo_D2IS", $found);
+        }
+
     }
 
     public function testGetIdentitySequenceTriggerName()

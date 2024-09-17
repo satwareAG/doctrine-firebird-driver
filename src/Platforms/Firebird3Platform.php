@@ -298,7 +298,7 @@ ___query___;
      */
     public function usesSequenceEmulatedIdentityColumns()
     {
-        return true; //
+        return false; //
     }
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
@@ -397,6 +397,11 @@ ___query___;
 
     public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
     {
-        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES RETURNING ' . $quotedIdentifierColumnName;
+        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES RETURNING '.$quotedIdentifierColumnName;
+    }
+
+    public function getIdentitySequenceName($tableName, $columnName)
+    {
+        return $tableName . '.' . $columnName;
     }
 }

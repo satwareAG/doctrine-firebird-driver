@@ -197,7 +197,8 @@ class Statement implements StatementInterface
         // function autoCommit of the connection
         $this->connection->autoCommit();
 
-        return new Result($fbirdResultRc, $this->connection, $affectedRows, $numFields);
+        // check for Identity
+        return new Result($fbirdResultRc, $this->connection, $affectedRows, $numFields, $this->statement);
     }
 
     /**

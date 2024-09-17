@@ -16,6 +16,8 @@ class AlbumTest extends AbstractIntegrationTestCase
         $this->_entityManager->persist($albumA);
         $this->_entityManager->flush();
         $id = $albumA->getId();
+        $this->assertGreaterThan(0, $id);
+
         $this->assertSame("Foo", $albumA->getName());
         $albumB = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
 

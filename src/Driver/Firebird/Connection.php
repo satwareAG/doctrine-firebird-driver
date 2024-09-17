@@ -545,6 +545,10 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         $sql    = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
+        if (!is_resource($this->fbirdConnectionRc) || get_resource_type($this->fbirdConnectionRc) === 'Unknown') {
+            $this->checkLastApiCall();
+        }
+
         $result = @fbird_query($this->fbirdConnectionRc, $sql);
         if (! is_resource($result)) {
             $this->checkLastApiCall();
