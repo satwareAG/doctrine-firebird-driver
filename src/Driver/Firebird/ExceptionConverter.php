@@ -90,7 +90,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 if (preg_match('/.*(Data type unknown).*/i', $message)) {
                     return new DriverException($exception, $query);
                 }
-                return new NotNullConstraintViolationException($message, $query);
+                return new NotNullConstraintViolationException($exception, $query);
 
             case -902:
                 if (preg_match('/.*(no such file or directory).*/i', $message)) {
