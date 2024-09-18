@@ -474,7 +474,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getDummySelectSQL()
     {
-        $expression = func_num_args() > 0 ? 'CAST(' . func_get_arg(0) . ' AS VARCHAR(50))' : '1';
+        $expression = func_num_args() > 0 ? func_get_arg(0)  : '1';
         return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 
