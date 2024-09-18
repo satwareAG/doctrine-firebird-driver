@@ -19,25 +19,19 @@ final class Result implements ResultInterface
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
      *
-     * @param resource|null $fbirdResultResource;
+     * @param resource|bool|int $fbirdResultRc;
      */
     public function __construct(
-        private $fbirdResultResource,
-        private Connection $connection,
-        private int $affectedRows = 0,
-        private int $columnCount = 0,
-        string $sql = ''
+        private $fbirdResultRc,
+        private Connection $connection
     ) {
-        if ( stripos($sql, 'INSERT INTO') === 0 && stripos($sql, ' RETURNING ') !== false ) {
-            Firebird3Connection::addLastInsertId($this->fetchOne(), $sql);
-        }
     }
 
     /** @inheritDoc */
     public function fetchNumeric()
     {
-        if (is_resource($this->fbirdResultResource)) {
-            return @fbird_fetch_row($this->fbirdResultResource, IBASE_TEXT);
+        if (is_resource($this->fbirdResultRc)) {
+            return @fbird_fetch_row($this->fbirdResultRc, IBASE_TEXT);
         }
 
         return false;
@@ -46,8 +40,8 @@ final class Result implements ResultInterface
     /** @inheritDoc */
     public function fetchAssociative()
     {
-        if (is_resource($this->fbirdResultResource)) {
-            return @fbird_fetch_assoc($this->fbirdResultResource, IBASE_TEXT);
+        if (is_resource($this->fbirdResultRc)) {
+            return @fbird_fetch_assoc($this->fbirdResultRc, IBASE_TEXT);
         }
 
         return false;
@@ -79,28 +73,33 @@ final class Result implements ResultInterface
 
     public function rowCount(): int
     {
-        return $this->affectedRows;
+        if (is_numeric($this->fbirdResultRc)) {
+            return (int)$this->fbirdResultRc;
+        } elseif (is_resource($this->fbirdResultRc)) {
+            return @fbird_affected_rows($this->connection->getActiveTransaction());
+        }
+        return 0;
     }
 
     public function columnCount(): int
     {
-        return $this->columnCount;
+        if (is_resource($this->fbirdResultRc)) {
+            return @fbird_affected_rows($this->connection->getActiveTransaction());
+        }
+        return 0;
     }
 
     public function free(): void
     {
-        if ($this->fbirdResultResource && is_resource($this->fbirdResultResource)) {
-            $success = @fbird_free_result($this->fbirdResultResource);
-            if (! $success) {
-                /**
-                 * Essentially untestable because Firebird has a tendency to fail hard with
-                 * "Segmentation fault (core dumped)."
-                 */
+        while(is_resource($this->fbirdResultRc) && get_resource_type($this->fbirdResultRc) !== 'Unknown' ) {
+            if(!@fbird_free_result($this->fbirdResultRc)) {
+                $this->connection->checkLastApiCall();
+            }
+            if (!@fbird_close($this->fbirdResultRc)) {
                 $this->connection->checkLastApiCall();
             }
         }
-
-        $this->fbirdResultResource = null;
+        $this->fbirdResultRc = null;
     }
 
     public function __destruct()

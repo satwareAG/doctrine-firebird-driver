@@ -7,6 +7,8 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
@@ -45,6 +47,9 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
         $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
 
         return match (true) {
+            version_compare($version, '6.0', '>=') => new Firebird5Platform(),
+            version_compare($version, '5.0', '>=') => new Firebird5Platform(),
+            version_compare($version, '4.0', '>=') => new Firebird4Platform(),
             version_compare($version, '3.0', '>=') => new Firebird3Platform(),
             default => new FirebirdPlatform(),
         };

@@ -25,18 +25,6 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
 
     public function prepare(string $sql): Statement
     {
-        if ( stripos($sql, 'INSERT INTO') === 0 ) {
-            $tableName = $this->getTableNameFromInsert($sql);
-            if($this->getDatabasePlatform() instanceof Firebird3Platform) {
-                $identityColumn = $this->getIdentityColumnForTable($tableName);
-                if($identityColumn !== null) {
-                    $sql .= ' RETURNING ' . $identityColumn;
-                };
-            } else {
-                $this->addSequenceNameForTable($tableName);
-            }
-
-        }
         return parent::prepare($sql);
     }
 
@@ -49,46 +37,21 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
         return null;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function executeStatement($sql, array $params = [], array $types = [])
     {
-        $connection = $this->getWrappedConnection();
-
-        $logger = $this->_config->getSQLLogger();
-        if ($logger !== null) {
-            $logger->startQuery($sql, $params, $types);
-        }
-
-        try {
-            if (count($params) > 0) {
-                if ($this->needsArrayParameterConversion($params, $types)) {
-                    [$sql, $params, $types] = $this->expandArrayParameters($sql, $params, $types);
-                }
-
-                $stmt = $connection->prepare($sql);
-
-                $this->bindParameters($stmt, $params, $types);
-                return  $stmt->execute()->rowCount();
-            }
-            if ( stripos($sql, 'INSERT INTO') === 0 && stripos($sql, ' RETURNING ') === false) {
-                $tableName = $this->getTableNameFromInsert($sql);
-                $identityColumn = $this->getIdentityColumnForTable($tableName);
-                if($identityColumn !== null) {
-                    $sql .= ' RETURNING ' . $identityColumn;
-                } else {
-                    $this->addSequenceNameForTable($tableName);
-                }
-
-            }
-            return $connection->exec($sql);
-        } catch (DBALException $e) {
-            throw $this->convertExceptionDuringQuery($e, $sql, $params, $types);
-        } finally {
-            if ($logger !== null) {
-                $logger->stopQuery();
+        if ( stripos($sql, 'INSERT INTO') === 0 && stripos($sql, ' RETURNING ') === false) {
+            $tableName = $this->getTableNameFromInsert($sql);
+            $identityColumn = $this->getIdentityColumnForTable($tableName);
+            if($identityColumn !== null) {
+                $sql .= ' RETURNING ' . $identityColumn;
+            } else {
+                $this->addSequenceNameForTable($tableName);
             }
         }
-
-
+        return parent::executeStatement($sql, $params, $types);
     }
 
     private function expandArrayParameters(string $sql, array $params, array $types): array
@@ -105,56 +68,6 @@ final class Firebird3Connection extends \Doctrine\DBAL\Connection
         ];
     }
 
-    private function bindParameters(DriverStatement $stmt, array $params, array $types): void
-    {
-        // Check whether parameters are positional or named. Mixing is not allowed.
-        if (is_int(key($params))) {
-            $bindIndex = 1;
-
-            foreach ($params as $key => $value) {
-                if (isset($types[$key])) {
-                    $type                  = $types[$key];
-                    [$value, $bindingType] = $this->getBindingInfo($value, $type);
-                } else {
-                    if (array_key_exists($key, $types)) {
-                        Deprecation::trigger(
-                            'doctrine/dbal',
-                            'https://github.com/doctrine/dbal/pull/5550',
-                            'Using NULL as prepared statement parameter type is deprecated.'
-                            . 'Omit or use ParameterType::STRING instead',
-                        );
-                    }
-
-                    $bindingType = ParameterType::STRING;
-                }
-
-                $stmt->bindValue($bindIndex, $value, $bindingType);
-
-                ++$bindIndex;
-            }
-        } else {
-            // Named parameters
-            foreach ($params as $name => $value) {
-                if (isset($types[$name])) {
-                    $type                  = $types[$name];
-                    [$value, $bindingType] = $this->getBindingInfo($value, $type);
-                } else {
-                    if (array_key_exists($name, $types)) {
-                        Deprecation::trigger(
-                            'doctrine/dbal',
-                            'https://github.com/doctrine/dbal/pull/5550',
-                            'Using NULL as prepared statement parameter type is deprecated.'
-                            . 'Omit or use ParameterType::STRING instead',
-                        );
-                    }
-
-                    $bindingType = ParameterType::STRING;
-                }
-
-                $stmt->bindValue($name, $value, $bindingType);
-            }
-        }
-    }
     private function needsArrayParameterConversion(array $params, array $types): bool
     {
         if (is_string(key($params))) {

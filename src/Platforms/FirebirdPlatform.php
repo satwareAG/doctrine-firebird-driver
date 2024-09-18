@@ -68,7 +68,7 @@ class FirebirdPlatform extends AbstractPlatform
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/issues/4749',
-            'PostgreSQLPlatform::getName() is deprecated. Identify platforms by their class.',
+            'FirebirdPlatform::getName() is deprecated. Identify platforms by their class.',
         );
         return "Firebird";
     }
@@ -474,7 +474,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getDummySelectSQL()
     {
-        $expression = func_num_args() > 0 ? func_get_arg(0) : '1';
+        $expression = func_num_args() > 0 ? 'CAST(' . func_get_arg(0) . ' AS VARCHAR(50))' : '1';
         return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 

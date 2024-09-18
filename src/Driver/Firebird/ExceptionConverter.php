@@ -14,6 +14,7 @@ use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
 use Doctrine\DBAL\Exception\NonUniqueFieldNameException;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
+use Doctrine\DBAL\Driver\Exception\UnknownParameterType;
 use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
@@ -86,7 +87,10 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
                 break;
             case -804:
-                return new NotNullConstraintViolationException($exception, $query);
+                if (preg_match('/.*(Data type unknown).*/i', $message)) {
+                    return new DriverException($exception, $query);
+                }
+                return new NotNullConstraintViolationException($message, $query);
 
             case -902:
                 if (preg_match('/.*(no such file or directory).*/i', $message)) {

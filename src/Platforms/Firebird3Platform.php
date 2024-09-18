@@ -33,7 +33,7 @@ class Firebird3Platform extends FirebirdPlatform
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/issues/4749',
-            'PostgreSQLPlatform::getName() is deprecated. Identify platforms by their class.',
+            'Firebird3Platform::getName() is deprecated. Identify platforms by their class.',
         );
         return "Firebird3";
     }

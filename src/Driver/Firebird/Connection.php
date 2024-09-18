@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Doctrine\DBAL\SQL\Parser;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
@@ -74,6 +76,8 @@ final class Connection implements ServerInfoAwareConnection
 
     protected int $dialect = 0;
 
+    private Parser $parser;
+
     /** @var false|resource|null (fbird_pconnect or fbird_connect) */
     private $fbirdConnectionRc = null;
 
@@ -118,6 +122,7 @@ final class Connection implements ServerInfoAwareConnection
         array $driverOptions = [],
     ) {
         $this->close(true); // Close/reset; because calling __construct after instantiation is apparently a thing
+        $this->parser        = new Parser(false);
         $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
         if (isset($params['persistent'])) {
             $this->isPersistent = (bool) $params['persistent'];
@@ -236,9 +241,27 @@ final class Connection implements ServerInfoAwareConnection
         return false;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function prepare(string $sql): DriverStatement
     {
-        return new Statement($this, $sql);
+        $visitor = new ConvertParameters();
+
+        $this->parser->parse($sql, $visitor);
+
+        $parameterMap = $visitor->getParameterMap();
+
+        $statement = @fbird_prepare(
+            $this->fbirdConnectionRc,
+            $this->getActiveTransaction(),
+            $visitor->getSQL()
+        );
+        if (! is_resource($statement)) {
+            $this->checkLastApiCall();
+        }
+
+        return new Statement($this, $statement, $visitor->getParameterMap());
     }
 
     /**
