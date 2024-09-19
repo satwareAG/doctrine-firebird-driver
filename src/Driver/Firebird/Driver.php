@@ -25,6 +25,7 @@ final class Driver extends AbstractFirebirdDriver
         $username = $params['user'] ?? '';
         $password = $params['password'] ?? '';
 
+
         return new Connection(
             $params,
             $username,

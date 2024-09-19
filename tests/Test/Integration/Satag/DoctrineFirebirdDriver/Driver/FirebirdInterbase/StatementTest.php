@@ -1,24 +1,15 @@
 <?php
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
+use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Result;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
-
 
 /**
  *
  */
 class StatementTest extends AbstractIntegrationTestCase
 {
-    public function setUp(): void
-    {
-        parent::setUp();
-        $this->connection = $connection = $this->reConnect();
-        $this->wrappedConnection = $connection->getWrappedConnection();
-    }
-
     public function tearDown(): void
     {
         $this->connection->close();
@@ -26,10 +17,7 @@ class StatementTest extends AbstractIntegrationTestCase
     }
     public function testFetchWorks()
     {
-        $connection = $this->wrappedConnection;
-        $sql = "SELECT * FROM Album";
-        $statement = new Statement($connection, $sql);
-
+        $statement = $this->connection->prepare("SELECT * FROM Album");
         $result = $statement->execute();
         $row = $result->fetchAssociative();
         $this->assertSame(1, $row['ID']);
@@ -43,16 +31,14 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertSame('2017-01-01 15:00:00', $row[2]);
         $this->assertSame('...Baby One More Time', $row[3]);
         $this->assertSame(2, $row[1]);
-        $connection->close();
     }
 
 
 
     public function testFetchAllWorks()
     {
-        $connection = $this->wrappedConnection;
         $sql = "SELECT * FROM Album";
-        $statement = new Statement($connection, $sql);
+        $statement = $this->connection->prepare($sql);
 
         $rows = $statement->execute()->fetchAllAssociative();
         $this->assertIsArray($rows);
@@ -81,14 +67,13 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertSame('2017-01-01 15:00:00', $rows[1][2] ?? false);
         $this->assertSame('Dark Horse', $rows[1][3] ?? false);
         $this->assertSame(3, $rows[1][1] ?? false);
-        $connection->close();
     }
 
     public function testFetchColumnWorks()
     {
-        $connection = $this->wrappedConnection;
+
         $sql = "SELECT * FROM Album";
-        $statement = new Statement($connection, $sql);
+        $statement = $this->connection->prepare($sql);
 
         $result = $statement->execute();
         $column = $result->fetchNumeric();
@@ -100,14 +85,12 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertSame('...Baby One More Time', $column[3]);
 
         $this->assertSame(2, $column[1]);
-        $connection->close();
-    }
+}
 
     public function testGetIteratorWorks()
     {
-        $connection = $this->wrappedConnection;
         $sql = "SELECT * FROM Album";
-        $statement = new Statement($connection, $sql);
+$statement = $this->connection->prepare($sql);
         $result = $statement->execute()->fetchAllAssociative();
         $array = [];
         foreach ($result as $row) {
@@ -118,41 +101,35 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->assertIsArray($array[1]);
         $this->assertSame(1, $array[0]['ID'] ?? false);
         $this->assertSame(2, $array[1]['ID'] ?? false);
-        $connection->close();
-    }
+}
 
     public function testExecuteWorks()
     {
-        $connection = $this->wrappedConnection;
         $sql = "SELECT * FROM Album";
-        $statement = new Statement($connection, $sql);
+        $statement = $this->connection->getWrappedConnection()->prepare($sql);
         $this->assertInstanceOf(Result::class, $statement->execute());
-        $connection->close();
-    }
+}
 
     public function testExecuteWorksWithParameters()
     {
-        $connection = $this->wrappedConnection;
         $sql = "SELECT * FROM Album WHERE ID = ?";
-        $statement = new Statement($connection, $sql);
+        $statement = $this->connection->getWrappedConnection()->prepare($sql);
         $this->assertInstanceOf(Result::class, $statement->execute([1]));
-        $connection->close();
-    }
+}
 
     public function testExecuteThrowsExceptionWhenSQLIsInvalid()
     {
-        $connection = $this->wrappedConnection;
-        $statement = new Statement($connection, "SELECT 1");
         try {
+            $statement = $this->connection->prepare("SELECT 1");
             $statement->execute();
         } catch (\Throwable $t) {
-            $this->assertSame(Exception::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertSame(-104, $t->getCode());
-            $this->assertSame("Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
-            $this->assertNull($t->getPrevious());
+            $this->assertSame("An exception occurred while executing a query: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
+
             $this->assertSame(-104, $t->getCode());
             $this->assertNull($t->getSQLState());
-            $connection->close();
+
             return;
         }
         $this->fail("Exception was never thrown");
@@ -160,20 +137,20 @@ class StatementTest extends AbstractIntegrationTestCase
 
     public function testExecuteThrowsExceptionWhenParameterizedSQLIsInvalid()
     {
-        $connection = $this->wrappedConnection;
-        $statement = new Statement($connection, "SELECT ?");
+
+
         $variable = "foo";
-        $statement->bindParam(0, $variable);
+
         try {
+            $statement = $this->connection->prepare( "SELECT ?");
+            $statement->bindParam(1, $variable);
             $statement->execute();
         } catch (\Throwable $t) {
-            $this->assertSame(Exception::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertSame(-104, $t->getCode());
-            $this->assertSame("Failed to perform `doExecPrepared`: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
-            $this->assertNull($t->getPrevious());
+            $this->assertSame("An exception occurred while executing a query: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ", $t->getMessage());
             $this->assertSame(-104, $t->getCode());
             $this->assertNull($t->getSQLState());
-            $connection->close();
             return;
         }
         $this->fail("Exception was never thrown");
@@ -181,25 +158,22 @@ class StatementTest extends AbstractIntegrationTestCase
 
     public function testBindValueWorks()
     {
-        $connection = $this->wrappedConnection;
-        $sql = "SELECT ID FROM Album WHERE ID = ?";
-        $statement = new Statement($connection, $sql);
-        $statement->bindValue(0, 2);
+
+        $statement = $this->connection->prepare("SELECT ID FROM Album WHERE ID = ?");
+
+        $statement->bindValue(1, 2);
         $result = $statement->execute();
         $value = $result->fetchOne();
         $this->assertSame(2, $value);
-        $connection->close();
-    }
+}
 
     public function testBindParamWorks()
     {
-        $connection = $this->wrappedConnection;
-        $sql = "SELECT ID FROM Album WHERE ID = :ID";
-        $statement = new Statement($connection, $sql);
+        $statement = $this->connection->prepare("SELECT ID FROM Album WHERE ID = :ID");
+
         $id = 2;
-        $statement->bindParam(':ID', $id);
+        $statement->bindValue(':ID', $id);
         $value = $statement->execute()->fetchOne();
         $this->assertSame(2, $value);
-        $connection->close();
-    }
+}
 }

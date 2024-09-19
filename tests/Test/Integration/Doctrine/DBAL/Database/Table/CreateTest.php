@@ -79,8 +79,9 @@ class CreateTest extends AbstractIntegrationTestCase
         }
         if($this->_platform instanceof Firebird3Platform) {
             foreach ([1, 2] as $id) {
-                $sql = "INSERT INTO " . $tableName . " DEFAULT VALUES RETURNING id";
+                $sql = "INSERT INTO " . $tableName . " DEFAULT VALUES";
                 $result = $connection->query($sql);
+
                 $this->assertInstanceOf(Result::class, $result);
                 $this->assertSame($id, $connection->lastInsertId(), "Incorrect autoincrement value");
             }

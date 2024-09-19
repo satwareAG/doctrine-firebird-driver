@@ -230,7 +230,7 @@ EOF
     {
 
         $platform  = $this->connection->getDatabasePlatform();
-        $statement = $this->connection->prepare($platform->getDummySelectSQL(':foo'));
+        $statement = $this->connection->prepare($platform->getDummySelectSQL('Cast(:foo as VARCHAR(50))'));
         $this->expectException(DriverException::class);
 
         $statement->executeQuery(['bar' => 'baz']);

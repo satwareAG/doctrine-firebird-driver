@@ -2,6 +2,7 @@
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -15,7 +16,8 @@ use Monolog\Logger;
 use Monolog\Processor\MemoryUsageProcessor;
 use PHPUnit\Framework\Assert;
 
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Firebird3Connection;
+
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 
 use function array_keys;
 use function array_map;
@@ -63,10 +65,15 @@ class TestUtil
         }
 
         $params = self::getConnectionParams();
+        $params['wrapperClass'] = ConnectionWrapper::class;
+        $configuration = self::createConfiguration($params['driverClass']);
 
+        $configuration->setMiddlewares([
+            new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
+        ]);
         return DriverManager::getConnection(
             $params,
-            self::createConfiguration($params['driverClass']),
+            $configuration,
         );
     }
 
@@ -206,7 +213,6 @@ class TestUtil
         }
 
         $parameters['driverClass'] = $configuration['db_driver_class'];
-        $parameters['wrapperClass'] = Firebird3Connection::class;
         return $parameters;
     }
 

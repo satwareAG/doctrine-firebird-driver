@@ -20,12 +20,10 @@ use function func_num_args;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
-use function fbird_free_query;
 use function is_int;
 use function is_object;
 use function is_resource;
 use function ksort;
-use function sprintf;
 use function strlen;
 
 /**
@@ -66,7 +64,7 @@ class Statement implements StatementInterface
      * @param resource $statement
      * @param null $executionMode
      */
-    public function __construct(protected Connection $connection, $statement, array $parameterMap, $executionMode = null)
+    public function __construct(protected Connection $connection, $statement, array $parameterMap = [], $executionMode = null)
     {
         $this->statement     = $statement;
         $this->parameterMap  = $parameterMap;
@@ -111,16 +109,25 @@ class Statement implements StatementInterface
             );
         }
 
-        if (is_object($variable)) {
-            $variable = (string) $variable;
-        }
+
+
 
         if (is_int($param)) {
             if (! isset($this->parameterMap[$param])) {
                 throw new Exception('Positional Parameter not found');
             }
+        } else {
+            $params = array_flip($this->parameterMap);
+            if (!isset($params[$param])) {
+                    throw new Exception('Named Parameter not found');
+                }
+            $param = $params[$param];
         }
 
+
+        if (is_object($variable)) {
+            $variable = (string) $variable;
+        }
 
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null) {
@@ -181,10 +188,6 @@ class Statement implements StatementInterface
         }
 
         // Execute statement
-
-
-
-
         foreach($this->queryParamTypes as $param => $type) {
             switch ($type) {
                 case ParameterType::LARGE_OBJECT:

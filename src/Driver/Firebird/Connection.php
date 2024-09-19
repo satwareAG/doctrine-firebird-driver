@@ -75,6 +75,10 @@ final class Connection implements ServerInfoAwareConnection
     protected int $buffers = 0;
 
     protected int $dialect = 0;
+    private ?string $connectionInsertColumn = null;
+
+    private $connectionInsertId = null;
+    private ?string $connectionInsertTable = null;
 
     private Parser $parser;
 
@@ -108,6 +112,13 @@ final class Connection implements ServerInfoAwareConnection
     private static bool $initialIbaseCloseCalled = false;
 
     private bool $isPrivileged;
+
+    static protected ?int $lastInsertIdentityId = null;
+
+    static protected array $lastInsertIdenties = [];
+    private static ?string $lastInsertSequence = null;
+    private static array $lastInsertSequences =  [];
+
 
     /**
      * @param array<int|string,mixed>  $params
@@ -176,6 +187,8 @@ final class Connection implements ServerInfoAwareConnection
         $this->getActiveTransaction(); // Connects to the database
     }
 
+
+
     public function __destruct()
     {
         try {
@@ -222,6 +235,19 @@ final class Connection implements ServerInfoAwareConnection
         };
     }
 
+    public function getConnectionInsertColumn(): ?string
+    {
+        return $this->connectionInsertColumn;
+    }
+
+    /**
+     * @return null
+     */
+    public function getConnectionInsertId()
+    {
+        return $this->connectionInsertId;
+    }
+
     /** @return false|resource (fbird_pconnect or fbird_connect) */
     public function getInterbaseConnectionResource()
     {
@@ -250,12 +276,10 @@ final class Connection implements ServerInfoAwareConnection
 
         $this->parser->parse($sql, $visitor);
 
-        $parameterMap = $visitor->getParameterMap();
-
         $statement = @fbird_prepare(
             $this->fbirdConnectionRc,
             $this->getActiveTransaction(),
-            $visitor->getSQL()
+            $sql
         );
         if (! is_resource($statement)) {
             $this->checkLastApiCall();
@@ -264,6 +288,14 @@ final class Connection implements ServerInfoAwareConnection
         return new Statement($this, $statement, $visitor->getParameterMap());
     }
 
+    public function setConnectionInsertTableColumn($table, $column)
+    {
+        $this->connectionInsertTable = $table;
+        $this->connectionInsertColumn = $column;
+    }
+
+
+
     /**
      * {@inheritdoc}
      *
@@ -271,6 +303,7 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function query(string $sql): ResultInterface
     {
+
         return $this->prepare($sql)->execute();
     }
 
@@ -301,22 +334,26 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function lastInsertId($name = null)
     {
+        if($name === null && $this->getConnectionInsertId() !== null ) {
+            return $this->getConnectionInsertId() ;
+        }
+
         if ($name === null) {
             return false;
         }
-
-        if (is_string($name) === false) {
-            throw new InvalidArgumentException(sprintf(
-                'Argument $name must be null or a string. Found: %s',
-                ValueFormatter::found($name),
-            ));
-        }
-
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/issues/4687',
             'The usage of Connection::lastInsertId() with a sequence name is deprecated.',
         );
+
+        if (str_contains((string)$name, '.')) {
+            list($table, $column) = preg_split('/\./', $name);
+            if($this->connectionInsertColumn === $column && $this->connectionInsertTable === $table) {
+                return $this->connectionInsertId;
+            }
+
+        }
 
         if (str_starts_with($name, 'SELECT RDB')) {
             $name = $this->query($name)->fetchOne();
@@ -335,6 +372,11 @@ final class Connection implements ServerInfoAwareConnection
         $sql = 'SELECT GEN_ID(' . $name . ', 0) LAST_VAL FROM RDB$DATABASE';
         $lastVal = $this->query($sql)->fetchOne();
         return $lastVal === 0 ? false : $lastVal;
+    }
+
+    public function setLastInsertId(int $id)
+    {
+        $this->connectionInsertId = $id;
     }
 
     /** @throws DriverException */
@@ -369,7 +411,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritdoc}
      */
-    public function beginTransaction()
+    public function beginTransaction(): bool
     {
         if ($this->fbirdTransactionLevel < 1) {
             $this->fbirdActiveTransaction = $this->createTransaction(true);
@@ -408,7 +450,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Commits the transaction if autocommit is enabled no explicte transaction has been started.
      *
-     * @throws RuntimeException
+     * @throws RuntimeException|Exception
      */
     public function autoCommit(): bool|null
     {
@@ -481,7 +523,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * @return resource
      *
-     * @throws RuntimeException
+     * @throws RuntimeException|Exception
      */
     public function getActiveTransaction()
     {
@@ -653,5 +695,14 @@ final class Connection implements ServerInfoAwareConnection
     public function getNativeConnection()
     {
         return $this->fbirdConnectionRc;
+    }
+
+    public static function getTableNameFromInsert($sql): ?string
+    {
+        if (preg_match('/INSERT INTO\s+([a-zA-Z0-9_]+)/i', $sql, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 }

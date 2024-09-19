@@ -76,7 +76,11 @@ final class Result implements ResultInterface
         if (is_numeric($this->fbirdResultRc)) {
             return (int)$this->fbirdResultRc;
         } elseif (is_resource($this->fbirdResultRc)) {
-            return @fbird_affected_rows($this->connection->getActiveTransaction());
+            $rowCount = @fbird_affected_rows($this->connection->getActiveTransaction());
+            if ($rowCount === 1 && $this->connection->getConnectionInsertColumn() ) {
+                $this->connection->setLastInsertId($this->fetchOne());
+            }
+            return $rowCount;
         }
         return 0;
     }
@@ -84,7 +88,7 @@ final class Result implements ResultInterface
     public function columnCount(): int
     {
         if (is_resource($this->fbirdResultRc)) {
-            return @fbird_affected_rows($this->connection->getActiveTransaction());
+            return @fbird_num_fields($this->fbirdResultRc);
         }
         return 0;
     }

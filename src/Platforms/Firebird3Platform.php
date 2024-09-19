@@ -397,7 +397,7 @@ ___query___;
 
     public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
     {
-        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES RETURNING '.$quotedIdentifierColumnName;
+        return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
     public function getIdentitySequenceName($tableName, $columnName)

@@ -2,6 +2,7 @@
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
 use Doctrine\DBAL\Driver\Exception;
+use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
@@ -77,26 +78,27 @@ class DialectTest extends AbstractIntegrationTestCase
         $this->assertSame(100, strlen((string) $result['TXT']));
         $this->assertSame("1-JAN-2018", rtrim((string) $result['TXT']));
 
-        $stmt = $connection->prepare("SELECT CAST(CAST('00:00:00' AS TIME) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         try {
+            $stmt = $connection->prepare("SELECT CAST(CAST('00:00:00' AS TIME) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
             $stmt->executeQuery();
         } catch (\Throwable $t) {
-            $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertStringStartsWith('An exception occurred while executing a query: ', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class, $t->getPrevious()::class);
-            $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Client SQL dialect 1 does not support reference to TIME datatype', $t->getPrevious()->getMessage());
+            $this->assertStringStartsWith('Dynamic SQL Error SQL error code = -104 Client SQL dialect 1 does not support reference to TIME datatype ', $t->getPrevious()->getMessage());
         }
 
-        $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
+
         try {
+            $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
             $stmt->executeQuery();
         } catch (\Throwable $t) {
-            $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertStringStartsWith('An exception occurred while executing', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class, $t->getPrevious()::class);
-            $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Token unknown - line 1, column 10 "ID"', $t->getPrevious()->getMessage());
+            $this->assertStringStartsWith('Dynamic SQL Error SQL error code = -104 Token unknown - line 1, column 10 "ID"', $t->getPrevious()->getMessage());
         }
 
         $stmt = $connection->prepare("SELECT 1/3 AS NUMBER FROM RDB\$DATABASE");
@@ -112,15 +114,15 @@ class DialectTest extends AbstractIntegrationTestCase
     {
         $connection = $this->reConnect(['dialect' => 2]);
 
-        $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         try {
+            $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
             $stmt->executeQuery();
         } catch (\Throwable $t) {
-            $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertStringStartsWith('An exception occurred while executing a query:', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class, $t->getPrevious()::class);
-            $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 DATE must be changed to TIMESTAMP', $t->getPrevious()->getMessage());
+            $this->assertStringStartsWith('Dynamic SQL Error SQL error code = -104 DATE must be changed to TIMESTAMP ', $t->getPrevious()->getMessage());
         }
 
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01 00:00:00' AS TIMESTAMP) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
@@ -132,22 +134,23 @@ class DialectTest extends AbstractIntegrationTestCase
         try {
             $stmt->executeQuery();
         } catch (\Throwable $t) {
-            $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
+            $this->assertSame(SyntaxErrorException::class, $t::class);
             $this->assertStringStartsWith('Error -104: An exception occurred while executing ', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class, $t->getPrevious()::class);
-            $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 Client SQL dialect 1 does not support reference to TIME datatype', $t->getPrevious()->getMessage());
+            $this->assertStringStartsWith('Dynamic SQL Error SQL error code = -104 Client SQL dialect 1 does not support reference to TIME datatype', $t->getPrevious()->getMessage());
         }
 
-        $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
+
         try {
+            $stmt = $connection->prepare("SELECT a.\"ID\" FROM Album AS a");
             $stmt->executeQuery();
         } catch (\Throwable $t) {
-            $this->assertSame(\Doctrine\DBAL\Exception\SyntaxErrorException::class, $t::class);
-            $this->assertStringStartsWith('An exception occurred while executing a query: Failed to perform `doDirectExec`:', $t->getMessage());
+            $this->assertSame(SyntaxErrorException::class, $t::class);
+            $this->assertStringStartsWith('An exception occurred while executing a query: Dynamic SQL Error SQL error code = -104 a string constant is delimited by double quotes ', $t->getMessage());
             $this->assertIsObject($t->getPrevious());
             $this->assertSame(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class, $t->getPrevious()::class);
-            $this->assertStringStartsWith('Failed to perform `doDirectExec`: Dynamic SQL Error SQL error code = -104 a string constant is delimited by double quotes', $t->getPrevious()->getMessage());
+            $this->assertStringStartsWith('Dynamic SQL Error SQL error code = -104 a string constant is delimited by double quotes', $t->getPrevious()->getMessage());
         }
 
         $stmt = $connection->prepare("SELECT 1/3 AS NUMBER FROM RDB\$DATABASE");

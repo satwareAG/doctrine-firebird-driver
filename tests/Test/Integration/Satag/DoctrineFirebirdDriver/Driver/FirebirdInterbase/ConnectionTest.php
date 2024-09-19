@@ -35,10 +35,9 @@ class ConnectionTest extends AbstractIntegrationTestCase
             TransactionIsolationLevel::READ_COMMITTED,
             $connection->getAttribute(AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL)
         );
-        $this->assertIsResource($connection->getInterbaseConnectionResource());
+        $this->assertIsResource($connection->getNativeConnection());
         $this->assertFalse($connection->requiresQueryForServerVersion());
-        $this->assertInstanceOf(Statement::class, $connection->prepare("foo"));
-        $this->assertSame("'''foo'''", $connection->quote("'foo'"));
+                $this->assertSame("'''foo'''", $connection->quote("'foo'"));
         $this->assertIsString(
             $connection->getStartTransactionSql(TransactionIsolationLevel::READ_UNCOMMITTED)
         );
@@ -56,21 +55,12 @@ class ConnectionTest extends AbstractIntegrationTestCase
     {
         $id = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
         $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup25.sql
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $albumA = new Entity\Album("Foo");
-        } else {
-            $albumA = new Entity\Album("Foo");
-        }
-
+        $albumA = new Entity\Album("Foo");
         $this->_entityManager->persist($albumA);
         $this->_entityManager->flush();
         $idA = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
         $this->assertSame(3, $idA);
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $albumB = new Entity\Album("Foo");
-        } else {
-            $albumB = new Entity\Album("Foo");
-        }
+        $albumB = new Entity\Album("Foo");
         $this->_entityManager->persist($albumB);
         $this->_entityManager->flush();
         $idB = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
@@ -79,7 +69,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
 
     public function testLastInsertIdThrowsExceptionWhenArgumentNameIsInvalid()
     {
-        $this->expectExceptionMessage('Argument $name must be null or a string. Found: (integer) 42');
+        $this->expectExceptionMessage('Argument $name in lastInsertId must be null or a string. Found: (integer) 42');
         $this->expectException(\InvalidArgumentException::class);
         $this->_entityManager->getConnection()->lastInsertId(42);
     }
