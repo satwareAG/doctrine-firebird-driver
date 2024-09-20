@@ -25,21 +25,6 @@ class Firebird3Platform extends FirebirdPlatform
 
     /**
      * {@inheritDoc}
-     *
-     * @return string
-     */
-    public function getName(): string
-    {
-        Deprecation::triggerIfCalledFromOutside(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/issues/4749',
-            'Firebird3Platform::getName() is deprecated. Identify platforms by their class.',
-        );
-        return "Firebird3";
-    }
-
-    /**
-     * {@inheritDoc}
      */
     protected function getReservedKeywordsClass()
     {
@@ -247,50 +232,53 @@ class Firebird3Platform extends FirebirdPlatform
 
     public function getListTableColumnsSQL($table, $database = null)
     {
+        $table = $this->normalizeIdentifier($table);
+        $table = $this->quoteStringLiteral($table->getName());
+
         $query = <<<'___query___'
-            SELECT TRIM(r.RDB$FIELD_NAME) AS "FIELD_NAME",
-            TRIM(f.RDB$FIELD_NAME) AS "FIELD_DOMAIN",
-            TRIM(f.RDB$FIELD_TYPE) AS "FIELD_TYPE",
-            TRIM(typ.RDB$TYPE_NAME) AS "FIELD_TYPE_NAME",
-            f.RDB$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
-            f.RDB$FIELD_LENGTH AS "FIELD_LENGTH",
-            f.RDB$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
-            f.RDB$FIELD_PRECISION AS "FIELD_PRECISION",
-            f.RDB$FIELD_SCALE AS "FIELD_SCALE",
-            MIN(TRIM(rc.RDB$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
-            MIN(TRIM(i.RDB$INDEX_NAME)) AS "FIELD_INDEX_NAME",
-            r.RDB$NULL_FLAG as "FIELD_NOT_NULL_FLAG",
-            r.RDB$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
-            r.RDB$FIELD_POSITION AS "FIELD_POSITION",
-            r.RDB$DESCRIPTION AS "FIELD_DESCRIPTION",
-            f.RDB$CHARACTER_SET_ID as "CHARACTER_SET_ID",
-            TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
-            f.RDB$COLLATION_ID as "COLLATION_ID",
-            TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME",
-            TRIM(r.RDB$IDENTITY_TYPE) AS "IDENTITY_TYPE" 
-            FROM RDB$RELATION_FIELDS r
-            LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
-            LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
-            LEFT OUTER JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND i.RDB$RELATION_NAME = r.RDB$RELATION_NAME
-            LEFT OUTER JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME AND rc.RDB$RELATION_NAME = i.RDB$RELATION_NAME
-            LEFT OUTER JOIN RDB$REF_CONSTRAINTS REFC ON rc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME
-            LEFT OUTER JOIN RDB$TYPES typ ON typ.RDB$FIELD_NAME = 'RDB$FIELD_TYPE' AND typ.RDB$TYPE = f.RDB$FIELD_TYPE
-            LEFT OUTER JOIN RDB$TYPES sub ON sub.RDB$FIELD_NAME = 'RDB$FIELD_SUB_TYPE' AND sub.RDB$TYPE = f.RDB$FIELD_SUB_TYPE
-            LEFT OUTER JOIN RDB$CHARACTER_SETS cs ON cs.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID
-            LEFT OUTER JOIN RDB$COLLATIONS cl ON cl.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID AND cl.RDB$COLLATION_ID = f.RDB$COLLATION_ID
-            WHERE UPPER(r.RDB$RELATION_NAME) = UPPER(':TABLE')
-            GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_SUB_TYPE",  "FIELD_LENGTH",
-                     "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE", "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE",
-                     "FIELD_POSITION",
-                     "CHARACTER_SET_ID",
-                     "CHARACTER_SET_NAME",
-                     "COLLATION_ID",
-                     "COLLATION_NAME",
-                     "FIELD_DESCRIPTION",
-                     "IDENTITY_TYPE"
-            ORDER BY "FIELD_POSITION"
+SELECT TRIM(r.RDB$FIELD_NAME) AS "FIELD_NAME",
+TRIM(f.RDB$FIELD_NAME) AS "FIELD_DOMAIN",
+TRIM(f.RDB$FIELD_TYPE) AS "FIELD_TYPE",
+TRIM(typ.RDB$TYPE_NAME) AS "FIELD_TYPE_NAME",
+f.RDB$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
+f.RDB$FIELD_LENGTH AS "FIELD_LENGTH",
+f.RDB$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
+f.RDB$FIELD_PRECISION AS "FIELD_PRECISION",
+f.RDB$FIELD_SCALE AS "FIELD_SCALE",
+MIN(TRIM(rc.RDB$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
+MIN(TRIM(i.RDB$INDEX_NAME)) AS "FIELD_INDEX_NAME",
+r.RDB$NULL_FLAG as "FIELD_NOT_NULL_FLAG",
+r.RDB$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
+r.RDB$FIELD_POSITION AS "FIELD_POSITION",
+r.RDB$DESCRIPTION AS "FIELD_DESCRIPTION",
+f.RDB$CHARACTER_SET_ID as "CHARACTER_SET_ID",
+TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
+f.RDB$COLLATION_ID as "COLLATION_ID",
+TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME",
+TRIM(r.RDB$IDENTITY_TYPE) AS "IDENTITY_TYPE" 
+FROM RDB$RELATION_FIELDS r
+LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND i.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME AND rc.RDB$RELATION_NAME = i.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$REF_CONSTRAINTS REFC ON rc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME
+LEFT OUTER JOIN RDB$TYPES typ ON typ.RDB$FIELD_NAME = 'RDB$FIELD_TYPE' AND typ.RDB$TYPE = f.RDB$FIELD_TYPE
+LEFT OUTER JOIN RDB$TYPES sub ON sub.RDB$FIELD_NAME = 'RDB$FIELD_SUB_TYPE' AND sub.RDB$TYPE = f.RDB$FIELD_SUB_TYPE
+LEFT OUTER JOIN RDB$CHARACTER_SETS cs ON cs.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID
+LEFT OUTER JOIN RDB$COLLATIONS cl ON cl.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID AND cl.RDB$COLLATION_ID = f.RDB$COLLATION_ID
+WHERE UPPER(r.RDB$RELATION_NAME) = UPPER(:TABLE)
+GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_SUB_TYPE",  "FIELD_LENGTH",
+         "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE", "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE",
+         "FIELD_POSITION",
+         "CHARACTER_SET_ID",
+         "CHARACTER_SET_NAME",
+         "COLLATION_ID",
+         "COLLATION_NAME",
+         "FIELD_DESCRIPTION",
+         "IDENTITY_TYPE"
+ORDER BY "FIELD_POSITION"
 ___query___;
-        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
+        return str_replace(':TABLE', $table, $query);
     }
 
     /**
@@ -402,6 +390,22 @@ ___query___;
 
     public function getIdentitySequenceName($tableName, $columnName)
     {
-        return $tableName . '.' . $columnName;
+        return $this->normalizeIdentifier($tableName)->getQuotedName($this) . '.' .  $this->normalizeIdentifier($columnName)->getQuotedName($this);
+    }
+
+    public function getDropTableSQL($table)
+    {
+        $statements = [];
+        $statements[] = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
+        $statements[] =
+            $this->getExecuteBlockWithExecuteStatementsSql([
+                'statements' => [
+                    AbstractPlatform::getDropTableSQL($table)
+                ],
+                'formatLineBreak' => false,
+            ]);
+        return $this->getExecuteBlockWithExecuteStatementsSql([
+            'statements' => $statements
+        ]);
     }
 }

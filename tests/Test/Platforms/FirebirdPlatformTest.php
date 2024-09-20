@@ -4,7 +4,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
@@ -12,10 +11,10 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function sprintf;
@@ -25,6 +24,7 @@ use function uniqid;
 /** @extends AbstractPlatformTestCase<FirebirdPlatform> */
 class FirebirdPlatformTest extends AbstractPlatformTestCase
 {
+
     /** @return mixed[][] */
     public static function dataValidIdentifiers(): iterable
     {
@@ -78,7 +78,7 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
 
     public function getGenerateTableSql(): string
     {
-        return 'CREATE TABLE test (id NUMBER(10) NOT NULL, test VARCHAR2(255) DEFAULT NULL NULL, PRIMARY KEY(id))';
+        return 'CREATE TABLE test (id INTEGER NOT NULL, test VARCHAR(255) DEFAULT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))';
     }
 
     /**
@@ -87,16 +87,15 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
     public function getGenerateTableWithMultiColumnUniqueIndexSql(): array
     {
         return [
-            'CREATE TABLE test (foo VARCHAR2(255) DEFAULT NULL NULL, bar VARCHAR2(255) DEFAULT NULL NULL)',
+            'CREATE TABLE test (foo VARCHAR(255) DEFAULT NULL, bar VARCHAR(255) DEFAULT NULL)',
             'CREATE UNIQUE INDEX UNIQ_D87F7E0C8C73652176FF8CAA ON test (foo, bar)',
         ];
     }
 
     public function testRLike(): void
     {
-        $this->expectException(Exception::class);
 
-        self::assertEquals('RLIKE', $this->platform->getRegexpExpression());
+        self::assertEquals('SIMILAR TO', $this->platform->getRegexpExpression());
     }
 
     public function testGeneratesSqlSnippets(): void
@@ -108,53 +107,46 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
         );
     }
 
-    public function testGeneratesTransactionsCommands(): void
-    {
-        self::assertEquals(
-            'SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED',
-            $this->platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::READ_UNCOMMITTED),
-        );
-        self::assertEquals(
-            'SET TRANSACTION ISOLATION LEVEL READ COMMITTED',
-            $this->platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::READ_COMMITTED),
-        );
-        self::assertEquals(
-            'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE',
-            $this->platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::REPEATABLE_READ),
-        );
-        self::assertEquals(
-            'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE',
-            $this->platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::SERIALIZABLE),
-        );
-    }
-
     public function testCreateDatabaseSQL(): void
     {
-        self::assertEquals('CREATE USER foobar', $this->platform->getCreateDatabaseSQL('foobar'));
+        self::assertEquals('CREATE DATABASE foobar', $this->platform->getCreateDatabaseSQL('foobar'));
     }
 
     public function testDropDatabaseSQL(): void
     {
-        self::assertEquals('DROP USER foobar CASCADE', $this->platform->getDropDatabaseSQL('foobar'));
+        self::assertEquals('DROP DATABASE foobar', $this->platform->getDropDatabaseSQL('foobar'));
     }
 
     public function testDropTable(): void
     {
-        self::assertEquals('DROP TABLE foobar', $this->platform->getDropTableSQL('foobar'));
+        $expectsd =
+            'EXECUTE BLOCK AS
+BEGIN
+  EXECUTE STATEMENT \'EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE (UPPER(RDB$TRIGGER_NAME) = UPPER(\'\'FOOBAR_D2IT\'\') AND RDB$SYSTEM_FLAG = 0))) THEN BEGIN EXECUTE STATEMENT \'\'DROP TRIGGER FOOBAR_D2IT\'\'; END END \';
+  EXECUTE STATEMENT \'EXECUTE BLOCK AS DECLARE TMP_VIEW_NAME varchar(255);  BEGIN FOR SELECT TRIM(v.RDB$VIEW_NAME) FROM RDB$VIEW_RELATIONS v, RDB$RELATIONS r WHERE TRIM(UPPER(v.RDB$RELATION_NAME)) = TRIM(UPPER(\'\'foobar\'\')) AND v.RDB$RELATION_NAME = r.RDB$RELATION_NAME AND (r.RDB$SYSTEM_FLAG IS DISTINCT FROM 1) AND (r.RDB$RELATION_TYPE = 0) INTO :TMP_VIEW_NAME DO BEGIN EXECUTE STATEMENT \'\'DROP VIEW "\'\'||:TMP_VIEW_NAME||\'\'"\'\'; END END \';
+  EXECUTE STATEMENT \'EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT \'\'EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE (UPPER(RDB$TRIGGER_NAME) = UPPER(\'\'\'\'FOOBAR_D2IT\'\'\'\') AND RDB$SYSTEM_FLAG = 0))) THEN BEGIN EXECUTE STATEMENT \'\'\'\'DROP TRIGGER FOOBAR_D2IT\'\'\'\'; END END \'\'; EXECUTE STATEMENT \'\'EXECUTE BLOCK AS BEGIN IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(\'\'\'\'FOOBAR_D2IS\'\'\'\') 
+                                AND (RDB$SYSTEM_FLAG IS DISTINCT FROM 1))
+                              )) THEN BEGIN EXECUTE STATEMENT \'\'\'\'DROP SEQUENCE FOOBAR_D2IS\'\'\'\'; END END \'\'; END \';
+  EXECUTE STATEMENT \'EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT \'\'DROP TABLE foobar\'\'; END \';
+END
+'
+        ;
+        self::assertEquals($expectsd, $this->platform->getDropTableSQL('foobar'));
     }
 
     public function testGeneratesTypeDeclarationForIntegers(): void
     {
         self::assertEquals(
-            'NUMBER(10)',
+            'INTEGER',
             $this->platform->getIntegerTypeDeclarationSQL([]),
         );
         self::assertEquals(
-            'NUMBER(10)',
+            'INTEGER',
             $this->platform->getIntegerTypeDeclarationSQL(['autoincrement' => true]),
         );
         self::assertEquals(
-            'NUMBER(10)',
+            'INTEGER',
             $this->platform->getIntegerTypeDeclarationSQL(
                 ['autoincrement' => true, 'primary' => true],
             ),
@@ -170,11 +162,11 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
             ),
         );
         self::assertEquals(
-            'VARCHAR2(50)',
+            'VARCHAR(50)',
             $this->platform->getStringTypeDeclarationSQL(['length' => 50]),
         );
         self::assertEquals(
-            'VARCHAR2(255)',
+            'VARCHAR(255)',
             $this->platform->getStringTypeDeclarationSQL([]),
         );
     }
@@ -226,43 +218,17 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
         self::assertSame($expectedSql, $this->platform->getAdvancedForeignKeyOptionsSQL($foreignKey));
     }
 
-    /** @return mixed[][] */
-    public static function getGeneratesAdvancedForeignKeyOptionsSQLData(): iterable
-    {
-        return [
-            [[], ''],
-            [['onUpdate' => 'CASCADE'], ''],
-            [['onDelete' => 'CASCADE'], ' ON DELETE CASCADE'],
-            [['onDelete' => 'NO ACTION'], ''],
-            [['onDelete' => 'RESTRICT'], ''],
-            [['onUpdate' => 'SET NULL', 'onDelete' => 'SET NULL'], ' ON DELETE SET NULL'],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public static function getReturnsForeignKeyReferentialActionSQL(): iterable
-    {
-        return [
-            ['CASCADE', 'CASCADE'],
-            ['SET NULL', 'SET NULL'],
-            ['NO ACTION', ''],
-            ['RESTRICT', ''],
-            ['CaScAdE', 'CASCADE'],
-        ];
-    }
 
     public function testModifyLimitQuery(): void
     {
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user', 10, 0);
-        self::assertEquals('SELECT a.* FROM (SELECT * FROM user) a WHERE ROWNUM <= 10', $sql);
+        self::assertEquals('SELECT * FROM user ROWS 1 TO 10', $sql);
     }
 
     public function testModifyLimitQueryWithEmptyOffset(): void
     {
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user', 10);
-        self::assertEquals('SELECT a.* FROM (SELECT * FROM user) a WHERE ROWNUM <= 10', $sql);
+        self::assertEquals('SELECT * FROM user ROWS 1 TO 10', $sql);
     }
 
     public function testModifyLimitQueryWithNonEmptyOffset(): void
@@ -270,9 +236,7 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user', 10, 10);
 
         self::assertEquals(
-            'SELECT * FROM ('
-                . 'SELECT a.*, ROWNUM AS doctrine_rownum FROM (SELECT * FROM user) a WHERE ROWNUM <= 20'
-                . ') WHERE doctrine_rownum >= 11',
+            'SELECT * FROM user ROWS 11 TO 20',
             $sql,
         );
     }
@@ -282,9 +246,7 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user', null, 10);
 
         self::assertEquals(
-            'SELECT * FROM ('
-                . 'SELECT a.*, ROWNUM AS doctrine_rownum FROM (SELECT * FROM user) a'
-                . ') WHERE doctrine_rownum >= 11',
+            'SELECT * FROM user ROWS 11 TO 9223372036854775807',
             $sql,
         );
     }
@@ -292,13 +254,13 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
     public function testModifyLimitQueryWithAscOrderBy(): void
     {
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user ORDER BY username ASC', 10);
-        self::assertEquals('SELECT a.* FROM (SELECT * FROM user ORDER BY username ASC) a WHERE ROWNUM <= 10', $sql);
+        self::assertEquals('SELECT * FROM user ORDER BY username ASC ROWS 1 TO 10', $sql);
     }
 
     public function testModifyLimitQueryWithDescOrderBy(): void
     {
         $sql = $this->platform->modifyLimitQuery('SELECT * FROM user ORDER BY username DESC', 10);
-        self::assertEquals('SELECT a.* FROM (SELECT * FROM user ORDER BY username DESC) a WHERE ROWNUM <= 10', $sql);
+        self::assertEquals('SELECT * FROM user ORDER BY username DESC ROWS 1 TO 10', $sql);
     }
 
     public function testGenerateTableWithAutoincrement(): void
@@ -309,64 +271,30 @@ class FirebirdPlatformTest extends AbstractPlatformTestCase
         $column     = $table->addColumn($columnName, Types::INTEGER);
         $column->setAutoincrement(true);
 
+        $sql = $this->platform->getCreateTableSQL($table);
         self::assertSame([
-            sprintf('CREATE TABLE %s (%s NUMBER(10) NOT NULL)', $tableName, $columnName),
+            sprintf('CREATE TABLE %s (%s INTEGER NOT NULL)', $tableName, $columnName),
+            sprintf('CREATE SEQUENCE %s_D2IS', $tableName),
             sprintf(
                 <<<'SQL'
-DECLARE
-  constraints_Count NUMBER;
-BEGIN
-  SELECT COUNT(CONSTRAINT_NAME) INTO constraints_Count
-    FROM USER_CONSTRAINTS
-   WHERE TABLE_NAME = '%s'
-     AND CONSTRAINT_TYPE = 'P';
-  IF constraints_Count = 0 OR constraints_Count = '' THEN
-    EXECUTE IMMEDIATE 'ALTER TABLE %s ADD CONSTRAINT %s_AI_PK PRIMARY KEY (%s)';
-  END IF;
-END;
-SQL
-                ,
-                $tableName,
-                $tableName,
-                $tableName,
-                $columnName,
-            ),
-            sprintf('CREATE SEQUENCE %s_SEQ START WITH 1 MINVALUE 1 INCREMENT BY 1', $tableName),
-            sprintf(
-                <<<'SQL'
-CREATE TRIGGER %s_AI_PK
-   BEFORE INSERT
-   ON %s
-   FOR EACH ROW
-DECLARE
-   last_Sequence NUMBER;
-   last_InsertID NUMBER;
-BEGIN
-   IF (:NEW.%s IS NULL OR :NEW.%s = 0) THEN
-      SELECT %s_SEQ.NEXTVAL INTO :NEW.%s FROM DUAL;
-   ELSE
-      SELECT NVL(Last_Number, 0) INTO last_Sequence
-        FROM User_Sequences
-       WHERE Sequence_Name = '%s_SEQ';
-      SELECT :NEW.%s INTO last_InsertID FROM DUAL;
-      WHILE (last_InsertID > last_Sequence) LOOP
-         SELECT %s_SEQ.NEXTVAL INTO last_Sequence FROM DUAL;
-      END LOOP;
-      SELECT %s_SEQ.NEXTVAL INTO last_Sequence FROM DUAL;
-   END IF;
-END;
+CREATE TRIGGER %s_D2IT FOR %s
+            BEFORE INSERT
+            AS
+            BEGIN
+                IF ((NEW.%s IS NULL) OR
+                   (NEW.%s = 0)) THEN
+                BEGIN
+                    NEW.%s = NEXT VALUE FOR %s_D2IS;
+                END
+            END;
 SQL
                 ,
                 $tableName,
                 $tableName,
                 $columnName,
                 $columnName,
-                $tableName,
                 $columnName,
-                $tableName,
-                $columnName,
-                $tableName,
-                $tableName,
+                $tableName
             ),
         ], $this->platform->getCreateTableSQL($table));
     }
@@ -377,7 +305,7 @@ SQL
     public function getCreateTableColumnCommentsSQL(): array
     {
         return [
-            'CREATE TABLE test (id NUMBER(10) NOT NULL, PRIMARY KEY(id))',
+            'CREATE TABLE test (id INTEGER NOT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))',
             "COMMENT ON COLUMN test.id IS 'This is a comment'",
         ];
     }
@@ -388,7 +316,7 @@ SQL
     public function getCreateTableColumnTypeCommentsSQL(): array
     {
         return [
-            'CREATE TABLE test (id NUMBER(10) NOT NULL, data CLOB NOT NULL, PRIMARY KEY(id))',
+            'CREATE TABLE test (id INTEGER NOT NULL, data BLOB SUB_TYPE TEXT NOT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))',
             "COMMENT ON COLUMN test.data IS '(DC2Type:array)'",
         ];
     }
@@ -399,31 +327,21 @@ SQL
     public function getAlterTableColumnCommentsSQL(): array
     {
         return [
-            'ALTER TABLE mytable ADD (quota NUMBER(10) NOT NULL)',
+            'ALTER TABLE mytable ADD quota INTEGER NOT NULL',
             "COMMENT ON COLUMN mytable.quota IS 'A comment'",
             "COMMENT ON COLUMN mytable.foo IS ''",
             "COMMENT ON COLUMN mytable.baz IS 'B comment'",
         ];
     }
 
-    public function getBitAndComparisonExpressionSql(string $value1, string $value2): string
-    {
-        return 'BITAND(' . $value1 . ', ' . $value2 . ')';
-    }
 
-    public function getBitOrComparisonExpressionSql(string $value1, string $value2): string
-    {
-        return '(' . $value1 . '-' .
-        $this->getBitAndComparisonExpressionSql($value1, $value2)
-        . '+' . $value2 . ')';
-    }
 
     /**
      * {@inheritDoc}
      */
     protected function getQuotedColumnInPrimaryKeySQL(): array
     {
-        return ['CREATE TABLE "quoted" ("create" VARCHAR2(255) NOT NULL, PRIMARY KEY("create"))'];
+        return ['CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL, CONSTRAINT "quoted_PK" PRIMARY KEY ("create"))'];
     }
 
     /**
@@ -432,7 +350,7 @@ SQL
     protected function getQuotedColumnInIndexSQL(): array
     {
         return [
-            'CREATE TABLE "quoted" ("create" VARCHAR2(255) NOT NULL)',
+            'CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL)',
             'CREATE INDEX IDX_22660D028FD6E0FB ON "quoted" ("create")',
         ];
     }
@@ -443,7 +361,7 @@ SQL
     protected function getQuotedNameInIndexSQL(): array
     {
         return [
-            'CREATE TABLE test (column1 VARCHAR2(255) NOT NULL)',
+            'CREATE TABLE test (column1 VARCHAR(255) NOT NULL)',
             'CREATE INDEX "key" ON test (column1)',
         ];
     }
@@ -454,10 +372,10 @@ SQL
     protected function getQuotedColumnInForeignKeySQL(): array
     {
         return [
-            'CREATE TABLE "quoted" ("create" VARCHAR2(255) NOT NULL, foo VARCHAR2(255) NOT NULL, '
-                . '"bar" VARCHAR2(255) NOT NULL)',
+            'CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL, foo VARCHAR(255) NOT NULL, '
+                . '"bar" VARCHAR(255) NOT NULL)',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_RESERVED_KEYWORD FOREIGN KEY ("create", foo, "bar")'
-                . ' REFERENCES foreign ("create", bar, "foo-bar")',
+                . ' REFERENCES "foreign" ("create", bar, "foo-bar")',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_NON_RESERVED_KEYWORD FOREIGN KEY ("create", foo, "bar")'
                 . ' REFERENCES foo ("create", bar, "foo-bar")',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar")'
@@ -498,8 +416,10 @@ SQL
         );
 
         $expectedSql = [
-            "ALTER TABLE mytable MODIFY (foo VARCHAR2(255) DEFAULT 'bla', baz VARCHAR2(255) DEFAULT 'bla' NOT NULL, "
-                . 'metar VARCHAR2(2000) DEFAULT NULL NULL)',
+            0 => 'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
+            1 => 'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
+            2 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = 1 WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
+            3 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'metar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
         ];
 
         self::assertEquals($expectedSql, $this->platform->getAlterTableSQL($tableDiff));
@@ -507,53 +427,15 @@ SQL
 
     public function testInitializesDoctrineTypeMappings(): void
     {
-        self::assertTrue($this->platform->hasDoctrineTypeMappingFor('long raw'));
-        self::assertSame(Types::BLOB, $this->platform->getDoctrineTypeMapping('long raw'));
-
-        self::assertTrue($this->platform->hasDoctrineTypeMappingFor('raw'));
-        self::assertSame(Types::BINARY, $this->platform->getDoctrineTypeMapping('raw'));
-
-        self::assertTrue($this->platform->hasDoctrineTypeMappingFor('date'));
-        self::assertSame(Types::DATE_MUTABLE, $this->platform->getDoctrineTypeMapping('date'));
+        self::assertTrue($this->platform->hasDoctrineTypeMappingFor('boolean'));
+        self::assertSame(Types::SMALLINT, $this->platform->getDoctrineTypeMapping('boolean'));
     }
 
-    protected function getBinaryMaxLength(): int
-    {
-        return 2000;
-    }
-
-    public function testReturnsBinaryTypeDeclarationSQL(): void
-    {
-        self::assertSame('RAW(255)', $this->platform->getBinaryTypeDeclarationSQL([]));
-        self::assertSame('RAW(2000)', $this->platform->getBinaryTypeDeclarationSQL(['length' => 0]));
-        self::assertSame('RAW(2000)', $this->platform->getBinaryTypeDeclarationSQL(['length' => 2000]));
-
-        self::assertSame('RAW(255)', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true]));
-        self::assertSame('RAW(2000)', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 0]));
-
-        self::assertSame(
-            'RAW(2000)',
-            $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 2000]),
-        );
-    }
 
     public function testReturnsBinaryTypeLongerThanMaxDeclarationSQL(): void
     {
-        self::assertSame('BLOB', $this->platform->getBinaryTypeDeclarationSQL(['length' => 2001]));
-        self::assertSame('BLOB', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 2001]));
-    }
-
-    public function testDoesNotPropagateUnnecessaryTableAlterationOnBinaryType(): void
-    {
-        $table1 = new Table('mytable');
-        $table1->addColumn('column_varbinary', Types::BINARY);
-        $table1->addColumn('column_binary', Types::BINARY, ['fixed' => true]);
-
-        $table2 = new Table('mytable');
-        $table2->addColumn('column_varbinary', Types::BINARY, ['fixed' => true]);
-        $table2->addColumn('column_binary', Types::BINARY);
-
-        self::assertFalse((new Comparator($this->platform))->diffTable($table1, $table2));
+        self::assertSame('BLOB', $this->platform->getBinaryTypeDeclarationSQL(['length' => 8192]));
+        self::assertSame('BLOB', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 8192]));
     }
 
     public function testUsesSequenceEmulatedIdentityColumns(): void
@@ -563,17 +445,21 @@ SQL
 
     public function testReturnsIdentitySequenceName(): void
     {
-        self::assertSame('MYTABLE_SEQ', $this->platform->getIdentitySequenceName('mytable', 'mycolumn'));
-        self::assertSame('"mytable_SEQ"', $this->platform->getIdentitySequenceName('"mytable"', 'mycolumn'));
-        self::assertSame('MYTABLE_SEQ', $this->platform->getIdentitySequenceName('mytable', '"mycolumn"'));
-        self::assertSame('"mytable_SEQ"', $this->platform->getIdentitySequenceName('"mytable"', '"mycolumn"'));
+        self::assertSame('MYTABLE_D2IS', $this->platform->getIdentitySequenceName('mytable', 'mycolumn'));
+        self::assertSame('"mytable_D2IS"', $this->platform->getIdentitySequenceName('"mytable"', 'mycolumn'));
+        self::assertSame('MYTABLE_D2IS', $this->platform->getIdentitySequenceName('mytable', '"mycolumn"'));
+        self::assertSame('"mytable_D2IS"', $this->platform->getIdentitySequenceName('"mytable"', '"mycolumn"'));
     }
 
     /** @dataProvider dataCreateSequenceWithCache */
     public function testCreateSequenceWithCache(int $cacheSize, string $expectedSql): void
     {
+        if(!($this->platform instanceof Firebird3Platform)) {
+            $this->markTestSkipped('Firebird below 3 does not support sequence cache.');
+        }
         $sequence = new Sequence('foo', 1, 1, $cacheSize);
         self::assertStringContainsString($expectedSql, $this->platform->getCreateSequenceSQL($sequence));
+
     }
 
     /** @return mixed[][] */
@@ -586,24 +472,7 @@ SQL
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function getAlterTableRenameIndexSQL(): array
-    {
-        return ['ALTER INDEX idx_foo RENAME TO idx_bar'];
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function getQuotedAlterTableRenameIndexSQL(): array
-    {
-        return [
-            'ALTER INDEX "create" RENAME TO "select"',
-            'ALTER INDEX "foo" RENAME TO "bar"',
-        ];
-    }
 
     /**
      * {@inheritDoc}
@@ -611,15 +480,15 @@ SQL
     protected function getQuotedAlterTableRenameColumnSQL(): array
     {
         return [
-            'ALTER TABLE mytable RENAME COLUMN unquoted1 TO unquoted',
-            'ALTER TABLE mytable RENAME COLUMN unquoted2 TO "where"',
-            'ALTER TABLE mytable RENAME COLUMN unquoted3 TO "foo"',
-            'ALTER TABLE mytable RENAME COLUMN "create" TO reserved_keyword',
-            'ALTER TABLE mytable RENAME COLUMN "table" TO "from"',
-            'ALTER TABLE mytable RENAME COLUMN "select" TO "bar"',
-            'ALTER TABLE mytable RENAME COLUMN quoted1 TO quoted',
-            'ALTER TABLE mytable RENAME COLUMN quoted2 TO "and"',
-            'ALTER TABLE mytable RENAME COLUMN quoted3 TO "baz"',
+            'ALTER TABLE mytable ALTER COLUMN unquoted1 TO unquoted',
+            'ALTER TABLE mytable ALTER COLUMN unquoted2 TO "where"',
+            'ALTER TABLE mytable ALTER COLUMN unquoted3 TO "foo"',
+            'ALTER TABLE mytable ALTER COLUMN "create" TO reserved_keyword',
+            'ALTER TABLE mytable ALTER COLUMN "table" TO "from"',
+            'ALTER TABLE mytable ALTER COLUMN "select" TO "bar"',
+            'ALTER TABLE mytable ALTER COLUMN quoted1 TO quoted',
+            'ALTER TABLE mytable ALTER COLUMN quoted2 TO "and"',
+            'ALTER TABLE mytable ALTER COLUMN quoted3 TO "baz"',
         ];
     }
 
@@ -631,24 +500,6 @@ SQL
         self::markTestIncomplete('Not implemented yet');
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function getAlterTableRenameIndexInSchemaSQL(): array
-    {
-        return ['ALTER INDEX myschema.idx_foo RENAME TO idx_bar'];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function getQuotedAlterTableRenameIndexInSchemaSQL(): array
-    {
-        return [
-            'ALTER INDEX "schema"."create" RENAME TO "select"',
-            'ALTER INDEX "schema"."foo" RENAME TO "bar"',
-        ];
-    }
 
     protected function getQuotesDropForeignKeySQL(): string
     {
@@ -657,7 +508,7 @@ SQL
 
     public function testReturnsGuidTypeDeclarationSQL(): void
     {
-        self::assertSame('CHAR(36)', $this->platform->getGuidTypeDeclarationSQL([]));
+        self::assertSame('VARCHAR(36)', $this->platform->getGuidTypeDeclarationSQL([]));
     }
 
     /**
@@ -665,17 +516,18 @@ SQL
      */
     public function getAlterTableRenameColumnSQL(): array
     {
-        return ['ALTER TABLE foo RENAME COLUMN bar TO baz'];
+        return ['ALTER TABLE foo ALTER COLUMN bar TO baz'];
     }
 
     /**
-     * @param string[] $expectedSql
+     * @param string|string[] $expectedSql
      *
      * @dataProvider getReturnsDropAutoincrementSQL
      */
-    public function testReturnsDropAutoincrementSQL(string $table, array $expectedSql): void
+    public function testReturnsDropAutoincrementSQL(string $table, $expectedSql): void
     {
-        self::assertSame($expectedSql, $this->platform->getDropAutoincrementSql($table));
+        $resultSql = $this->platform->getDropAutoincrementSql($table);
+        self::assertSame($expectedSql, $resultSql);
     }
 
     /** @return mixed[][] */
@@ -684,28 +536,29 @@ SQL
         return [
             [
                 'myTable',
-                [
-                    'DROP TRIGGER MYTABLE_AI_PK',
-                    'DROP SEQUENCE MYTABLE_SEQ',
-                    'ALTER TABLE MYTABLE DROP CONSTRAINT MYTABLE_AI_PK',
-                ],
-            ],
+                <<<'SQL'
+EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE (UPPER(RDB$TRIGGER_NAME) = UPPER(''MYTABLE_D2IT'') AND RDB$SYSTEM_FLAG = 0))) THEN BEGIN EXECUTE STATEMENT ''DROP TRIGGER MYTABLE_D2IT''; END END '; EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(''MYTABLE_D2IS'') 
+                                AND (RDB$SYSTEM_FLAG IS DISTINCT FROM 1))
+                              )) THEN BEGIN EXECUTE STATEMENT ''DROP SEQUENCE MYTABLE_D2IS''; END END '; END 
+SQL,]
+            ,
             [
                 '"myTable"',
-                [
-                    'DROP TRIGGER "myTable_AI_PK"',
-                    'DROP SEQUENCE "myTable_SEQ"',
-                    'ALTER TABLE "myTable" DROP CONSTRAINT "myTable_AI_PK"',
-                ],
-            ],
+                <<<'SQL'
+EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE (UPPER(RDB$TRIGGER_NAME) = UPPER(''myTable_D2IT'') AND RDB$SYSTEM_FLAG = 0))) THEN BEGIN EXECUTE STATEMENT ''DROP TRIGGER "myTable_D2IT"''; END END '; EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(''myTable_D2IS'') 
+                                AND (RDB$SYSTEM_FLAG IS DISTINCT FROM 1))
+                              )) THEN BEGIN EXECUTE STATEMENT ''DROP SEQUENCE "myTable_D2IS"''; END END '; END 
+SQL,],
             [
                 'table',
-                [
-                    'DROP TRIGGER TABLE_AI_PK',
-                    'DROP SEQUENCE TABLE_SEQ',
-                    'ALTER TABLE "TABLE" DROP CONSTRAINT TABLE_AI_PK',
-                ],
-            ],
+                <<<'SQL'
+EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE (UPPER(RDB$TRIGGER_NAME) = UPPER(''TABLE_D2IT'') AND RDB$SYSTEM_FLAG = 0))) THEN BEGIN EXECUTE STATEMENT ''DROP TRIGGER TABLE_D2IT''; END END '; EXECUTE STATEMENT 'EXECUTE BLOCK AS BEGIN IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(''TABLE_D2IS'') 
+                                AND (RDB$SYSTEM_FLAG IS DISTINCT FROM 1))
+                              )) THEN BEGIN EXECUTE STATEMENT ''DROP SEQUENCE TABLE_D2IS''; END END '; END 
+SQL,]
         ];
     }
 
@@ -748,33 +601,22 @@ SQL
         self::assertEquals('"test"', $table->getQuotedName($this->platform));
 
         $sql = $this->platform->getCreateTableSQL($table);
-        self::assertEquals('CREATE TABLE "test" ("id" NUMBER(10) NOT NULL)', $sql[0]);
-        self::assertEquals('CREATE SEQUENCE "test_SEQ" START WITH 1 MINVALUE 1 INCREMENT BY 1', $sql[2]);
+        self::assertEquals('CREATE TABLE "test" ("id" INTEGER NOT NULL)', $sql[0]);
+        self::assertEquals('CREATE SEQUENCE "test_D2IS"', $sql[1]);
         $createTriggerStatement = <<<'EOD'
-CREATE TRIGGER "test_AI_PK"
-   BEFORE INSERT
-   ON "test"
-   FOR EACH ROW
-DECLARE
-   last_Sequence NUMBER;
-   last_InsertID NUMBER;
-BEGIN
-   IF (:NEW."id" IS NULL OR :NEW."id" = 0) THEN
-      SELECT "test_SEQ".NEXTVAL INTO :NEW."id" FROM DUAL;
-   ELSE
-      SELECT NVL(Last_Number, 0) INTO last_Sequence
-        FROM User_Sequences
-       WHERE Sequence_Name = 'test_SEQ';
-      SELECT :NEW."id" INTO last_InsertID FROM DUAL;
-      WHILE (last_InsertID > last_Sequence) LOOP
-         SELECT "test_SEQ".NEXTVAL INTO last_Sequence FROM DUAL;
-      END LOOP;
-      SELECT "test_SEQ".NEXTVAL INTO last_Sequence FROM DUAL;
-   END IF;
-END;
+CREATE TRIGGER "test_D2IT" FOR "test"
+            BEFORE INSERT
+            AS
+            BEGIN
+                IF ((NEW."id" IS NULL) OR
+                   (NEW."id" = 0)) THEN
+                BEGIN
+                    NEW."id" = NEXT VALUE FOR "test_D2IS";
+                END
+            END;
 EOD;
 
-        self::assertEquals($createTriggerStatement, $sql[3]);
+        self::assertEquals($createTriggerStatement, $sql[2]);
     }
 
     /** @dataProvider getReturnsGetListTableColumnsSQL */
@@ -793,51 +635,50 @@ EOD;
             [
                 null,
                 <<<'SQL'
-SELECT   c.*,
-         (
-             SELECT d.comments
-             FROM   user_col_comments d
-             WHERE  d.TABLE_NAME = c.TABLE_NAME
-             AND    d.COLUMN_NAME = c.COLUMN_NAME
-         ) AS comments
-FROM     user_tab_columns c
-WHERE    c.table_name = 'test'
-ORDER BY c.column_id
+SELECT TRIM(r.RDB$FIELD_NAME) AS "FIELD_NAME",
+TRIM(f.RDB$FIELD_NAME) AS "FIELD_DOMAIN",
+TRIM(f.RDB$FIELD_TYPE) AS "FIELD_TYPE",
+TRIM(typ.RDB$TYPE_NAME) AS "FIELD_TYPE_NAME",
+f.RDB$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
+f.RDB$FIELD_LENGTH AS "FIELD_LENGTH",
+f.RDB$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
+f.RDB$FIELD_PRECISION AS "FIELD_PRECISION",
+f.RDB$FIELD_SCALE AS "FIELD_SCALE",
+MIN(TRIM(rc.RDB$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
+MIN(TRIM(i.RDB$INDEX_NAME)) AS "FIELD_INDEX_NAME",
+r.RDB$NULL_FLAG as "FIELD_NOT_NULL_FLAG",
+r.RDB$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
+r.RDB$FIELD_POSITION AS "FIELD_POSITION",
+r.RDB$DESCRIPTION AS "FIELD_DESCRIPTION",
+f.RDB$CHARACTER_SET_ID as "CHARACTER_SET_ID",
+TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
+f.RDB$COLLATION_ID as "COLLATION_ID",
+TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME"
+FROM RDB$RELATION_FIELDS r
+LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = s.RDB$INDEX_NAME 
+                              AND i.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = s.RDB$INDEX_NAME 
+                                            AND rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME 
+                                            AND rc.RDB$RELATION_NAME = i.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$REF_CONSTRAINTS REFC ON rc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME
+LEFT OUTER JOIN RDB$TYPES typ ON typ.RDB$FIELD_NAME = 'RDB$FIELD_TYPE' 
+                              AND typ.RDB$TYPE = f.RDB$FIELD_TYPE
+LEFT OUTER JOIN RDB$TYPES sub ON sub.RDB$FIELD_NAME = 'RDB$FIELD_SUB_TYPE' 
+                              AND sub.RDB$TYPE = f.RDB$FIELD_SUB_TYPE
+LEFT OUTER JOIN RDB$CHARACTER_SETS cs ON cs.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID
+LEFT OUTER JOIN RDB$COLLATIONS cl ON cl.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID 
+                                  AND cl.RDB$COLLATION_ID = f.RDB$COLLATION_ID
+WHERE UPPER(r.RDB$RELATION_NAME) = UPPER('test')
+GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_SUB_TYPE",  "FIELD_LENGTH",
+         "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE", "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE",
+         "FIELD_POSITION","FIELD_DESCRIPTION", 
+         "CHARACTER_SET_ID", "CHARACTER_SET_NAME", "COLLATION_ID", "COLLATION_NAME"
+ORDER BY "FIELD_POSITION"
 SQL
 ,
-            ],
-            [
-                '/',
-                <<<'SQL'
-SELECT   c.*,
-         (
-             SELECT d.comments
-             FROM   user_col_comments d
-             WHERE  d.TABLE_NAME = c.TABLE_NAME
-             AND    d.COLUMN_NAME = c.COLUMN_NAME
-         ) AS comments
-FROM     user_tab_columns c
-WHERE    c.table_name = 'test'
-ORDER BY c.column_id
-SQL
-,
-            ],
-            [
-                'scott',
-                <<<'SQL'
-SELECT   c.*,
-         (
-             SELECT d.comments
-             FROM   all_col_comments d
-             WHERE  d.TABLE_NAME = c.TABLE_NAME AND d.OWNER = c.OWNER
-             AND    d.COLUMN_NAME = c.COLUMN_NAME
-         ) AS comments
-FROM     all_tab_columns c
-WHERE    c.table_name = 'test' AND c.owner = 'SCOTT'
-ORDER BY c.column_id
-SQL
-,
-            ],
+            ]
         ];
     }
 
@@ -853,7 +694,7 @@ SQL
 
     protected function getQuotesReservedKeywordInTruncateTableSQL(): string
     {
-        return 'TRUNCATE TABLE "select"';
+        return 'DELETE FROM "select"';
     }
 
     /**
@@ -861,7 +702,7 @@ SQL
      */
     protected function getAlterStringToFixedStringSQL(): array
     {
-        return ['ALTER TABLE mytable MODIFY (name CHAR(2) DEFAULT NULL)'];
+        return ['ALTER TABLE mytable ALTER COLUMN name TYPE CHAR(2)'];
     }
 
     /**
@@ -869,16 +710,12 @@ SQL
      */
     protected function getGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): array
     {
-        return ['ALTER INDEX idx_foo RENAME TO idx_foo_renamed'];
+        return [
+            'DROP INDEX idx_foo',
+            'CREATE INDEX idx_foo_renamed ON mytable (foo)'
+        ];
     }
 
-    public function testQuotesDatabaseNameInListSequencesSQL(): void
-    {
-        self::assertStringContainsStringIgnoringCase(
-            "'Foo''Bar\\'",
-            $this->platform->getListSequencesSQL("Foo'Bar\\"),
-        );
-    }
 
     public function testQuotesTableNameInListTableIndexesSQL(): void
     {
@@ -912,26 +749,19 @@ SQL
         );
     }
 
-    public function testQuotesDatabaseNameInListTableColumnsSQL(): void
-    {
-        self::assertStringContainsStringIgnoringCase(
-            "'Foo''Bar\\'",
-            $this->platform->getListTableColumnsSQL('foo_table', "Foo'Bar\\"),
-        );
-    }
+
 
     /** @return array<int, array{string, array<string, mixed>}> */
     public static function asciiStringSqlDeclarationDataProvider(): array
     {
         return [
-            ['VARCHAR2(12)', ['length' => 12]],
+            ['VARCHAR(12)', ['length' => 12]],
             ['CHAR(12)', ['length' => 12, 'fixed' => true]],
         ];
     }
 
     protected function getLimitOffsetCastToIntExpectedQuery(): string
     {
-        return 'SELECT * FROM (SELECT a.*, ROWNUM AS doctrine_rownum FROM (SELECT * FROM user) a WHERE ROWNUM <= 3)'
-            . ' WHERE doctrine_rownum >= 3';
+        return 'SELECT * FROM user ROWS 3 TO 3';
     }
 }

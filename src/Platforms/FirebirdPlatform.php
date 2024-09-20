@@ -12,14 +12,15 @@ use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
+use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
+use Satag\DoctrineFirebirdDriver\TransactionIsolationLevel;
 
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
@@ -39,7 +40,10 @@ class FirebirdPlatform extends AbstractPlatform
      * If false we use CHAR(1) field instead of SMALLINT for Boolean Type
      */
     private bool $useSmallIntBoolean = true;
-
+    public function __construct()
+    {
+        Type::overrideType('boolean', FirebirdBooleanType::class);
+    }
     public function setCharTrue(string $char): FirebirdPlatform
     {
         $this->charTrue = $char;
@@ -58,6 +62,13 @@ class FirebirdPlatform extends AbstractPlatform
         return $this;
     }
 
+    public static function assertValidIdentifier($identifier)
+    {
+        $pattern = '(^(([a-zA-Z]{1}[a-zA-Z0-9_$#]{0,})|("[^"]+"))$)';
+        if (preg_match($pattern, $identifier) === 0) {
+            throw new Exception('Invalid Firebird identifier %s provided');
+        }
+    }
     /**
      * {@inheritDoc}
      *
@@ -70,7 +81,8 @@ class FirebirdPlatform extends AbstractPlatform
             'https://github.com/doctrine/dbal/issues/4749',
             'FirebirdPlatform::getName() is deprecated. Identify platforms by their class.',
         );
-        return "Firebird";
+        $classParts = explode('\\', get_class($this));
+        return str_replace('Platform', '', end($classParts));
     }
 
     /**
@@ -129,7 +141,8 @@ class FirebirdPlatform extends AbstractPlatform
         $ml = (int)floor(($maxLength - strlen($suffix)) / count($prefix));
         foreach ($prefix as $p) {
             if (!$p instanceof AbstractAsset)
-                $p = new Identifier($p);
+                $p = $this->normalizeIdentifier($p);
+
             $fullId .= $p->getName() . '_';
             if (strlen($p->getName()) >= $ml) {
                 $c = crc32($p->getName());
@@ -316,15 +329,7 @@ class FirebirdPlatform extends AbstractPlatform
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsSchemas()
-    {
-        return false;
-    }
-
-    /**
+     /**
      * {@inheritDoc}
      */
     public function supportsIdentityColumns()
@@ -478,15 +483,6 @@ class FirebirdPlatform extends AbstractPlatform
         return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 
-    /**
-     * {@inheritDoc}
-     * @throws Exception
-     */
-    public function getDropDatabaseSQL($database)
-    {
-        throw Exception::notSupported(__METHOD__);
-    }
-
     public function getCreateViewSQL($name, $sql)
     {
         return 'CREATE VIEW ' . $name . ' AS ' . $sql;
@@ -590,7 +586,7 @@ class FirebirdPlatform extends AbstractPlatform
                 'WHERE ' .
                 'TRIM(UPPER(v.RDB$RELATION_NAME)) = TRIM(UPPER(' . $this->quoteStringLiteral($this->unquotedIdentifierName($table)) . ')) AND ' .
                 'v.RDB$RELATION_NAME = r.RDB$RELATION_NAME AND ' .
-                '(r.RDB$SYSTEM_FLAG IS NULL or r.RDB$SYSTEM_FLAG = 0) AND ' .
+                '(r.RDB$SYSTEM_FLAG IS DISTINCT FROM 1) AND ' .
                 '(r.RDB$RELATION_TYPE = 0) INTO :TMP_VIEW_NAME DO BEGIN ' .
                 'EXECUTE STATEMENT \'DROP VIEW "\'||:TMP_VIEW_NAME||\'"\'; END';
 
@@ -707,13 +703,11 @@ class FirebirdPlatform extends AbstractPlatform
 
     protected function getDropSequenceIfExistsPSql($aSequence, $inBlock = false)
     {
-        $result = sprintf(
-            'IF (EXISTS(SELECT 1 
-                              FROM RDB$GENERATORS 
-                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(\'' . $this->unquotedIdentifierName($aSequence) . '\') 
-                                AND (RDB$SYSTEM_FLAG IS NULL OR RDB$SYSTEM_FLAG = 0) 
-                                )
+        $result = sprintf('IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
+                              WHERE (UPPER(TRIM(RDB$GENERATOR_NAME)) = UPPER(\'%s\') 
+                                AND (RDB$SYSTEM_FLAG IS DISTINCT FROM 1))
                               )) THEN BEGIN %s; END',
+            $this->unquotedIdentifierName($aSequence),
             $this->getExecuteStatementPSql(parent::getDropSequenceSQL($aSequence)),
         );
         if ($inBlock) {
@@ -804,6 +798,15 @@ class FirebirdPlatform extends AbstractPlatform
         return parent::getSetTransactionIsolationSQL($level);
     }
 
+    protected function _getTransactionIsolationLevelSQL($level)
+    {
+        switch ($level) {
+            case TransactionIsolationLevel::SNAPSHOT:
+                return 'SNAPSHOT';
+        }
+
+        return parent::_getTransactionIsolationLevelSQL($level);
+    }
     /**
      * {@inheritDoc}
      */
@@ -863,7 +866,10 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getTruncateTableSQL($tableName, $cascade = false)
     {
-        return 'DELETE FROM ' . $tableName;
+        $identifier = new Identifier($tableName);
+        $tableName = $identifier->getQuotedName($this);
+
+        return 'DELETE FROM ' . $this->normalizeIdentifier($tableName)->getQuotedName($this);
     }
 
     /**
@@ -1071,11 +1077,13 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      *
-     * Actually Firebird can store up to 32K bytes in a varchar, but we assume UTF8, thus the limit is 8190
+     * Actually Firebird can store up to 32K bytes in a varchar, but we assume UTF8, thus the limit is 8191
+     * https://firebirdsql.org/file/documentation/chunk/en/refdocs/fblangref40/fblangref40-datatypes-chartypes.html
+     *
      */
     public function getVarcharMaxLength()
     {
-        return 8190;
+        return $this->getBinaryMaxLength();
     }
 
     /**
@@ -1085,7 +1093,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getBinaryMaxLength()
     {
-        return 8190;
+        return 8191;
     }
 
     /**
@@ -1211,12 +1219,10 @@ class FirebirdPlatform extends AbstractPlatform
             if ($length) {
                 return 'CHAR(' . $length . ')';
             }
-            return 'CHAR(' . $this->getBinaryDefaultLength() . ')';
+            return 'CHAR(' . $this->getBinaryMaxLength() . ')';
         }
-        if ($length) {
-            return 'VARCHAR(' . $length . ')';
-        }
-        return 'VARCHAR(' . $this->getBinaryDefaultLength() . ')';
+
+        return 'VARCHAR(' . ($length > 0 ? $length : $this->getBinaryMaxLength()) . ')';
     }
 
     /**
@@ -1344,14 +1350,19 @@ class FirebirdPlatform extends AbstractPlatform
         return $sql;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getCreateAutoincrementSql($column, $tableName)
     {
         $sql = [];
 
         if (!$column instanceof AbstractAsset)
-            $column = new Identifier($column);
+            $column = $this->normalizeIdentifier($column);
 
-        $tableName = new Identifier($tableName);
+        if (!$tableName instanceof AbstractAsset)
+            $tableName = $this->normalizeIdentifier($tableName);
+
         $sequenceName = $this->getIdentitySequenceName($tableName, $column);
         $triggerName = $this->getIdentitySequenceTriggerName($tableName, $column);
         $sequence = new Sequence($sequenceName, 1, 1);
@@ -1374,11 +1385,7 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * Returns the SQL statements to drop the autoincrement for the given table name.
-     *
-     * @param string $table The table name to drop the autoincrement for.
-     *
-     * @return string
+     * @inheritDoc
      */
     public function getDropAutoincrementSql($table)
     {
@@ -1418,52 +1425,60 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getListTableColumnsSQL($table, $database = null)
     {
+        $table = $this->normalizeIdentifier($table);
+        $table = $this->quoteStringLiteral($table->getName());
+
         $query = <<<'___query___'
-            SELECT TRIM(r.RDB$FIELD_NAME) AS "FIELD_NAME",
-            TRIM(f.RDB$FIELD_NAME) AS "FIELD_DOMAIN",
-            TRIM(f.RDB$FIELD_TYPE) AS "FIELD_TYPE",
-            TRIM(typ.RDB$TYPE_NAME) AS "FIELD_TYPE_NAME",
-            f.RDB$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
-            f.RDB$FIELD_LENGTH AS "FIELD_LENGTH",
-            f.RDB$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
-            f.RDB$FIELD_PRECISION AS "FIELD_PRECISION",
-            f.RDB$FIELD_SCALE AS "FIELD_SCALE",
-            MIN(TRIM(rc.RDB$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
-            MIN(TRIM(i.RDB$INDEX_NAME)) AS "FIELD_INDEX_NAME",
-            r.RDB$NULL_FLAG as "FIELD_NOT_NULL_FLAG",
-            r.RDB$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
-            r.RDB$FIELD_POSITION AS "FIELD_POSITION",
-            r.RDB$DESCRIPTION AS "FIELD_DESCRIPTION",
-            f.RDB$CHARACTER_SET_ID as "CHARACTER_SET_ID",
-            TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
-            f.RDB$COLLATION_ID as "COLLATION_ID",
-            TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME"
-            FROM RDB$RELATION_FIELDS r
-            LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
-            LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
-            LEFT OUTER JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND i.RDB$RELATION_NAME = r.RDB$RELATION_NAME
-            LEFT OUTER JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = s.RDB$INDEX_NAME AND rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME AND rc.RDB$RELATION_NAME = i.RDB$RELATION_NAME
-            LEFT OUTER JOIN RDB$REF_CONSTRAINTS REFC ON rc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME
-            LEFT OUTER JOIN RDB$TYPES typ ON typ.RDB$FIELD_NAME = 'RDB$FIELD_TYPE' AND typ.RDB$TYPE = f.RDB$FIELD_TYPE
-            LEFT OUTER JOIN RDB$TYPES sub ON sub.RDB$FIELD_NAME = 'RDB$FIELD_SUB_TYPE' AND sub.RDB$TYPE = f.RDB$FIELD_SUB_TYPE
-            LEFT OUTER JOIN RDB$CHARACTER_SETS cs ON cs.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID
-            LEFT OUTER JOIN RDB$COLLATIONS cl ON cl.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID AND cl.RDB$COLLATION_ID = f.RDB$COLLATION_ID
-            WHERE UPPER(r.RDB$RELATION_NAME) = UPPER(':TABLE')
-            GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_SUB_TYPE",  "FIELD_LENGTH",
-                     "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE", "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE",
-                     "FIELD_POSITION",
-                     "CHARACTER_SET_ID",
-                     "CHARACTER_SET_NAME",
-                     "COLLATION_ID",
-                     "COLLATION_NAME",
-                     "FIELD_DESCRIPTION"
-            ORDER BY "FIELD_POSITION"
+SELECT TRIM(r.RDB$FIELD_NAME) AS "FIELD_NAME",
+TRIM(f.RDB$FIELD_NAME) AS "FIELD_DOMAIN",
+TRIM(f.RDB$FIELD_TYPE) AS "FIELD_TYPE",
+TRIM(typ.RDB$TYPE_NAME) AS "FIELD_TYPE_NAME",
+f.RDB$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
+f.RDB$FIELD_LENGTH AS "FIELD_LENGTH",
+f.RDB$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
+f.RDB$FIELD_PRECISION AS "FIELD_PRECISION",
+f.RDB$FIELD_SCALE AS "FIELD_SCALE",
+MIN(TRIM(rc.RDB$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
+MIN(TRIM(i.RDB$INDEX_NAME)) AS "FIELD_INDEX_NAME",
+r.RDB$NULL_FLAG as "FIELD_NOT_NULL_FLAG",
+r.RDB$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
+r.RDB$FIELD_POSITION AS "FIELD_POSITION",
+r.RDB$DESCRIPTION AS "FIELD_DESCRIPTION",
+f.RDB$CHARACTER_SET_ID as "CHARACTER_SET_ID",
+TRIM(cs.RDB$CHARACTER_SET_NAME) as "CHARACTER_SET_NAME",
+f.RDB$COLLATION_ID as "COLLATION_ID",
+TRIM(cl.RDB$COLLATION_NAME) as "COLLATION_NAME"
+FROM RDB$RELATION_FIELDS r
+LEFT OUTER JOIN RDB$FIELDS f ON r.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDEX_SEGMENTS s ON s.RDB$FIELD_NAME=r.RDB$FIELD_NAME
+LEFT OUTER JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = s.RDB$INDEX_NAME 
+                              AND i.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = s.RDB$INDEX_NAME 
+                                            AND rc.RDB$INDEX_NAME = i.RDB$INDEX_NAME 
+                                            AND rc.RDB$RELATION_NAME = i.RDB$RELATION_NAME
+LEFT OUTER JOIN RDB$REF_CONSTRAINTS REFC ON rc.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME
+LEFT OUTER JOIN RDB$TYPES typ ON typ.RDB$FIELD_NAME = 'RDB$FIELD_TYPE' 
+                              AND typ.RDB$TYPE = f.RDB$FIELD_TYPE
+LEFT OUTER JOIN RDB$TYPES sub ON sub.RDB$FIELD_NAME = 'RDB$FIELD_SUB_TYPE' 
+                              AND sub.RDB$TYPE = f.RDB$FIELD_SUB_TYPE
+LEFT OUTER JOIN RDB$CHARACTER_SETS cs ON cs.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID
+LEFT OUTER JOIN RDB$COLLATIONS cl ON cl.RDB$CHARACTER_SET_ID = f.RDB$CHARACTER_SET_ID 
+                                  AND cl.RDB$COLLATION_ID = f.RDB$COLLATION_ID
+WHERE UPPER(r.RDB$RELATION_NAME) = UPPER(:TABLE)
+GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_SUB_TYPE",  "FIELD_LENGTH",
+         "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE", "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE",
+         "FIELD_POSITION","FIELD_DESCRIPTION", 
+         "CHARACTER_SET_ID", "CHARACTER_SET_NAME", "COLLATION_ID", "COLLATION_NAME"
+ORDER BY "FIELD_POSITION"
 ___query___;
-        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
+        return str_replace(':TABLE', $table, $query);
     }
 
     public function getListTableForeignKeysSQL($table, $database = null)
     {
+        $table = $this->normalizeIdentifier($table);
+        $table = $this->quoteStringLiteral($table->getName());
+
         $query = <<<'___query___'
       SELECT TRIM(rc.RDB$CONSTRAINT_NAME) AS constraint_name,
       TRIM(i.RDB$RELATION_NAME) AS table_name,
@@ -1484,11 +1499,11 @@ ___query___;
       LEFT JOIN RDB$RELATION_CONSTRAINTS rc2 ON rc2.RDB$CONSTRAINT_NAME = refc.RDB$CONST_NAME_UQ
       LEFT JOIN RDB$INDICES i2 ON i2.RDB$INDEX_NAME = rc2.RDB$INDEX_NAME
       LEFT JOIN RDB$INDEX_SEGMENTS s2 ON i2.RDB$INDEX_NAME = s2.RDB$INDEX_NAME AND s.RDB$FIELD_POSITION = s2.RDB$FIELD_POSITION
-      WHERE rc.RDB$CONSTRAINT_TYPE = 'FOREIGN KEY' and UPPER(i.RDB$RELATION_NAME) = UPPER(':TABLE')
+      WHERE rc.RDB$CONSTRAINT_TYPE = 'FOREIGN KEY' and UPPER(i.RDB$RELATION_NAME) = UPPER(:TABLE)
       ORDER BY rc.RDB$CONSTRAINT_NAME, s.RDB$FIELD_POSITION
 ___query___;
 
-        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
+        return str_replace(':TABLE', $table, $query);
     }
 
     /**
@@ -1499,6 +1514,8 @@ ___query___;
      */
     public function getListTableIndexesSQL($table, $currentDatabase = null)
     {
+        $table = $this->normalizeIdentifier($table);
+        $table = $this->quoteStringLiteral($table->getName());
         $query = <<<'___query___'
       SELECT
         TRIM(RDB$INDEX_SEGMENTS.RDB$FIELD_NAME) AS field_name,
@@ -1514,10 +1531,10 @@ ___query___;
      FROM RDB$INDEX_SEGMENTS
      LEFT JOIN RDB$INDICES ON RDB$INDICES.RDB$INDEX_NAME = RDB$INDEX_SEGMENTS.RDB$INDEX_NAME
      LEFT JOIN RDB$RELATION_CONSTRAINTS ON RDB$RELATION_CONSTRAINTS.RDB$INDEX_NAME = RDB$INDEX_SEGMENTS.RDB$INDEX_NAME
-     WHERE UPPER(RDB$INDICES.RDB$RELATION_NAME) = UPPER(':TABLE')
+     WHERE UPPER(RDB$INDICES.RDB$RELATION_NAME) = UPPER(:TABLE)
      ORDER BY RDB$INDICES.RDB$INDEX_NAME, RDB$RELATION_CONSTRAINTS.RDB$CONSTRAINT_NAME, RDB$INDEX_SEGMENTS.RDB$FIELD_POSITION
 ___query___;
-        return str_replace(':TABLE', $this->unquotedIdentifierName($table), $query);
+        return str_replace(':TABLE', $table, $query);
     }
 
     /**
@@ -1562,16 +1579,11 @@ ___query___;
      *
      * @return Identifier The normalized identifier.
      */
-    protected function normalizeIdentifier($name)
+    protected function normalizeIdentifier($name): Identifier
     {
-        if ($name instanceof AbstractAsset) {
-            $identifier = new Identifier($name->getQuotedName($this));
-        } else {
-            $identifier = new Identifier($name);
-        }
+        $identifier = new Identifier($name);
 
-
-        return $identifier->isQuoted() ? $identifier : new Identifier(strtoupper($identifier->getName()));
+        return $identifier->isQuoted() ? $identifier : new Identifier(strtoupper($name));
     }
 
     private function getAutoincrementIdentifierName(Identifier $table)
@@ -1615,7 +1627,7 @@ ___query___;
 
     public function getLengthExpression($column)
     {
-        $max = $this->getVarcharMaxLength();
+        $max = $this->getVarcharMaxCastLength();
         return $column === '?' ? 'CHAR_LENGTH(CAST(? AS VARCHAR('.$max.')))' : 'CHAR_LENGTH(' . $column . ')';
     }
 
@@ -1642,7 +1654,7 @@ ___query___;
 
     public function getListTableConstraintsSQL($table)
     {
-        $table = new Identifier($table);
+        $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
 
         return sprintf(
@@ -1752,5 +1764,17 @@ SQL
         }
         return $this->convertBooleans($item);
     }
+
+    protected function getVarcharMaxCastLength(): int
+    {
+        return 255;
+    }
+
+    public function getBinaryDefaultLength()
+    {
+        return $this->getVarcharMaxCastLength();
+    }
+
+
 
 }

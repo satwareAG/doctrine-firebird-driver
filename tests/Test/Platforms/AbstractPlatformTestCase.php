@@ -93,7 +93,22 @@ abstract class AbstractPlatformTestCase extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->platform->getForeignKeyReferentialActionSQL('unknown');
     }
+    /** @return mixed[][] */
+    public static function getGeneratesAdvancedForeignKeyOptionsSQLData(): iterable
+    {
+        return [
+            [[], ''],
+            [['onDelete' => 'NO ACTION'], ' ON DELETE NO ACTION'],
+            [['onDelete' => 'CASCADE'], ' ON DELETE CASCADE'],
+            [['onDelete' => 'SET NULL'], ' ON DELETE SET NULL'],
+            [['onDelete' => 'SET DEFAULT'], ' ON DELETE SET DEFAULT'],
+            [['onUpdate' => 'NO ACTION'], ' ON UPDATE NO ACTION'],
+            [['onUpdate' => 'CASCADE'], ' ON UPDATE CASCADE'],
+            [['onUpdate' => 'SET NULL'], ' ON UPDATE SET NULL'],
+            [['onUpdate' => 'SET DEFAULT'], ' ON UPDATE SET DEFAULT'],
 
+        ];
+    }
     public function testGetUnknownDoctrineMappingType(): void
     {
         $this->expectException(Exception::class);
@@ -296,8 +311,9 @@ abstract class AbstractPlatformTestCase extends TestCase
 
     protected function getBitAndComparisonExpressionSql(string $value1, string $value2): string
     {
-        return '(' . $value1 . ' & ' . $value2 . ')';
+        return 'BIN_AND (' . $value1 . ', ' . $value2 . ')';
     }
+
 
     public function testGeneratesBitAndComparisonExpressionSql(): void
     {
@@ -307,7 +323,7 @@ abstract class AbstractPlatformTestCase extends TestCase
 
     protected function getBitOrComparisonExpressionSql(string $value1, string $value2): string
     {
-        return '(' . $value1 . ' | ' . $value2 . ')';
+        return sprintf('BIN_OR (%s, %s)',$value1, $value2 );
     }
 
     public function testGeneratesBitOrComparisonExpressionSql(): void
@@ -797,14 +813,22 @@ abstract class AbstractPlatformTestCase extends TestCase
 
     protected function getBinaryMaxLength(): int
     {
-        return 4000;
+        return 8191;
     }
 
     public function testReturnsBinaryTypeDeclarationSQL(): void
     {
-        $this->expectException(Exception::class);
+        self::assertSame('VARCHAR(255)', $this->platform->getBinaryTypeDeclarationSQL([]));
+        self::assertSame('VARCHAR(8191)', $this->platform->getBinaryTypeDeclarationSQL(['length' => 0]));
+        self::assertSame('VARCHAR(2000)', $this->platform->getBinaryTypeDeclarationSQL(['length' => 2000]));
 
-        $this->platform->getBinaryTypeDeclarationSQL([]);
+        self::assertSame('CHAR(255)', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true]));
+        self::assertSame('CHAR(8191)', $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 0]));
+
+        self::assertSame(
+            'CHAR(2000)',
+            $this->platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 2000]),
+        );
     }
 
     public function testReturnsBinaryTypeLongerThanMaxDeclarationSQL(): void
@@ -1029,9 +1053,9 @@ abstract class AbstractPlatformTestCase extends TestCase
     protected function getQuotedAlterTableRenameIndexInSchemaSQL(): array
     {
         return [
-            'DROP INDEX "schema"."create"',
+            'DROP INDEX "create"',
             'CREATE INDEX "select" ON "schema"."table" (id)',
-            'DROP INDEX "schema"."foo"',
+            'DROP INDEX "foo"',
             'CREATE INDEX "bar" ON "schema"."table" (id)',
         ];
     }
@@ -1410,6 +1434,10 @@ abstract class AbstractPlatformTestCase extends TestCase
         $this->platform->appendLockHint('TABLE', 128);
     }
 
+    public function testGetName()
+    {
+        $this->assertStringEndsWith( $this->platform->getName() . 'Platform', get_class($this->platform));
+    }
     public function testItAddsCommentsForOverridingTypes(): void
     {
         $this->backedUpType = Type::getType(Types::STRING);
@@ -1487,6 +1515,7 @@ interface GetAlterTableSqlDispatchEventListener
 
     public function onSchemaAlterTableRenameColumn(): void;
 }
+
 
 interface GetDropTableSqlDispatchEventListener
 {

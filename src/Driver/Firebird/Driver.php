@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use SensitiveParameter;
 
@@ -12,6 +15,7 @@ use SensitiveParameter;
  */
 final class Driver extends AbstractFirebirdDriver
 {
+
     /**
      * {@inheritDoc}
      *

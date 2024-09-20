@@ -30,7 +30,6 @@ use function fbird_commit_ret;
 use function fbird_connect;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function fbird_free_query;
 use function fbird_pconnect;
 use function fbird_query;
 use function fbird_rollback;

@@ -148,7 +148,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $found = $this->_platform->getDropTableSQL('foo');
         $this->assertIsString($found);
         $this->assertStringStartsWith('EXECUTE BLOCK AS', $found);
-        $this->assertStringContainsString('DROP TRIGGER foo_D2IT', $found);
+        $this->assertStringContainsString('DROP TRIGGER FOO_D2IT', $found);
         $this->assertStringContainsString('DROP TABLE foo', $found);
     }
 
@@ -369,13 +369,13 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testReturnsBinaryTypeDeclarationSQL()
     {
         $this->assertSame('VARCHAR(255)', $this->_platform->getBinaryTypeDeclarationSQL([]));
-        $this->assertSame('VARCHAR(255)', $this->_platform->getBinaryTypeDeclarationSQL(['length' => 0]));
+        $this->assertSame('VARCHAR(8191)', $this->_platform->getBinaryTypeDeclarationSQL(['length' => 0]));
         $this->assertSame('VARCHAR(8190)', $this->_platform->getBinaryTypeDeclarationSQL(['length' => 8190]));
-        $this->assertSame('BLOB', $this->_platform->getBinaryTypeDeclarationSQL(['length' => 8191]));
+        $this->assertSame('BLOB', $this->_platform->getBinaryTypeDeclarationSQL(['length' => 8192]));
         $this->assertSame('CHAR(255)', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true]));
-        $this->assertSame('CHAR(255)', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 0]));
+        $this->assertSame('CHAR(8191)', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 0]));
         $this->assertSame('CHAR(8190)', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 8190]));
-        $this->assertSame('BLOB', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 8191]));
+        $this->assertSame('BLOB', $this->_platform->getBinaryTypeDeclarationSQL(['fixed' => true, 'length' => 8192]));
     }
 
     public function testGetCreateAutoincrementSql()
@@ -387,10 +387,10 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         }   else {
 
             $this->assertArrayHasKey(0, $found);
-            $this->assertSame("CREATE SEQUENCE foo_D2IS", $found[0]);
+            $this->assertSame("CREATE SEQUENCE FOO_D2IS", $found[0]);
             $this->assertArrayHasKey(1, $found);
-            $this->assertStringStartsWith("CREATE TRIGGER foo_D2IT FOR foo", $found[1]);
-            $this->assertStringContainsString("NEW.bar = NEXT VALUE FOR foo_D2IS;", $found[1]);
+            $this->assertStringStartsWith("CREATE TRIGGER FOO_D2IT FOR FOO", $found[1]);
+            $this->assertStringContainsString("NEW.BAR = NEXT VALUE FOR FOO_D2IS;", $found[1]);
         }
     }
 
@@ -713,7 +713,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $found = $this->_platform->getCreateTableSQL($table);
         $this->assertCount(2, $found);
         $this->assertArrayHasKey(0, $found);
-        $this->assertSame("CREATE TABLE test (id INTEGER NOT NULL, CONSTRAINT test_PK PRIMARY KEY (id))", $found[0]);
+        $this->assertSame("CREATE TABLE test (id INTEGER NOT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))", $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertSame("COMMENT ON COLUMN test.id IS 'This is a comment'", $found[1]);
     }
@@ -767,7 +767,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $found = $this->_platform->getCreateTableSQL($table);
         $this->assertCount(2, $found);
         $this->assertArrayHasKey(0, $found);
-        $this->assertSame("CREATE TABLE test (id INTEGER NOT NULL, data BLOB SUB_TYPE TEXT NOT NULL, CONSTRAINT test_PK PRIMARY KEY (id))", $found[0]);
+        $this->assertSame("CREATE TABLE test (id INTEGER NOT NULL, data BLOB SUB_TYPE TEXT NOT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))", $found[0]);
         $this->assertArrayHasKey(1, $found);
         $this->assertSame("COMMENT ON COLUMN test.data IS '(DC2Type:array)'", $found[1]);
     }

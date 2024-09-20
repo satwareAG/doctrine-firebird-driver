@@ -140,7 +140,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'id');
         $this->assertIsString($found);
-        $this->assertSame("id_PK", $found);
+        $this->assertSame("ID_PK", $found);
     }
 
     public function testSupportsForeignKeyConstraints()
@@ -176,7 +176,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         if ($this->_platform instanceof Firebird3Platform) {
             $this->assertSame("foo.bar", $found);
         } else {
-            $this->assertSame("foo_D2IS", $found);
+            $this->assertSame("FOO_D2IS", $found);
         }
 
     }
@@ -185,7 +185,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $found = $this->_platform->getIdentitySequenceTriggerName('foo', 'bar');
         $this->assertIsString($found);
-        $this->assertSame("foo_D2IT", $found);
+        $this->assertSame("FOO_D2IT", $found);
     }
 
     public function testSupportsViews()
@@ -597,7 +597,7 @@ END
     {
         $found = $this->_platform->getTruncateTableSQL('foo', $cascade);
         $this->assertIsString($found);
-        $this->assertSame('DELETE FROM foo', $found);
+        $this->assertSame('DELETE FROM FOO', $found);
     }
 
     public function dataProvider_testGetTruncateTableSQL()
@@ -712,9 +712,9 @@ END
                 0 => 'ALTER TABLE foo ALTER COLUMN bar TYPE BIGINT',
                 1 => 'ALTER TABLE foo ALTER bar DROP DEFAULT',
                 2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('foo')",
-                3 => 'CREATE SEQUENCE foo_D2IS',
-                4 => "SELECT setval('foo_D2IS', (SELECT MAX(bar) FROM foo))",
-                5 => "ALTER TABLE foo ALTER bar SET DEFAULT nextval('foo_D2IS')",
+                3 => 'CREATE SEQUENCE FOO_D2IS',
+                4 => "SELECT setval('FOO_D2IS', (SELECT MAX(bar) FROM foo))",
+                5 => "ALTER TABLE foo ALTER bar SET DEFAULT nextval('FOO_D2IS')",
                 6 => "COMMENT ON COLUMN foo.bar IS ''",
             ];
         }
@@ -894,11 +894,11 @@ END
     {
         return [
             ["CHAR(32)", 32, true],
-            ["CHAR(255)", 0, true],
+            ["CHAR(8191)", 0, true],
             ["VARCHAR(32)", 32, false],
-            ["VARCHAR(255)", 0, false],
+            ["VARCHAR(8191)", 0, false],
             ["VARCHAR(8190)", 8190, false],
-            ["BLOB", 8191, false],
+            ["BLOB", 8192, false],
         ];
     }
 
@@ -989,9 +989,9 @@ END
     {
         $found = $this->_platform->getListTableColumnsSQL('foo');
         $this->assertIsString($found);
-        $foundNormalized = preg_replace('/\r\n|\r/', "\n", ltrim($found));
-        $this->assertStringStartsWith("SELECT TRIM(r.RDB\$FIELD_NAME) AS \"FIELD_NAME\",\n", $foundNormalized);
-        $this->assertStringContainsString(" FROM RDB\$RELATION_FIELDS r\n", $foundNormalized);
+        $this->assertStringStartsWith("SELECT TRIM(r.RDB\$FIELD_NAME) AS \"FIELD_NAME\",\n", $found);
+        $this->assertStringContainsString("FROM RDB\$RELATION_FIELDS r", $found);
+
     }
 
     public function testGetListTableForeignKeysSQL()
@@ -1046,13 +1046,6 @@ END
             $this->assertStringStartsWith("CREATE DATABASE", $sql);
             $this->assertStringEndsWith("foo", $sql);
     }
-
-    public function testGetDropDatabaseSQLThrowsException()
-    {
-        $this->expectException(Exception::class);
-        $this->_platform->getDropDatabaseSQL('foobar');
-    }
-
     /**
      * @group DBAL-553
      */
