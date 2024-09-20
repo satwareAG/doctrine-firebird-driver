@@ -5,7 +5,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use function sprintf;
 
-final class LikeWildcardsEscapingTest extends FunctionalTestCase
+final class LikeWildcardsEscapingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testFetchLikeExpressionResult(): void
     {

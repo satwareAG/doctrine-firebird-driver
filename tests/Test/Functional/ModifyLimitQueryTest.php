@@ -13,7 +13,7 @@ use function count;
 
 use const CASE_LOWER;
 
-class ModifyLimitQueryTest extends FunctionalTestCase
+class ModifyLimitQueryTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

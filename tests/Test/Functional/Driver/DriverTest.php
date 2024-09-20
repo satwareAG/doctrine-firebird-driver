@@ -16,7 +16,7 @@ class DriverTest extends AbstractDriverTestCase
     {
         parent::setUp();
 
-        if (TestUtil::isDriverClassOneOf(Driver::class)) {
+        if (\Satag\DoctrineFirebirdDriver\Test\TestUtil::isDriverClassOneOf(Driver::class)) {
             return;
         }
 

@@ -27,7 +27,7 @@ use function file_exists;
 use function unlink;
 
 
-class ConnectionTest extends FunctionalTestCase
+class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     use VerifyDeprecations;
 
@@ -376,7 +376,7 @@ class ConnectionTest extends FunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        $params               = TestUtil::getConnectionParams();
+        $params               = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
         $params['persistent'] = true;
 
         $connection       = DriverManager::getConnection($params);

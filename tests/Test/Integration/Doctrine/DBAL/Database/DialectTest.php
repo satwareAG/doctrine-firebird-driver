@@ -61,13 +61,12 @@ class DialectTest extends AbstractIntegrationTestCase
 
     public function testDialect1()
     {
-
+        if($this->_platform !== 'Firebird') {
+            $this->markTestSkipped(sprintf('Platform %s (for DB %s) is not supported yet', $this->_platform->getName(), $this->connection->getDatabase()));
+        }
         $connection = $this->reConnect([
             'dialect' => 1
         ]);
-        if($connection->getDatabasePlatform()->getName() !== 'Firebird') {
-            $this->markTestSkipped(sprintf('Platform %s (for DB %s) is not supported yet', $connection->getDatabasePlatform()->getName(), $connection->getDatabase()));
-        }
         $stmt = $connection->prepare("SELECT CAST(CAST('2018-01-01' AS DATE) AS CHAR(25)) AS TXT FROM RDB\$DATABASE");
         $result = $stmt->executeQuery()->fetchAssociative();
         $this->assertSame(100, strlen((string) $result['TXT']));
@@ -107,7 +106,7 @@ class DialectTest extends AbstractIntegrationTestCase
         $this->assertArrayHasKey("NUMBER", $result);
         $this->assertIsFloat($result["NUMBER"]);
         $this->assertSame("0.33333333", number_format($result["NUMBER"], 8));
-        $this->connection->close();
+        $connection->close();
     }
 
     public function testDialect2()

@@ -10,7 +10,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function sprintf;
 
 
-class DateExpressionTest extends FunctionalTestCase
+class DateExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /** @dataProvider differenceProvider */
     public function testDifference(string $date1, string $date2, int $expected): void

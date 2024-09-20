@@ -32,8 +32,8 @@ final class ConnectionWrapper extends \Doctrine\DBAL\Connection
             }
         }
         if (isset($identityColumnTables[$table])) {
-            $sql .= ' RETURNING ' . $identityColumnTables[$table] . ' AS "' . $table . '.' .  $identityColumnTables[$table] .'"';
-            $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]);
+            $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' .  $identityColumnTables[$table]['alias'] .'"';
+            $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]['id']);
         }
         return $sql;
     }
@@ -64,7 +64,7 @@ final class ConnectionWrapper extends \Doctrine\DBAL\Connection
         ?QueryCacheProfile $qcp = null
     ): Result {
         $sql = $this->extractIdentityColumn($sql);
-        return parent::executeQuery($sql, $params);
+        return parent::executeQuery($sql, $params, $types, $qcp);
 
     }
     /**
@@ -77,7 +77,7 @@ final class ConnectionWrapper extends \Doctrine\DBAL\Connection
     }
 
 
-    private function getIdentityColumnForTable($tableName): ?string
+    private function getIdentityColumnForTable($tableName): ?array
     {
         $schemaManager = $this->createSchemaManager();
 
@@ -86,7 +86,10 @@ final class ConnectionWrapper extends \Doctrine\DBAL\Connection
 
         foreach ($columns as $column) {
             if ($column->getAutoincrement()) {
-                return $column->getName();
+                 return [
+                     'id' => $column->getName(),
+                     'alias' => 'ID' . strtoupper(dechex(crc32($tableName)) . '.' . dechex(crc32($column->getName())))
+                 ];
             }
         }
 
@@ -136,5 +139,14 @@ final class ConnectionWrapper extends \Doctrine\DBAL\Connection
             $this->lastInsertSequence = $tableSequences[$tableName];
         }
 
+    }
+
+    public function getDatabase()
+    {
+        static $database = null;
+        if ($database === null) {
+            $database = parent::getDatabase();
+        }
+        return $database;
     }
 }

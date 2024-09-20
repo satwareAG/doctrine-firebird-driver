@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-class OtherSchemaTest extends FunctionalTestCase
+class OtherSchemaTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testATableCanBeCreatedInAnotherSchema(): void
     {

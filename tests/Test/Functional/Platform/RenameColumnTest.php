@@ -11,7 +11,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function array_keys;
 use function strtolower;
 
-class RenameColumnTest extends FunctionalTestCase
+class RenameColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /** @dataProvider columnNameProvider */
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void

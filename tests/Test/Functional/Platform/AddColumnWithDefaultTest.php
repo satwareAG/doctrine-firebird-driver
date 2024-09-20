@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-class AddColumnWithDefaultTest extends FunctionalTestCase
+class AddColumnWithDefaultTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testAddColumnWithDefault(): void
     {

@@ -12,7 +12,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function rtrim;
 
-final class DecimalTest extends FunctionalTestCase
+final class DecimalTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /** @return string[][] */
     public static function dataValuesProvider(): array

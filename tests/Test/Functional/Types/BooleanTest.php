@@ -8,7 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-class BooleanTest extends FunctionalTestCase
+class BooleanTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function booleanProvider(): array
     {

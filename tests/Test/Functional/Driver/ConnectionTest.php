@@ -12,7 +12,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 /**
  * @requires extension interbase
  **/
-class ConnectionTest extends FunctionalTestCase
+class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testHostnameDbNameIsRequired(): void
     {

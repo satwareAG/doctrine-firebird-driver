@@ -6,6 +6,8 @@ use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
@@ -53,17 +55,24 @@ class ConnectionTest extends AbstractIntegrationTestCase
 
     public function testLastInsertIdWorks()
     {
-        $id = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
-        $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup25.sql
+
+        if ($this->_platform instanceof Firebird3Platform) { // other platforms support Identity Columns
+            $lid = null;
+        } else {
+            $lid = 'ALBUM_D2IS';
+            $id = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
+            $this->assertSame(2, $id); // 2x ALBUM are inserted in database_setup25.sql
+        }
+
         $albumA = new Entity\Album("Foo");
         $this->_entityManager->persist($albumA);
         $this->_entityManager->flush();
-        $idA = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
+        $idA = $this->_entityManager->getConnection()->lastInsertId($lid);
         $this->assertSame(3, $idA);
         $albumB = new Entity\Album("Foo");
         $this->_entityManager->persist($albumB);
         $this->_entityManager->flush();
-        $idB = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
+        $idB = $this->_entityManager->getConnection()->lastInsertId($lid);
         $this->assertSame(4, $idB);
     }
 

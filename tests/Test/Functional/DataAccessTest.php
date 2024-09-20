@@ -17,7 +17,7 @@ use function strtotime;
 
 use const CASE_LOWER;
 
-class DataAccessTest extends FunctionalTestCase
+class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     use VerifyDeprecations;
 

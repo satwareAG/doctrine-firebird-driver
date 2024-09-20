@@ -9,7 +9,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function strtolower;
 
-class CreateAndDropSchemaObjectsSQLBuilderTest extends FunctionalTestCase
+class CreateAndDropSchemaObjectsSQLBuilderTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testCreateAndDropTablesWithCircularForeignKeys(): void
     {

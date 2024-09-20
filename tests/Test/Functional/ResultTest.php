@@ -4,7 +4,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
-class ResultTest extends FunctionalTestCase
+class ResultTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /**
      * @param mixed $expected

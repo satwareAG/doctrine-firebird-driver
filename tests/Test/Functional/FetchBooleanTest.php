@@ -6,7 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
-class FetchBooleanTest extends FunctionalTestCase
+class FetchBooleanTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

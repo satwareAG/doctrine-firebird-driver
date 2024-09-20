@@ -55,7 +55,7 @@ use function strlen;
 use function strtolower;
 use function substr;
 
-abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
+abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected AbstractSchemaManager $schemaManager;
 

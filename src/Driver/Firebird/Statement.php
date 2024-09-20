@@ -66,6 +66,9 @@ class Statement implements StatementInterface
      */
     public function __construct(protected Connection $connection, $statement, array $parameterMap = [], $executionMode = null)
     {
+        if (! is_resource($statement)) {
+            $connection->checkLastApiCall();
+        }
         $this->statement     = $statement;
         $this->parameterMap  = $parameterMap;
         $this->executionMode = $executionMode;

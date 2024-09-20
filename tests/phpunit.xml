@@ -6,7 +6,7 @@
          beStrictAboutTodoAnnotatedTests="true"
          failOnRisky="true"
          failOnWarning="true"
-         stopOnError="false"
+         stopOnError="true"
          convertDeprecationsToExceptions="true"
          executionOrder="depends,random"
          bootstrap="phpunit.bootstrap.php"

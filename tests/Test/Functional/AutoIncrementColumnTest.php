@@ -5,9 +5,10 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 
-class AutoIncrementColumnTest extends FunctionalTestCase
+class AutoIncrementColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     private bool $shouldDisableIdentityInsert = false;
 

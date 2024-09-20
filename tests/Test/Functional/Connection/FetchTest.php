@@ -13,13 +13,13 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 use function iterator_to_array;
 
 
-class FetchTest extends FunctionalTestCase
+class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     private string $query;
 
     public function setUp(): void
     {
-        $this->query = TestUtil::generateResultSetQuery([
+        $this->query = \Satag\DoctrineFirebirdDriver\Test\TestUtil::generateResultSetQuery([
             [
                 'a' => 'foo',
                 'b' => 1,

@@ -9,7 +9,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function key;
 
 
-class QuotingTest extends FunctionalTestCase
+class QuotingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /** @dataProvider stringLiteralProvider */
     public function testQuoteStringLiteral(string $string): void

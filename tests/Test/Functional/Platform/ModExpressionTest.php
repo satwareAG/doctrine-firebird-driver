@@ -9,7 +9,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-final class ModExpressionTest extends FunctionalTestCase
+final class ModExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testModExpression(): void
     {

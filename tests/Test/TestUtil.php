@@ -1,6 +1,6 @@
 <?php
 
-namespace Satag\DoctrineFirebirdDriver\Test\Functional;
+namespace Satag\DoctrineFirebirdDriver\Test;
 
 use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;

@@ -25,6 +25,10 @@ final class Result implements ResultInterface
         private $fbirdResultRc,
         private Connection $connection
     ) {
+        if ($this->connection->getConnectionInsertColumn() ) {
+            $this->connection->setConnectionInsertTableColumn(null, null);
+            $this->connection->setLastInsertId($this->fetchOne());
+        }
     }
 
     /** @inheritDoc */
@@ -77,9 +81,6 @@ final class Result implements ResultInterface
             return (int)$this->fbirdResultRc;
         } elseif (is_resource($this->fbirdResultRc)) {
             $rowCount = @fbird_affected_rows($this->connection->getActiveTransaction());
-            if ($rowCount === 1 && $this->connection->getConnectionInsertColumn() ) {
-                $this->connection->setLastInsertId($this->fetchOne());
-            }
             return $rowCount;
         }
         return 0;

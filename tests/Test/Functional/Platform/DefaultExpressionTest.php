@@ -16,7 +16,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function sprintf;
 
 
-class DefaultExpressionTest extends FunctionalTestCase
+class DefaultExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testCurrentDate(): void
     {

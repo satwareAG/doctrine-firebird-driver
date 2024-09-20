@@ -14,7 +14,7 @@ use function str_repeat;
  * This class holds tests that make sure generated SQL statements respect to platform restrictions
  * like maximum element name length
  */
-class PlatformRestrictionsTest extends FunctionalTestCase
+class PlatformRestrictionsTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /**
      * Tests element names that are at the boundary of the identifier length limit.

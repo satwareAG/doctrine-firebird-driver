@@ -10,7 +10,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-class AsciiStringTest extends FunctionalTestCase
+class AsciiStringTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

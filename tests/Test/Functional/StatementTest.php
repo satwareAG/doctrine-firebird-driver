@@ -17,7 +17,7 @@ use const E_WARNING;
 use const PHP_VERSION_ID;
 
 
-class StatementTest extends FunctionalTestCase
+class StatementTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

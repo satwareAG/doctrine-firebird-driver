@@ -9,6 +9,8 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+
 use function array_change_key_case;
 use function array_keys;
 use function array_map;
@@ -19,7 +21,7 @@ use function stream_get_contents;
 use const CASE_LOWER;
 
 
-class BinaryDataAccessTest extends FunctionalTestCase
+class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

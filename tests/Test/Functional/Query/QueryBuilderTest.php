@@ -23,7 +23,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
 
 
-final class QueryBuilderTest extends FunctionalTestCase
+final class QueryBuilderTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {
@@ -78,7 +78,7 @@ final class QueryBuilderTest extends FunctionalTestCase
 
         self::assertEquals([1], $qb1->fetchFirstColumn());
 
-        $params = TestUtil::getConnectionParams();
+        $params = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
 
         $connection2 = DriverManager::getConnection($params);
 

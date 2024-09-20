@@ -8,7 +8,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-final class ConcatExpressionTest extends FunctionalTestCase
+final class ConcatExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /**
      * @param list<string> $arguments

@@ -8,7 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-final class BitwiseExpressionTest extends FunctionalTestCase
+final class BitwiseExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testBitwiseAnd(): void
     {

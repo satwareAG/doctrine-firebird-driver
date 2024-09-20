@@ -11,7 +11,7 @@ use stdClass;
 
 use function str_repeat;
 
-class TypeConversionTest extends FunctionalTestCase
+class TypeConversionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     private static int $typeCounter = 0;
 

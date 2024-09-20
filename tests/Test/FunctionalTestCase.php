@@ -1,6 +1,6 @@
 <?php
 
-namespace Satag\DoctrineFirebirdDriver\Test\Functional;
+namespace Satag\DoctrineFirebirdDriver\Test;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -39,7 +39,7 @@ abstract class FunctionalTestCase extends TestCase
     final protected function connect(): void
     {
         if (self::$sharedConnection === null) {
-            self::$sharedConnection = TestUtil::getConnection();
+            self::$sharedConnection = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnection();
         }
 
         $this->connection = self::$sharedConnection;

@@ -16,7 +16,7 @@ use function json_decode;
 use function ksort;
 use function stream_get_contents;
 
-class JsonTest extends FunctionalTestCase
+class JsonTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

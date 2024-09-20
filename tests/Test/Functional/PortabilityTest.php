@@ -13,7 +13,7 @@ use function array_keys;
 use function array_merge;
 use function strlen;
 
-class PortabilityTest extends FunctionalTestCase
+class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function tearDown(): void
     {

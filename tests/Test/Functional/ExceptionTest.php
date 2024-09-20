@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 
 use function array_merge;
@@ -28,7 +29,7 @@ use const PHP_OS_FAMILY;
 /**
  * @psalm-import-type Params from DriverManager
  */
-class ExceptionTest extends FunctionalTestCase
+class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testPrimaryConstraintViolationException(): void
     {
@@ -327,7 +328,7 @@ class ExceptionTest extends FunctionalTestCase
             self::markTestSkipped('The SQLite driver does not use a network connection');
         }
 
-        $params = array_merge(TestUtil::getConnectionParams(), $params);
+        $params = array_merge(\Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams(), $params);
         $conn   = DriverManager::getConnection($params);
 
         $this->expectException(Exception\ConnectionException::class);

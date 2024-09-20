@@ -8,7 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
-class GuidTest extends FunctionalTestCase
+class GuidTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

@@ -14,7 +14,7 @@ use Throwable;
 use function array_filter;
 use function strtolower;
 
-class WriteTest extends FunctionalTestCase
+class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

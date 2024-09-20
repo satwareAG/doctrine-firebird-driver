@@ -10,7 +10,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Throwable;
 
-class TemporaryTableTest extends FunctionalTestCase
+class TemporaryTableTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testDropTemporaryTableNotAutoCommitTransaction(): void
     {

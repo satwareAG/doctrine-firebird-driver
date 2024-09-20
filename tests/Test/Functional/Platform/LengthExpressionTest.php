@@ -8,7 +8,7 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 
-final class LengthExpressionTest extends FunctionalTestCase
+final class LengthExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /**
      * @link https://docs.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support

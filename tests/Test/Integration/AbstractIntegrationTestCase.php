@@ -28,7 +28,7 @@ use SebastianBergmann\Timer\Timer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 
-abstract class AbstractIntegrationTestCase extends FunctionalTestCase
+abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
@@ -240,7 +240,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
      */
     protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
     {
-        $params = TestUtil::getConnectionParams();
+        $params = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
         return [
             'host' => $params['host'],
             'dbname' => static::DEFAULT_DATABASE_FILE_PATH,

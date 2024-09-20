@@ -16,7 +16,7 @@ use function random_bytes;
 use function str_replace;
 use function stream_get_contents;
 
-class BinaryTest extends FunctionalTestCase
+class BinaryTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

@@ -8,7 +8,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 
 use function sprintf;
 
-final class FetchEmptyTest extends FunctionalTestCase
+final class FetchEmptyTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     private string $query;
 

@@ -8,7 +8,7 @@ use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use PHPUnit\Framework\Constraint\IsType;
 
-abstract class AbstractDriverTestCase extends FunctionalTestCase
+abstract class AbstractDriverTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /**
      * The driver instance under test.

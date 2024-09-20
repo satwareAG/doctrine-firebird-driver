@@ -52,6 +52,8 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 }
 
                 break;
+            case -501:
+                $log = true;
             case -803:
                 return new UniqueConstraintViolationException($exception, $query);
 

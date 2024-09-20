@@ -13,7 +13,7 @@ use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use function array_keys;
 
 
-class AlterColumnTest extends FunctionalTestCase
+class AlterColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public function testColumnPositionRetainedAfterAltering(): void
     {

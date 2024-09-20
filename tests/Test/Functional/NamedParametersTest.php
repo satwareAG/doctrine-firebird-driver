@@ -13,7 +13,7 @@ use function array_change_key_case;
 
 use const CASE_LOWER;
 
-class NamedParametersTest extends FunctionalTestCase
+class NamedParametersTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     /** @return iterable<int, array<int, mixed>> */
     public static function ticketProvider(): iterable

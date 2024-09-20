@@ -19,7 +19,7 @@ use function sprintf;
  * Tests introspection of a custom column type with an underlying decimal column
  * on Firebird Platforms
 */
-class CustomIntrospectionTest extends FunctionalTestCase
+class CustomIntrospectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     public static function setUpBeforeClass(): void
     {

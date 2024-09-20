@@ -7,11 +7,13 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 
+
+
 use function fopen;
 use function str_repeat;
 use function stream_get_contents;
 
-class BlobTest extends FunctionalTestCase
+class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 {
     protected function setUp(): void
     {

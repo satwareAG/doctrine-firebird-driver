@@ -276,16 +276,11 @@ final class Connection implements ServerInfoAwareConnection
 
         $this->parser->parse($sql, $visitor);
 
-        $statement = @fbird_prepare(
+        return new Statement($this, @fbird_prepare(
             $this->fbirdConnectionRc,
             $this->getActiveTransaction(),
-            $sql
-        );
-        if (! is_resource($statement)) {
-            $this->checkLastApiCall();
-        }
-
-        return new Statement($this, $statement, $visitor->getParameterMap());
+            $visitor->getSQL()
+        ), $visitor->getParameterMap());
     }
 
     public function setConnectionInsertTableColumn($table, $column)
@@ -349,9 +344,9 @@ final class Connection implements ServerInfoAwareConnection
 
         if (str_contains((string)$name, '.')) {
             list($table, $column) = preg_split('/\./', $name);
-            if($this->connectionInsertColumn === $column && $this->connectionInsertTable === $table) {
+// if($this->connectionInsertColumn === $column && $this->connectionInsertTable === $table) {
                 return $this->connectionInsertId;
-            }
+            //}
 
         }
 
@@ -589,10 +584,6 @@ final class Connection implements ServerInfoAwareConnection
             if ($result) {
                 $this->fbirdActiveTransaction = $this->createTransaction(true);
             }
-        }
-
-        if ($preparedStatement) {
-            $result =  @fbird_free_query($preparedStatement);
         }
 
         throw DriverException::fromErrorInfo($lastError);
