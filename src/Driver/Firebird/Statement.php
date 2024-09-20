@@ -224,7 +224,7 @@ class Statement implements StatementInterface
     public function __destruct()
     {
         if (is_resource($this->statement)) {
-            $result = @fbird_close($this->statement);
+            $result = @fbird_free_query($this->statement);
         }
     }
 
