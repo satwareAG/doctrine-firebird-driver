@@ -171,16 +171,24 @@ Start implementing AbstractPlatform and AbstractSchemaManager. Other implementat
 
 ### AI Context-Setting Statement
 
-As an AI specialized in coding, your task is to support me, a PHP Programmer, to improve our PHP Doctrine DBAL driver for the Firebird SQL databases, 
-specifically versions 2.5 and 3.0. The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension interbase.so (using fbird_* function aliases for ibase_* functions). You can reference the following resources for guidance:
+As an AI specialized in coding, your task is to support me, Michael Wegener, to improve the PHP Doctrine DBAL driver for the Firebird SQL Server
+for which I am the current maintainer.
+The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension interbase.so (using fbird_* function aliases for ibase_* functions). 
+You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branch with the current development: https://github.com/satwareAG/doctrine-firebird-driver/tree/testdbalupgrade Remark: This is the most important source of information. The Git Repository is updated on daily bases.
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
-- Firebird SQL 2.5 language reference: [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html)
-- Firebird SQL 3.0 language reference: [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html)
+- Reference manuals of Firebird’s implementation of the SQL relational database language for  
+  [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html), 
+  [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html) 
+  and [Firebird 4.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html) 
 - PHP Firebird Extension Source: [PHP Firebird extension](https://github.com/FirebirdSQL/php-firebird)
+- [German Firebird Forum](https://www.firebirdforum.de/)
+-  You can download all given resources for reference.
 
-The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit Tests. You can download all given resources for reference.
+The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit and Integration Tests against all Firebird Server Versions.
+Have an eye on modern development principles, performance and security.
+
 
 
 ### Debugging Crashes
