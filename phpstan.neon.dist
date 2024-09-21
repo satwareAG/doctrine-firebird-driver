@@ -3,6 +3,9 @@ parameters:
     phpVersion: 80300
     paths:
         - src
+        - tests
+    bootstrapFiles:
+       - vendor/autoload.php
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
@@ -24,3 +27,4 @@ parameters:
 
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
