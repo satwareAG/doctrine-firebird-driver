@@ -8,11 +8,13 @@ use Doctrine\DBAL\Driver\API\ExceptionConverter as ExceptionConverterInterface;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Exception\DatabaseObjectExistsException;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Doctrine\DBAL\Exception\NonUniqueFieldNameException;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Exception\SyntaxErrorException;
@@ -21,7 +23,7 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
 
-use function strpos;
+use function str_contains;
 use function strtolower;
 
 /**
@@ -100,6 +102,16 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
             case -922: // Database connection error.
                 return new ConnectionException($exception, $query);
+
+            case -955: // Object already exists. Happens during attempts to create an object that duplicates an existing one.
+                if ($this->exceptionContains($exception, ['already exists'])) {
+                    return new DatabaseObjectExistsException($exception, $query);
+                }
+
+                break;
+
+            case -979: // Lock wait timeout, usually during transactional conflicts.
+                return new LockWaitTimeoutException($exception, $query);
         }
 
         return new DriverException($exception, $query);
