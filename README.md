@@ -34,7 +34,7 @@ Via Composer ([`satag/doctrine-firebird-driver`](https://packagist.org/packages/
 
 Via Github:
 
-    git clone git@github.com:kafoso/doctrine-firebird-driver.git
+    git clone https://github.com/satwareAG/doctrine-firebird-driver.git
 
 ## Configuration
 
