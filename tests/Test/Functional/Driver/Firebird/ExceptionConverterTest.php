@@ -91,14 +91,10 @@ class ExceptionConverterTest extends FunctionalTestCase
         $this->connection->executeQuery('CREATE TABLE notnull_table (id INT, notnull_field INT NOT NULL)');
 
         // Attempt to insert NULL into NOT NULL field
-        try {
-            $this->connection->executeQuery(
+
+            $this->connection->exec(
                 'INSERT INTO notnull_table (notnull_field) VALUES (NULL)'
             );
-        } catch (\Exception $e) {
-            // Handle unexpected exceptions differently if needed
-            $this->fail('Unexpected exception: ' . $e->getMessage());
-        }
 
         // Optionally clean up after the test
         $this->dropTableIfExists('notnull_table');
