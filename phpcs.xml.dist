@@ -15,4 +15,67 @@
 
     <!-- Include full Doctrine Coding Standard -->
     <rule ref="Doctrine"/>
+    <!-- Class structure -->
+    <rule ref="SlevomatCodingStandard.Classes.ClassStructure">
+        <properties>
+            <property name="groups" type="array">
+                <!-- Group use statements together -->
+                <element value="uses"/>
+
+                <!-- Group use statements together -->
+                <element value="uses"/>
+
+                <!-- Constants grouping -->
+                <element value="public constants"/>
+                <element value="protected constants"/>
+                <element value="private constants"/>
+
+                <!-- Group use statements together -->
+                <element value="uses"/>
+
+                <!-- Constants grouping -->
+                <element value="public constants"/>
+                <element value="protected constants"/>
+                <element value="private constants"/>
+
+                <!-- Properties grouping -->
+                <element value="public properties"/>
+                <element value="protected properties"/>
+                <element value="private properties"/>
+                <element value="public static properties"/>
+                <element value="protected static properties"/>
+                <element value="private static properties"/>
+
+                <!-- Constructors, including static constructors -->
+                <element value="constructor"/>
+                <element value="static constructors"/>
+
+                <!-- Destructor -->
+                <element value="destructor"/>
+
+                <!-- Enum cases (if using PHP 8.1 enums) -->
+                <element value="enum cases"/>
+
+                <!-- Method grouping: public, protected, private -->
+                <element value="public methods"/>
+                <element value="public static methods"/>
+                <element value="protected methods"/>
+                <element value="protected static methods"/>
+                <element value="private methods"/>
+                <element value="private static methods"/>
+
+                <!-- Abstract and final methods -->
+                <element value="public abstract methods"/>
+                <element value="public static abstract methods"/>
+                <element value="public final methods"/>
+                <element value="public static final methods"/>
+                <element value="protected abstract methods"/>
+                <element value="protected static abstract methods"/>
+                <element value="protected final methods"/>
+                <element value="protected static final methods"/>
+
+                <!-- Magic methods -->
+                <element value="magic methods"/>            </property>
+        </properties>
+    </rule>
 </ruleset>

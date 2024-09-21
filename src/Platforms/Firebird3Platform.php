@@ -390,7 +390,8 @@ ___query___;
 
     public function getIdentitySequenceName($tableName, $columnName)
     {
-        return $this->normalizeIdentifier($tableName)->getQuotedName($this) . '.' .  $this->normalizeIdentifier($columnName)->getQuotedName($this);
+        return $this->normalizeIdentifier($tableName)->getQuotedName($this)
+            . (is_string($columnName) ? '.' . $this->normalizeIdentifier($columnName)->getQuotedName($this) : '');
     }
 
     public function getDropTableSQL($table)

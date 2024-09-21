@@ -79,6 +79,11 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 }
 
                 break;
+            case -625:
+                if ($this->exceptionContains($exception, ['value "*** null ***"'])) {
+                    return new NotNullConstraintViolationException($exception, $query);
+                }
+                break;
             case -803: // Unique constraint violation.
                 return new UniqueConstraintViolationException($exception, $query);
 
@@ -88,7 +93,6 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 }
 
                 return new NotNullConstraintViolationException($exception, $query);
-
             case -901: // General engine error.
             case -902: // Internal errors, database corruption, or connection issues.
                 if ($this->exceptionContains($exception, ['cno such file or directory'])) {

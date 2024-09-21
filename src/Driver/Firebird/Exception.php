@@ -6,14 +6,11 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\AbstractException;
 
-use function intval;
-use function strval;
 
 class Exception extends AbstractException
 {
-    /** @param array<string, string> $error */
-    public static function fromErrorInfo(array $error): Exception
+    public static function fromErrorInfo(string $message, int $code): Exception
     {
-        return new self(strval($error['message']), null, intval($error['code']));
+        return new self($message, null, $code);
     }
 }

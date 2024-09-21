@@ -12,13 +12,16 @@ use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
+use RectorPrefix202409\SebastianBergmann\Diff\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
 /* @covers \Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter */
 class ExceptionConverterTest extends FunctionalTestCase
 {
-
+    use VerifyDeprecations;
     private ExceptionConverter $converter;
 
     protected function setUp(): void
@@ -103,11 +106,26 @@ class ExceptionConverterTest extends FunctionalTestCase
     public function testConvertDeadlockException()
     {
         $this->expectException(DeadlockException::class);
-        $this->connection->beginTransaction();
-        $this->connection->executeQuery('LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE');
-        $anotherConnection = $this->reConnect(); // Added method to get another connection
-        $anotherConnection->beginTransaction();
-        $anotherConnection->executeQuery('LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'); // This should cause a deadlock
+        $queries = [
+            'SET TRANSACTION WAIT',
+            'SET TRANSACTION RESERVING RDB$DATABASE FOR PROTECTED WRITE;'
+        ];
+        foreach ($queries as $query) {
+            $this->connection->executeStatement($query);
+        }
+        $anotherConnection = TestUtil::getConnection(); // Added method to get another connection
+        try {
+            $anotherConnection->executeQuery(
+                'LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'
+            ); // This should cause a deadlock
+        } catch (\Exception $exception) {
+            $anotherConnection->close();
+            $this->connection->rollBack();
+            throw $exception;
+        }
+
+
+        $anotherConnection = null;
     }
 
     public function testConvertLockWaitTimeoutException()

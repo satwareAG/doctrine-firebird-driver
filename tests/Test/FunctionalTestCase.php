@@ -39,7 +39,7 @@ abstract class FunctionalTestCase extends TestCase
     final protected function connect(): void
     {
         if (self::$sharedConnection === null) {
-            self::$sharedConnection = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnection();
+            self::$sharedConnection = TestUtil::getConnection();
         }
 
         $this->connection = self::$sharedConnection;

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Driver;
 
 use Doctrine\DBAL\Connection;
@@ -6,40 +9,40 @@ use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
+use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
+use function assert;
+use function preg_match;
+use function version_compare;
+
+/**
+ * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
+ */
 abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
 {
-    const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
-
-    const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
-
-    /**
-     * @var array<string|int, string>
-     */
-    private $_driverOptions = [];
-
     /**
      * {@inheritdoc}
      */
     public function createDatabasePlatformForVersion($version)
     {
         if (
-            1 !== preg_match(
+            preg_match(
                 '/^(LI|WI)-([VT])(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
                 $version,
-                $versionParts
-            )
+                $versionParts,
+            ) !== 1
         ) {
             throw Exception::invalidPlatformVersionSpecified(
                 $version,
-                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>'
+                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
             );
         }
+
         $majorVersion = $versionParts['major'];
         $minorVersion = $versionParts['minor'] ?? 0;
         $patchVersion = $versionParts['patch'] ?? 0;
@@ -55,35 +58,9 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
         };
     }
 
-
-    /**
-     * @param int|string $key
-     * @return self
-     */
-    public function setDriverOption($key, mixed $value)
-    {
-        if (in_array($key, self::getDriverOptionKeys(), true)) {
-            $this->_driverOptions[$key] = $value;
-        }
-        return $this;
-    }
-
-    /**
-     * @param array<string|int, string> $options
-     * @return self
-     */
-    public function setDriverOptions($options)
-    {
-        if (is_array($options)) {
-            foreach ($options as $k => $v) {
-                $this->setDriverOption($k, $v);
-            }
-        }
-        return $this;
-    }
-
     /**
      * {@inheritdoc}
+     *
      * @return FirebirdPlatform
      */
     public function getDatabasePlatform()
@@ -91,37 +68,29 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
         return new FirebirdPlatform();
     }
 
-    /**
-     * @return array<int|string, string>
-     */
-    public function getDriverOptions()
+    public function getExceptionConverter(): ExceptionConverter
     {
-        return $this->_driverOptions;
+        return new Firebird\ExceptionConverter();
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
+     *
      * @return FirebirdSchemaManager
      */
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform)
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/5458',
+            'AbstractFirebirdDriver::getSchemaManager() is deprecated.'
+            . ' Use FirebirdPlatform::createSchemaManager() instead.',
+        );
+
+        assert($platform instanceof FirebirdPlatform);
+
         return new FirebirdSchemaManager($conn, $platform);
-    }
-
-    /**
-     * @return array<int|string>
-     */
-    public static function getDriverOptionKeys()
-    {
-        return [
-            self::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
-            self::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT,
-            \PDO::ATTR_AUTOCOMMIT,
-        ];
-    }
-
-    public function getExceptionConverter(): ExceptionConverter
-    {
-        return new Firebird\ExceptionConverter();
     }
 }

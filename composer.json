@@ -36,7 +36,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Satag\\DoctrineFirebirdDriver\\Test\\": "tests/Test/"
+            "Satag\\DoctrineFirebirdDriver\\Test\\": "tests/Test/",
+            "Satag\\DoctrineFirebirdDriver\\Codequality\\": "sniffs/Codequality/"
         }
     },
     "require": {
