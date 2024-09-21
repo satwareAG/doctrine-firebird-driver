@@ -36,6 +36,7 @@ final class Driver extends AbstractFirebirdDriver
         $buffers    = $params['buffers'] ?? null;
         $dialect    = $params['dialect'] ?? 3;
         $persistent = ! empty($params['persistent']);
+        $connectString = $this->buildConnectString($params);
 
         if ($persistent) {
             $connection = @fbird_pconnect($connectString, $username, $password, $charset, $charset, $buffers, $dialect);

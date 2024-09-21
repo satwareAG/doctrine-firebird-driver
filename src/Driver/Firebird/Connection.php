@@ -19,7 +19,6 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
-use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
@@ -66,46 +65,45 @@ final class Connection implements ServerInfoAwareConnection
      */
     public const DEFAULT_IS_PERSISTENT = true;
     public const DEFAULT_DIALECT       = 0;
-    protected string $connectString;
+    private readonly string $connectString;
 
-    protected string $host;
+    private readonly string $host;
 
-    protected bool $isPersistent;
+    private bool $isPersistent = self::DEFAULT_IS_PERSISTENT;
 
-    protected string $charset = 'UTF8';
+    private string $charset = 'UTF8';
 
-    protected int $buffers = 0;
+    private int $buffers = 0;
 
-    protected int $dialect = 0;
+    private int $dialect = 0;
     /**
      * Isolation level used when a transaction is started.
      */
-    protected int $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
+    private int $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
 
     /**
      * Wait timeout used in transactions
      *
      * @var int  Number of seconds to wait.
      */
-    protected int $attrDcTransWait = 5;
+    private int $attrDcTransWait = 5;
 
     /**
      * True if auto-commit is enabled
      */
-    protected bool $attrAutoCommit = true;
+    private bool $attrAutoCommit = true;
 
     private string|null $connectionInsertColumn = null;
 
-    private $connectionInsertId                = null;
-    private string|null $connectionInsertTable = null;
+    private $connectionInsertId;
 
-    private Parser $parser;
+    private readonly Parser $parser;
 
     /** @var false|resource|null (fbird_pconnect or fbird_connect) */
-    private $fbirdConnectionRc = null;
+    private $firebirdConnection;
 
     /** @var false|resource|null */
-    private $fbirdService = null;
+    private $fbirdService;
 
     private int $fbirdTransactionLevel = 0;
 
@@ -113,9 +111,9 @@ final class Connection implements ServerInfoAwareConnection
     private $fbirdActiveTransaction = false;
     private bool $isPrivileged;
 
-    protected static int|null $lastInsertIdentityId = null;
+    private static int|null $lastInsertIdentityId = null;
 
-    protected static array $lastInsertIdenties = [];
+    private static array $lastInsertIdenties = [];
 
     private static bool $initialIbaseCloseCalled   = false;
     private static string|null $lastInsertSequence = null;
@@ -130,13 +128,12 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function __construct(
         array $params,
-        private string $username,
-        private string $password,
+        private readonly string $username,
+        private readonly string $password,
         array $driverOptions = [],
     ) {
-        $this->close(true); // Close/reset; because calling __construct after instantiation is apparently a thing
+        $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
         $this->parser       = new Parser(false);
-        $this->isPersistent = self::DEFAULT_IS_PERSISTENT;
         if (isset($params['persistent'])) {
             $this->isPersistent = (bool) $params['persistent'];
         }
@@ -240,7 +237,6 @@ final class Connection implements ServerInfoAwareConnection
         return $this->connectionInsertColumn;
     }
 
-    /** @return null */
     public function getConnectionInsertId()
     {
         return $this->connectionInsertId;
@@ -280,14 +276,11 @@ final class Connection implements ServerInfoAwareConnection
 
     public function setConnectionInsertTableColumn($table, $column): void
     {
-        $this->connectionInsertTable  = $table;
         $this->connectionInsertColumn = $column;
     }
 
     /**
      * {@inheritdoc}
-     *
-     * @param string $sql
      */
     public function query(string $sql): ResultInterface
     {
@@ -321,8 +314,8 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function lastInsertId($name = null)
     {
-        if ($name === null && $this->getConnectionInsertId() !== null) {
-            return $this->getConnectionInsertId();
+        if ($name === null && $this->connectionInsertId !== null) {
+            return $this->connectionInsertId;
         }
 
         if ($name === null) {
@@ -514,35 +507,29 @@ final class Connection implements ServerInfoAwareConnection
     public function getActiveTransaction()
     {
         if (! is_resource($this->fbirdConnectionRc)) {
-            try {
-                if ($this->isPersistent) {
-                    $this->fbirdConnectionRc = @fbird_pconnect( // Notice the "p"
-                        $this->connectString,
-                        $this->username,
-                        $this->password,
-                        $this->charset,
-                        $this->buffers,
-                        $this->dialect,
-                    );
-                } else {
-                    $this->fbirdConnectionRc = @fbird_connect(
-                        $this->connectString,
-                        $this->username,
-                        $this->password,
-                        $this->charset,
-                        $this->buffers,
-                        $this->dialect,
-                    );
-                }
-
-                if (! is_resource($this->fbirdConnectionRc)) {
-                    $this->checkLastApiCall();
-                }
-
-                $this->fbirdActiveTransaction = $this->createTransaction(true);
-            } catch (Throwable $e) {
-                throw $e;
+            if ($this->isPersistent) {
+                $this->fbirdConnectionRc = @fbird_pconnect( // Notice the "p"
+                    $this->connectString,
+                    $this->username,
+                    $this->password,
+                    $this->charset,
+                    $this->buffers,
+                    $this->dialect,
+                );
+            } else {
+                $this->fbirdConnectionRc = @fbird_connect(
+                    $this->connectString,
+                    $this->username,
+                    $this->password,
+                    $this->charset,
+                    $this->buffers,
+                    $this->dialect,
+                );
             }
+            if (! is_resource($this->fbirdConnectionRc)) {
+                $this->checkLastApiCall();
+            }
+            $this->fbirdActiveTransaction = $this->createTransaction(true);
         }
 
         if (is_resource($this->fbirdActiveTransaction) === false) {
@@ -647,9 +634,7 @@ final class Connection implements ServerInfoAwareConnection
                 $str .= '/' . $params['port'];
             }
 
-            $str .= ':' . $params['dbname'];
-
-            return $str;
+            return $str . (':' . $params['dbname']);
         }
 
         throw HostDbnameRequired::new();
@@ -660,7 +645,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws DriverException
      */
-    protected function createTransaction(bool $commitDefaultTransaction = true)
+    private function createTransaction(bool $commitDefaultTransaction = true)
     {
         if ($commitDefaultTransaction && is_resource($this->fbirdConnectionRc)) {
             @fbird_commit($this->fbirdConnectionRc);
