@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use SensitiveParameter;
 
 use function fbird_connect;
@@ -55,4 +56,11 @@ final class Driver extends AbstractFirebirdDriver
     {
         return new ExceptionConverter();
     }
+
+
+    private function buildConnectString(array $params): string
+    {
+        return FirebirdConnectString::fromArray($params);
+    }
+
 }

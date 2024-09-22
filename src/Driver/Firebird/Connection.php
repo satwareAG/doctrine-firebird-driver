@@ -132,6 +132,7 @@ final class Connection implements ServerInfoAwareConnection
         private readonly string $password,
         array $driverOptions = [],
     ) {
+        $this->connection = $connection;
         $this->close(); // Close/reset; because calling __construct after instantiation is apparently a thing
         $this->parser       = new Parser(false);
         if (isset($params['persistent'])) {
