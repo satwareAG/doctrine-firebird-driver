@@ -39,6 +39,8 @@ services:
     depends_on:
       - firebird25
       - firebird3
+      - firebird4
+      - firebird5
     tmpfs:
       - /tmp:mode=1777
 

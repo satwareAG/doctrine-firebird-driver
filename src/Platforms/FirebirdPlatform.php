@@ -13,13 +13,16 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
+use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
@@ -794,19 +797,24 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getSetTransactionIsolationSQL($level)
     {
-        return \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::getStartTransactionSql($level);
+        $sql = '';
+        match ($level) {
+            TransactionIsolationLevel::READ_UNCOMMITTED
+            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION',
+            TransactionIsolationLevel::READ_COMMITTED
+            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION',
+            TransactionIsolationLevel::REPEATABLE_READ
+            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
+            TransactionIsolationLevel::SERIALIZABLE
+            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
+            default => throw new DriverException(sprintf(
+                'Isolation level %s is not supported',
+                ValueFormatter::cast($level),
+            )),
+        };
+        return $sql;
     }
 
-    protected function _getTransactionIsolationLevelSQL($level)
-    {
-        return match ($level) {
-            TransactionIsolationLevel::SNAPSHOT => 'SNAPSHOT',
-            default => parent::_getTransactionIsolationLevelSQL($level),
-        };
-    }
-    /**
-     * {@inheritDoc}
-     */
     public function getBooleanTypeDeclarationSQL(array $column)
     {
         return 'SMALLINT';

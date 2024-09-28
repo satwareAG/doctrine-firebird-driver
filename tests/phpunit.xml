@@ -25,14 +25,8 @@
     <ini name="memory_limit" value="4G"/>
   </php>
   <testsuites>
-    <testsuite name="Functional">
-      <directory>Test/Functional</directory>
-    </testsuite>
-    <testsuite name="Unit">
-      <directory>Test/Unit</directory>
-    </testsuite>
-    <testsuite name="Integration">
-      <directory>Test/Integration</directory>
+    <testsuite name="All">
+      <directory>Test</directory>
     </testsuite>
   </testsuites>
 </phpunit>

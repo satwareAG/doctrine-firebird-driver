@@ -72,18 +72,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $this->schemaManager = $this->connection->createSchemaManager();
     }
 
-    protected function tearDown(): void
-    {
-        if (! isset($this->schemaManager)) {
-            return;
-        }
-
-        try {
-            //sql server versions below 2016 do not support 'IF EXISTS' so we have to catch the exception here
-            $this->connection->executeStatement('DROP SCHEMA testschema');
-        } catch (Exception $e) {
-        }
-    }
 
     public function testCreateSequence(): void
     {

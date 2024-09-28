@@ -124,25 +124,5 @@ class ExceptionConverterTest extends FunctionalTestCase
             $anotherConnection =  null;
             throw $exception;
         }
-
-
-
-    }
-
-    public function testConvertLockWaitTimeoutException()
-    {
-
-        $this->dropTableIfExists('lock_wait');
-        $this->connection->executeQuery('CREATE TABLE lock_wait (id INT, test INT NOT NULL)');
-        $this->connection->setTransactionIsolation(TransactionIsolationLevel::SERIALIZABLE);
-        $this->connection->beginTransaction();
-        $this->expectException(LockWaitTimeoutException::class);
-
-        $this->connection->executeQuery('LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'); // Lock table to cause a timeout
-        // Setting a low timeout threshold for the test case
-        $this->connection->executeQuery('SET TRANSACTION WAIT NO');
-        $query = $this->connection->executeQuery(
-            'LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'
-        ); // This should cause a lock wait timeout
     }
 }

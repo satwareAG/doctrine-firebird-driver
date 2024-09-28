@@ -12,6 +12,8 @@ use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\Type;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Test\Integration\AbstractIntegrationTestCase;
@@ -27,7 +29,11 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     public function testGetName()
     {
         $this->assertIsString($this->_platform->getName());
-        if ($this->_platform instanceof Firebird3Platform) {
+        if ($this->_platform instanceof Firebird5Platform) {
+            $this->assertSame("Firebird5", $this->_platform->getName());
+        } elseif ($this->_platform instanceof Firebird4Platform) {
+            $this->assertSame("Firebird4", $this->_platform->getName());
+        } elseif ($this->_platform instanceof Firebird3Platform) {
             $this->assertSame("Firebird3", $this->_platform->getName());
         } else {
             $this->assertSame("Firebird", $this->_platform->getName());
@@ -560,7 +566,7 @@ END
 
     public function testGetSetTransactionIsolationSQLThrowsException()
     {
-        $this->expectException(Exception::class);
+        $this->expectException(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::class);
         $this->_platform->getSetTransactionIsolationSQL(null);
     }
 

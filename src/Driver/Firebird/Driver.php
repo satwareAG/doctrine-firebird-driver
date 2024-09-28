@@ -48,11 +48,15 @@ final class Driver extends AbstractFirebirdDriver
         } else {
             $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         }
+
+        $notFoundException = null;
+
         if ($connection === false) {
             $code = @fbird_errcode();
             $msg   = @fbird_errmsg();
             if ($code === -902 && stristr($msg, 'no such file or directory')) {
                 $connection = null;
+                $notFoundException = Exception::fromErrorInfo($msg, $code);
             } else {
                 throw Exception::fromErrorInfo($msg, $code);
             }
@@ -60,7 +64,7 @@ final class Driver extends AbstractFirebirdDriver
         }
 
 
-        return new Connection($connection, $fbirdService, $persistent);
+        return new Connection($connection, $fbirdService, $persistent, $notFoundException, $params);
     }
 
     public function getExceptionConverter(): ExceptionConverter

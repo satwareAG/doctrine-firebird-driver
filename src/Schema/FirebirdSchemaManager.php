@@ -111,6 +111,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception($msg, null, $code);
         }
         @fbird_close($this->_conn->getNativeConnection());
+        $this->_conn->close();
         $result  = @fbird_drop_db(
             $connection
         );
@@ -145,7 +146,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             $msg = @fbird_errmsg();
             throw new Exception($msg, null, $code);
         }
-        @fbird_close($result);
+        $ret = @fbird_close($result);
 
     }
 

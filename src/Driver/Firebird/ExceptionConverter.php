@@ -98,6 +98,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 if ($this->exceptionContains($exception, ['no such file or directory'])) {
                     return new DatabaseDoesNotExist($exception, $query);
                 }
+                if ($this->exceptionContains($exception, ['transaction deadlock'])) {
+                    return new DeadlockException($exception, $query);
+                }
 
                 return new ConnectionException($exception, $query);
 

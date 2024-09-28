@@ -4,6 +4,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDr
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -45,7 +46,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         );
         $this->assertSame(
             "foo/3333:bar",
-            Connection::generateConnectString([
+            (string) FirebirdConnectString::fromConnectionParameters([
                 "host" => "foo",
                 "dbname" => "bar",
                 "port" => 3333,
@@ -187,6 +188,6 @@ class ConnectionTest extends AbstractIntegrationTestCase
     {
         $this->expectExceptionMessage('The "host" and "dbname" parameters are required for Connection');
         $this->expectException(Exception\HostDbnameRequired::class);
-        Connection::generateConnectString([]);
+        FirebirdConnectString::fromConnectionParameters([]);
     }
 }
