@@ -1,22 +1,22 @@
 <?php
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver\Firebird;
 
-use Doctrine\DBAL\Driver\Exception as DriverException;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
 use Doctrine\DBAL\Exception\LockWaitTimeoutException;
-use Doctrine\DBAL\Exception\NonUniqueFieldNameException;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\TransactionIsolationLevel;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
-use RectorPrefix202409\SebastianBergmann\Diff\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
+
 
 /* @covers \Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter */
 class ExceptionConverterTest extends FunctionalTestCase
@@ -105,33 +105,39 @@ class ExceptionConverterTest extends FunctionalTestCase
 
     public function testConvertDeadlockException()
     {
-        $this->expectException(DeadlockException::class);
-        $queries = [
-            'SET TRANSACTION WAIT',
-            'SET TRANSACTION RESERVING RDB$DATABASE FOR PROTECTED WRITE;'
-        ];
-        foreach ($queries as $query) {
-            $this->connection->executeStatement($query);
-        }
         $anotherConnection = TestUtil::getConnection(); // Added method to get another connection
+        $this->dropTableIfExists('deadlock_table');
+        $this->connection->executeQuery('CREATE TABLE deadlock_table (id INT, test INT NOT NULL)');
+
+        $this->expectException(DeadlockException::class);
+        $this->connection->insert('deadlock_table', ['id' => 1, 'test' => 1], [Types::INTEGER, Types::INTEGER]);
+        $this->connection->insert('deadlock_table', ['id' => 2, 'test' => 2], [Types::INTEGER, Types::INTEGER]);
+
+        $this->connection->beginTransaction();
+
+        $anotherConnection->beginTransaction();
+        $anotherConnection->executeQuery('UPDATE deadlock_table SET test = 2 where id = 1'); // This should cause a deadlock
         try {
-            $anotherConnection->executeQuery(
-                'LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'
-            ); // This should cause a deadlock
+            $this->connection->executeQuery('UPDATE deadlock_table SET test = 1 where id = 1'); // This should cause a deadlock
         } catch (\Exception $exception) {
-            $anotherConnection->close();
-            $this->connection->rollBack();
+
+            $anotherConnection =  null;
             throw $exception;
         }
 
 
-        $anotherConnection = null;
+
     }
 
     public function testConvertLockWaitTimeoutException()
     {
-        $this->expectException(LockWaitTimeoutException::class);
+
+        $this->dropTableIfExists('lock_wait');
+        $this->connection->executeQuery('CREATE TABLE lock_wait (id INT, test INT NOT NULL)');
+        $this->connection->setTransactionIsolation(TransactionIsolationLevel::SERIALIZABLE);
         $this->connection->beginTransaction();
+        $this->expectException(LockWaitTimeoutException::class);
+
         $this->connection->executeQuery('LOCK TABLES RDB$DATABASE IN EXCLUSIVE MODE'); // Lock table to cause a timeout
         // Setting a low timeout threshold for the test case
         $this->connection->executeQuery('SET TRANSACTION WAIT NO');

@@ -25,6 +25,13 @@ use function version_compare;
  */
 abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
 {
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
+
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
+
+    /** @var array<string|int, string> */
+    private array $_driverOptions = [];
+
     /**
      * {@inheritdoc}
      */

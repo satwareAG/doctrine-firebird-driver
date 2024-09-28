@@ -148,7 +148,10 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $found = $this->_platform->getDropTableSQL('foo');
         $this->assertIsString($found);
         $this->assertStringStartsWith('EXECUTE BLOCK AS', $found);
-        $this->assertStringContainsString('DROP TRIGGER FOO_D2IT', $found);
+        if(!($this->_platform instanceof Firebird3Platform)) {
+            $this->assertStringContainsString('DROP TRIGGER FOO_D2IT', $found);
+        }
+
         $this->assertStringContainsString('DROP TABLE foo', $found);
     }
 

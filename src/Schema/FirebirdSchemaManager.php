@@ -10,6 +10,7 @@ use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
@@ -97,8 +98,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     {
         $params = $this->_conn->getParams();
         $params['dbname'] = $database;
-        $dbname = Connection::generateConnectString($params);
-        $connection = @fbird_pconnect($dbname, $params['user'], $params['password']);
+
+        $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
+
+        $connection = @fbird_connect($dbname, $params['user'], $params['password']);
         if(!is_resource($connection)) {
             $code = @fbird_errcode();
             $msg = @fbird_errmsg();
@@ -107,10 +110,12 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             }
             throw new Exception($msg, null, $code);
         }
+        @fbird_close($this->_conn->getNativeConnection());
         $result  = @fbird_drop_db(
             $connection
         );
         if (!$result) {
+
             throw new Exception(@fbird_errmsg(), null, @fbird_errcode());
         }
         @fbird_close($connection);
@@ -128,7 +133,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $user = $params['user'] ?? '';
         $password = $params['password'] ?? '';
         $page_size = $params['page_size'] ?? '16384';
-        $dbname = Connection::generateConnectString($params);
+        $dbname = (string) FirebirdConnectString::fromConnectionParameters($params);
 
         $result = @fbird_query(IBASE_CREATE,
             sprintf("CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",$dbname,

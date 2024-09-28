@@ -93,26 +93,16 @@ class TestUtil
 
     private static function initializeDatabase(): void
     {
-        $testConnParams = self::getTestConnectionParameters();
-        $privConnParams = self::getPrivilegedConnectionParameters();
-
-        // Connect as a privileged user to create and drop the test database.
-        $privConnParams['privileged'] = true;
-        $privConn = DriverManager::getConnection($privConnParams);
-
-        $platform = $privConn->getDatabasePlatform();
-
-
-
-        $sm = $privConn->getSchemaManager();
-        $dbname = $testConnParams['dbname'];
+        $params = self::getTestConnectionParameters();
+        $connection = DriverManager::getConnection($params);
+        $sm = $connection->createSchemaManager();
         try {
-            $sm->dropDatabase($dbname);
+            $sm->dropDatabase($params['dbname']);
         } catch (DatabaseDoesNotExist $e) {
         }
 
-        $sm->createDatabase($dbname);
-        $privConn->close();
+        $sm->createDatabase($params['dbname']);
+        $connection->close();
     }
 
     /** @return mixed[] */

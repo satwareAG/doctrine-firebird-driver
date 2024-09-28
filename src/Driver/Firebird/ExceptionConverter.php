@@ -95,7 +95,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 return new NotNullConstraintViolationException($exception, $query);
             case -901: // General engine error.
             case -902: // Internal errors, database corruption, or connection issues.
-                if ($this->exceptionContains($exception, ['cno such file or directory'])) {
+                if ($this->exceptionContains($exception, ['no such file or directory'])) {
                     return new DatabaseDoesNotExist($exception, $query);
                 }
 

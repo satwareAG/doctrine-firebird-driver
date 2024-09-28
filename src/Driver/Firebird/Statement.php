@@ -207,24 +207,34 @@ class Statement implements StatementInterface
 
         array_unshift($callArgs, $this->statement);
 
-        $fbirdResultRc = @fbird_execute(...$callArgs);
-        if ($fbirdResultRc === false) {
-            $this->connection->checkLastApiCall($this->statement);
+        $statementType = get_resource_type($this->statement);
+        if ($statementType === 'Firebird/InterBase transaction') {
+            $fbirdResultRc = 1;
+        } else {
+            $fbirdResultRc = @fbird_execute(...$callArgs);
+            if ($fbirdResultRc === false) {
+                $this->connection->checkLastApiCall($this->statement);
+            }
+
+
+            // Result seems ok - is either #rows or result handle
+            // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
+            // function autoCommit of the connection
+            $this->connection->autoCommit();
         }
-
-
-        // Result seems ok - is either #rows or result handle
-        // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
-        // function autoCommit of the connection
-        $this->connection->autoCommit();
 
         return new Result($fbirdResultRc, $this->connection);
     }
 
     public function __destruct()
     {
+
         if (is_resource($this->statement)) {
-            $result = @fbird_free_query($this->statement);
+            $statementType = get_resource_type($this->statement);
+            if ($statementType !== 'Firebird/InterBase transaction') {
+                $result = @fbird_free_query($this->statement);
+            }
+
         }
     }
 

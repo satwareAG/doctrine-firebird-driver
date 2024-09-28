@@ -20,7 +20,6 @@ use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
-use Satag\DoctrineFirebirdDriver\TransactionIsolationLevel;
 
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
@@ -795,17 +794,15 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getSetTransactionIsolationSQL($level)
     {
-        return parent::getSetTransactionIsolationSQL($level);
+        return \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::getStartTransactionSql($level);
     }
 
     protected function _getTransactionIsolationLevelSQL($level)
     {
-        switch ($level) {
-            case TransactionIsolationLevel::SNAPSHOT:
-                return 'SNAPSHOT';
-        }
-
-        return parent::_getTransactionIsolationLevelSQL($level);
+        return match ($level) {
+            TransactionIsolationLevel::SNAPSHOT => 'SNAPSHOT',
+            default => parent::_getTransactionIsolationLevelSQL($level),
+        };
     }
     /**
      * {@inheritDoc}
