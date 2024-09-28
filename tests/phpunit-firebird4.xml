@@ -6,9 +6,7 @@
          beStrictAboutTodoAnnotatedTests="true"
          failOnRisky="true"
          failOnWarning="true"
-         stopOnError="true"
          convertDeprecationsToExceptions="true"
-         executionOrder="depends,random"
          bootstrap="phpunit.bootstrap.php"
 >
   <php>
@@ -21,7 +19,6 @@
     <var name="db_charset" value="UTF8" />
     <var name="db_test_logging" value="0" />
     <var name="PHP_IDE_CONFIG" value="serverName=phpconsole" />
-
     <ini name="memory_limit" value="4G"/>
   </php>
   <testsuites>
@@ -29,4 +26,9 @@
       <directory>Test</directory>
     </testsuite>
   </testsuites>
+  <coverage>
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </coverage>
 </phpunit>

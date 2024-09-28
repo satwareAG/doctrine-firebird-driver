@@ -507,13 +507,6 @@ final class Connection implements ServerInfoAwareConnection
     /** @throws DriverException */
     public function close(): void
     {
-        if (! self::$initialIbaseCloseCalled) {
-            //@fbird_close();
-            self::$initialIbaseCloseCalled = true;
-
-            return;
-        }
-
         if (
                    is_resource($this->fbirdActiveTransaction)
                 && get_resource_type($this->fbirdActiveTransaction) !== 'Unknown'

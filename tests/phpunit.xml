@@ -6,11 +6,8 @@
          beStrictAboutTodoAnnotatedTests="true"
          failOnRisky="true"
          failOnWarning="true"
-         stopOnError="true"
          convertDeprecationsToExceptions="true"
-         executionOrder="depends,random"
          bootstrap="phpunit.bootstrap.php"
-
 >
   <php>
     <ini name="error_reporting" value="-1"/>
@@ -29,4 +26,9 @@
       <directory>Test</directory>
     </testsuite>
   </testsuites>
+  <coverage>
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </coverage>
 </phpunit>

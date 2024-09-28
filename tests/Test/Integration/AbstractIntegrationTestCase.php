@@ -65,6 +65,7 @@ abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
+        parent::tearDown();
     }
 
     private function stopIfOver(int $seconds, string $cmd) {

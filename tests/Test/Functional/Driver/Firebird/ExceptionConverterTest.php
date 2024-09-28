@@ -86,21 +86,21 @@ class ExceptionConverterTest extends FunctionalTestCase
     public function testConvertNotNullConstraintViolationException()
     {
         // Ensure any existing instance of the table is dropped
-        $this->dropTableIfExists('notnull_table');
+        $this->dropTableIfExists('notnull_constraint_table');
 
         $this->expectException(NotNullConstraintViolationException::class);
 
         // Create the table
-        $this->connection->executeQuery('CREATE TABLE notnull_table (id INT, notnull_field INT NOT NULL)');
+        $this->connection->executeQuery('CREATE TABLE notnull_constraint_table (id INT, notnull_field INT NOT NULL)');
 
         // Attempt to insert NULL into NOT NULL field
 
             $this->connection->exec(
-                'INSERT INTO notnull_table (notnull_field) VALUES (NULL)'
+                'INSERT INTO notnull_constraint_table (notnull_field) VALUES (NULL)'
             );
 
         // Optionally clean up after the test
-        $this->dropTableIfExists('notnull_table');
+        $this->dropTableIfExists('notnull_constraint_table');
     }
 
     public function testConvertDeadlockException()
