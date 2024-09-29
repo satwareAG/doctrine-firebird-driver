@@ -2,7 +2,7 @@
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\TransactionIsolationLevel;
-use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
+use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
@@ -36,7 +36,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->assertNull($connection->getAttribute(-1));
         $this->assertSame(
             TransactionIsolationLevel::READ_COMMITTED,
-            $connection->getAttribute(AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL)
+            $connection->getAttribute(FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL)
         );
         $this->assertIsResource($connection->getNativeConnection());
         $this->assertFalse($connection->requiresQueryForServerVersion());
@@ -99,8 +99,8 @@ class ConnectionTest extends AbstractIntegrationTestCase
     {
         $connection = $this->reConnect(
             [
-                AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL => $isolationLevel,
-                AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT => $timeout ?? 5
+                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL => $isolationLevel,
+                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT => $timeout ?? 5
             ]);
 
         $found = $connection->getWrappedConnection()->getStartTransactionSql($isolationLevel);

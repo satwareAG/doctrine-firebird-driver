@@ -30,7 +30,7 @@ class Firebird3Platform extends FirebirdPlatform
     /**
      * {@inheritDoc}
      */
-    public function getAlterTableSQL(TableDiff $diff)
+    public function getAlterTableSQL(TableDiff $diff): array
     {
         $sql         = [];
         $commentsSQL = [];
@@ -117,21 +117,21 @@ class Firebird3Platform extends FirebirdPlatform
 
             if ($columnDiff->hasAutoIncrementChanged()) {
                 // Step 1: Add a new temporary column with the desired data type
-                $temp_column      = $this->getTemporaryColumnName($oldColumnName);
+                $tempColumn       = $this->getTemporaryColumnName($oldColumnName);
                 $type             = $newColumn->getType();
                 $columnDefinition = $newColumn->toArray();
 
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD ' . $this->getColumnDeclarationSQL(
-                    $temp_column,
+                    $tempColumn,
                     $columnDefinition,
                 );
 
                 // Step 2: Copy the data from the original column to the temporary column
-                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $temp_column . '=' . $oldColumnName . ' )';
+                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $tempColumn . '=' . $oldColumnName . ' )';
                 // Step 3: Drop the original column
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP ' . $oldColumnName;
                 // Step 4: Rename the temporary column to the original column name
-                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' . $temp_column . ' TO ' . $oldColumnName;
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' . $tempColumn . ' TO ' . $oldColumnName;
                 // ToDo: Step 5: (Optional) Recreate any indexes or constraints on the new column
                 // For example, if my_column was part of the primary key, you would need to re-add the primary key constraint
                 // $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD PRIMARY KEY ('. $oldColumnName . ')';
@@ -187,6 +187,9 @@ class Firebird3Platform extends FirebirdPlatform
         return array_merge($sql, $tableSql, $columnSql);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function supportsIdentityColumns()
     {
         return true;
@@ -198,11 +201,7 @@ class Firebird3Platform extends FirebirdPlatform
         return true;
     }
 
-    /**
-     * @param string|AbstractAsset $column
-     * @param string|AbstractAsset $tableName
-     * @return string[]
-     */
+    /** @return string[] */
     public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
         return [];
@@ -213,7 +212,10 @@ class Firebird3Platform extends FirebirdPlatform
         return '';
     }
 
-    public function getListTableColumnsSQL($table, $database = null)
+    /**
+     * {@inheritDoc}
+     */
+    public function getListTableColumnsSQL($table, $database = null): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -279,7 +281,7 @@ ___query___;
     /**
      * {@inheritDoc}
      */
-    public function getCreateSequenceSQL(Sequence $sequence)
+    public function getCreateSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
             'statements' => [
@@ -301,7 +303,7 @@ ___query___;
     /**
      * {@inheritDoc}
      */
-    public function getAlterSequenceSQL(Sequence $sequence)
+    public function getAlterSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
             'statements' => [
@@ -318,7 +320,7 @@ ___query___;
     /**
      * {@inheritDoc}
      */
-    public function getBooleanTypeDeclarationSQL(array $column)
+    public function getBooleanTypeDeclarationSQL(array $column): string
     {
         return 'BOOLEAN';
     }
@@ -326,28 +328,27 @@ ___query___;
     /**
      * {@inheritDoc}
      */
-    public function isCommentedDoctrineType(Type $doctrineType)
+    public function isCommentedDoctrineType(Type $doctrineType): bool
     {
         return AbstractPlatform::isCommentedDoctrineType($doctrineType);
     }
 
-    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
+    /**
+     * {@inheritDoc}
+     */
+    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName): string
     {
         return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function getIdentitySequenceName($tableName, $columnName): string
     {
         return $this->normalizeIdentifier($tableName)->getQuotedName($this)
             . (is_string($columnName) ? '.' . $this->normalizeIdentifier($columnName)->getQuotedName($this) : '');
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function getDropTableSQL($table): string
     {
         $statements   = [];
@@ -361,15 +362,15 @@ ___query___;
         return $this->getExecuteBlockWithExecuteStatementsSql(['statements' => $statements]);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function getReservedKeywordsClass()
+    protected function getReservedKeywordsClass(): string
     {
         return Firebird3Keywords::class;
     }
 
-    protected function _getCommonIntegerTypeDeclarationSQL(array $column)
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
         $autoinc = '';
         if (! empty($column['autoincrement'])) {
@@ -379,9 +380,6 @@ ___query___;
         return $autoinc;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     protected function initializeDoctrineTypeMappings(): void
     {
         parent::initializeDoctrineTypeMappings();

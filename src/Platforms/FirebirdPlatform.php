@@ -20,6 +20,7 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
+use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
@@ -223,6 +224,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'DATEDIFF(day, ' . $date2 . ',' . $date1 . ')';
     }
 
+    /** @inheritDoc */
     public function supportsForeignKeyConstraints()
     {
         return true;
@@ -321,8 +323,7 @@ class FirebirdPlatform extends AbstractPlatform
         return false;
     }
 
-    /** @inheritDoc */
-    public function getListTablesSQL()
+    public function getListTablesSQL(): string
     {
         return 'SELECT TRIM(RDB$RELATION_NAME) AS RDB$RELATION_NAME
                 FROM RDB$RELATIONS
@@ -334,7 +335,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getListViewsSQL($database)
+    public function getListViewsSQL($database): string
     {
         return 'SELECT
                     TRIM(RDB$RELATION_NAME) AS RDB$RELATION_NAME,
@@ -350,19 +351,21 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * See: How to run a select without table? https://www.firebirdfaq.org/faq30/
      */
-    public function getDummySelectSQL()
+    public function getDummySelectSQL(): string
     {
         $expression = func_num_args() > 0 ? func_get_arg(0)  : '1';
 
         return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 
-    public function getCreateViewSQL($name, $sql)
+    /** @inheritDoc */
+    public function getCreateViewSQL($name, $sql): string
     {
         return 'CREATE VIEW ' . $name . ' AS ' . $sql;
     }
 
-    public function getDropViewSQL($name)
+    /** @inheritDoc */
+    public function getDropViewSQL($name): string
     {
         return 'DROP VIEW ' . $name;
     }
@@ -371,10 +374,6 @@ class FirebirdPlatform extends AbstractPlatform
      * Generates a PSQL-Statement to drop all views of a table
      *
      * Note: This statement needs a variable TMP_VIEW_NAME VARCHAR(255) declared
-     *
-     * @param string|Table $table
-     * @param bool $inBlock
-     * @return string
      */
     public function getDropAllViewsOfTablePSqlSnippet(string|Table $table, bool $inBlock = false): string
     {
@@ -400,10 +399,7 @@ class FirebirdPlatform extends AbstractPlatform
         return $result;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getCreateSequenceSQL(Sequence $sequence)
+    public function getCreateSequenceSQL(Sequence $sequence): string
     {
         if ($sequence->getInitialValue() === 1) {
             return 'CREATE SEQUENCE ' . $sequence->getQuotedName($this);
@@ -430,15 +426,12 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName)
+    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName): string
     {
         return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getAlterSequenceSQL(Sequence $sequence)
+    public function getAlterSequenceSQL(Sequence $sequence): string
     {
         return 'ALTER SEQUENCE ' . $sequence->getQuotedName($this) .
                 ' RESTART WITH ' . ($sequence->getInitialValue() - 1);
@@ -447,7 +440,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDropSequenceSQL($sequence)
+    public function getDropSequenceSQL($sequence): string
     {
         if (! ($sequence instanceof Sequence)) {
             $sequence = new Sequence($sequence);
@@ -475,7 +468,7 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * Foreign keys are identified via constraint names in firebird
      */
-    public function getDropForeignKeySQL($foreignKey, $table)
+    public function getDropForeignKeySQL($foreignKey, $table): string
     {
         return $this->getDropConstraintSQL($foreignKey, $table);
     }
@@ -506,29 +499,31 @@ class FirebirdPlatform extends AbstractPlatform
      * It's not possible to set a default isolation level or change the isolation level of of
      * a running transaction on Firebird, because the SET TRANSACTION command starts a new
      * transaction
+     *
+     * @throws DriverException
      */
-    public function getSetTransactionIsolationSQL($level)
+    public function getSetTransactionIsolationSQL($level): string
     {
-        $sql = '';
-        match ($level) {
+        return match ($level) {
             TransactionIsolationLevel::READ_UNCOMMITTED
-            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION',
+            => 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION',
             TransactionIsolationLevel::READ_COMMITTED
-            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION',
+            => 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION',
             TransactionIsolationLevel::REPEATABLE_READ
-            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
+            => 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
             TransactionIsolationLevel::SERIALIZABLE
-            => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
+            => 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
             default => throw new DriverException(sprintf(
                 'Isolation level %s is not supported',
                 ValueFormatter::cast($level),
             )),
         };
-
-        return $sql;
     }
 
-    public function getBooleanTypeDeclarationSQL(array $column)
+    /**
+     * {@inheritDoc}
+     */
+    public function getBooleanTypeDeclarationSQL(array $column): string
     {
         return 'SMALLINT';
     }
@@ -536,7 +531,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getIntegerTypeDeclarationSQL(array $column)
+    public function getIntegerTypeDeclarationSQL(array $column): string
     {
         return 'INTEGER' . $this->_getCommonIntegerTypeDeclarationSQL($column);
     }
@@ -544,7 +539,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBigIntTypeDeclarationSQL(array $column)
+    public function getBigIntTypeDeclarationSQL(array $column): string
     {
         return 'BIGINT' . $this->_getCommonIntegerTypeDeclarationSQL($column);
     }
@@ -556,8 +551,6 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getDropTableSQL($table): string
     {
-        $tableArg = $table;
-
         if ($table instanceof Table) {
             Deprecation::trigger(
                 'doctrine/dbal',
@@ -570,7 +563,7 @@ class FirebirdPlatform extends AbstractPlatform
         }
 
         if (! is_string($table)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 __METHOD__ . '() expects $table parameter to be string or ' . Table::class . '.',
             );
         }
@@ -599,7 +592,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getTruncateTableSQL($tableName, $cascade = false)
+    public function getTruncateTableSQL($tableName, $cascade = false): string
     {
         $identifier = new Identifier($tableName);
         $tableName  = $identifier->getQuotedName($this);
@@ -607,10 +600,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'DELETE FROM ' . $this->normalizeIdentifier($tableName)->getQuotedName($this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDateTimeFormatString()
+    public function getDateTimeFormatString(): string
     {
         return 'Y-m-d H:i:s';
     }
@@ -620,7 +610,7 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * Taken from the PostgreSql-Driver and adapted for Firebird
      */
-    public function getAlterTableSQL(TableDiff $diff)
+    public function getAlterTableSQL(TableDiff $diff): array
     {
         $sql         = [];
         $commentsSQL = [];
@@ -715,7 +705,7 @@ class FirebirdPlatform extends AbstractPlatform
                     $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
                 } else {
                     // Drop autoincrement, but do NOT drop the sequence. It might be re-used by other tables or have
-                    $query = 'ALTER ' . $oldColumnName . ' ' . 'DROP DEFAULT';
+                    $query = 'ALTER ' . $oldColumnName . ' DROP DEFAULT';
                     $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
                 }
             }
@@ -799,9 +789,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'SMALLINT';
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function getClobTypeDeclarationSQL(array $column): string
     {
         if (
@@ -845,13 +833,7 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * Obtain DBMS specific SQL code portion needed to set the CHARACTER SET
-     * of a field declaration to be used in statements like CREATE TABLE.
-     *
-     * @param string $charset name of the charset
-     *
-     * @return string  DBMS specific SQL code portion needed to set the CHARACTER SET
-     *                 of a field declaration.
+     * {@inheritDoc}
      */
     public function getColumnCharsetDeclarationSQL($charset): string
     {
@@ -865,7 +847,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getColumnDeclarationSQL($name, array $column)
+    public function getColumnDeclarationSQL($name, array $column): string
     {
         if (isset($column['type']) && $column['type']->getName() === Types::BINARY) {
             $column['charset'] = 'octets';
@@ -874,10 +856,7 @@ class FirebirdPlatform extends AbstractPlatform
         return parent::getColumnDeclarationSQL($name, $column);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getCreateTemporaryTableSnippetSQL()
+    public function getCreateTemporaryTableSnippetSQL(): string
     {
         return 'CREATE GLOBAL TEMPORARY TABLE';
     }
@@ -891,9 +870,9 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * {@inheritdoc }
+     * {@inheritdoc}
      */
-    public function getCreateTableSQL(Table $table, $createFlags = self::CREATE_INDEXES)
+    public function getCreateTableSQL(Table $table, $createFlags = self::CREATE_INDEXES): array
     {
         if (! $this->hasNativeBooleanType) {
             foreach ($table->getColumns() as $column) {
@@ -915,8 +894,9 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * @throws Exception
      * @return string[]
+     *
+     * @throws Exception
      */
     public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
@@ -950,6 +930,7 @@ class FirebirdPlatform extends AbstractPlatform
         return $sql;
     }
 
+    /** @throws Exception */
     public function getDropAutoincrementSql(string $table): string
     {
         $table                = $this->normalizeIdentifier($table);
@@ -964,28 +945,15 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getListSequencesSQL($database)
+    public function getListSequencesSQL($database): string
     {
         return 'select trim(rdb$generator_name) as rdb$generator_name, trim(RDB$DESCRIPTION) as comment from rdb$generators where rdb$system_flag is distinct from 1';
     }
 
     /**
      * {@inheritDoc}
-     *
-     * Returns a query resulting cointaining the following data:
-     *
-     * FIELD_NAME: Field Name
-     * FIELD_DOMAIN: Domain
-     * FIELD_TYPE: Internal Id of the field type
-     * FIELD_TYPE_NAME: Name of the field type
-     * FIELD_SUB_TYPE: Internal Id of the field sub-type
-     * FIELD_LENGTH: Length of the field in *byte*
-     * FIELD_CHAR_LENGTH: Length of the field in *chracters*
-     * FIELD_PRECISION: Precision
-     * FIELD_SCALE: Scale
-     * FIELD_DEFAULT_SOURCE: Default declaration including the DEFAULT keyword and quotes if any
      */
-    public function getListTableColumnsSQL($table, $database = null)
+    public function getListTableColumnsSQL($table, $database = null): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1037,9 +1005,7 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function getListTableForeignKeysSQL($table): string
     {
         $table = $this->normalizeIdentifier($table);
@@ -1077,7 +1043,7 @@ ___query___;
      *
      * @link http://ezcomponents.org/docs/api/trunk/DatabaseSchema/ezcDbSchemaOracleReader.html
      */
-    public function getListTableIndexesSQL($table, $database = null)
+    public function getListTableIndexesSQL($table, $database = null): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1103,7 +1069,6 @@ ___query___;
         return (string) str_replace(':TABLE', $table, $query);
     }
 
-
     public function getCurrentDatabaseExpression(): string
     {
         return 'rdb$get_context(\'SYSTEM\', \'DB_NAME\')';
@@ -1121,21 +1086,22 @@ ___query___;
         return new FirebirdSchemaManager($connection, $this);
     }
 
-    public function getLengthExpression($column)
+    /**
+     * {@inheritDoc}
+     */
+    public function getLengthExpression($column): string
     {
         $max = $this->getVarcharMaxCastLength();
 
         return $column === '?' ? 'CHAR_LENGTH(CAST(? AS VARCHAR(' . $max . ')))' : 'CHAR_LENGTH(' . $column . ')';
     }
 
-    /** @inheritDoc */
-    public function supportsColumnCollation()
+    public function supportsColumnCollation(): bool
     {
         return true;
     }
 
-    /** @inheritDoc */
-    public function getNowExpression()
+    public function getNowExpression(): string
     {
         return 'CURRENT_TIMESTAMP';
     }
@@ -1145,7 +1111,10 @@ ___query___;
         return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
 
-    public function getListTableConstraintsSQL($table)
+    /**
+     * {@inheritDoc}
+     */
+    public function getListTableConstraintsSQL($table): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1168,7 +1137,10 @@ SQL
         );
     }
 
-    public function getGuidTypeDeclarationSQL(array $column)
+    /**
+     * {@inheritDoc}
+     */
+    public function getGuidTypeDeclarationSQL(array $column): string
     {
         $column['length'] = 36;
         $column['fixed']  = false;
@@ -1176,10 +1148,7 @@ SQL
         return $this->getStringTypeDeclarationSQL($column);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function isCommentedDoctrineType(Type $doctrineType)
+    public function isCommentedDoctrineType(Type $doctrineType): bool
     {
         Deprecation::trigger(
             'doctrine/dbal',
@@ -1220,7 +1189,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    public function convertFromBoolean($item)
+    public function convertFromBoolean($item): bool|null
     {
         // Handle both SMALLINT and CHAR representations
         if ($item === null) {
@@ -1250,14 +1219,12 @@ SQL
         return $this->convertBooleans($item);
     }
 
-    public function getBinaryDefaultLength()
+    public function getBinaryDefaultLength(): int
     {
         return $this->getVarcharMaxCastLength();
     }
 
-    /**
-     * @throws Exception
-     */
+    /** @throws Exception */
     public static function assertValidIdentifier(string $identifier): void
     {
         $pattern = '(^(([a-zA-Z]{1}[a-zA-Z0-9_$#]{0,})|("[^"]+"))$)';
@@ -1333,7 +1300,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit)
+    protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit): string
     {
         if ($unit === DateIntervalUnit::QUARTER) {
             // Firebird does not support QUARTER - convert to month
@@ -1355,7 +1322,6 @@ SQL
 
     /**
      * {@inheritDoc}
-     * Adds a "Limit" using the firebird ROWS m TO n syntax
      */
     protected function doModifyLimitQuery($query, $limit, $offset): string
     {
@@ -1382,7 +1348,6 @@ SQL
      * Generates simple sql expressions usually used in metadata-queries
      *
      * @param array<int|string, mixed> $expressions
-     * @return string
      */
     protected function makeSimpleMetadataSelectExpression(array $expressions): string
     {
@@ -1416,7 +1381,6 @@ SQL
      * Combines multiple statements into an execute block statement
      *
      * @param array<string, mixed> $params
-     * @return string
      */
     protected function getExecuteBlockSql(array $params = []): string
     {
@@ -1475,7 +1439,6 @@ SQL
      * Builds an Execute Block statement with a bunch of Execute Statement calls
      *
      * @param array<int|string, mixed> $params
-     * @return string
      */
     protected function getExecuteBlockWithExecuteStatementsSql(array $params = []): string
     {
@@ -1534,9 +1497,7 @@ SQL
         return $result;
     }
 
-    /**
-     * @throws Exception
-     */
+    /** @throws Exception */
     protected function getDropSequenceIfExistsPSql(Sequence|string $aSequence, bool $inBlock = false): string
     {
         $result = sprintf(
@@ -1557,10 +1518,6 @@ SQL
         return $result;
     }
 
-
-    /**
-     * {@inheritDoc}
-     */
     protected function initializeDoctrineTypeMappings(): void
     {
         $this->doctrineTypeMapping = [
@@ -1595,10 +1552,7 @@ SQL
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function getReservedKeywordsClass()
+    protected function getReservedKeywordsClass(): string
     {
         return FirebirdKeywords::class;
     }
@@ -1606,35 +1560,10 @@ SQL
     /**
      * {@inheritDoc}
      */
-    protected function _getCommonIntegerTypeDeclarationSQL(array $column)
+    protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
         return '';
-    }/**
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      * {@inheritDoc}
-      */
+    }
 
     /**
      * {@inheritDoc}
@@ -1683,7 +1612,7 @@ SQL
     {
         $this->checkIdentifierLength($name, $this->getMaxIdentifierLength());
 
-        $isTemporary = (! empty($options['temporary']));
+        $isTemporary = ! empty($options['temporary']);
 
         $indexes            = $options['indexes'] ?? [];
         $options['indexes'] = [];
@@ -1750,10 +1679,9 @@ SQL
         return $sql;
     }
 
-
     protected function unquotedIdentifierName(string|AbstractAsset $name): string
     {
-        if (!($name instanceof AbstractAsset)) {
+        if (! ($name instanceof AbstractAsset)) {
             $name = new Identifier($name);
         }
 

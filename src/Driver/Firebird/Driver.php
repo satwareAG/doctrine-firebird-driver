@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
-use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
+use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use SensitiveParameter;
 
 use function fbird_connect;
@@ -20,7 +20,7 @@ use function stristr;
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
  */
-final class Driver extends AbstractFirebirdDriver
+final class Driver extends FirebirdDriver
 {
     /**
      * {@inheritDoc}
@@ -57,12 +57,12 @@ final class Driver extends AbstractFirebirdDriver
         if ($connection === false) {
             $code = (int) @fbird_errcode();
             $msg  = (string) @fbird_errmsg();
-            if ($code === -902 && stristr($msg, 'no such file or directory') !== false) {
-                $connection        = null;
-                $notFoundException = Exception::fromErrorInfo($msg, $code);
-            } else {
+            if ($code !== -902 || stristr($msg, 'no such file or directory') === false) {
                 throw Exception::fromErrorInfo($msg, $code);
             }
+
+            $connection        = null;
+            $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
 
         return new Connection($connection, $firebirdService, $persistent, $notFoundException, $params);

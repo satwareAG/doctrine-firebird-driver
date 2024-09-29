@@ -23,21 +23,16 @@ use const IBASE_TEXT;
 final class Result implements ResultInterface
 {
     /**
-     * @var null|bool|int|resource
-     */
-    private $firebirdResultResource;
-
-    /**
-     * @param null|bool|int|resource $firebirdResultResource;
-     * @throws Exception
      * @internal The result can only be instantiated by its driver connection or statement.
      *
+     * @param bool|int|resource|null $firebirdResultResource;
+     *
+     * @throws Exception
      */
     public function __construct(
-        $firebirdResultResource,
+        private $firebirdResultResource,
         private readonly Connection $connection,
     ) {
-        $this->firebirdResultResource = $firebirdResultResource;
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
@@ -96,9 +91,6 @@ final class Result implements ResultInterface
         return FetchUtils::fetchFirstColumn($this);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function rowCount(): int
     {
         if (is_numeric($this->firebirdResultResource)) {

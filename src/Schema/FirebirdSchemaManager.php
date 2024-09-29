@@ -15,7 +15,6 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
@@ -61,8 +60,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
     public const META_FIELD_TYPE_BLOB      = 261;
 
-    /** @inheritDoc
+    /**
      * @throws Exception
+     *
+     * @inheritDoc
      */
     public function dropDatabase($database): void
     {
@@ -87,20 +88,22 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             $connection,
         );
         if (! $result) {
-            throw new Exception((string)@fbird_errmsg(), null, (int) @fbird_errcode());
+            throw new Exception((string) @fbird_errmsg(), null, (int) @fbird_errcode());
         }
 
         @fbird_close($connection);
     }
 
-    public function dropTable($tablename): void
+    /**
+     * {@inheritDoc}
+     */
+    public function dropTable($name): void
     {
-        parent::dropTable($tablename);
+        parent::dropTable($name);
     }
 
     /**
-     * @throws Exception
-     * @throws HostDbnameRequired
+     * {@inheritDoc}
      */
     public function createDatabase($database): void
     {
@@ -109,7 +112,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $charset          = $params['charset'] ?? 'UTF8';
         $user             = $params['user'] ?? '';
         $password         = $params['password'] ?? '';
-        $page_size        = $params['page_size'] ?? '16384';
+        $pageSize         = $params['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
         $result = @fbird_query(
@@ -117,7 +120,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             sprintf(
                 "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
                 $dbname,
-                (int) $page_size,
+                (int) $pageSize,
                 $user,
                 $password,
                 $charset,
@@ -125,8 +128,8 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         );
 
         if (! is_resource($result)) {
-            $code = (int)@fbird_errcode();
-            $msg  = (string)@fbird_errmsg();
+            $code = (int) @fbird_errcode();
+            $msg  = (string) @fbird_errmsg();
 
             throw new Exception($msg, null, $code);
         }
@@ -170,7 +173,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         ];
     }
 
-    protected function _getPortableTableDefinition($table)
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getPortableTableDefinition($table): string
     {
         $table = array_change_key_case($table, CASE_LOWER);
 
@@ -209,12 +215,15 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return new Sequence($this->getQuotedIdentifierName(trim(strtolower((string) $sequence['rdb$generator_name']))), $allocationSize, $initialValue, $cache);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected function _getPortableDatabaseDefinition($database)
     {
         return $database['Database'];
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $options = [];
@@ -291,8 +300,6 @@ class FirebirdSchemaManager extends AbstractSchemaManager
                 $options['default'] = $matches[1];
                 if (strtoupper(trim($options['default'])) === 'NULL') {
                     $options['default'] = null;
-                } else {
-                    // cannot handle other defaults at the moment - just ignore it for now
                 }
             }
         }
@@ -319,7 +326,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return new Column($tableColumn['FIELD_NAME'], Type::getType($type), $options);
     }
 
-    protected function _getPortableTableForeignKeysList($tableForeignKeys)
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getPortableTableForeignKeysList($tableForeignKeys): array
     {
         $list = [];
         foreach ($tableForeignKeys as $key => $value) {
@@ -364,7 +374,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return $result;
     }
 
-    protected function _getPortableTableIndexesList($tableIndexes, $tableName = null)
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array
     {
         $mangledData = [];
         foreach ($tableIndexes as $tableIndex) {

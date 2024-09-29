@@ -23,7 +23,7 @@ use function version_compare;
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
  */
-abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
+abstract class FirebirdDriver implements VersionAwarePlatformDriver
 {
     public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
@@ -32,8 +32,8 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
      /**
-     * {@inheritdoc}
-     */
+      * {@inheritdoc}
+      */
     public function createDatabasePlatformForVersion($version)
     {
         if (
@@ -91,7 +91,7 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/pull/5458',
-            'AbstractFirebirdDriver::getSchemaManager() is deprecated.'
+            'FirebirdDriver::getSchemaManager() is deprecated.'
             . ' Use FirebirdPlatform::createSchemaManager() instead.',
         );
 

@@ -9,16 +9,15 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use PDO;
 use RuntimeException;
-use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
+use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use Throwable;
 use UnexpectedValueException;
@@ -37,9 +36,9 @@ use function fbird_service_detach;
 use function get_resource_type;
 use function is_float;
 use function is_int;
+use function is_object;
 use function is_resource;
 use function preg_match;
-use function preg_split;
 use function sprintf;
 use function str_contains;
 use function str_replace;
@@ -53,9 +52,7 @@ use const IBASE_SVC_SERVER_VERSION;
  */
 final class Connection implements ServerInfoAwareConnection
 {
-    /** @var bool */
     private bool $closed = false;
-    private Exception|null $databaseNotFoundException;
     private ExecutionMode $executionMode;
 
     /**
@@ -75,9 +72,9 @@ final class Connection implements ServerInfoAwareConnection
      */
     private bool $attrAutoCommit = true;
 
-    private ?string $connectionInsertColumn = null;
+    private string|null $connectionInsertColumn = null;
 
-    private ?int $connectionInsertId = null;
+    private int|null $connectionInsertId = null;
 
     private readonly Parser $parser;
 
@@ -87,19 +84,19 @@ final class Connection implements ServerInfoAwareConnection
     private $firebirdActiveTransaction = null;
 
     /**
-     * @param resource|null $connection
-     * @param resource      $firebirdService
+     * @param resource|null        $connection
+     * @param resource             $firebirdService
      * @param array<string, mixed> $params
+     *
      * @throws Exception
      */
-    public function __construct(private $connection, private $firebirdService, protected bool $isPersistent, ?Exception $databaseNotFoundException, array $params)
+    public function __construct(private $connection, private $firebirdService, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
     {
-        $this->parser                    = new Parser(false);
-        $this->executionMode             = new ExecutionMode();
-        $this->databaseNotFoundException = $databaseNotFoundException;
+        $this->parser        = new Parser(false);
+        $this->executionMode = new ExecutionMode();
         if ($connection !== null) {
-            $this->firebirdActiveTransaction = $this->createTransaction(true);
-            $this->closed                 = false;
+            $this->firebirdActiveTransaction = $this->createTransaction();
+            $this->closed                    = false;
         }
 
         foreach ($params as $key => $value) {
@@ -119,9 +116,7 @@ final class Connection implements ServerInfoAwareConnection
         }
     }
 
-    /**
-     * @return resource|null
-     */
+    /** @return resource|null */
     public function getActiveTransaction()
     {
         return $this->firebirdActiveTransaction;
@@ -129,30 +124,30 @@ final class Connection implements ServerInfoAwareConnection
 
     /**
      * Additionally to the standard driver attributes, the attribute
-     * {@link AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL} can be used to control the
+     * {@link FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL} can be used to control the
      * isolation level used for transactions.
      */
     public function setAttribute(string|int $attribute, mixed $value): void
     {
         switch ($attribute) {
-            case AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
+            case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
                 $this->attrDcTransIsolationLevel = $value;
                 break;
-            case AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT:
+            case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT:
                 $this->attrDcTransWait = $value;
                 break;
-            case AbstractFirebirdDriver::ATTR_AUTOCOMMIT:
+            case FirebirdDriver::ATTR_AUTOCOMMIT:
                 $this->attrAutoCommit = $value;
                 break;
         }
     }
 
-    public function getAttribute(string|int $attribute): mixed
+    public function getAttribute(string|int $attribute): int|bool|null
     {
         return match ($attribute) {
-            AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL
+            FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL
               => $this->attrDcTransIsolationLevel,
-            AbstractFirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT
+            FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT
               => $this->attrDcTransWait,
             PDO::ATTR_AUTOCOMMIT
               => $this->attrAutoCommit,
@@ -167,10 +162,7 @@ final class Connection implements ServerInfoAwareConnection
         return $this->connectionInsertColumn;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getServerVersion()
+    public function getServerVersion(): string
     {
         return is_resource($this->firebirdService) ? @fbird_server_info($this->firebirdService, IBASE_SVC_SERVER_VERSION) : '';
     }
@@ -180,6 +172,11 @@ final class Connection implements ServerInfoAwareConnection
         return false;
     }
 
+    /**
+     * @throws Exception
+     * @throws Exception
+     * @throws Parser\Exception
+     */
     public function prepare(string $sql): DriverStatement
     {
         if ($this->connection === null && is_object($this->databaseNotFoundException)) {
@@ -214,11 +211,11 @@ final class Connection implements ServerInfoAwareConnection
         return new Statement(
             $this,
             @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
-            $visitor->getParameterMap()
+            $visitor->getParameterMap(),
         );
     }
 
-    public function setConnectionInsertTableColumn(?string $table,?string  $column): void
+    public function setConnectionInsertTableColumn(string|null $table, string|null $column): void
     {
         $this->connectionInsertColumn = $column;
     }
@@ -469,8 +466,6 @@ final class Connection implements ServerInfoAwareConnection
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @throws DriverException
-     * @throws Exception */
     public function close(): void
     {
         if (
@@ -498,9 +493,9 @@ final class Connection implements ServerInfoAwareConnection
             $success = @fbird_close($this->firebirdService);
         }
 
-            $this->connection             = null;
+            $this->connection                = null;
             $this->firebirdActiveTransaction = null;
-            $this->fbirdTransactionLevel  = 0;
+            $this->fbirdTransactionLevel     = 0;
 
         if ($success !== false) {
             $this->closed = true;

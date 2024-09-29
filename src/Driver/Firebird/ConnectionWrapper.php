@@ -44,7 +44,6 @@ final class ConnectionWrapper extends Connection
             if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
                 $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]['id']);
             }
-
         }
 
         return $sql;
@@ -106,6 +105,9 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId($name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getDatabase()
     {
         static $database = null;
@@ -117,8 +119,8 @@ final class ConnectionWrapper extends Connection
     }
 
     /**
-     * @param string $tableName
      * @return array<string,string>|null
+     *
      * @throws Exception
      */
     private function getIdentityColumnForTable(string $tableName): array|null
@@ -140,9 +142,7 @@ final class ConnectionWrapper extends Connection
         return null;
     }
 
-    /**
-     * @throws Exception
-     */
+    /** @throws Exception */
     private function addSequenceNameForTable(string $tableName): void
     {
         static $tableSequences = [];

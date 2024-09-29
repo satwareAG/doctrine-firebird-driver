@@ -12,7 +12,6 @@ use function implode;
 use function is_array;
 use function is_bool;
 use function is_float;
-use function is_null;
 use function is_object;
 use function is_resource;
 use function is_string;
@@ -46,12 +45,12 @@ abstract class ValueFormatter
             return $value ? 'true' : 'false';
         }
 
-        if (is_null($value)) {
+        if ($value === null) {
             return 'null';
         }
 
         if (is_resource($value)) {
-            return "#{$value}";
+            return '#' . $value;
         }
 
         if (is_string($value)) {
@@ -97,12 +96,12 @@ abstract class ValueFormatter
             );
         }
 
-        if (is_null($value)) {
+        if ($value === null) {
             return '(null) null';
         }
 
         if (is_resource($value)) {
-            return "(resource) {$value}";
+            return '(resource) ' . $value;
         }
 
         if (is_string($value)) {

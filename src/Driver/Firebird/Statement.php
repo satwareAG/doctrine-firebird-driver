@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
-use PDO;
 use RuntimeException;
 
 use function array_flip;
@@ -17,6 +16,8 @@ use function assert;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
+use function fbird_errcode;
+use function fbird_errmsg;
 use function fbird_execute;
 use function fbird_free_query;
 use function fclose;
@@ -28,7 +29,6 @@ use function func_num_args;
 use function fwrite;
 use function get_resource_type;
 use function is_int;
-use function is_object;
 use function is_resource;
 use function ksort;
 use function strlen;
@@ -40,10 +40,7 @@ use function strlen;
  */
 class Statement implements StatementInterface
 {
-
-    /**
-     * @var array<int, mixed>
-     */
+    /** @var array<int, mixed> */
     protected array $queryParamBindings = [];
 
     /**
@@ -53,15 +50,13 @@ class Statement implements StatementInterface
      */
     protected array $queryParamTypes = [];
 
-    /**
-     * @var array<int|string>
-     */
+    /** @var array<int|string> */
     private mixed $parameterMap;
 
     /**
-     * @param Connection $connection
-     * @param resource|false $statement
+     * @param resource|false    $statement
      * @param array<int|string> $parameterMap
+     *
      * @throws Exception
      */
     public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
@@ -70,7 +65,7 @@ class Statement implements StatementInterface
             $connection->checkLastApiCall();
         }
 
-        $this->parameterMap  = $parameterMap;
+        $this->parameterMap = $parameterMap;
     }
 
     public function __destruct()
@@ -141,8 +136,8 @@ class Statement implements StatementInterface
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null) {
                 $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
-                if(! is_resource($blobResource)) {
-                    throw Exception::fromErrorInfo((string)@fbird_errmsg(), (int)fbird_errcode());
+                if (! is_resource($blobResource)) {
+                    throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) fbird_errcode());
                 }
 
                 if (! is_resource($variable)) {
