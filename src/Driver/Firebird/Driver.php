@@ -13,6 +13,9 @@ use function fbird_connect;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_pconnect;
+use function fbird_service_attach;
+use function is_resource;
+use function stristr;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
@@ -53,16 +56,14 @@ final class Driver extends AbstractFirebirdDriver
 
         if ($connection === false) {
             $code = @fbird_errcode();
-            $msg   = @fbird_errmsg();
-            if ($code === -902 && stristr($msg, 'no such file or directory')) {
-                $connection = null;
-                $notFoundException = Exception::fromErrorInfo($msg, $code);
-            } else {
+            $msg  = @fbird_errmsg();
+            if ($code !== -902 || ! stristr($msg, 'no such file or directory')) {
                 throw Exception::fromErrorInfo($msg, $code);
             }
 
+            $connection        = null;
+            $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
-
 
         return new Connection($connection, $fbirdService, $persistent, $notFoundException, $params);
     }
@@ -72,18 +73,15 @@ final class Driver extends AbstractFirebirdDriver
         return new ExceptionConverter();
     }
 
-
     /**
      * Returns an appropriate connect string for the given parameters.
      *
      * @param array<string, mixed> $params The connection parameters to return the connect string for.
      *
-     * @return string
      * @throws HostDbnameRequired
      */
     private function buildConnectString(array $params): string
     {
         return (string) FirebirdConnectString::fromConnectionParameters($params);
     }
-
 }

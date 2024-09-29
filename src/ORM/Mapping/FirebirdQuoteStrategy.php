@@ -1,23 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\ORM\Mapping;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
 
+use function strtoupper;
+
 class FirebirdQuoteStrategy extends DefaultQuoteStrategy
 {
-
-    /**
-     * @inheritDoc
-     */
     public function getColumnAlias(
         string $columnName,
         int $counter,
         AbstractPlatform $platform,
-        ?ClassMetadata $class = null,
+        ClassMetadata|null $class = null,
     ): string {
-        return \strtoupper( parent::getColumnAlias($columnName, $counter, $platform, $class));
+        return strtoupper(parent::getColumnAlias($columnName, $counter, $platform, $class));
     }
 }

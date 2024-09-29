@@ -489,26 +489,6 @@ END
         ];
     }
 
-    /**
-     * @dataProvider dataProvider_testGetCombinedSqlStatements
-     */
-    public function testGetCombinedSqlStatements($expected, $sql, $aSeparator)
-    {
-        $reflection = new \ReflectionObject($this->_platform);
-        $method = $reflection->getMethod('getCombinedSqlStatements');
-        $method->setAccessible(true);
-        $found = $method->invoke($this->_platform, $sql, $aSeparator);
-        $this->assertIsString($found);
-        $this->assertSame($expected, $found);
-    }
-
-    public function dataProvider_testGetCombinedSqlStatements()
-    {
-        return [
-            ["foo;", 'foo', ';'],
-            ["bar;baz;", ['bar', 'baz'], ';'],
-        ];
-    }
 
     public function testGetDropSequenceSQLWithNormalString()
     {

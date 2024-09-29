@@ -1,11 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
-
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 
 use function count;
@@ -13,16 +15,9 @@ use function implode;
 
 final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 {
-    private AbstractPlatform $platform;
-    private ?string $forUpdateSQL;
-    private ?string $skipLockedSQL;
-
     /** @internal The SQL builder should be instantiated only by database platforms. */
-    public function __construct(AbstractPlatform $platform, ?string $forUpdateSQL, ?string $skipLockedSQL)
+    public function __construct(private AbstractPlatform $platform, private string|null $forUpdateSQL, private string|null $skipLockedSQL)
     {
-        $this->platform      = $platform;
-        $this->forUpdateSQL  = $forUpdateSQL;
-        $this->skipLockedSQL = $skipLockedSQL;
     }
 
     /** @throws Exception */
@@ -41,7 +36,6 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
         if (count($from) > 0) {
             $parts[] = 'FROM ' . implode(', ', $from);
         }
-
 
         $where = $query->getWhere();
 
@@ -67,7 +61,6 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
             }
         }
 
-
         $groupBy = $query->getGroupBy();
 
         if (count($groupBy) > 0) {
@@ -92,8 +85,6 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
         if ($limit->isDefined()) {
             $sql = $this->platform->modifyLimitQuery($sql, $limit->getMaxResults(), $limit->getFirstResult());
         }
-
-
 
         return $sql;
     }

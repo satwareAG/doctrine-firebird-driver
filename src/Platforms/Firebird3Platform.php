@@ -1,20 +1,24 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
-use Doctrine\DBAL\Exception;
-
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
+
+use function array_merge;
+use function is_string;
+use function json_encode;
+use function str_replace;
 
 class Firebird3Platform extends FirebirdPlatform
 {
@@ -26,21 +30,13 @@ class Firebird3Platform extends FirebirdPlatform
     /**
      * {@inheritDoc}
      */
-    protected function getReservedKeywordsClass()
-    {
-        return Firebird3Keywords::class;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getAlterTableSQL(TableDiff $diff)
     {
         $sql         = [];
         $commentsSQL = [];
         $columnSql   = [];
 
-        $table = $diff->getOldTable() ?? $diff->getName($this);
+        $table        = $diff->getOldTable() ?? $diff->getName($this);
         $tableNameSQL = $table->getQuotedName($this);
 
         foreach ($diff->getAddedColumns() as $addedColumn) {
@@ -50,7 +46,7 @@ class Firebird3Platform extends FirebirdPlatform
 
             $query = 'ADD ' . $this->getColumnDeclarationSQL(
                 $addedColumn->getQuotedName($this),
-                $addedColumn->toArray()
+                $addedColumn->toArray(),
             );
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
@@ -62,11 +58,10 @@ class Firebird3Platform extends FirebirdPlatform
             }
 
             $commentsSQL[] = $this->getCommentOnColumnSQL(
-                    $tableNameSQL,
-                    $addedColumn->getQuotedName($this),
-                    $comment,
+                $tableNameSQL,
+                $addedColumn->getQuotedName($this),
+                $comment,
             );
-
         }
 
         foreach ($diff->getDroppedColumns() as $droppedColumn) {
@@ -79,7 +74,6 @@ class Firebird3Platform extends FirebirdPlatform
         }
 
         foreach ($diff->getModifiedColumns() as $columnDiff) {
-
             if ($this->onSchemaAlterTableChangeColumn($columnDiff, $diff, $columnSql)) {
                 continue;
             }
@@ -95,20 +89,20 @@ class Firebird3Platform extends FirebirdPlatform
                 || $columnDiff->hasScaleChanged()
                 || $columnDiff->hasFixedChanged()
             ) {
-                $type = $newColumn->getType();
+                $type                              = $newColumn->getType();
                 $columnDefinition                  = $newColumn->toArray();
                 $columnDefinition['autoincrement'] = false;
 
-                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSqlDeclaration($columnDefinition, $this);
+                $query = 'ALTER COLUMN ' . $oldColumnName . ' TYPE ' . $type->getSQLDeclaration($columnDefinition, $this);
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
             if ($columnDiff->hasDefaultChanged()) {
-                $defaultClause = null === $newColumn->getDefault()
+                $defaultClause = $newColumn->getDefault() === null
                     ? ' DROP DEFAULT'
                     : ' SET' . $this->getDefaultValueDeclarationSQL($newColumn->toArray());
-                $query = 'ALTER ' . $oldColumnName . $defaultClause;
-                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
+                $query         = 'ALTER ' . $oldColumnName . $defaultClause;
+                $sql[]         = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
             }
 
             if ($columnDiff->hasNotNullChanged()) {
@@ -123,21 +117,21 @@ class Firebird3Platform extends FirebirdPlatform
 
             if ($columnDiff->hasAutoIncrementChanged()) {
                 // Step 1: Add a new temporary column with the desired data type
-                $temp_column = $this->getTemporaryColumnName($oldColumnName);
-                $type = $newColumn->getType();
-                $columnDefinition                  = $newColumn->toArray();
+                $temp_column      = $this->getTemporaryColumnName($oldColumnName);
+                $type             = $newColumn->getType();
+                $columnDefinition = $newColumn->toArray();
 
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD ' . $this->getColumnDeclarationSQL(
-                        $temp_column,
-                        $columnDefinition
-                    );
+                    $temp_column,
+                    $columnDefinition,
+                );
 
                 // Step 2: Copy the data from the original column to the temporary column
-                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $temp_column . '='. $oldColumnName .' )';
+                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $temp_column . '=' . $oldColumnName . ' )';
                 // Step 3: Drop the original column
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP ' . $oldColumnName;
                 // Step 4: Rename the temporary column to the original column name
-                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' . $temp_column . ' TO '. $oldColumnName;
+                $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' . $temp_column . ' TO ' . $oldColumnName;
                 // ToDo: Step 5: (Optional) Recreate any indexes or constraints on the new column
                 // For example, if my_column was part of the primary key, you would need to re-add the primary key constraint
                 // $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD PRIMARY KEY ('. $oldColumnName . ')';
@@ -156,7 +150,6 @@ class Firebird3Platform extends FirebirdPlatform
                 );
             }
 
-
             if (! $columnDiff->hasLengthChanged()) {
                 continue;
             }
@@ -173,13 +166,13 @@ class Firebird3Platform extends FirebirdPlatform
 
             $oldColumnName = new Identifier($oldColumnName);
 
-            $sql[] = 'ALTER TABLE ' .$tableNameSQL .
+            $sql[] = 'ALTER TABLE ' . $tableNameSQL .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);
         }
 
         $tableSql = [];
 
-        if (!$this->onSchemaAlterTable($diff, $tableSql)) {
+        if (! $this->onSchemaAlterTable($diff, $tableSql)) {
             $sql = array_merge($sql, $commentsSQL);
 
             $newName = $diff->getNewName();
@@ -187,7 +180,7 @@ class Firebird3Platform extends FirebirdPlatform
             $sql = array_merge(
                 $this->getPreAlterTableIndexForeignKeySQL($diff),
                 $sql,
-                $this->getPostAlterTableIndexForeignKeySQL($diff)
+                $this->getPostAlterTableIndexForeignKeySQL($diff),
             );
         }
 
@@ -199,35 +192,25 @@ class Firebird3Platform extends FirebirdPlatform
         return true;
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function prefersIdentityColumns()
     {
         return true;
     }
 
     /**
-     * @inheritDoc
+     * @param string|AbstractAsset $column
+     * @param string|AbstractAsset $tableName
+     * @return string[]
      */
-    public function getCreateAutoincrementSql($column, $tableName)
+    public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
         return [];
     }
 
-    public function getDropAutoincrementSql($table)
+    public function getDropAutoincrementSql(string $table): string
     {
         return '';
-    }
-
-    protected function _getCommonIntegerTypeDeclarationSQL(array $column)
-    {
-        $autoinc = '';
-        if (! empty($column['autoincrement'])) {
-            $autoinc = ' GENERATED BY DEFAULT AS IDENTITY';
-        }
-
-        return $autoinc;
     }
 
     public function getListTableColumnsSQL($table, $database = null)
@@ -278,25 +261,24 @@ GROUP BY "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME", "FIELD_S
          "IDENTITY_TYPE"
 ORDER BY "FIELD_POSITION"
 ___query___;
+
         return str_replace(':TABLE', $table, $query);
     }
 
-    /**
-     * @inheritDoc
-     */
+    /** @inheritDoc */
     public function usesSequenceEmulatedIdentityColumns()
     {
-        return false; //
+        return false;
     }
 
     public function createSelectSQLBuilder(): SelectSQLBuilder
     {
         return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
+
     /**
      * {@inheritDoc}
      */
-
     public function getCreateSequenceSQL(Sequence $sequence)
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -305,40 +287,15 @@ ___query___;
                     ' START WITH ' . $sequence->getInitialValue() .
                     ' INCREMENT BY ' . $sequence->getAllocationSize() .
                     $this->getSequenceCacheSQL($sequence),
-                $this->getCreateSequenceCommentSQL($sequence)
+                $this->getCreateSequenceCommentSQL($sequence),
             ],
             'formatLineBreak' => true,
         ]);
     }
 
-    public function getCreateSequenceCommentSQL(Sequence $sequence)
+    public function getCreateSequenceCommentSQL(Sequence $sequence): string
     {
         return 'COMMENT ON SEQUENCE ' . $sequence->getQuotedName($this) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
-    }
-
-    /**
-     * Returns the Sequence Config as JSON
-     */
-    private function getSequenceCommentString(Sequence $sequence)
-    {
-        return json_encode([
-            'name' => $sequence->getName(),
-            'initialValue' => $sequence->getInitialValue(),
-            'allocationSize' => $sequence->getAllocationSize(),
-            'cache' => $sequence->getCache()
-        ]);
-    }
-
-    /**
-     * Cache definition for sequences
-     */
-    private function getSequenceCacheSQL(Sequence $sequence): string
-    {
-        if ($sequence->getCache() > 1) {
-            return ' CACHE ' . $sequence->getCache();
-        }
-
-        return '';
     }
 
     /**
@@ -347,24 +304,15 @@ ___query___;
     public function getAlterSequenceSQL(Sequence $sequence)
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
-            'statements' => [ 'ALTER SEQUENCE ' . $sequence->getQuotedName($this)
+            'statements' => [
+                'ALTER SEQUENCE ' . $sequence->getQuotedName($this)
                 . ' RESTART WITH ' . $sequence->getInitialValue()
                 . ' INCREMENT BY ' . $sequence->getAllocationSize()
-                . $this->getSequenceCacheSQL($sequence) ,
-                $this->getSequenceCommentString($sequence)
+                . $this->getSequenceCacheSQL($sequence),
+                $this->getSequenceCommentString($sequence),
             ],
             'formatLineBreak' => true,
         ]);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function initializeDoctrineTypeMappings()
-    {
-        parent::initializeDoctrineTypeMappings();
-
-        $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
     }
 
     /**
@@ -388,25 +336,81 @@ ___query___;
         return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
-    public function getIdentitySequenceName($tableName, $columnName)
+    /**
+     * @inheritDoc
+     */
+    public function getIdentitySequenceName($tableName, $columnName): string
     {
         return $this->normalizeIdentifier($tableName)->getQuotedName($this)
             . (is_string($columnName) ? '.' . $this->normalizeIdentifier($columnName)->getQuotedName($this) : '');
     }
 
-    public function getDropTableSQL($table)
+    /**
+     * @inheritDoc
+     */
+    public function getDropTableSQL($table): string
     {
-        $statements = [];
+        $statements   = [];
         $statements[] = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
         $statements[] =
             $this->getExecuteBlockWithExecuteStatementsSql([
-                'statements' => [
-                    AbstractPlatform::getDropTableSQL($table)
-                ],
+                'statements' => [AbstractPlatform::getDropTableSQL($table)],
                 'formatLineBreak' => false,
             ]);
-        return $this->getExecuteBlockWithExecuteStatementsSql([
-            'statements' => $statements
+
+        return $this->getExecuteBlockWithExecuteStatementsSql(['statements' => $statements]);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function getReservedKeywordsClass()
+    {
+        return Firebird3Keywords::class;
+    }
+
+    protected function _getCommonIntegerTypeDeclarationSQL(array $column)
+    {
+        $autoinc = '';
+        if (! empty($column['autoincrement'])) {
+            $autoinc = ' GENERATED BY DEFAULT AS IDENTITY';
+        }
+
+        return $autoinc;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function initializeDoctrineTypeMappings(): void
+    {
+        parent::initializeDoctrineTypeMappings();
+
+        $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
+    }
+
+    /**
+     * Returns the Sequence Config as JSON
+     */
+    private function getSequenceCommentString(Sequence $sequence): string
+    {
+        return (string) json_encode([
+            'name' => $sequence->getName(),
+            'initialValue' => $sequence->getInitialValue(),
+            'allocationSize' => $sequence->getAllocationSize(),
+            'cache' => $sequence->getCache(),
         ]);
+    }
+
+    /**
+     * Cache definition for sequences
+     */
+    private function getSequenceCacheSQL(Sequence $sequence): string
+    {
+        if ($sequence->getCache() > 1) {
+            return ' CACHE ' . $sequence->getCache();
+        }
+
+        return '';
     }
 }

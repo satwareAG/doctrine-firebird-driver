@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /*
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -19,6 +22,8 @@
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
+use function array_merge;
+
 class Firebird3Keywords extends FirebirdKeywords
 {
     /**
@@ -31,6 +36,7 @@ class Firebird3Keywords extends FirebirdKeywords
 
     /**
      * {@inheritdoc}
+     *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */
     protected function getKeywords()
@@ -68,7 +74,7 @@ class Firebird3Keywords extends FirebirdKeywords
             'UNKNOWN',
             'UPDATING',
             'VAR_POP',
-            'VAR_SAMP'
+            'VAR_SAMP',
         ]);
     }
 }

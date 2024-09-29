@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -8,8 +10,9 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 class FirebirdBooleanType extends BooleanType
 {
+    /** @inheritDoc */
     public function requiresSQLCommentHint(AbstractPlatform $platform)
     {
-        return get_class($platform) === FirebirdPlatform::class;
+        return $platform::class === FirebirdPlatform::class;
     }
 }

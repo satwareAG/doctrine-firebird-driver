@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver;
 
 use Doctrine\DBAL\Exception;
@@ -13,27 +15,17 @@ use function sprintf;
  */
 class SQLParserUtilsException extends Exception
 {
-    /**
-     * @param string $paramName
-     *
-     * @return SQLParserUtilsException
-     */
-    public static function missingParam($paramName): SQLParserUtilsException
+    public static function missingParam(string $paramName): SQLParserUtilsException
     {
         return new self(
-            sprintf('Value for :%1$s not found in params array. Params array key should be "%1$s"', $paramName)
+            sprintf('Value for :%1$s not found in params array. Params array key should be "%1$s"', $paramName),
         );
     }
 
-    /**
-     * @param string $typeName
-     *
-     * @return SQLParserUtilsException
-     */
-    public static function missingType($typeName): SQLParserUtilsException
+    public static function missingType(string $typeName): SQLParserUtilsException
     {
         return new self(
-            sprintf('Value for :%1$s not found in types array. Types array key should be "%1$s"', $typeName)
+            sprintf('Value for :%1$s not found in types array. Types array key should be "%1$s"', $typeName),
         );
     }
 }

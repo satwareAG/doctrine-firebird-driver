@@ -1,7 +1,6 @@
 <?php
 namespace Satag\DoctrineFirebirdDriver\Test\Integration;
 
-use Satag\DoctrineFirebirdDriver\ORM\FirebirdEntityManager;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -12,23 +11,18 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
-use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird;
-use Satag\DoctrineFirebirdDriver\ORM\EventSubscriber\InsertReturningSubscriber;
 use Satag\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
-use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
-use Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist;
-use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use SebastianBergmann\Timer\Timer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 
-abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 {
     const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
     const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
@@ -47,13 +41,6 @@ abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
         $eventManager = new EventManager();
-        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
-            $subscriber =  new InsertReturningSubscriber();
-            $eventManager->addEventSubscriber($subscriber);
-
-
-        }
-
 
         $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration, $eventManager);
 
@@ -227,8 +214,6 @@ abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver
             $doctrineConfiguration->setIdentityGenerationPreferences([
                 FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
             ]);
-        } else {
-
         }
 
         $doctrineConfiguration->setQuoteStrategy(new FirebirdQuoteStrategy());
@@ -239,7 +224,7 @@ abstract class AbstractIntegrationTestCase extends \Satag\DoctrineFirebirdDriver
     /**
      * @return array
      */
-    protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = [])
+    protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = []): array
     {
         $params = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
         return [

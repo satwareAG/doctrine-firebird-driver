@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
@@ -19,6 +19,7 @@ use Satag\DoctrineFirebirdDriver\Driver\AbstractFirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
+use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
@@ -51,14 +52,8 @@ use const IBASE_SVC_SERVER_VERSION;
  */
 final class Connection implements ServerInfoAwareConnection
 {
-    /**
-     * @var false
-     */
+    /** @var false */
     private bool $closed = false;
-    /**
-     * @var resource|false
-     */
-    private $connection;
     private Exception|null $databaseNotFoundException;
     private ExecutionMode $executionMode;
 
@@ -88,9 +83,6 @@ final class Connection implements ServerInfoAwareConnection
     /** @var false|resource|null (fbird_pconnect or fbird_connect) */
     private $firebirdConnection;
 
-    /** @var false|resource|null */
-    private $fbirdService;
-
     private int $fbirdTransactionLevel = 0;
 
     /** @var false|resource|null */
@@ -105,38 +97,36 @@ final class Connection implements ServerInfoAwareConnection
     private static string|null $lastInsertSequence = null;
     private static array $lastInsertSequences      =  [];
 
-
     /**
      * @param resource|null $connection
-     * @param resource $fbirdService
-     * @param bool $isPersistent
+     * @param resource      $fbirdService
+     *
      * @throws Exception
      */
-    public function __construct($connection, $fbirdService, protected bool $isPersistent, $databaseNotFoundException, $params) {
-        $this->connection = $connection;
-        $this->parser       = new Parser(false);
-        $this->fbirdService = $fbirdService;
-        $this->executionMode = new ExecutionMode();
+    public function __construct(private $connection, private $fbirdService, protected bool $isPersistent, $databaseNotFoundException, $params)
+    {
+        $this->parser                    = new Parser(false);
+        $this->executionMode             = new ExecutionMode();
         $this->databaseNotFoundException = $databaseNotFoundException;
-        if($connection !== null) {
+        if ($connection !== null) {
             $this->fbirdActiveTransaction = $this->createTransaction(true);
-            $this->closed = false;
+            $this->closed                 = false;
         }
 
-        foreach($params as $key => $value) {
+        foreach ($params as $key => $value) {
             $this->setAttribute($key, $value);
         }
     }
 
     public function __destruct()
     {
-        if(!$this->closed) {
-            try {
-                $this->close();
-            } catch (Exception $exception) {
-                $test = 1;
-            }
+        if ($this->closed) {
+            return;
+        }
 
+        try {
+            $this->close();
+        } catch (Throwable) {
         }
     }
 
@@ -210,13 +200,14 @@ final class Connection implements ServerInfoAwareConnection
         if ($this->connection === null) {
             throw $this->databaseNotFoundException;
         }
+
         $visitor = new ConvertParameters();
 
         $this->parser->parse($sql, $visitor);
 
         $sql = $visitor->getSQL();
 
-        if(str_starts_with($sql, 'SET TRANSACTION')) {
+        if (str_starts_with($sql, 'SET TRANSACTION')) {
             if (($this->attrDcTransWait > 0)) {
                 $sql .= ' WAIT LOCK TIMEOUT ' . $this->attrDcTransWait;
             } elseif (($this->attrDcTransWait === -1)) {
@@ -227,20 +218,24 @@ final class Connection implements ServerInfoAwareConnection
 
             $this->fbirdActiveTransaction = $this->createTransaction(true, $sql);
             $this->fbirdTransactionLevel++;
+
             return new Statement(
                 $this,
                 $this->fbirdActiveTransaction,
-                $visitor->getParameterMap()
+                $visitor->getParameterMap(),
             );
         }
-        $conType = get_resource_type($this->connection);
+
+        $conType   = get_resource_type($this->connection);
         $transType = get_resource_type($this->fbirdActiveTransaction);
         if ($transType !== 'Firebird/InterBase transaction') {
             $pause = 1;
         }
+
         if ($conType !== 'Firebird/InterBase link' && $conType !== 'Firebird/InterBase persistent link') {
             $pause = 2;
         }
+
         return new Statement($this, @fbird_prepare(
             $this->connection,
             $this->fbirdActiveTransaction,
@@ -253,9 +248,6 @@ final class Connection implements ServerInfoAwareConnection
         $this->connectionInsertColumn = $column;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function query(string $sql): ResultInterface
     {
         return $this->prepare($sql)->execute();
@@ -373,6 +365,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         $this->executionMode->disableAutoCommit();
+
         return true;
     }
 
@@ -398,6 +391,7 @@ final class Connection implements ServerInfoAwareConnection
             @fbird_commit($this->fbirdActiveTransaction);
             $this->fbirdActiveTransaction = $this->createTransaction(true);
         }
+
         $this->executionMode->enableAutoCommit();
 
         return true;
@@ -454,6 +448,7 @@ final class Connection implements ServerInfoAwareConnection
 
         $this->fbirdActiveTransaction = $this->createTransaction(true);
         $this->executionMode->enableAutoCommit();
+
         return true;
     }
 
@@ -477,7 +472,6 @@ final class Connection implements ServerInfoAwareConnection
             'message' => null,
         ];
     }
-
 
     /**
      * Checks fbird_error and raises an exception if an error occured
@@ -504,7 +498,8 @@ final class Connection implements ServerInfoAwareConnection
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @throws DriverException */
+    /** @throws DriverException
+     * @throws Exception */
     public function close(): void
     {
         if (
@@ -532,12 +527,13 @@ final class Connection implements ServerInfoAwareConnection
             $success = @fbird_close($this->fbirdService);
         }
 
-            $this->connection      = null;
+            $this->connection             = null;
             $this->fbirdActiveTransaction = null;
             $this->fbirdTransactionLevel  = 0;
 
         if ($success !== false) {
             $this->closed = true;
+
             return;
         }
 
@@ -555,13 +551,13 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws DriverException
      */
-    private function createTransaction(bool $commitDefaultTransaction = true, ?string $sql = null)
+    private function createTransaction(bool $commitDefaultTransaction = true, string|null $sql = null)
     {
         if ($commitDefaultTransaction && is_resource($this->connection)) {
             @fbird_commit($this->connection);
         }
 
-        if($sql === null) {
+        if ($sql === null) {
             $sql = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
         }
 

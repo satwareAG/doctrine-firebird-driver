@@ -83,6 +83,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 if ($this->exceptionContains($exception, ['value "*** null ***"'])) {
                     return new NotNullConstraintViolationException($exception, $query);
                 }
+
                 break;
             case -803: // Unique constraint violation.
                 return new UniqueConstraintViolationException($exception, $query);
@@ -93,11 +94,13 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 }
 
                 return new NotNullConstraintViolationException($exception, $query);
+
             case -901: // General engine error.
             case -902: // Internal errors, database corruption, or connection issues.
                 if ($this->exceptionContains($exception, ['no such file or directory'])) {
                     return new DatabaseDoesNotExist($exception, $query);
                 }
+
                 if ($this->exceptionContains($exception, ['transaction deadlock'])) {
                     return new DeadlockException($exception, $query);
                 }

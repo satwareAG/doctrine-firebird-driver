@@ -11,15 +11,22 @@ use Doctrine\Deprecations\Deprecation;
 use PDO;
 use RuntimeException;
 
+use function array_flip;
 use function array_unshift;
 use function assert;
-use function fclose;
-use function feof;
-use function fread;
-use function func_num_args;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
+use function fbird_execute;
+use function fbird_free_query;
+use function fclose;
+use function feof;
+use function fopen;
+use function fread;
+use function fseek;
+use function func_num_args;
+use function fwrite;
+use function get_resource_type;
 use function is_int;
 use function is_object;
 use function is_resource;
@@ -39,11 +46,6 @@ class Statement implements StatementInterface
     public const DEFAULT_FETCH_MODE                   = PDO::FETCH_BOTH;
 
     /**
-     * @var resource
-     */
-    protected  $statement;
-
-    /**
      * Zero-Based List of parameter bindings
      *
      * @var array<int, mixed>
@@ -60,18 +62,31 @@ class Statement implements StatementInterface
     private mixed $parameterMap;
 
     /**
-     * @param Connection $connection
      * @param resource $statement
-     * @param null $executionMode
+     * @param null     $executionMode
      */
-    public function __construct(protected Connection $connection, $statement, array $parameterMap = [], $executionMode = null)
+    public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [], $executionMode = null)
     {
         if (! is_resource($statement)) {
             $connection->checkLastApiCall();
         }
-        $this->statement     = $statement;
+
         $this->parameterMap  = $parameterMap;
         $this->executionMode = $executionMode;
+    }
+
+    public function __destruct()
+    {
+        if (! is_resource($this->statement)) {
+            return;
+        }
+
+        $statementType = get_resource_type($this->statement);
+        if ($statementType === 'Firebird/InterBase transaction') {
+            return;
+        }
+
+        @fbird_free_query($this->statement);
     }
 
     /**
@@ -112,21 +127,18 @@ class Statement implements StatementInterface
             );
         }
 
-
-
-
         if (is_int($param)) {
             if (! isset($this->parameterMap[$param])) {
                 throw new Exception('Positional Parameter not found');
             }
         } else {
             $params = array_flip($this->parameterMap);
-            if (!isset($params[$param])) {
+            if (! isset($params[$param])) {
                     throw new Exception('Named Parameter not found');
-                }
+            }
+
             $param = $params[$param];
         }
-
 
         if (is_object($variable)) {
             $variable = (string) $variable;
@@ -135,7 +147,7 @@ class Statement implements StatementInterface
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null) {
                 $fbirdBlobResource = @fbird_blob_create($this->connection->getActiveTransaction());
-                if (!is_resource($variable)) {
+                if (! is_resource($variable)) {
                     $fp = fopen('php://temp', 'rb+');
                     assert(is_resource($fp));
                     fwrite($fp, $variable);
@@ -143,7 +155,7 @@ class Statement implements StatementInterface
                     $variable = $fp;
                 }
 
-                while (!feof($variable)) {
+                while (! feof($variable)) {
                     $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
                     if ($chunk === false || strlen($chunk) <= 0) {
                         continue;
@@ -155,9 +167,10 @@ class Statement implements StatementInterface
                 fclose($variable);
                 // Close the BLOB
                 $variable = @fbird_blob_close($fbirdBlobResource);
-                $type = ParameterType::STRING;
+                $type     = ParameterType::STRING;
             }
         }
+
         assert(is_int($param));
         $this->queryParamBindings[$param] = &$variable;
         $this->queryParamTypes[$param]    = $type;
@@ -185,13 +198,13 @@ class Statement implements StatementInterface
                     $this->bindValue($key + 1, $val, ParameterType::STRING);
                 } else {
                     $check = array_flip($this->parameterMap);
-                    $this->bindValue($check[':' .$key] ?? 0, ParameterType::STRING);
+                    $this->bindValue($check[':' . $key] ?? 0, ParameterType::STRING);
                 }
             }
         }
 
         // Execute statement
-        foreach($this->queryParamTypes as $param => $type) {
+        foreach ($this->queryParamTypes as $param => $type) {
             switch ($type) {
                 case ParameterType::LARGE_OBJECT:
                     // recheck with BindParams
@@ -216,7 +229,6 @@ class Statement implements StatementInterface
                 $this->connection->checkLastApiCall($this->statement);
             }
 
-
             // Result seems ok - is either #rows or result handle
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
@@ -225,17 +237,4 @@ class Statement implements StatementInterface
 
         return new Result($fbirdResultRc, $this->connection);
     }
-
-    public function __destruct()
-    {
-
-        if (is_resource($this->statement)) {
-            $statementType = get_resource_type($this->statement);
-            if ($statementType !== 'Firebird/InterBase transaction') {
-                $result = @fbird_free_query($this->statement);
-            }
-
-        }
-    }
-
 }
