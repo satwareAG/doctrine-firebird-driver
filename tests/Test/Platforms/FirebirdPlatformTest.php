@@ -602,7 +602,7 @@ SQL,]
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertEquals('CREATE TABLE "test" ("id" INTEGER NOT NULL)', $sql[0]);
-        self::assertEquals('CREATE SEQUENCE "test_D2IS"', $sql[1]);
+        self::assertEquals('CREATE SEQUENCE TEST_D2IS', $sql[1]);
         $createTriggerStatement = <<<'EOD'
 CREATE TRIGGER "test_D2IT" FOR "test"
             BEFORE INSERT
@@ -611,7 +611,7 @@ CREATE TRIGGER "test_D2IT" FOR "test"
                 IF ((NEW."id" IS NULL) OR
                    (NEW."id" = 0)) THEN
                 BEGIN
-                    NEW."id" = NEXT VALUE FOR "test_D2IS";
+                    NEW."id" = NEXT VALUE FOR TEST_D2IS;
                 END
             END;
 EOD;

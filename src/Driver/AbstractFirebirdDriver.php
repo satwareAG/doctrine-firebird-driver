@@ -31,10 +31,7 @@ abstract class AbstractFirebirdDriver implements VersionAwarePlatformDriver
 
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
-    /** @var array<string|int, string> */
-    private array $_driverOptions = [];
-
-    /**
+     /**
      * {@inheritdoc}
      */
     public function createDatabasePlatformForVersion($version)

@@ -40,14 +40,8 @@ use function strlen;
  */
 class Statement implements StatementInterface
 {
-    public const DEFAULT_FETCH_CLASS                  = '\stdClass';
-    public const DEFAULT_FETCH_CLASS_CONSTRUCTOR_ARGS = [];
-    public const DEFAULT_FETCH_COLUMN                 = 0;
-    public const DEFAULT_FETCH_MODE                   = PDO::FETCH_BOTH;
 
     /**
-     * Zero-Based List of parameter bindings
-     *
      * @var array<int, mixed>
      */
     protected array $queryParamBindings = [];
@@ -55,24 +49,25 @@ class Statement implements StatementInterface
     /**
      * Zero-Based List of parameter binding types
      *
-     * @var array
+     * @var array<int, mixed>
      */
     protected array $queryParamTypes = [];
 
+    /**
+     * @var array<int, mixed>
+     */
     private mixed $parameterMap;
 
     /**
-     * @param resource $statement
-     * @param null     $executionMode
+     * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [], $executionMode = null)
+    public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
     {
         if (! is_resource($statement)) {
             $connection->checkLastApiCall();
         }
 
         $this->parameterMap  = $parameterMap;
-        $this->executionMode = $executionMode;
     }
 
     public function __destruct()
@@ -140,13 +135,9 @@ class Statement implements StatementInterface
             $param = $params[$param];
         }
 
-        if (is_object($variable)) {
-            $variable = (string) $variable;
-        }
-
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null) {
-                $fbirdBlobResource = @fbird_blob_create($this->connection->getActiveTransaction());
+                $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
                 if (! is_resource($variable)) {
                     $fp = fopen('php://temp', 'rb+');
                     assert(is_resource($fp));
@@ -161,12 +152,12 @@ class Statement implements StatementInterface
                         continue;
                     }
 
-                    @fbird_blob_add($fbirdBlobResource, $chunk);
+                    @fbird_blob_add($blobResource, $chunk);
                 }
 
                 fclose($variable);
                 // Close the BLOB
-                $variable = @fbird_blob_close($fbirdBlobResource);
+                $variable = @fbird_blob_close($blobResource);
                 $type     = ParameterType::STRING;
             }
         }

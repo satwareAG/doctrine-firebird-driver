@@ -556,6 +556,25 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getDropTableSQL($table): string
     {
+        $tableArg = $table;
+
+        if ($table instanceof Table) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/issues/4798',
+                'Passing $table as a Table object to %s is deprecated. Pass it as a quoted name instead.',
+                __METHOD__,
+            );
+
+            $table = $table->getQuotedName($this);
+        }
+
+        if (! is_string($table)) {
+            throw new \InvalidArgumentException(
+                __METHOD__ . '() expects $table parameter to be string or ' . Table::class . '.',
+            );
+        }
+
         $statements = [];
 
         $statements[] = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table, null), true);
@@ -911,7 +930,7 @@ class FirebirdPlatform extends AbstractPlatform
             $tableName = $this->normalizeIdentifier($tableName);
         }
 
-        $sequenceName = $this->getIdentitySequenceName($tableName, $column);
+        $sequenceName = $this->getIdentitySequenceName($tableName->getName(), $column->getName());
         $triggerName  = $this->getIdentitySequenceTriggerName($tableName, $column);
         $sequence     = new Sequence($sequenceName, 1, 1);
 
@@ -931,7 +950,7 @@ class FirebirdPlatform extends AbstractPlatform
         return $sql;
     }
 
-    public function getDropAutoincrementSql(string $table)
+    public function getDropAutoincrementSql(string $table): string
     {
         $table                = $this->normalizeIdentifier($table);
         $identitySequenceName = $this->getIdentitySequenceName(
@@ -1018,7 +1037,10 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    public function getListTableForeignKeysSQL($table, $database = null)
+    /**
+     * @inheritDoc
+     */
+    public function getListTableForeignKeysSQL($table): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1078,18 +1100,9 @@ ___query___;
      ORDER BY RDB$INDICES.RDB$INDEX_NAME, RDB$RELATION_CONSTRAINTS.RDB$CONSTRAINT_NAME, RDB$INDEX_SEGMENTS.RDB$FIELD_POSITION
 ___query___;
 
-        return str_replace(':TABLE', $table, $query);
+        return (string) str_replace(':TABLE', $table, $query);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * Firebird return column names in upper case by default
-     */
-    public function getSQLResultCasing($column)
-    {
-        return strtoupper((string) $column);
-    }
 
     public function getCurrentDatabaseExpression(): string
     {
@@ -1242,7 +1255,10 @@ SQL
         return $this->getVarcharMaxCastLength();
     }
 
-    public static function assertValidIdentifier($identifier): void
+    /**
+     * @throws Exception
+     */
+    public static function assertValidIdentifier(string $identifier): void
     {
         $pattern = '(^(([a-zA-Z]{1}[a-zA-Z0-9_$#]{0,})|("[^"]+"))$)';
         if (preg_match($pattern, $identifier) === 0) {
@@ -1332,7 +1348,7 @@ SQL
         return 'DATEADD(' . $unit . ', ' . $interval . ', ' . $date . ')';
     }
 
-    protected function getTemporaryColumnName($columnName)
+    protected function getTemporaryColumnName(string $columnName): string
     {
         return $this->generateIdentifier('tmp', $columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 
@@ -22,15 +23,16 @@ use const IBASE_TEXT;
 final class Result implements ResultInterface
 {
     /**
+     * @param resource|bool|int $fbirdResultRc ;
+     * @throws Exception
      * @internal The result can only be instantiated by its driver connection or statement.
      *
-     * @param resource|bool|int $fbirdResultRc;
      */
     public function __construct(
         private $fbirdResultRc,
         private readonly Connection $connection,
     ) {
-        if (! $this->connection->getConnectionInsertColumn()) {
+        if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
 

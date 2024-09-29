@@ -11,7 +11,11 @@ use Doctrine\DBAL\SQL\Parser\Visitor;
  */
 final class ConvertParameters implements Visitor
 {
+
     private string $convertedSql = ''; // The converted SQL string with positional parameters
+    /**
+     * @var string[]
+     */
     private array $paramMap      = [];      // Maps positional parameter indices to named parameters
     private int $paramIndex      = 1;       // Tracks the current positional parameter index
 

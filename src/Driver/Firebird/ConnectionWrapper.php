@@ -23,7 +23,6 @@ final class ConnectionWrapper extends Connection
 {
     private int|null $lastInsertIdentityId  = null;
     private string|null $lastInsertSequence = null;
-    private array $lastInsertSequences      =  [];
 
     public function extractIdentityColumn(string $sql): string
     {
@@ -41,7 +40,10 @@ final class ConnectionWrapper extends Connection
 
         if (isset($identityColumnTables[$table])) {
             $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
-            $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]['id']);
+            if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]['id']);
+            }
+
         }
 
         return $sql;

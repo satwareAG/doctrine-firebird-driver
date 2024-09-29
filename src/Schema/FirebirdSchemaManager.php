@@ -60,25 +60,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
     public const META_FIELD_TYPE_BLOB      = 261;
 
-    /**
-     * @internal The method should be only used from within the FirebirdSchemaManager class hierarchy.
-     *
-     * @throws \Doctrine\DBAL\Exception
-     */
-    public function dropAutoincrement(string $table): bool
-    {
-        $sql = $this->_platform->getDropAutoincrementSql($table);
-        foreach ($sql as $query) {
-            $this->_conn->executeStatement($query);
-        }
-
-        return true;
-    }
-
     /** @inheritDoc
      * @throws Exception
      */
-    public function dropDatabase($database)
+    public function dropDatabase($database): void
     {
         $params           = $this->_conn->getParams();
         $params['dbname'] = $database;
