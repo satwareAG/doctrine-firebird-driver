@@ -465,7 +465,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
             $this->assertArrayHasKey(0, $sql);
             $this->assertEquals('CREATE TABLE "test" ("id" INTEGER NOT NULL)', $sql[0]);
             $this->assertArrayHasKey(1, $sql);
-            $this->assertEquals('CREATE SEQUENCE "test_D2IS"', $sql[1]);
+            $this->assertEquals('CREATE SEQUENCE "TEST_D2IS"', $sql[1]);
             $this->assertArrayHasKey(2, $sql);
             $expectedCreateTrigger = preg_replace('/\s+/', ' ', trim('
             CREATE TRIGGER "test_D2IT" FOR "test"

@@ -170,7 +170,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty("fbirdTransactionLevel");
         $reflectionPropertyIbaseTransactionLevel->setAccessible(true);
         $level = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
-        $reflectionPropertyIbaseActiveTransaction = $reflectionObject->getProperty("fbirdActiveTransaction");
+        $reflectionPropertyIbaseActiveTransaction = $reflectionObject->getProperty("firebirdActiveTransaction");
         $reflectionPropertyIbaseActiveTransaction->setAccessible(true);
         $transactionA = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
         $this->assertSame(0, $level);
