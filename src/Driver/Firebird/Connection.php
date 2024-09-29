@@ -52,7 +52,7 @@ use const IBASE_SVC_SERVER_VERSION;
  */
 final class Connection implements ServerInfoAwareConnection
 {
-    /** @var false */
+    /** @var bool */
     private bool $closed = false;
     private Exception|null $databaseNotFoundException;
     private ExecutionMode $executionMode;
@@ -166,13 +166,6 @@ final class Connection implements ServerInfoAwareConnection
         return $this->connectionInsertColumn;
     }
 
-    public function getConnectionInsertId()
-    {
-        return $this->connectionInsertId;
-    }
-
-    /** @return false|resource (fbird_pconnect or fbird_connect) */
-
     /**
      * {@inheritdoc}
      */
@@ -188,7 +181,7 @@ final class Connection implements ServerInfoAwareConnection
 
     public function prepare(string $sql): DriverStatement
     {
-        if ($this->connection === null && is_a($this->databaseNotFoundException, DriverException::class)) {
+        if ($this->connection === null && is_object($this->databaseNotFoundException)) {
             throw $this->databaseNotFoundException;
         }
 
@@ -224,7 +217,7 @@ final class Connection implements ServerInfoAwareConnection
         ), $visitor->getParameterMap());
     }
 
-    public function setConnectionInsertTableColumn($table, $column): void
+    public function setConnectionInsertTableColumn(?string $table,?string  $column): void
     {
         $this->connectionInsertColumn = $column;
     }
@@ -276,11 +269,7 @@ final class Connection implements ServerInfoAwareConnection
         );
 
         if (str_contains((string) $name, '.')) {
-            [$table, $column] = preg_split('/\./', $name);
-
-// if($this->connectionInsertColumn === $column && $this->connectionInsertTable === $table) {
-                return $this->connectionInsertId;
-            //}
+            return $this->connectionInsertId ?? false;
         }
 
         if (str_starts_with($name, 'SELECT RDB')) {
@@ -524,11 +513,11 @@ final class Connection implements ServerInfoAwareConnection
     /** @return false|resource */
     public function getNativeConnection()
     {
-        return $this->connection;
+        return $this->connection ?? false;
     }
 
     /**
-     * @return resource The fbird transaction.
+     * @return resource The firebird transaction.
      *
      * @throws DriverException
      */

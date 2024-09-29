@@ -31,7 +31,7 @@ final class Driver extends AbstractFirebirdDriver
         #[SensitiveParameter]
         array $params,
     ): Connection {
-        $host       = $params['host'] ?? null;
+        $host       = $params['host'] ?? 'localhost';
         $username   = $params['user'] ?? 'SYSDBA';
         $password   = $params['password'] ?? 'masterkey';
         $charset    = $params['charset'] ?? 'UTF8';
@@ -41,9 +41,9 @@ final class Driver extends AbstractFirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        $fbirdService = @fbird_service_attach($host, $username, $password);
-        if (! is_resource($fbirdService)) {
-            throw Exception::fromErrorInfo(@fbird_errmsg(), @fbird_errcode());
+        $firebirdService = @fbird_service_attach($host, $username, $password);
+        if (! is_resource($firebirdService)) {
+            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
         }
 
         if ($persistent) {
@@ -55,17 +55,16 @@ final class Driver extends AbstractFirebirdDriver
         $notFoundException = null;
 
         if ($connection === false) {
-            $code = @fbird_errcode();
-            $msg  = @fbird_errmsg();
+            $code = (int) @fbird_errcode();
+            $msg  = (string) @fbird_errmsg();
             if ($code !== -902 || ! stristr($msg, 'no such file or directory')) {
                 throw Exception::fromErrorInfo($msg, $code);
             }
-
             $connection        = null;
             $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
 
-        return new Connection($connection, $fbirdService, $persistent, $notFoundException, $params);
+        return new Connection($connection, $firebirdService, $persistent, $notFoundException, $params);
     }
 
     public function getExceptionConverter(): ExceptionConverter

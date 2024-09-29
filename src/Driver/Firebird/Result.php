@@ -23,15 +23,21 @@ use const IBASE_TEXT;
 final class Result implements ResultInterface
 {
     /**
-     * @param resource|bool|int $fbirdResultRc ;
+     * @var null|bool|int|resource
+     */
+    private $firebirdResultResource;
+
+    /**
+     * @param null|bool|int|resource $firebirdResultResource;
      * @throws Exception
      * @internal The result can only be instantiated by its driver connection or statement.
      *
      */
     public function __construct(
-        private $fbirdResultRc,
+        $firebirdResultResource,
         private readonly Connection $connection,
     ) {
+        $this->firebirdResultResource = $firebirdResultResource;
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
@@ -49,8 +55,8 @@ final class Result implements ResultInterface
     /** @inheritDoc */
     public function fetchNumeric()
     {
-        if (is_resource($this->fbirdResultRc)) {
-            return @fbird_fetch_row($this->fbirdResultRc, IBASE_TEXT);
+        if (is_resource($this->firebirdResultResource)) {
+            return @fbird_fetch_row($this->firebirdResultResource, IBASE_TEXT);
         }
 
         return false;
@@ -59,8 +65,8 @@ final class Result implements ResultInterface
     /** @inheritDoc */
     public function fetchAssociative()
     {
-        if (is_resource($this->fbirdResultRc)) {
-            return @fbird_fetch_assoc($this->fbirdResultRc, IBASE_TEXT);
+        if (is_resource($this->firebirdResultResource)) {
+            return @fbird_fetch_assoc($this->firebirdResultResource, IBASE_TEXT);
         }
 
         return false;
@@ -95,11 +101,11 @@ final class Result implements ResultInterface
      */
     public function rowCount(): int
     {
-        if (is_numeric($this->fbirdResultRc)) {
-            return (int) $this->fbirdResultRc;
+        if (is_numeric($this->firebirdResultResource)) {
+            return (int) $this->firebirdResultResource;
         }
 
-        if (is_resource($this->fbirdResultRc)) {
+        if (is_resource($this->firebirdResultResource)) {
             return @fbird_affected_rows($this->connection->getActiveTransaction());
         }
 
@@ -108,8 +114,8 @@ final class Result implements ResultInterface
 
     public function columnCount(): int
     {
-        if (is_resource($this->fbirdResultRc)) {
-            return @fbird_num_fields($this->fbirdResultRc);
+        if (is_resource($this->firebirdResultResource)) {
+            return @fbird_num_fields($this->firebirdResultResource);
         }
 
         return 0;
@@ -118,18 +124,18 @@ final class Result implements ResultInterface
     /** @throws Exception */
     public function free(): void
     {
-        while (is_resource($this->fbirdResultRc) && get_resource_type($this->fbirdResultRc) !== 'Unknown') {
-            if (! @fbird_free_result($this->fbirdResultRc)) {
+        while (is_resource($this->firebirdResultResource) && get_resource_type($this->firebirdResultResource) !== 'Unknown') {
+            if (! @fbird_free_result($this->firebirdResultResource)) {
                 $this->connection->checkLastApiCall();
             }
 
-            if (@fbird_close($this->fbirdResultRc)) {
+            if (@fbird_close($this->firebirdResultResource)) {
                 continue;
             }
 
             $this->connection->checkLastApiCall();
         }
 
-        $this->fbirdResultRc = null;
+        $this->firebirdResultResource = null;
     }
 }

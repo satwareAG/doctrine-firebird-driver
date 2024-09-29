@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
@@ -49,7 +50,7 @@ final class ConnectionWrapper extends Connection
         return $sql;
     }
 
-    public function getTableNameFromInsert($sql): string|null
+    public function getTableNameFromInsert(string $sql): string|null
     {
         if (preg_match('/INSERT INTO\s+([a-zA-Z0-9_]+)/i', $sql, $matches)) {
             return $matches[1];
@@ -115,7 +116,10 @@ final class ConnectionWrapper extends Connection
         return $database;
     }
 
-    private function getIdentityColumnForTable($tableName): array|null
+    /**
+     * @throws Exception
+     */
+    private function getIdentityColumnForTable(string $tableName): array|null
     {
         $schemaManager = $this->createSchemaManager();
 
