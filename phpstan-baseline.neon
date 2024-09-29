@@ -1,0 +1,41 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Function fbird_prepare invoked with 3 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createTransaction\\(\\) should return resource but returns bool\\|resource\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\#1 \\$query of function fbird_prepare expects string, resource\\|null given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\#1 \\$preparedStatement of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:checkLastApiCall\\(\\) expects resource\\|null, resource\\|false given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: "#^Parameter \\#1 \\$resource of function get_resource_type expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: "#^Offset 'password' does not exist on array\\{application_name\\?\\: string, charset\\?\\: string, dbname\\: string, defaultTableOptions\\?\\: array\\<string, mixed\\>, default_dbname\\?\\: string, driver\\?\\: 'ibm_db2'\\|'mysqli'\\|'oci8'\\|'pdo_mysql'\\|'pdo_oci'\\|'pdo_pgsql'\\|'pdo_sqlite'\\|'pdo_sqlsrv'\\|'pgsql'\\|'sqlite3'\\|'sqlsrv', driverClass\\?\\: class\\-string\\<Doctrine\\\\DBAL\\\\Driver\\>, driverOptions\\?\\: array, \\.\\.\\.\\}\\.$#"
+			count: 1
+			path: src/Schema/FirebirdSchemaManager.php
+
+		-
+			message: "#^Offset 'user' does not exist on array\\{application_name\\?\\: string, charset\\?\\: string, dbname\\: string, defaultTableOptions\\?\\: array\\<string, mixed\\>, default_dbname\\?\\: string, driver\\?\\: 'ibm_db2'\\|'mysqli'\\|'oci8'\\|'pdo_mysql'\\|'pdo_oci'\\|'pdo_pgsql'\\|'pdo_sqlite'\\|'pdo_sqlsrv'\\|'pgsql'\\|'sqlite3'\\|'sqlsrv', driverClass\\?\\: class\\-string\\<Doctrine\\\\DBAL\\\\Driver\\>, driverOptions\\?\\: array, \\.\\.\\.\\}\\.$#"
+			count: 1
+			path: src/Schema/FirebirdSchemaManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$link_identifier of function fbird_query expects resource\\|null, int given\\.$#"
+			count: 1
+			path: src/Schema/FirebirdSchemaManager.php
