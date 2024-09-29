@@ -15,6 +15,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
@@ -97,6 +98,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         parent::dropTable($tablename);
     }
 
+    /**
+     * @throws Exception
+     * @throws HostDbnameRequired
+     */
     public function createDatabase($database): void
     {
         $params           = $this->_conn->getParams();
@@ -126,7 +131,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception($msg, null, $code);
         }
 
-        $ret = @fbird_close($result);
+        @fbird_close($result);
     }
 
     /**

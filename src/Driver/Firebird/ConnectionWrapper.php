@@ -52,7 +52,7 @@ final class ConnectionWrapper extends Connection
 
     public function getTableNameFromInsert(string $sql): string|null
     {
-        if (preg_match('/INSERT INTO\s+([a-zA-Z0-9_]+)/i', $sql, $matches)) {
+        if (preg_match('/INSERT INTO\s+([a-zA-Z0-9_]+)/i', $sql, $matches) === 1) {
             return $matches[1];
         }
 
@@ -117,6 +117,8 @@ final class ConnectionWrapper extends Connection
     }
 
     /**
+     * @param string $tableName
+     * @return array<string,string>|null
      * @throws Exception
      */
     private function getIdentityColumnForTable(string $tableName): array|null
@@ -138,13 +140,16 @@ final class ConnectionWrapper extends Connection
         return null;
     }
 
-    private function addSequenceNameForTable(string|null $tableName): void
+    /**
+     * @throws Exception
+     */
+    private function addSequenceNameForTable(string $tableName): void
     {
         static $tableSequences = [];
         if (! isset($tableSequences[$tableName])) {
             $schemaManager = $this->createSchemaManager();
             // Get the columns for the table
-            $sequenceForTable = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, null);
+            $sequenceForTable = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
             $sequences        = $schemaManager->listSequences();
             $D2IS             = null;
             foreach ($sequences as $sequence) {

@@ -57,11 +57,12 @@ final class Driver extends AbstractFirebirdDriver
         if ($connection === false) {
             $code = (int) @fbird_errcode();
             $msg  = (string) @fbird_errmsg();
-            if ($code !== -902 || ! stristr($msg, 'no such file or directory')) {
+            if ($code === -902 && stristr($msg, 'no such file or directory') !== false) {
+                $connection        = null;
+                $notFoundException = Exception::fromErrorInfo($msg, $code);
+            } else {
                 throw Exception::fromErrorInfo($msg, $code);
             }
-            $connection        = null;
-            $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
 
         return new Connection($connection, $firebirdService, $persistent, $notFoundException, $params);

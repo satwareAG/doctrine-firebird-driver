@@ -9,6 +9,7 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
@@ -88,7 +89,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * @param resource|null $connection
      * @param resource      $firebirdService
-     * @param string[] $params
+     * @param array<string, mixed> $params
      * @throws Exception
      */
     public function __construct(private $connection, private $firebirdService, protected bool $isPersistent, ?Exception $databaseNotFoundException, array $params)
@@ -210,11 +211,11 @@ final class Connection implements ServerInfoAwareConnection
             );
         }
 
-        return new Statement($this, @fbird_prepare(
-            $this->connection,
-            $this->firebirdActiveTransaction,
-            $sql,
-        ), $visitor->getParameterMap());
+        return new Statement(
+            $this,
+            @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
+            $visitor->getParameterMap()
+        );
     }
 
     public function setConnectionInsertTableColumn(?string $table,?string  $column): void

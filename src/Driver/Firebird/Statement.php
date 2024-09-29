@@ -54,11 +54,14 @@ class Statement implements StatementInterface
     protected array $queryParamTypes = [];
 
     /**
-     * @var array<int, mixed>
+     * @var array<int|string>
      */
     private mixed $parameterMap;
 
     /**
+     * @param Connection $connection
+     * @param resource|false $statement
+     * @param array<int|string> $parameterMap
      * @throws Exception
      */
     public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
@@ -138,6 +141,10 @@ class Statement implements StatementInterface
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null) {
                 $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
+                if(! is_resource($blobResource)) {
+                    throw Exception::fromErrorInfo((string)@fbird_errmsg(), (int)fbird_errcode());
+                }
+
                 if (! is_resource($variable)) {
                     $fp = fopen('php://temp', 'rb+');
                     assert(is_resource($fp));

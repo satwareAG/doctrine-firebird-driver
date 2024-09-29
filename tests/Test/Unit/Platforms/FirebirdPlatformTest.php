@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\Type;
+use Satag\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
@@ -1000,9 +1001,11 @@ END
 
     public function testGetSQLResultCasing()
     {
-        $found = $this->_platform->getSQLResultCasing('foo');
+        $strategy = new FirebirdQuoteStrategy();
+        $found = $strategy->getColumnAlias('foo', 1, $this->_platform);
+
         $this->assertIsString($found);
-        $this->assertStringStartsWith("FOO", $found);
+        $this->assertStringStartsWith("FOO_1", $found);
     }
 
     public function testUnquotedIdentifierName()

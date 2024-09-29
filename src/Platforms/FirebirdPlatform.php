@@ -1354,10 +1354,8 @@ SQL
     }
 
     /**
+     * {@inheritDoc}
      * Adds a "Limit" using the firebird ROWS m TO n syntax
-     *
-     * @param int $limit  limit to numbers of records
-     * @param int $offset starting point
      */
     protected function doModifyLimitQuery($query, $limit, $offset): string
     {
@@ -1383,7 +1381,8 @@ SQL
     /**
      * Generates simple sql expressions usually used in metadata-queries
      *
-     * @param array $expressions
+     * @param array<int|string, mixed> $expressions
+     * @return string
      */
     protected function makeSimpleMetadataSelectExpression(array $expressions): string
     {
@@ -1416,7 +1415,7 @@ SQL
     /**
      * Combines multiple statements into an execute block statement
      *
-     * @param array $params
+     * @param array<string, mixed> $params
      * @return string
      */
     protected function getExecuteBlockSql(array $params = []): string
@@ -1475,7 +1474,7 @@ SQL
     /**
      * Builds an Execute Block statement with a bunch of Execute Statement calls
      *
-     * @param array $params
+     * @param array<int|string, mixed> $params
      * @return string
      */
     protected function getExecuteBlockWithExecuteStatementsSql(array $params = []): string
@@ -1505,14 +1504,6 @@ SQL
     protected function getExecuteStatementPSql(string $aStatement): string
     {
         return 'EXECUTE STATEMENT ' . $this->quoteSql($aStatement);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function getPlainDropSequenceSQL($sequence)
-    {
-        return $this->getDropSequenceSQL($sequence);
     }
 
     /**
@@ -1546,7 +1537,7 @@ SQL
     /**
      * @throws Exception
      */
-    protected function getDropSequenceIfExistsPSql($aSequence, $inBlock = false)
+    protected function getDropSequenceIfExistsPSql(Sequence|string $aSequence, bool $inBlock = false): string
     {
         $result = sprintf(
             'IF (EXISTS(SELECT 1 FROM RDB$GENERATORS 
@@ -1707,12 +1698,6 @@ SQL
 
         if (! empty($options['primary'])) {
             $columnListSql .= ', CONSTRAINT ' . $this->generatePrimaryKeyConstraintName($name) . ' PRIMARY KEY (' . implode(', ', array_unique(array_values($options['primary']))) . ')';
-        }
-
-        if (! empty($options['indexes'])) {
-            foreach ($options['indexes'] as $index => $definition) {
-                $columnListSql .= ', ' . $this->getIndexDeclarationSQL($index, $definition);
-            }
         }
 
         $query = 'CREATE ' .

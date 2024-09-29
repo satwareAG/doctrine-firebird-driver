@@ -14,7 +14,7 @@ final class ConvertParameters implements Visitor
 
     private string $convertedSql = ''; // The converted SQL string with positional parameters
     /**
-     * @var array<array-key, int>
+     * @var array<int|string>
      */
     private array $paramMap      = [];      // Maps positional parameter indices to named parameters
     private int $paramIndex      = 1;       // Tracks the current positional parameter index
@@ -47,7 +47,7 @@ final class ConvertParameters implements Visitor
         return $this->convertedSql;
     }
 
-    /** @return array<array-key, int> */
+    /** @return array<int|string> */
     public function getParameterMap(): array
     {
         return $this->paramMap;
