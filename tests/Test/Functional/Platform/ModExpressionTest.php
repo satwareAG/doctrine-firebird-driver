@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
-
-
-final class ModExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class ModExpressionTest extends FunctionalTestCase
 {
     public function testModExpression(): void
     {

@@ -184,7 +184,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     protected function _getPortableViewDefinition($view): bool|View
     {
@@ -197,7 +197,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @todo Read current generator value
      */

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\DriverManager;
@@ -8,6 +10,8 @@ use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 
@@ -26,10 +30,8 @@ use const E_ALL;
 use const E_WARNING;
 use const PHP_OS_FAMILY;
 
-/**
- * @psalm-import-type Params from DriverManager
- */
-class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+/** @psalm-import-type Params from DriverManager */
+class ExceptionTest extends FunctionalTestCase
 {
     public function testPrimaryConstraintViolationException(): void
     {
@@ -81,11 +83,7 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
 
         try {
             $this->connection->insert('owning_table', ['id' => 2, 'constraint_id' => 2]);
-        } catch (Exception\ForeignKeyConstraintViolationException $exception) {
-            $this->tearDownForeignKeyConstraintViolationExceptionTest();
-
-            throw $exception;
-        } catch (Throwable $exception) {
+        } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
             throw $exception;
@@ -111,11 +109,7 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
 
         try {
             $this->connection->update('constraint_error_table', ['id' => 2], ['id' => 1]);
-        } catch (Exception\ForeignKeyConstraintViolationException $exception) {
-            $this->tearDownForeignKeyConstraintViolationExceptionTest();
-
-            throw $exception;
-        } catch (Throwable $exception) {
+        } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
             throw $exception;
@@ -141,11 +135,7 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
 
         try {
             $this->connection->delete('constraint_error_table', ['id' => 1]);
-        } catch (Exception\ForeignKeyConstraintViolationException $exception) {
-            $this->tearDownForeignKeyConstraintViolationExceptionTest();
-
-            throw $exception;
-        } catch (Throwable $exception) {
+        } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
             throw $exception;
@@ -173,11 +163,7 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
 
         try {
             $this->connection->executeStatement($platform->getTruncateTableSQL('constraint_error_table'));
-        } catch (Exception\ForeignKeyConstraintViolationException $exception) {
-            $this->tearDownForeignKeyConstraintViolationExceptionTest();
-
-            throw $exception;
-        } catch (Throwable $exception) {
+        } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
             throw $exception;
@@ -314,6 +300,14 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
         $this->testConnectionException(['host' => 'localnope']);
     }
 
+    /** @return array<int, array<int, mixed>> */
+    public static function getConnectionParams(): Iterator
+    {
+        yield [['user' => 'not_existing']];
+        yield [['password' => 'really_not']];
+        yield [['host' => 'localnope']];
+    }
+
     /**
      * @param array<string, mixed> $params
      * @psalm-param Params $params
@@ -328,21 +322,11 @@ class ExceptionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCas
             self::markTestSkipped('The SQLite driver does not use a network connection');
         }
 
-        $params = array_merge(\Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams(), $params);
+        $params = array_merge(TestUtil::getConnectionParams(), $params);
         $conn   = DriverManager::getConnection($params);
 
         $this->expectException(Exception\ConnectionException::class);
         $conn->connect();
-    }
-
-    /** @return array<int, array<int, mixed>> */
-    public static function getConnectionParams(): iterable
-    {
-        return [
-            [['user' => 'not_existing']],
-            [['password' => 'really_not']],
-            [['host' => 'localnope']],
-        ];
     }
 
     private function setUpForeignKeyConstraintViolationExceptionTest(): void

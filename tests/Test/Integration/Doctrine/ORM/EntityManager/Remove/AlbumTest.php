@@ -1,84 +1,56 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Remove;
 
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
-/**
- *
- */
 class AlbumTest extends AbstractIntegrationTestCase
 {
-    public function testCanRemove()
+    public function testCanRemove(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $album = new Entity\Album("Some album " . __FUNCTION__);
-        } else {
-            $album = new Entity\Album("Some album " . __FUNCTION__);
-        }
+        $album = new Entity\Album('Some album ' . __FUNCTION__);
+
         $this->_entityManager->persist($album);
         $this->_entityManager->flush();
-        $this->assertIsInt($album->getId());
-        $id = $album->getId();
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
-        } else {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
-        }
-        $this->assertIsInt($album->getId());
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $this->assertInstanceOf(Entity\Album::class, $album);
-        } else {
-            $this->assertInstanceOf(Entity\Album::class, $album);
-        }
+        self::assertIsInt($album->getId());
+        $id    = $album->getId();
+        $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
+
+        self::assertIsInt($album->getId());
+        self::assertInstanceOf(Entity\Album::class, $album);
+
         $this->_entityManager->remove($album);
         $this->_entityManager->flush();
-        $this->assertNotNull($album);
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
-        } else {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
-        }
-        $this->assertNull($album);
+        self::assertNotNull($album);
+        $album = $this->_entityManager->getRepository(Entity\Album::class)->find($id);
+
+        self::assertNull($album);
     }
 
-    public function testCascaingRemoveWorks()
+    public function testCascaingRemoveWorks(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $subclass = new Entity\Cases\CascadingRemove\Subclass;
-        } else {
-            $subclass = new Entity\Cases\CascadingRemove\Subclass;
+        $subclass = new Entity\Cases\CascadingRemove\Subclass();
 
-        }
         $this->_entityManager->persist($subclass);
         $this->_entityManager->flush();
-        $this->assertIsInt($subclass->getId());
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $cascadingRemove = new Entity\Cases\CascadingRemove($subclass);
-        } else {
-            $cascadingRemove = new Entity\Cases\CascadingRemove($subclass);
+        self::assertIsInt($subclass->getId());
+        $cascadingRemove = new Entity\Cases\CascadingRemove($subclass);
 
-        }
         $this->_entityManager->persist($cascadingRemove);
         $this->_entityManager->flush();
-        $this->assertIsInt($cascadingRemove->getId());
+        self::assertIsInt($cascadingRemove->getId());
         $cascadingRemoveId = $cascadingRemove->getId();
-        $subclassId = $cascadingRemove->getSubclass()->getId();
+        $subclassId        = $cascadingRemove->getSubclass()->getId();
         $this->_entityManager->remove($cascadingRemove);
         $this->_entityManager->flush();
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $cascadingRemove = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove::class)->find($cascadingRemoveId);
-        } else {
-            $cascadingRemove = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove::class)->find($cascadingRemoveId);
+        $cascadingRemove = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove::class)->find($cascadingRemoveId);
 
-        }
-        $this->assertNull($cascadingRemove);
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $subclass = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove\Subclass::class)->find($subclassId);
-        } else {
-            $subclass = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove\Subclass::class)->find($subclassId);
-        }
+        self::assertNull($cascadingRemove);
+        $subclass = $this->_entityManager->getRepository(Entity\Cases\CascadingRemove\Subclass::class)->find($subclassId);
 
-        $this->assertNull($subclass);
+        self::assertNull($subclass);
     }
 }

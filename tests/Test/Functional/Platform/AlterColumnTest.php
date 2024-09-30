@@ -1,19 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 
-
-class AlterColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class AlterColumnTest extends FunctionalTestCase
 {
     public function testColumnPositionRetainedAfterAltering(): void
     {

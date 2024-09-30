@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use DateTime;
@@ -9,26 +11,14 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
 use function array_filter;
 use function strtolower;
 
-class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class WriteTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('write_table');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('test_int', Types::INTEGER);
-        $table->addColumn('test_string', Types::STRING, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-
-        $this->connection->executeStatement('DELETE FROM write_table');
-    }
-
     public function testExecuteStatementFirstTypeIsNull(): void
     {
         $sql = 'INSERT INTO write_table (test_string, test_int) VALUES (?, ?)';
@@ -43,7 +33,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $sql      = 'INSERT INTO write_table (test_int) VALUES ( ' . $this->connection->quote(1) . ')';
         $affected = $this->connection->executeStatement($sql);
 
-        self::assertEquals(1, $affected, 'executeStatement() should return the number of affected rows!');
+        self::assertSame(1, $affected, 'executeStatement() should return the number of affected rows!');
     }
 
     public function testExecuteStatementWithTypes(): void
@@ -55,7 +45,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
             [ParameterType::INTEGER, ParameterType::STRING],
         );
 
-        self::assertEquals(1, $affected, 'executeStatement() should return the number of affected rows!');
+        self::assertSame(1, $affected, 'executeStatement() should return the number of affected rows!');
     }
 
     public function testPrepareRowCountReturnsAffectedRows(): void
@@ -66,7 +56,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $stmt->bindValue(1, 1);
         $stmt->bindValue(2, 'foo');
 
-        self::assertEquals(1, $stmt->execute()->rowCount());
+        self::assertSame(1, $stmt->execute()->rowCount());
     }
 
     public function testPrepareWithPrimitiveTypes(): void
@@ -77,7 +67,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $stmt->bindValue(2, 'foo', ParameterType::STRING);
 
-        self::assertEquals(1, $stmt->execute()->rowCount());
+        self::assertSame(1, $stmt->execute()->rowCount());
     }
 
     public function testPrepareWithDoctrineMappingTypes(): void
@@ -88,7 +78,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $stmt->bindValue(1, 1, Type::getType(Types::INTEGER));
         $stmt->bindValue(2, 'foo', Type::getType(Types::STRING));
 
-        self::assertEquals(1, $stmt->execute()->rowCount());
+        self::assertSame(1, $stmt->execute()->rowCount());
     }
 
     public function testPrepareWithDoctrineMappingTypeNames(): void
@@ -99,13 +89,13 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $stmt->bindValue(1, 1, 'integer');
         $stmt->bindValue(2, 'foo', 'string');
 
-        self::assertEquals(1, $stmt->execute()->rowCount());
+        self::assertSame(1, $stmt->execute()->rowCount());
     }
 
     public function insertRows(): void
     {
-        self::assertEquals(1, $this->connection->insert('write_table', ['test_int' => 1, 'test_string' => 'foo']));
-        self::assertEquals(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
+        self::assertSame(1, $this->connection->insert('write_table', ['test_int' => 1, 'test_string' => 'foo']));
+        self::assertSame(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
     }
 
     public function testInsert(): void
@@ -117,10 +107,10 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
     {
         $this->insertRows();
 
-        self::assertEquals(1, $this->connection->delete('write_table', ['test_int' => 2]));
+        self::assertSame(1, $this->connection->delete('write_table', ['test_int' => 2]));
         self::assertCount(1, $this->connection->fetchAllAssociative('SELECT * FROM write_table'));
 
-        self::assertEquals(1, $this->connection->delete('write_table', ['test_int' => 1]));
+        self::assertSame(1, $this->connection->delete('write_table', ['test_int' => 1]));
         self::assertCount(0, $this->connection->fetchAllAssociative('SELECT * FROM write_table'));
     }
 
@@ -128,19 +118,19 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
     {
         $this->insertRows();
 
-        self::assertEquals(1, $this->connection->update(
+        self::assertSame(1, $this->connection->update(
             'write_table',
             ['test_string' => 'bar'],
             ['test_string' => 'foo'],
         ));
 
-        self::assertEquals(2, $this->connection->update(
+        self::assertSame(2, $this->connection->update(
             'write_table',
             ['test_string' => 'baz'],
             ['test_string' => 'bar'],
         ));
 
-        self::assertEquals(0, $this->connection->update(
+        self::assertSame(0, $this->connection->update(
             'write_table',
             ['test_string' => 'baz'],
             ['test_string' => 'bar'],
@@ -153,7 +143,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
             self::markTestSkipped('Test only works on platforms with identity columns.');
         }
 
-        self::assertEquals(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
+        self::assertSame(1, $this->connection->insert('write_table', ['test_int' => 2, 'test_string' => 'bar']));
         $num = $this->connection->lastInsertId();
 
         self::assertGreaterThan(0, $num, 'LastInsertId() should be non-negative number.');
@@ -168,13 +158,11 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         $sequence = new Sequence('write_table_id_seq');
         try {
             $this->connection->getSchemaManager()->createSequence($sequence);
-        } catch (Throwable $e) {
+        } catch (Throwable) {
         }
 
         $sequences = $this->connection->getSchemaManager()->listSequences();
-        self::assertCount(1, array_filter($sequences, static function ($sequence): bool {
-            return strtolower($sequence->getName()) === 'write_table_id_seq';
-        }));
+        self::assertCount(1, array_filter($sequences, static fn ($sequence): bool => strtolower((string) $sequence->getName()) === 'write_table_id_seq'));
 
         $nextSequenceVal = $this->connection->fetchOne(
             $this->connection->getDatabasePlatform()->getSequenceNextValSQL('write_table_id_seq'),
@@ -212,10 +200,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
         $data = $this->connection->fetchOne('SELECT test_string FROM write_table WHERE test_int = 30');
 
-        self::assertEquals(
-            $testString->format($this->connection->getDatabasePlatform()->getDateTimeFormatString()),
-            $data,
-        );
+        self::assertSame($testString->format($this->connection->getDatabasePlatform()->getDateTimeFormatString()), $data);
     }
 
     public function testUpdateWithKeyValueTypes(): void
@@ -239,10 +224,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
         $data = $this->connection->fetchOne('SELECT test_string FROM write_table WHERE test_int = 30');
 
-        self::assertEquals(
-            $testString->format($this->connection->getDatabasePlatform()->getDateTimeFormatString()),
-            $data,
-        );
+        self::assertSame($testString->format($this->connection->getDatabasePlatform()->getDateTimeFormatString()), $data);
     }
 
     public function testDeleteWithKeyValueTypes(): void
@@ -271,7 +253,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        if (! ($platform->supportsIdentityColumns() || $platform->usesSequenceEmulatedIdentityColumns())) {
+        if (! $platform->supportsIdentityColumns() && ! $platform->usesSequenceEmulatedIdentityColumns()) {
             self::markTestSkipped(
                 'Test only works on platforms with identity columns or sequence emulated identity columns.',
             );
@@ -283,7 +265,7 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
         try {
             $this->connection->getSchemaManager()->dropTable($table->getQuotedName($platform));
-        } catch (Throwable $e) {
+        } catch (Throwable) {
         }
 
         foreach ($platform->getCreateTableSQL($table) as $sql) {
@@ -348,15 +330,26 @@ class WriteTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         self::assertCount(0, $data);
     }
 
+    protected function setUp(): void
+    {
+        $table = new Table('write_table');
+        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+        $table->addColumn('test_int', Types::INTEGER);
+        $table->addColumn('test_string', Types::STRING, ['notnull' => false]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
+
+        $this->connection->executeStatement('DELETE FROM write_table');
+    }
+
     /**
      * Returns the ID of the last inserted row or skips the test if the currently used driver
      * doesn't support this feature
      *
-     * @return string|int|false
-     *
      * @throws Exception
      */
-    private function lastInsertId(?string $name = null)
+    private function lastInsertId(string|null $name = null): string|int|false
     {
         try {
             return $this->connection->lastInsertId($name);

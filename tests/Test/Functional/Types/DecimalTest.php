@@ -7,22 +7,13 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function rtrim;
 
-final class DecimalTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class DecimalTest extends FunctionalTestCase
 {
-    /** @return string[][] */
-    public static function dataValuesProvider(): array
-    {
-        return [
-            ['13.37'],
-            ['13.0'],
-        ];
-    }
-
     /** @dataProvider dataValuesProvider */
     public function testInsertAndRetrieveDecimal(string $expected): void
     {
@@ -44,6 +35,13 @@ final class DecimalTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTes
 
         self::assertIsString($value);
         self::assertSame($this->stripTrailingZero($expected), $this->stripTrailingZero($value));
+    }
+
+    /** @return string[][] */
+    public static function dataValuesProvider(): Iterator
+    {
+        yield ['13.37'];
+        yield ['13.0'];
     }
 
     private function stripTrailingZero(string $expected): string

@@ -278,9 +278,6 @@ ___query___;
         return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getCreateSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -300,9 +297,6 @@ ___query___;
         return 'COMMENT ON SEQUENCE ' . $sequence->getQuotedName($this) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getAlterSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -325,9 +319,6 @@ ___query___;
         return 'BOOLEAN';
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function isCommentedDoctrineType(Type $doctrineType): bool
     {
         return AbstractPlatform::isCommentedDoctrineType($doctrineType);

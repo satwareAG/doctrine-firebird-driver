@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema\Types;
 
-final class Money
-{
-    private string $value;
+use Stringable;
 
-    public function __construct(string $value)
+final class Money implements Stringable
+{
+    public function __construct(private readonly string $value)
     {
-        $this->value = $value;
     }
 
     public function __toString(): string

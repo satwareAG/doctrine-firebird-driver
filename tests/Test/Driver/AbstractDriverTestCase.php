@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
 use Doctrine\DBAL\Connection;
@@ -23,11 +25,6 @@ abstract class AbstractDriverTestCase extends TestCase
      * The driver mock under test.
      */
     protected Driver $driver;
-
-    protected function setUp(): void
-    {
-        $this->driver = $this->createDriver();
-    }
 
     public function testThrowsExceptionOnCreatingDatabasePlatformsForInvalidVersion(): void
     {
@@ -65,6 +62,23 @@ abstract class AbstractDriverTestCase extends TestCase
         self::assertEquals($this->createExceptionConverter(), $this->driver->getExceptionConverter());
     }
 
+    /** @return iterable<array{0: string, 1: class-string<AbstractPlatform>, 2?: string, 3?: bool}> */
+    public function getDatabasePlatformsForVersions(): iterable
+    {
+        return [];
+    }
+
+    protected function setUp(): void
+    {
+        $this->driver = $this->createDriver();
+    }
+
+    /** @return Connection&MockObject */
+    protected function getConnectionMock(): Connection
+    {
+        return $this->createMock(Connection::class);
+    }
+
     /**
      * Factory method for creating the driver instance under test.
      */
@@ -75,8 +89,6 @@ abstract class AbstractDriverTestCase extends TestCase
      *
      * The platform instance returned by this method must be the same as returned by
      * the driver's getDatabasePlatform() method.
-     *
-     * @return AbstractPlatform
      */
     abstract protected function createPlatform(): AbstractPlatform;
 
@@ -91,16 +103,4 @@ abstract class AbstractDriverTestCase extends TestCase
     abstract protected function createSchemaManager(Connection $connection): AbstractSchemaManager;
 
     abstract protected function createExceptionConverter(): ExceptionConverter;
-
-    /** @return Connection&MockObject */
-    protected function getConnectionMock(): Connection
-    {
-        return $this->createMock(Connection::class);
-    }
-
-    /** @return iterable<array{0: string, 1: class-string<AbstractPlatform>, 2?: string, 3?: bool}> */
-    public function getDatabasePlatformsForVersions(): iterable
-    {
-        return [];
-    }
 }

@@ -1,15 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-class OtherSchemaTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class OtherSchemaTest extends FunctionalTestCase
 {
     public function testATableCanBeCreatedInAnotherSchema(): void
     {
@@ -28,7 +29,7 @@ class OtherSchemaTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
         $this->dropAndCreateTable($table);
         $this->connection->insert('other.test_other_schema', ['id' => 1]);
 
-        self::assertEquals(1, $this->connection->fetchOne('SELECT COUNT(*) FROM other.test_other_schema'));
+        self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM other.test_other_schema'));
         $connection  = DriverManager::getConnection(
             ['url' => 'sqlite:////tmp/test_other_schema.sqlite'],
         );

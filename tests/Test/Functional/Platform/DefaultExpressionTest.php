@@ -8,15 +8,12 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
 
-
-class DefaultExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class DefaultExpressionTest extends FunctionalTestCase
 {
     public function testCurrentDate(): void
     {
@@ -26,9 +23,7 @@ class DefaultExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\Functiona
             self::markTestSkipped('Not supported on MySQL');
         }
 
-        $this->assertDefaultExpression(Types::DATE_MUTABLE, static function (AbstractPlatform $platform): string {
-            return $platform->getCurrentDateSQL();
-        });
+        $this->assertDefaultExpression(Types::DATE_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentDateSQL());
     }
 
     public function testCurrentTime(): void
@@ -43,16 +38,12 @@ class DefaultExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\Functiona
             self::markTestSkipped('Not supported on Oracle');
         }
 
-        $this->assertDefaultExpression(Types::TIME_MUTABLE, static function (AbstractPlatform $platform): string {
-            return $platform->getCurrentTimeSQL();
-        });
+        $this->assertDefaultExpression(Types::TIME_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentTimeSQL());
     }
 
     public function testCurrentTimestamp(): void
     {
-        $this->assertDefaultExpression(Types::DATETIME_MUTABLE, static function (AbstractPlatform $platform): string {
-            return $platform->getCurrentTimestampSQL();
-        });
+        $this->assertDefaultExpression(Types::DATETIME_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentTimestampSQL());
     }
 
     private function assertDefaultExpression(string $type, callable $expression): void

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use DateTime;
@@ -10,6 +12,8 @@ use Doctrine\DBAL\Platforms\TrimMode;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_change_key_case;
 use function date;
@@ -17,26 +21,9 @@ use function strtotime;
 
 use const CASE_LOWER;
 
-class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class DataAccessTest extends FunctionalTestCase
 {
     use VerifyDeprecations;
-
-    protected function setUp(): void
-    {
-        $table = new Table('fetch_table');
-        $table->addColumn('test_int', Types::INTEGER);
-        $table->addColumn('test_string', Types::STRING);
-        $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);
-        $table->setPrimaryKey(['test_int']);
-
-        $this->dropAndCreateTable($table);
-
-        $this->connection->insert('fetch_table', [
-            'test_int' => 1,
-            'test_string' => 'foo',
-            'test_datetime' => '2010-01-01 10:10:10',
-        ]);
-    }
 
     public function testPrepareWithBindValue(): void
     {
@@ -50,7 +37,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         self::assertIsArray($row);
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(['test_int' => 1, 'test_string' => 'foo'], $row);
+        self::assertSame(['test_int' => 1, 'test_string' => 'foo'], $row);
     }
 
     public function testPrepareWithBindParam(): void
@@ -68,7 +55,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         self::assertIsArray($row);
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(['test_int' => 1, 'test_string' => 'foo'], $row);
+        self::assertSame(['test_int' => 1, 'test_string' => 'foo'], $row);
     }
 
     public function testPrepareWithFetchAllAssociative(): void
@@ -84,7 +71,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $rows    = $stmt->execute()->fetchAllAssociative();
         $rows[0] = array_change_key_case($rows[0], CASE_LOWER);
-        self::assertEquals(['test_int' => 1, 'test_string' => 'foo'], $rows[0]);
+        self::assertSame(['test_int' => 1, 'test_string' => 'foo'], $rows[0]);
     }
 
     public function testPrepareWithFetchOne(): void
@@ -99,7 +86,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $stmt->bindParam(2, $paramStr);
 
         $column = $stmt->execute()->fetchOne();
-        self::assertEquals(1, $column);
+        self::assertSame(1, $column);
     }
 
     public function testPrepareWithExecuteParams(): void
@@ -114,7 +101,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $row = $result->fetchAssociative();
         self::assertNotFalse($row);
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(['test_int' => 1, 'test_string' => 'foo'], $row);
+        self::assertSame(['test_int' => 1, 'test_string' => 'foo'], $row);
     }
 
     public function testFetchAllAssociative(): void
@@ -128,8 +115,8 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         self::assertCount(2, $row);
 
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(1, $row['test_int']);
-        self::assertEquals('foo', $row['test_string']);
+        self::assertSame(1, $row['test_int']);
+        self::assertSame('foo', $row['test_string']);
     }
 
     public function testFetchAllWithTypes(): void
@@ -150,7 +137,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         self::assertCount(2, $row);
 
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
         self::assertStringStartsWith($datetimeString, $row['test_datetime']);
     }
 
@@ -163,8 +150,8 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row['test_int']);
-        self::assertEquals('foo', $row['test_string']);
+        self::assertSame(1, $row['test_int']);
+        self::assertSame('foo', $row['test_string']);
     }
 
     public function testFetchAssocWithTypes(): void
@@ -183,7 +170,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
         self::assertStringStartsWith($datetimeString, $row['test_datetime']);
     }
 
@@ -193,8 +180,8 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $row = $this->connection->fetchNumeric($sql, [1, 'foo']);
         self::assertNotFalse($row);
 
-        self::assertEquals(1, $row[0]);
-        self::assertEquals('foo', $row[1]);
+        self::assertSame(1, $row[0]);
+        self::assertSame('foo', $row[1]);
     }
 
     public function testFetchArrayWithTypes(): void
@@ -213,7 +200,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row[0]);
+        self::assertSame(1, $row[0]);
         self::assertStringStartsWith($datetimeString, $row[1]);
     }
 
@@ -222,12 +209,12 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $sql     = 'SELECT test_int FROM fetch_table WHERE test_int = ? AND test_string = ?';
         $testInt = $this->connection->fetchOne($sql, [1, 'foo']);
 
-        self::assertEquals(1, $testInt);
+        self::assertSame(1, $testInt);
 
         $sql        = 'SELECT test_string FROM fetch_table WHERE test_int = ? AND test_string = ?';
         $testString = $this->connection->fetchOne($sql, [1, 'foo']);
 
-        self::assertEquals('foo', $testString);
+        self::assertSame('foo', $testString);
     }
 
     public function testFetchOneWithTypes(): void
@@ -255,7 +242,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
             [Types::DATETIME_MUTABLE],
         );
 
-        self::assertEquals(1, $value);
+        self::assertSame(1, $value);
     }
 
     public function testExecuteStatementBindDateTimeType(): void
@@ -273,8 +260,8 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
             Types::DATETIME_MUTABLE,
         ]);
 
-        self::assertEquals(1, $affectedRows);
-        self::assertEquals(1, $this->connection->executeQuery(
+        self::assertSame(1, $affectedRows);
+        self::assertSame(1, $this->connection->executeQuery(
             'SELECT count(*) AS c FROM fetch_table WHERE test_datetime = ?',
             [$datetime],
             [Types::DATETIME_MUTABLE],
@@ -288,7 +275,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $stmt->bindValue(1, new DateTime('2010-01-01 10:10:10'), Types::DATETIME_MUTABLE);
         $result = $stmt->execute();
 
-        self::assertEquals(1, $result->fetchOne());
+        self::assertSame(1, $result->fetchOne());
     }
 
     public function testNativeArrayListSupport(): void
@@ -309,7 +296,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $data = $result->fetchAllNumeric();
         self::assertCount(5, $data);
-        self::assertEquals([[100], [101], [102], [103], [104]], $data);
+        self::assertSame([[100], [101], [102], [103], [104]], $data);
 
         $result = $this->connection->executeQuery(
             'SELECT test_int FROM fetch_table WHERE test_string IN (?)',
@@ -319,15 +306,11 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $data = $result->fetchAllNumeric();
         self::assertCount(5, $data);
-        self::assertEquals([[100], [101], [102], [103], [104]], $data);
+        self::assertSame([[100], [101], [102], [103], [104]], $data);
     }
 
-    /**
-     * @param string|false $char
-     *
-     * @dataProvider getTrimExpressionData
-     */
-    public function testTrimExpression(string $value, int $position, $char, string $expectedResult): void
+    /** @dataProvider getTrimExpressionData */
+    public function testTrimExpression(string $value, int $position, string|false $char, string $expectedResult): void
     {
         $sql = 'SELECT ' .
             $this->connection->getDatabasePlatform()->getTrimExpression($value, $position, $char) . ' AS trimmed ' .
@@ -337,50 +320,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         self::assertNotFalse($row);
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals($expectedResult, $row['trimmed']);
-    }
-
-    /** @return array<int, array<int, mixed>> */
-    public static function getTrimExpressionData(): iterable
-    {
-        return [
-            ['test_string', TrimMode::UNSPECIFIED, false, 'foo'],
-            ['test_string', TrimMode::LEADING, false, 'foo'],
-            ['test_string', TrimMode::TRAILING, false, 'foo'],
-            ['test_string', TrimMode::BOTH, false, 'foo'],
-            ['test_string', TrimMode::UNSPECIFIED, "'f'", 'oo'],
-            ['test_string', TrimMode::UNSPECIFIED, "'o'", 'f'],
-            ['test_string', TrimMode::UNSPECIFIED, "'.'", 'foo'],
-            ['test_string', TrimMode::LEADING, "'f'", 'oo'],
-            ['test_string', TrimMode::LEADING, "'o'", 'foo'],
-            ['test_string', TrimMode::LEADING, "'.'", 'foo'],
-            ['test_string', TrimMode::TRAILING, "'f'", 'foo'],
-            ['test_string', TrimMode::TRAILING, "'o'", 'f'],
-            ['test_string', TrimMode::TRAILING, "'.'", 'foo'],
-            ['test_string', TrimMode::BOTH, "'f'", 'oo'],
-            ['test_string', TrimMode::BOTH, "'o'", 'f'],
-            ['test_string', TrimMode::BOTH, "'.'", 'foo'],
-            ["' foo '", TrimMode::UNSPECIFIED, false, 'foo'],
-            ["' foo '", TrimMode::LEADING, false, 'foo '],
-            ["' foo '", TrimMode::TRAILING, false, ' foo'],
-            ["' foo '", TrimMode::BOTH, false, 'foo'],
-            ["' foo '", TrimMode::UNSPECIFIED, "'f'", ' foo '],
-            ["' foo '", TrimMode::UNSPECIFIED, "'o'", ' foo '],
-            ["' foo '", TrimMode::UNSPECIFIED, "'.'", ' foo '],
-            ["' foo '", TrimMode::UNSPECIFIED, "' '", 'foo'],
-            ["' foo '", TrimMode::LEADING, "'f'", ' foo '],
-            ["' foo '", TrimMode::LEADING, "'o'", ' foo '],
-            ["' foo '", TrimMode::LEADING, "'.'", ' foo '],
-            ["' foo '", TrimMode::LEADING, "' '", 'foo '],
-            ["' foo '", TrimMode::TRAILING, "'f'", ' foo '],
-            ["' foo '", TrimMode::TRAILING, "'o'", ' foo '],
-            ["' foo '", TrimMode::TRAILING, "'.'", ' foo '],
-            ["' foo '", TrimMode::TRAILING, "' '", ' foo'],
-            ["' foo '", TrimMode::BOTH, "'f'", ' foo '],
-            ["' foo '", TrimMode::BOTH, "'o'", ' foo '],
-            ["' foo '", TrimMode::BOTH, "'.'", ' foo '],
-            ["' foo '", TrimMode::BOTH, "' '", 'foo'],
-        ];
+        self::assertSame($expectedResult, $row['trimmed']);
     }
 
     public function testDateArithmetics(): void
@@ -409,22 +349,22 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         self::assertNotFalse($row);
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals('2010-01-01 10:10:11', date('Y-m-d H:i:s', strtotime($row['add_seconds'])));
-        self::assertEquals('2010-01-01 10:10:09', date('Y-m-d H:i:s', strtotime($row['sub_seconds'])));
-        self::assertEquals('2010-01-01 10:15:10', date('Y-m-d H:i:s', strtotime($row['add_minutes'])));
-        self::assertEquals('2010-01-01 10:05:10', date('Y-m-d H:i:s', strtotime($row['sub_minutes'])));
-        self::assertEquals('2010-01-01 13:10', date('Y-m-d H:i', strtotime($row['add_hour'])));
-        self::assertEquals('2010-01-01 07:10', date('Y-m-d H:i', strtotime($row['sub_hour'])));
-        self::assertEquals('2010-01-11', date('Y-m-d', strtotime($row['add_days'])));
-        self::assertEquals('2009-12-22', date('Y-m-d', strtotime($row['sub_days'])));
-        self::assertEquals('2010-01-08', date('Y-m-d', strtotime($row['add_weeks'])));
-        self::assertEquals('2009-12-25', date('Y-m-d', strtotime($row['sub_weeks'])));
-        self::assertEquals('2010-03-01', date('Y-m-d', strtotime($row['add_month'])));
-        self::assertEquals('2009-11-01', date('Y-m-d', strtotime($row['sub_month'])));
-        self::assertEquals('2010-10-01', date('Y-m-d', strtotime($row['add_quarters'])));
-        self::assertEquals('2009-04-01', date('Y-m-d', strtotime($row['sub_quarters'])));
-        self::assertEquals('2016-01-01', date('Y-m-d', strtotime($row['add_years'])));
-        self::assertEquals('2004-01-01', date('Y-m-d', strtotime($row['sub_years'])));
+        self::assertSame('2010-01-01 10:10:11', date('Y-m-d H:i:s', strtotime((string) $row['add_seconds'])));
+        self::assertSame('2010-01-01 10:10:09', date('Y-m-d H:i:s', strtotime((string) $row['sub_seconds'])));
+        self::assertSame('2010-01-01 10:15:10', date('Y-m-d H:i:s', strtotime((string) $row['add_minutes'])));
+        self::assertSame('2010-01-01 10:05:10', date('Y-m-d H:i:s', strtotime((string) $row['sub_minutes'])));
+        self::assertSame('2010-01-01 13:10', date('Y-m-d H:i', strtotime((string) $row['add_hour'])));
+        self::assertSame('2010-01-01 07:10', date('Y-m-d H:i', strtotime((string) $row['sub_hour'])));
+        self::assertSame('2010-01-11', date('Y-m-d', strtotime((string) $row['add_days'])));
+        self::assertSame('2009-12-22', date('Y-m-d', strtotime((string) $row['sub_days'])));
+        self::assertSame('2010-01-08', date('Y-m-d', strtotime((string) $row['add_weeks'])));
+        self::assertSame('2009-12-25', date('Y-m-d', strtotime((string) $row['sub_weeks'])));
+        self::assertSame('2010-03-01', date('Y-m-d', strtotime((string) $row['add_month'])));
+        self::assertSame('2009-11-01', date('Y-m-d', strtotime((string) $row['sub_month'])));
+        self::assertSame('2010-10-01', date('Y-m-d', strtotime((string) $row['add_quarters'])));
+        self::assertSame('2009-04-01', date('Y-m-d', strtotime((string) $row['sub_quarters'])));
+        self::assertSame('2016-01-01', date('Y-m-d', strtotime((string) $row['add_years'])));
+        self::assertSame('2004-01-01', date('Y-m-d', strtotime((string) $row['sub_years'])));
     }
 
     public function testSqliteDateArithmeticWithDynamicInterval(): void
@@ -451,7 +391,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $rowCount = $this->connection->fetchOne($sql);
 
-        self::assertEquals(1, $rowCount);
+        self::assertSame(1, $rowCount);
     }
 
     public function testLocateExpression(): void
@@ -476,7 +416,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         self::assertNotFalse($row);
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals([
+        self::assertSame([
             'locate1' => 2,
             'locate2' => 1,
             'locate3' => 0,
@@ -493,9 +433,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
     public function testSqliteLocateEmulation(): void
     {
-
         self::markTestSkipped('test is for SQLite only');
-
 
         $sql = <<< 'SQL'
             SELECT
@@ -515,7 +453,7 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5749');
 
-        self::assertEquals([
+        $this->assertSame([
             'locate1' => 2,
             'locate2' => 1,
             'locate3' => 0,
@@ -536,5 +474,63 @@ class DataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $rows = $this->connection->fetchAllAssociative($sql);
 
         self::assertCount(0, $rows, 'no result should be returned, otherwise SQL injection is possible');
+    }
+
+    /** @return array<int, array<int, mixed>> */
+    public static function getTrimExpressionData(): Iterator
+    {
+        yield ['test_string', TrimMode::UNSPECIFIED, false, 'foo'];
+        yield ['test_string', TrimMode::LEADING, false, 'foo'];
+        yield ['test_string', TrimMode::TRAILING, false, 'foo'];
+        yield ['test_string', TrimMode::BOTH, false, 'foo'];
+        yield ['test_string', TrimMode::UNSPECIFIED, "'f'", 'oo'];
+        yield ['test_string', TrimMode::UNSPECIFIED, "'o'", 'f'];
+        yield ['test_string', TrimMode::UNSPECIFIED, "'.'", 'foo'];
+        yield ['test_string', TrimMode::LEADING, "'f'", 'oo'];
+        yield ['test_string', TrimMode::LEADING, "'o'", 'foo'];
+        yield ['test_string', TrimMode::LEADING, "'.'", 'foo'];
+        yield ['test_string', TrimMode::TRAILING, "'f'", 'foo'];
+        yield ['test_string', TrimMode::TRAILING, "'o'", 'f'];
+        yield ['test_string', TrimMode::TRAILING, "'.'", 'foo'];
+        yield ['test_string', TrimMode::BOTH, "'f'", 'oo'];
+        yield ['test_string', TrimMode::BOTH, "'o'", 'f'];
+        yield ['test_string', TrimMode::BOTH, "'.'", 'foo'];
+        yield ["' foo '", TrimMode::UNSPECIFIED, false, 'foo'];
+        yield ["' foo '", TrimMode::LEADING, false, 'foo '];
+        yield ["' foo '", TrimMode::TRAILING, false, ' foo'];
+        yield ["' foo '", TrimMode::BOTH, false, 'foo'];
+        yield ["' foo '", TrimMode::UNSPECIFIED, "'f'", ' foo '];
+        yield ["' foo '", TrimMode::UNSPECIFIED, "'o'", ' foo '];
+        yield ["' foo '", TrimMode::UNSPECIFIED, "'.'", ' foo '];
+        yield ["' foo '", TrimMode::UNSPECIFIED, "' '", 'foo'];
+        yield ["' foo '", TrimMode::LEADING, "'f'", ' foo '];
+        yield ["' foo '", TrimMode::LEADING, "'o'", ' foo '];
+        yield ["' foo '", TrimMode::LEADING, "'.'", ' foo '];
+        yield ["' foo '", TrimMode::LEADING, "' '", 'foo '];
+        yield ["' foo '", TrimMode::TRAILING, "'f'", ' foo '];
+        yield ["' foo '", TrimMode::TRAILING, "'o'", ' foo '];
+        yield ["' foo '", TrimMode::TRAILING, "'.'", ' foo '];
+        yield ["' foo '", TrimMode::TRAILING, "' '", ' foo'];
+        yield ["' foo '", TrimMode::BOTH, "'f'", ' foo '];
+        yield ["' foo '", TrimMode::BOTH, "'o'", ' foo '];
+        yield ["' foo '", TrimMode::BOTH, "'.'", ' foo '];
+        yield ["' foo '", TrimMode::BOTH, "' '", 'foo'];
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('fetch_table');
+        $table->addColumn('test_int', Types::INTEGER);
+        $table->addColumn('test_string', Types::STRING);
+        $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);
+        $table->setPrimaryKey(['test_int']);
+
+        $this->dropAndCreateTable($table);
+
+        $this->connection->insert('fetch_table', [
+            'test_int' => 1,
+            'test_string' => 'foo',
+            'test_datetime' => '2010-01-01 10:10:10',
+        ]);
     }
 }

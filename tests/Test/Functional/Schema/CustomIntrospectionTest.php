@@ -6,10 +6,9 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Schema;
-use Satag\DoctrineFirebirdDriver\Test\Functional\Schema\Types\MoneyType;
 use Doctrine\DBAL\Types\Type;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Functional\Schema\Types\MoneyType;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_map;
 use function implode;
@@ -18,14 +17,9 @@ use function sprintf;
 /**
  * Tests introspection of a custom column type with an underlying decimal column
  * on Firebird Platforms
-*/
-class CustomIntrospectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+ */
+class CustomIntrospectionTest extends FunctionalTestCase
 {
-    public static function setUpBeforeClass(): void
-    {
-        Type::addType('money', MoneyType::class);
-    }
-
     public function testCustomColumnIntrospection(): void
     {
         $tableName     = 'test_c_column_introspection';
@@ -46,10 +40,10 @@ class CustomIntrospectionTest extends \Satag\DoctrineFirebirdDriver\Test\Functio
         $onlineTable = $schemaManager->introspectTable($tableName);
         $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
         $changedCols = array_map(
-            static function (ColumnDiff $columnDiff): ?string {
+            static function (ColumnDiff $columnDiff): string|null {
                 $column = $columnDiff->getOldColumn();
 
-                return $column !== null ? $column->getName() : null;
+                return $column?->getName();
             },
             $diff->getModifiedColumns(),
         );
@@ -58,5 +52,10 @@ class CustomIntrospectionTest extends \Satag\DoctrineFirebirdDriver\Test\Functio
             'Tables should be identical. Differences detected in %s.',
             implode(', ', $changedCols),
         ));
+    }
+
+    public static function setUpBeforeClass(): void
+    {
+        Type::addType('money', MoneyType::class);
     }
 }

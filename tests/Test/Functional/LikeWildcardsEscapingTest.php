@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
 
-final class LikeWildcardsEscapingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class LikeWildcardsEscapingTest extends FunctionalTestCase
 {
     public function testFetchLikeExpressionResult(): void
     {

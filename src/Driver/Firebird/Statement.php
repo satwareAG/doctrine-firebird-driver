@@ -83,7 +83,7 @@ class Statement implements StatementInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
@@ -100,7 +100,7 @@ class Statement implements StatementInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
@@ -172,7 +172,7 @@ class Statement implements StatementInterface
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @throws RuntimeException
      */

@@ -27,7 +27,7 @@ use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 class FirebirdKeywords extends KeywordList
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function getName()
     {
@@ -35,7 +35,7 @@ class FirebirdKeywords extends KeywordList
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */

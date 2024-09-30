@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-final class LengthExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class LengthExpressionTest extends FunctionalTestCase
 {
     /**
      * @link https://docs.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support
@@ -30,7 +29,7 @@ final class LengthExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\Func
         $platform = $this->connection->getDatabasePlatform();
         $query    = $platform->getDummySelectSQL($platform->getLengthExpression('?'));
 
-        self::assertEquals($expected, $this->connection->fetchOne($query, [$value]));
+        self::assertSame($expected, $this->connection->fetchOne($query, [$value]));
     }
 
     /** @return iterable<string,array{string,int}> */

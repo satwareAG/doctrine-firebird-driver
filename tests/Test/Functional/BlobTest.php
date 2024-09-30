@@ -1,31 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-
-
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function fopen;
 use function str_repeat;
 use function stream_get_contents;
 
-class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class BlobTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('blob_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
-        $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-    }
-
     public function testInsert(): void
     {
         $ret = $this->connection->insert('blob_table', [
@@ -38,7 +28,7 @@ class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
             ParameterType::LARGE_OBJECT,
         ]);
 
-        self::assertEquals(1, $ret);
+        self::assertSame(1, $ret);
     }
 
     public function testInsertNull(): void
@@ -53,13 +43,12 @@ class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
             ParameterType::LARGE_OBJECT,
         ]);
 
-        self::assertEquals(1, $ret);
+        self::assertSame(1, $ret);
 
         [$clobValue, $blobValue] = $this->fetchRow();
         self::assertNull($clobValue);
         self::assertNull($blobValue);
     }
-
 
     public function testInsertProcessesStream(): void
     {
@@ -139,8 +128,8 @@ class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testBindParamProcessesStream(): void
     {
-
-        $stmt = $this->connection->prepare(
+        $stream = null;
+        $stmt   = $this->connection->prepare(
             "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)",
         );
 
@@ -179,7 +168,18 @@ class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
             $actual[] = stream_get_contents($blob);
         }
 
-        self::assertEquals(['test1', 'test2'], $actual);
+        self::assertSame(['test1', 'test2'], $actual);
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('blob_table');
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
+        $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
     }
 
     private function assertBlobContains(string $text): void
@@ -192,7 +192,7 @@ class BlobTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         );
 
         self::assertIsResource($blobValue);
-        self::assertEquals($text, stream_get_contents($blobValue));
+        self::assertSame($text, stream_get_contents($blobValue));
     }
 
     /** @return list<mixed> */

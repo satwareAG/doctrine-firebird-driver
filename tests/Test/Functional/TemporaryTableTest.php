@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
-class TemporaryTableTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class TemporaryTableTest extends FunctionalTestCase
 {
     public function testDropTemporaryTableNotAutoCommitTransaction(): void
     {
@@ -41,7 +43,7 @@ class TemporaryTableTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTe
         $this->connection->rollBack();
 
         // In an event of an error this result has one row, because of an implicit commit
-        self::assertEquals([], $this->connection->fetchAllAssociative('SELECT * FROM nontemporary'));
+        self::assertSame([], $this->connection->fetchAllAssociative('SELECT * FROM nontemporary'));
     }
 
     public function testCreateTemporaryTableNotAutoCommitTransaction(): void
@@ -77,11 +79,11 @@ class TemporaryTableTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTe
             $this->connection->executeStatement(
                 $platform->getDropTemporaryTableSQL($tempTable),
             );
-        } catch (Throwable $e) {
+        } catch (Throwable) {
         }
 
         // In an event of an error this result has one row, because of an implicit commit
-        self::assertEquals([], $this->connection->fetchAllAssociative('SELECT * FROM nontemporary'));
+        self::assertSame([], $this->connection->fetchAllAssociative('SELECT * FROM nontemporary'));
     }
 
     private function dropTemporaryTable(string $name): void
@@ -93,7 +95,7 @@ class TemporaryTableTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTe
 
         try {
             $this->connection->executeStatement($sql);
-        } catch (Exception $e) {
+        } catch (Exception) {
         }
     }
 }

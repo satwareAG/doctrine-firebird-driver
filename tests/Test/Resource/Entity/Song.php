@@ -1,6 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
+use DateTime;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -13,155 +19,122 @@ class Song
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private ?int $id = null;
+    private int|null $id = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $timeCreated = null;
+    private DateTimeInterface|null $timeCreated = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    private ?string $name = null;
+    private string|null $name = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    private ?bool $tophit = null;
-
-
+    private bool|null $tophit = null;
 
     #[ORM\JoinTable(name: 'Album_SongMap')]
     #[ORM\JoinColumn(name: 'song_id', referencedColumnName: 'id')]
     #[ORM\InverseJoinColumn(name: 'album_id', referencedColumnName: 'id', unique: true)]
     #[ORM\ManyToMany(targetEntity: 'Album')]
-    private \Doctrine\Common\Collections\Collection $albums;
+    private Collection $albums;
 
     #[ORM\ManyToOne(targetEntity: 'Genre', inversedBy: 'songs')]
     private $genre;
 
     #[ORM\ManyToOne(targetEntity: 'Artist', inversedBy: 'albums')]
-    private $artist = null;
+    private $artist;
 
-    /**
-     * @param string $name
-     */
-    public function __construct($name, Genre $genre)
+    public function __construct(string $name, Genre $genre)
     {
-        $this->timeCreated = new \DateTime;
+        $this->timeCreated = new DateTime();
         $this->setName($name);
         $this->setGenre($genre);
-        $this->albums = new ArrayCollection;
+        $this->albums = new ArrayCollection();
     }
 
-    /**
-     * @return self
-     */
-    public function addAlbum(Album $album)
+    public function addAlbum(Album $album): self
     {
-        if (false == $this->albums->contains($album)) {
+        if ($this->albums->contains($album) === false) {
             $this->albums->add($album);
             $album->addSong($this);
         }
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function removeAlbum(Album $album)
+    public function removeAlbum(Album $album): self
     {
         if ($this->albums->contains($album)) {
             $this->albums->removeElement($album);
             $album->removeSong($this);
         }
+
         return $this;
     }
 
-    /**
-     * @param null|Artist $artist
-     * @return self
-     */
-    public function setArtist(Artist $artist = null)
+    public function setArtist(Artist|null $artist = null): self
     {
         $this->artist = $artist;
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function setGenre(Genre $genre)
+    public function setGenre(Genre $genre): self
     {
         if ($this->genre) {
             $this->genre->removeSong($this);
         }
+
         $this->genre = $genre;
         $this->genre->addSong($this);
+
         return $this;
     }
 
-    /**
-     * @param string $name
-     * @return self
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
-    /**
-     * @return Collection
-     */
-    public function getAlbums()
+    public function getAlbums(): Collection
     {
         return $this->albums;
     }
 
-    /**
-     * @return null|Artist
-     */
-    public function getArtist()
+    public function getArtist(): Artist|null
     {
         return $this->artist;
     }
 
-    /**
-     * @return Genre
-     */
-    public function getGenre()
+    public function getGenre(): Genre
     {
         return $this->genre;
     }
 
-    /**
-     * @return null|int
-     */
-    public function getId()
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * @return \DateTimeImmutable
-     */
-    public function getTimeCreated()
+    public function getTimeCreated(): DateTimeImmutable
     {
-        return \DateTimeImmutable::createFromMutable($this->timeCreated);
+        return DateTimeImmutable::createFromMutable($this->timeCreated);
     }
 
-    public function isTophit(): ?bool
+    public function isTophit(): bool|null
     {
         return $this->tophit;
     }
 
-    public function setTophit(?bool $tophit): Song
+    public function setTophit(bool|null $tophit): Song
     {
         $this->tophit = $tophit;
+
         return $this;
     }
 }

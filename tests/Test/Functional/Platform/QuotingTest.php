@@ -1,15 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Platforms\OraclePlatform;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function key;
 
-
-class QuotingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class QuotingTest extends FunctionalTestCase
 {
     /** @dataProvider stringLiteralProvider */
     public function testQuoteStringLiteral(string $string): void
@@ -20,15 +21,6 @@ class QuotingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         );
 
         self::assertSame($string, $this->connection->fetchOne($query));
-    }
-
-    /** @return mixed[][] */
-    public static function stringLiteralProvider(): iterable
-    {
-        return [
-            'backslash' => ['\\'],
-            'single-quote' => ["'"],
-        ];
     }
 
     /** @dataProvider identifierProvider */
@@ -51,14 +43,19 @@ class QuotingTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         self::assertSame($identifier, key($row));
     }
 
-    /** @return iterable<string,array{0:string}> */
-    public static function identifierProvider(): iterable
+    /** @return mixed[][] */
+    public static function stringLiteralProvider(): Iterator
     {
-        return [
-            '[' => ['['],
-            ']' => [']'],
-            '"' => ['"'],
-            '`' => ['`'],
-        ];
+        yield 'backslash' => ['\\'];
+        yield 'single-quote' => ["'"];
+    }
+
+    /** @return iterable<string,array{0:string}> */
+    public static function identifierProvider(): Iterator
+    {
+        yield '[' => ['['];
+        yield ']' => [']'];
+        yield '"' => ['"'];
+        yield '`' => ['`'];
     }
 }

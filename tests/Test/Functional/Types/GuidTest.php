@@ -6,18 +6,10 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-class GuidTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class GuidTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('guid_table');
-        $table->addColumn('guid', Types::GUID);
-
-        $this->dropAndCreateTable($table);
-    }
-
     public function testInsertAndSelect(): void
     {
         $guid = '7c620eda-ea79-11eb-9a03-0242ac130003';
@@ -31,5 +23,13 @@ class GuidTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         // as a string using the lower or the upper case; this is acceptable since
         // regardless of the case they encode the same binary value
         self::assertEqualsIgnoringCase($guid, $value);
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('guid_table');
+        $table->addColumn('guid', Types::GUID);
+
+        $this->dropAndCreateTable($table);
     }
 }

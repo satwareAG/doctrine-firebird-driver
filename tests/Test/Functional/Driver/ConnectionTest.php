@@ -1,18 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-/**
- * @requires extension interbase
- **/
-class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+/** @requires extension interbase **/
+class ConnectionTest extends FunctionalTestCase
 {
     public function testHostnameDbNameIsRequired(): void
     {

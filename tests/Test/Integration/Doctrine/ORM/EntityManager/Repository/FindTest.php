@@ -1,125 +1,79 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Repository;
 
 use Doctrine\Common\Collections\Collection;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
-/**
- * 
- */
 class FindTest extends AbstractIntegrationTestCase
 {
-    public function testFindAlbum()
+    public function testFindAlbum(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find(1);
-            $this->assertInstanceOf(Entity\Album::class, $album);
-        } else {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find(1);
-            $this->assertInstanceOf(Entity\Album::class, $album);
-        }
+        $album = $this->_entityManager->getRepository(Entity\Album::class)->find(1);
+        self::assertInstanceOf(Entity\Album::class, $album);
+        self::assertSame(1, $album->getId());
+        self::assertSame('...Baby One More Time', $album->getName());
+        self::assertSame('2017-01-01 15:00:00', $album->getTimeCreated()->format('Y-m-d H:i:s'));
 
-        $this->assertSame(1, $album->getId());
-        $this->assertSame("...Baby One More Time", $album->getName());
-        $this->assertSame("2017-01-01 15:00:00", $album->getTimeCreated()->format('Y-m-d H:i:s'));
+        self::assertInstanceOf(Collection::class, $album->getSongs());
+        self::assertCount(2, $album->getSongs());
+        self::assertInstanceOf(Entity\Song::class, $album->getSongs()->get(0));
 
-        $this->assertInstanceOf(Collection::class, $album->getSongs());
-        $this->assertSame(2, $album->getSongs()->count());
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $this->assertInstanceOf(Entity\Song::class, $album->getSongs()->get(0));
-        } else {
+        self::assertSame(1, $album->getSongs()->get(0)->getId());
+        self::assertInstanceOf(Entity\Song::class, $album->getSongs()->get(1));
 
-            $this->assertInstanceOf(Entity\Song::class, $album->getSongs()->get(0));
-        }
-        $this->assertSame(1, $album->getSongs()->get(0)->getId());
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $this->assertInstanceOf(Entity\Song::class, $album->getSongs()->get(1));
-        } else {
+        self::assertSame(2, $album->getSongs()->get(1)->getId());
+        self::assertInstanceOf(Entity\Artist::class, $album->getArtist());
 
-            $this->assertInstanceOf(Entity\Song::class, $album->getSongs()->get(1));
-        }
-        $this->assertSame(2, $album->getSongs()->get(1)->getId());
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $this->assertInstanceOf(Entity\Artist::class, $album->getArtist());
-        } else {
-
-            $this->assertInstanceOf(Entity\Artist::class, $album->getArtist());
-        }
-        $this->assertSame(2, $album->getArtist()->getId());
+        self::assertSame(2, $album->getArtist()->getId());
     }
 
-    public function testFindAlbumReturnsNullOnMismatch()
+    public function testFindAlbumReturnsNullOnMismatch(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find(0);
-        } else {
-            $album = $this->_entityManager->getRepository(Entity\Album::class)->find(0);
-        }
-        $this->assertNull($album);
+        $album = $this->_entityManager->getRepository(Entity\Album::class)->find(0);
+
+        self::assertNull($album);
     }
 
-    public function testFindArtist()
+    public function testFindArtist(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $artist = $this->_entityManager->getRepository(Entity\Artist::class)->find(2);
-            $this->assertInstanceOf(Entity\Artist::class, $artist);
-        } else {
-            $artist = $this->_entityManager->getRepository(Entity\Artist::class)->find(2);
-            $this->assertInstanceOf(Entity\Artist::class, $artist);
-        }
-
-        $this->assertSame(2, $artist->getId());
-        $this->assertSame(1, $artist->getAlbums()->count());
-        $this->assertSame("Britney Spears", $artist->getName());
-        $this->assertSame(2, $artist->getType()->getId());
+        $artist = $this->_entityManager->getRepository(Entity\Artist::class)->find(2);
+        self::assertInstanceOf(Entity\Artist::class, $artist);
+        self::assertSame(2, $artist->getId());
+        self::assertCount(1, $artist->getAlbums());
+        self::assertSame('Britney Spears', $artist->getName());
+        self::assertSame(2, $artist->getType()->getId());
     }
 
-    public function testFindArtistType()
+    public function testFindArtistType(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $type = $this->_entityManager->getRepository(Entity\Artist\Type::class)->find(2);
-            $this->assertInstanceOf(Entity\Artist\Type::class, $type);
-        } else {
-            $type = $this->_entityManager->getRepository(Entity\Artist\Type::class)->find(2);
-            $this->assertInstanceOf(Entity\Artist\Type::class, $type);
-        }
-        $this->assertSame(2, $type->getId());
-        $this->assertSame("Solo", $type->getName());
-        $this->assertGreaterThan(0, $type->getArtists()->count());
+        $type = $this->_entityManager->getRepository(Entity\Artist\Type::class)->find(2);
+        self::assertInstanceOf(Entity\Artist\Type::class, $type);
+        self::assertSame(2, $type->getId());
+        self::assertSame('Solo', $type->getName());
+        self::assertGreaterThan(0, $type->getArtists()->count());
     }
 
-    public function testFindGenre()
+    public function testFindGenre(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $genre = $this->_entityManager->getRepository(Entity\Genre::class)->find(3);
-            $this->assertInstanceOf(Entity\Genre::class, $genre);
-
-        } else {
-            $genre = $this->_entityManager->getRepository(Entity\Genre::class)->find(3);
-            $this->assertInstanceOf(Entity\Genre::class, $genre);
-
-        }
-        $this->assertSame(3, $genre->getId());
-        $this->assertSame("Pop", $genre->getName());
-        $this->assertSame(2, $genre->getSongs()->count());
+        $genre = $this->_entityManager->getRepository(Entity\Genre::class)->find(3);
+        self::assertInstanceOf(Entity\Genre::class, $genre);
+        self::assertSame(3, $genre->getId());
+        self::assertSame('Pop', $genre->getName());
+        self::assertCount(2, $genre->getSongs());
     }
 
-    public function testFindSong()
+    public function testFindSong(): void
     {
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
-            $song = $this->_entityManager->getRepository(Entity\Song::class)->find(1);
-            $this->assertInstanceOf(Entity\Song::class, $song);
-
-        } else {
-            $song = $this->_entityManager->getRepository(Entity\Song::class)->find(1);
-            $this->assertInstanceOf(Entity\Song::class, $song);
-
-        }
-        $this->assertSame(1, $song->getId());
-        $this->assertSame("...Baby One More Time", $song->getName());
-        $this->assertSame("2017-01-01 15:00:00", $song->getTimeCreated()->format('Y-m-d H:i:s'));
-        $this->assertSame(1, $song->getAlbums()->count());
-        $this->assertSame(3, $song->getGenre()->getId());
+        $song = $this->_entityManager->getRepository(Entity\Song::class)->find(1);
+        self::assertInstanceOf(Entity\Song::class, $song);
+        self::assertSame(1, $song->getId());
+        self::assertSame('...Baby One More Time', $song->getName());
+        self::assertSame('2017-01-01 15:00:00', $song->getTimeCreated()->format('Y-m-d H:i:s'));
+        self::assertCount(1, $song->getAlbums());
+        self::assertSame(3, $song->getGenre()->getId());
     }
 }

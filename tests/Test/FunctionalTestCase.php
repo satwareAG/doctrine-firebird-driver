@@ -1,28 +1,85 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
 use Doctrine\DBAL\Schema\Table;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
+
+use function array_merge;
 
 abstract class FunctionalTestCase extends TestCase
 {
-    /**
-     * Shared connection when a TestCase is run alone (outside of it's functional suite)
-     */
-    private static ?Connection $sharedConnection = null;
-
     protected Connection $connection;
 
     /**
      * Whether the shared connection could be reused by subsequent tests.
      */
     private bool $isConnectionReusable = true;
+
+    /**
+     * Shared connection when a TestCase is run alone (outside of it's functional suite)
+     */
+    private static Connection|null $sharedConnection = null;
+
+    /**
+     * Drops the table with the specified name, if it exists.
+     *
+     * @throws Exception
+     */
+    public function dropTableIfExists(string $name): void
+    {
+        $schemaManager = $this->connection->createSchemaManager();
+
+        try {
+            $schemaManager->dropTable($name);
+        } catch (DatabaseObjectNotFoundException) {
+        }
+    }
+
+    /**
+     * Drops and creates a new table.
+     *
+     * @throws Exception
+     */
+    public function dropAndCreateTable(Table $table): void
+    {
+        $schemaManager = $this->connection->createSchemaManager();
+        $platform      = $this->connection->getDatabasePlatform();
+        $tableName     = $table->getQuotedName($platform);
+
+        $this->dropTableIfExists($tableName);
+        $schemaManager->createTable($table);
+    }
+
+    public function reConnect(array $newParams = [])
+    {
+        $params = array_merge($this->connection->getParams(), $newParams);
+        $this->connection->close();
+
+        $this->connection = DriverManager::getConnection($params);
+
+        $this->connection->connect();
+
+        return $this->connection;
+    }
+
+    public function getFirebirdConnection(): FirebirdConnection|null
+    {
+        while ($connection = $this->connection->getWrappedConnection()) {
+            if ($connection instanceof FirebirdConnection) {
+                return $connection;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Mark shared connection not reusable for subsequent tests.
@@ -38,7 +95,7 @@ abstract class FunctionalTestCase extends TestCase
     /** @before */
     final protected function connect(): void
     {
-        if (self::$sharedConnection === null) {
+        if (! self::$sharedConnection instanceof Connection) {
             self::$sharedConnection = TestUtil::getConnection();
         }
 
@@ -56,7 +113,7 @@ abstract class FunctionalTestCase extends TestCase
             return;
         }
 
-        if (self::$sharedConnection !== null) {
+        if (self::$sharedConnection instanceof Connection) {
             self::$sharedConnection->close();
             self::$sharedConnection = null;
         }
@@ -69,58 +126,5 @@ abstract class FunctionalTestCase extends TestCase
         unset($this->connection);
 
         $this->isConnectionReusable = true;
-
-    }
-
-    /**
-     * Drops the table with the specified name, if it exists.
-     *
-     * @throws Exception
-     */
-    public function dropTableIfExists(string $name): void
-    {
-        $schemaManager = $this->connection->createSchemaManager();
-
-        try {
-            $schemaManager->dropTable($name);
-        } catch (DatabaseObjectNotFoundException $e) {
-        }
-    }
-
-    /**
-     * Drops and creates a new table.
-     *
-     * @throws Exception
-     */
-    public function dropAndCreateTable(Table $table): void
-    {
-        $schemaManager = $this->connection->createSchemaManager();
-        $platform      = $this->connection->getDatabasePlatform();
-        $tableName     = $table->getQuotedName($platform);
-
-
-        $this->dropTableIfExists($tableName);
-        $schemaManager->createTable($table);
-    }
-
-    public function reConnect(array $newParams = [])
-    {
-        $params = array_merge($this->connection->getParams(), $newParams);
-        $this->connection->close();
-
-        $this->connection = DriverManager::getConnection($params);
-
-        $this->connection->connect();
-        return $this->connection;
-    }
-
-    public function getFirebirdConnection(): ?FirebirdConnection
-    {
-        while($connection = $this->connection->getWrappedConnection()) {
-            if($connection instanceof FirebirdConnection) {
-                return $connection;
-            }
-        }
-        return null;
     }
 }

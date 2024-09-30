@@ -32,7 +32,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
      /**
-      * {@inheritdoc}
+      * {@inheritDoc}
       */
     public function createDatabasePlatformForVersion($version)
     {
@@ -65,7 +65,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @return FirebirdPlatform
      */
@@ -80,7 +80,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
      *

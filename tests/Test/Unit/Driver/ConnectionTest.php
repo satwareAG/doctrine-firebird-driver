@@ -1,26 +1,26 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Driver;
 
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
-use PHPUnit\Framework\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 
 class ConnectionTest extends TestCase
 {
-    public function testQuote()
+    public function testQuote(): void
     {
         $connection = $this->_createConnectionThroughReflection();
-        $this->assertSame("'key'", $connection->quote("key"));
-        $this->assertSame("'''key'", $connection->quote("'key"));
+        self::assertSame("'key'", $connection->quote('key'));
+        self::assertSame("'''key'", $connection->quote("'key"));
     }
 
-    /**
-     * @return Connection
-     */
-    private function _createConnectionThroughReflection()
+    private function _createConnectionThroughReflection(): Connection
     {
-        $reflectionClass = new \ReflectionClass(Connection::class);
-        $connection = $reflectionClass->newInstanceWithoutConstructor();
-        return $connection;
+        $reflectionClass = new ReflectionClass(Connection::class);
+
+        return $reflectionClass->newInstanceWithoutConstructor();
     }
 }

@@ -1,10 +1,14 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type;
 
 #[ORM\Table(name: 'ARTIST')]
 #[ORM\Entity]
@@ -13,96 +17,73 @@ class Artist
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private ?int $id = null;
+    private int|null $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    private ?string $name = null;
+    private string|null $name = null;
 
-    #[ORM\ManyToOne(targetEntity: \Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type::class, inversedBy: 'artists')]
-    private ?\Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist\Type $type = null;
+    #[ORM\ManyToOne(targetEntity: Type::class, inversedBy: 'artists')]
+    private Type|null $type = null;
 
     #[ORM\OneToMany(targetEntity: 'Album', mappedBy: 'artist')]
-    private \Doctrine\Common\Collections\Collection $albums;
+    private Collection $albums;
 
-    /**
-     * @param string $name
-     */
-    public function __construct($name, Artist\Type $type)
+    public function __construct(string $name, Artist\Type $type)
     {
         $this->setName($name);
         $this->setType($type);
-        $this->albums = new ArrayCollection;
+        $this->albums = new ArrayCollection();
     }
 
-    /**
-     * @return self
-     */
-    public function addAlbum(Album $album)
+    public function addAlbum(Album $album): self
     {
-        if (false == $this->albums->contains($album)) {
+        if ($this->albums->contains($album) === false) {
             $this->albums->add($album);
         }
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function removeAlbum(Album $album)
+    public function removeAlbum(Album $album): self
     {
         if ($this->albums->contains($album)) {
             $this->albums->removeElement($album);
         }
+
         return $this;
     }
 
-    /**
-     * @param string $name
-     * @return self
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function setType(Artist\Type $type)
+    public function setType(Artist\Type $type): self
     {
         $this->type = $type;
+
         return $this;
     }
 
-    /**
-     * @return Collection                       Album[]
-     */
-    public function getAlbums()
+    /** @return Collection                       Album[] */
+    public function getAlbums(): Collection
     {
         return $this->albums;
     }
 
-    /**
-     * @return null|int
-     */
-    public function getId()
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * @return Artist\Type
-     */
-    public function getType()
+    public function getType(): Artist\Type
     {
         return $this->type;
     }

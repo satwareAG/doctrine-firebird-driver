@@ -1,16 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
 
-
-class DateExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class DateExpressionTest extends FunctionalTestCase
 {
     /** @dataProvider differenceProvider */
     public function testDifference(string $date1, string $date2, int $expected): void
@@ -29,15 +30,13 @@ class DateExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTe
         $sql  = sprintf('SELECT %s FROM date_expr_test', $platform->getDateDiffExpression('date1', 'date2'));
         $diff = $this->connection->fetchOne($sql);
 
-        self::assertEquals($expected, $diff);
+        self::assertSame($expected, $diff);
     }
 
     /** @return array<string, array{string, string, int}> */
-    public static function differenceProvider(): iterable
+    public static function differenceProvider(): Iterator
     {
-        return [
-            'same day' => ['2018-04-14 23:59:59', '2018-04-14 00:00:00', 0],
-            'midnight' => ['2018-04-14 00:00:00', '2018-04-13 23:59:59', 1],
-        ];
+        yield 'same day' => ['2018-04-14 23:59:59', '2018-04-14 00:00:00', 0];
+        yield 'midnight' => ['2018-04-14 00:00:00', '2018-04-13 23:59:59', 1];
     }
 }

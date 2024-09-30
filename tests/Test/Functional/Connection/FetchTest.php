@@ -1,25 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
 use Doctrine\DBAL\Exception\NoKeyValue;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
-
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
 use function iterator_to_array;
 
-
-class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class FetchTest extends FunctionalTestCase
 {
     private string $query;
 
     public function setUp(): void
     {
-        $this->query = \Satag\DoctrineFirebirdDriver\Test\TestUtil::generateResultSetQuery([
+        $this->query = TestUtil::generateResultSetQuery([
             [
                 'a' => 'foo',
                 'b' => 1,
@@ -37,17 +35,17 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchNumeric(): void
     {
-        self::assertEquals(['foo', 1], $this->connection->fetchNumeric($this->query));
+        self::assertSame(['foo', 1], $this->connection->fetchNumeric($this->query));
     }
 
     public function testFetchOne(): void
     {
-        self::assertEquals('foo', $this->connection->fetchOne($this->query));
+        self::assertSame('foo', $this->connection->fetchOne($this->query));
     }
 
     public function testFetchAssociative(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'a' => 'foo',
             'b' => 1,
         ], $this->connection->fetchAssociative($this->query));
@@ -55,7 +53,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchAllNumeric(): void
     {
-        self::assertEquals([
+        self::assertSame([
             ['foo', 1],
             ['bar', 2],
             ['baz', 3],
@@ -64,7 +62,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchAllAssociative(): void
     {
-        self::assertEquals([
+        self::assertSame([
             [
                 'a' => 'foo',
                 'b' => 1,
@@ -82,7 +80,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchAllKeyValue(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo' => 1,
             'bar' => 2,
             'baz' => 3,
@@ -103,7 +101,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
         $query = $platform->modifyLimitQuery($this->query, 1, 1);
 
-        self::assertEquals(['bar' => 2], $this->connection->fetchAllKeyValue($query));
+        self::assertSame(['bar' => 2], $this->connection->fetchAllKeyValue($query));
     }
 
     public function testFetchAllKeyValueOneColumn(): void
@@ -117,7 +115,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchAllAssociativeIndexed(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo' => ['b' => 1],
             'bar' => ['b' => 2],
             'baz' => ['b' => 3],
@@ -126,7 +124,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testFetchFirstColumn(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo',
             'bar',
             'baz',
@@ -135,7 +133,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testIterateNumeric(): void
     {
-        self::assertEquals([
+        self::assertSame([
             ['foo', 1],
             ['bar', 2],
             ['baz', 3],
@@ -144,7 +142,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testIterateAssociative(): void
     {
-        self::assertEquals([
+        self::assertSame([
             [
                 'a' => 'foo',
                 'b' => 1,
@@ -162,7 +160,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testIterateKeyValue(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo' => 1,
             'bar' => 2,
             'baz' => 3,
@@ -180,7 +178,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testIterateAssociativeIndexed(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo' => ['b' => 1],
             'bar' => ['b' => 2],
             'baz' => ['b' => 3],
@@ -189,7 +187,7 @@ class FetchTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
     public function testIterateColumn(): void
     {
-        self::assertEquals([
+        self::assertSame([
             'foo',
             'bar',
             'baz',

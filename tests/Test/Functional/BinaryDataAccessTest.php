@@ -8,7 +8,6 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_change_key_case;
@@ -20,28 +19,8 @@ use function stream_get_contents;
 
 use const CASE_LOWER;
 
-
-class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class BinaryDataAccessTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('binary_fetch_table');
-        $table->addColumn('test_int', 'integer');
-        $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
-        $table->setPrimaryKey(['test_int']);
-
-
-        $this->dropAndCreateTable($table);
-
-        $this->connection->insert('binary_fetch_table', [
-            'test_int' => 1,
-            'test_binary' => hex2bin('C0DEF00D'),
-        ], [
-            'test_binary' => ParameterType::BINARY,
-        ]);
-
-    }
-
     public function testPrepareWithBindValue(): void
     {
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
@@ -54,8 +33,8 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         self::assertIsArray($row);
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(['test_int', 'test_binary'], array_keys($row));
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(['test_int', 'test_binary'], array_keys($row));
+        self::assertSame(1, $row['test_int']);
 
         $binaryResult = $row['test_binary'];
         if (is_resource($binaryResult)) {
@@ -79,8 +58,8 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         $rows    = $stmt->executeQuery()->fetchAllAssociative();
         $rows[0] = array_change_key_case($rows[0], CASE_LOWER);
 
-        self::assertEquals(['test_int', 'test_binary'], array_keys($rows[0]));
-        self::assertEquals(1, $rows[0]['test_int']);
+        self::assertSame(['test_int', 'test_binary'], array_keys($rows[0]));
+        self::assertSame(1, $rows[0]['test_int']);
 
         $binaryResult = $rows[0]['test_binary'];
         if (is_resource($binaryResult)) {
@@ -102,7 +81,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         $stmt->bindValue(2, $paramBin, ParameterType::BINARY);
 
         $column = $stmt->executeQuery()->fetchOne();
-        self::assertEquals(1, $column);
+        self::assertSame(1, $column);
     }
 
     public function testFetchAllAssociative(): void
@@ -116,7 +95,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         self::assertCount(2, $row);
 
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
 
         $binaryResult = $row['test_binary'];
         if (is_resource($binaryResult)) {
@@ -141,7 +120,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         self::assertCount(2, $row);
 
         $row = array_change_key_case($row, CASE_LOWER);
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
 
         $binaryResult = $row['test_binary'];
         if (is_resource($binaryResult)) {
@@ -160,7 +139,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
 
         $binaryResult = $row['test_binary'];
         if (is_resource($binaryResult)) {
@@ -183,7 +162,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row['test_int']);
+        self::assertSame(1, $row['test_int']);
 
         $binaryResult = $row['test_binary'];
         if (is_resource($binaryResult)) {
@@ -199,7 +178,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         $row = $this->connection->fetchNumeric($sql, [1, hex2bin('C0DEF00D')], [1 => ParameterType::BINARY]);
         self::assertNotFalse($row);
 
-        self::assertEquals(1, $row[0]);
+        self::assertSame(1, $row[0]);
 
         $binaryResult = $row[1];
         if (is_resource($binaryResult)) {
@@ -222,7 +201,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         $row = array_change_key_case($row, CASE_LOWER);
 
-        self::assertEquals(1, $row[0]);
+        self::assertSame(1, $row[0]);
 
         $binaryResult = $row[1];
         if (is_resource($binaryResult)) {
@@ -237,7 +216,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
         $sql     = 'SELECT test_int FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
         $testInt = $this->connection->fetchOne($sql, [1, hex2bin('C0DEF00D')], [1 => ParameterType::BINARY]);
 
-        self::assertEquals(1, $testInt);
+        self::assertSame(1, $testInt);
 
         $sql        = 'SELECT test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
         $testBinary = $this->connection->fetchOne($sql, [1, hex2bin('C0DEF00D')], [1 => ParameterType::BINARY]);
@@ -298,7 +277,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         $data = $result->fetchAllNumeric();
         self::assertCount(5, $data);
-        self::assertEquals([[100], [101], [102], [103], [104]], $data);
+        self::assertSame([[100], [101], [102], [103], [104]], $data);
 
         $result = $this->connection->executeQuery(
             'SELECT test_int FROM binary_fetch_table WHERE test_binary IN (?)',
@@ -316,7 +295,7 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
 
         $data = $result->fetchAllNumeric();
         self::assertCount(5, $data);
-        self::assertEquals([[100], [101], [102], [103], [104]], $data);
+        self::assertSame([[100], [101], [102], [103], [104]], $data);
 
         $result = $this->connection->executeQuery(
             'SELECT test_binary FROM binary_fetch_table WHERE test_binary IN (?)',
@@ -349,5 +328,22 @@ class BinaryDataAccessTest extends \Satag\DoctrineFirebirdDriver\Test\Functional
             $binaryValues[3],
             $binaryValues[4],
         ], $data);
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('binary_fetch_table');
+        $table->addColumn('test_int', 'integer');
+        $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
+        $table->setPrimaryKey(['test_int']);
+
+        $this->dropAndCreateTable($table);
+
+        $this->connection->insert('binary_fetch_table', [
+            'test_int' => 1,
+            'test_binary' => hex2bin('C0DEF00D'),
+        ], [
+            'test_binary' => ParameterType::BINARY,
+        ]);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ColumnCase;
@@ -8,20 +10,15 @@ use Doctrine\DBAL\Portability\Connection;
 use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 use function array_merge;
 use function strlen;
 
-class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class PortabilityTest extends FunctionalTestCase
 {
-    protected function tearDown(): void
-    {
-        // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
-        // see https://github.com/doctrine/dbal/issues/4515
-        $this->connection->close();
-    }
-
     public function testFullFetchMode(): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_ALL, ColumnCase::LOWER);
@@ -62,22 +59,6 @@ class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
         self::assertSame($expected, array_keys($row));
     }
 
-    /** @return iterable<string, array{(ColumnCase::LOWER|ColumnCase::UPPER), list<string>}> */
-    public static function caseProvider(): iterable
-    {
-        yield 'lower' => [ColumnCase::LOWER, ['test_int', 'test_string', 'test_null']];
-        yield 'upper' => [ColumnCase::UPPER, ['TEST_INT', 'TEST_STRING', 'TEST_NULL']];
-    }
-
-    /** @param array<int, array<string, mixed>> $rows */
-    private function assertFetchResultRows(array $rows): void
-    {
-        self::assertCount(2, $rows);
-        foreach ($rows as $row) {
-            $this->assertFetchResultRow($row);
-        }
-    }
-
     /** @param array<string, mixed> $row */
     public function assertFetchResultRow(array $row): void
     {
@@ -87,7 +68,7 @@ class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
         ));
 
         self::assertArrayHasKey('test_string', $row, 'Case should be lowered.');
-        self::assertEquals(3, strlen($row['test_string']));
+        self::assertSame(3, strlen((string) $row['test_string']));
         self::assertNull($row['test_null']);
         self::assertArrayNotHasKey(0, $row, 'The row should not contain numerical keys.');
     }
@@ -107,21 +88,6 @@ class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
         self::assertEquals($expected, $result->fetchFirstColumn());
     }
 
-    /** @return iterable<string, array<int, mixed>> */
-    public static function fetchColumnProvider(): iterable
-    {
-        return [
-            'int' => [
-                'Test_Int',
-                [1, 2],
-            ],
-            'string' => [
-                'Test_String',
-                ['foo', 'foo'],
-            ],
-        ];
-    }
-
     public function testFetchAllNullColumn(): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_EMPTY_TO_NULL, 0);
@@ -136,6 +102,43 @@ class PortabilityTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
     {
         $this->connectWithPortability(Connection::PORTABILITY_EMPTY_TO_NULL, 0);
         self::assertNotNull($this->connection->getDatabase());
+    }
+
+    /** @return iterable<string, array{(ColumnCase::LOWER|ColumnCase::UPPER), list<string>}> */
+    public static function caseProvider(): iterable
+    {
+        yield 'lower' => [ColumnCase::LOWER, ['test_int', 'test_string', 'test_null']];
+        yield 'upper' => [ColumnCase::UPPER, ['TEST_INT', 'TEST_STRING', 'TEST_NULL']];
+    }
+
+    /** @return iterable<string, array<int, mixed>> */
+    public static function fetchColumnProvider(): Iterator
+    {
+        yield 'int' => [
+            'Test_Int',
+            [1, 2],
+        ];
+
+        yield 'string' => [
+            'Test_String',
+            ['foo', 'foo'],
+        ];
+    }
+
+    protected function tearDown(): void
+    {
+        // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
+        // see https://github.com/doctrine/dbal/issues/4515
+        $this->connection->close();
+    }
+
+    /** @param array<int, array<string, mixed>> $rows */
+    private function assertFetchResultRows(array $rows): void
+    {
+        self::assertCount(2, $rows);
+        foreach ($rows as $row) {
+            $this->assertFetchResultRow($row);
+        }
     }
 
      /** @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case */

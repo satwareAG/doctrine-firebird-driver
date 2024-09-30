@@ -1,44 +1,46 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Test\Resource\Entity;
 
 use Doctrine\Common\Collections\Collection;
-use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 class GenreTest extends TestCase
 {
-    public function testBasics()
+    public function testBasics(): void
     {
-        $genre = new Entity\Genre("Foo");
-        $this->assertNull($genre->getId());
-        $this->assertInstanceOf(Collection::class, $genre->getSongs());
-        $this->assertCount(0, $genre->getSongs());
-        $this->assertSame("Foo", $genre->getName());
+        $genre = new Entity\Genre('Foo');
+        self::assertNull($genre->getId());
+        self::assertInstanceOf(Collection::class, $genre->getSongs());
+        self::assertCount(0, $genre->getSongs());
+        self::assertSame('Foo', $genre->getName());
     }
 
-    public function testAddAndRemoveSongWorks()
+    public function testAddAndRemoveSongWorks(): void
     {
-        $genre = new Entity\Genre("Foo");
-        $song = $this
+        $genre = new Entity\Genre('Foo');
+        $song  = $this
             ->getMockBuilder(Entity\Song::class)
             ->disableOriginalConstructor()
             ->getMock();
         $song
-            ->expects($this->any())
             ->method('getGenre')
-            ->will($this->returnValue($genre));
+            ->willReturn($genre);
         $genre->addSong($song);
-        $this->assertCount(1, $genre->getSongs());
-        $this->assertSame($song, $genre->getSongs()->first());
-        $this->assertSame($genre, $genre->getSongs()->first()->getGenre());
+        self::assertCount(1, $genre->getSongs());
+        self::assertSame($song, $genre->getSongs()->first());
+        self::assertSame($genre, $genre->getSongs()->first()->getGenre());
         $genre->removeSong($song);
-        $this->assertCount(0, $genre->getSongs());
+        self::assertCount(0, $genre->getSongs());
     }
 
-    public function testSetNameWorks()
+    public function testSetNameWorks(): void
     {
-        $genre = new Entity\Genre("Foo");
-        $genre->setName("Bar");
-        $this->assertSame("Bar", $genre->getName());
+        $genre = new Entity\Genre('Foo');
+        $genre->setName('Bar');
+        self::assertSame('Bar', $genre->getName());
     }
 }

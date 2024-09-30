@@ -1,8 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist;
 
@@ -10,81 +14,61 @@ use Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist;
 #[ORM\Entity]
 class Type
 {
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private ?int $id = null;
+    private int|null $id = null;
 
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::STRING, length: 255)]
-    private ?string $name = null;
+    #[ORM\Column(type: Types::STRING, length: 255)]
+    private string|null $name = null;
 
-    /**
-     * @var \Doctrine\Common\Collections\Collection<int, \Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist>
-     */
-    #[ORM\OneToMany(targetEntity: \Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist::class, mappedBy: 'type')]
-    private \Doctrine\Common\Collections\Collection $artists;
+    /** @var Collection<int, Artist> */
+    #[ORM\OneToMany(targetEntity: Artist::class, mappedBy: 'type')]
+    private Collection $artists;
 
-    /**
-     * @param \Doctrine\Common\Collections\Collection<int, \Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Artist> $name
-     */
-    public function __construct($name)
+    public function __construct(string $name)
     {
         $this->setName($name);
-        $this->artists = new ArrayCollection;
+        $this->artists = new ArrayCollection();
     }
 
-    /**
-     * @return self
-     */
-    public function addArtist(Artist $artist)
+    public function addArtist(Artist $artist): self
     {
-        if (false == $this->artists->contains($artist)) {
+        if ($this->artists->contains($artist) === false) {
             $this->artists->add($artist);
         }
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function removeArtist(Artist $artist)
+    public function removeArtist(Artist $artist): self
     {
         if ($this->artists->contains($artist)) {
             $this->artists->removeElement($artist);
         }
+
         return $this;
     }
 
-    /**
-     * @param string $name
-     * @return self
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
-    /**
-     * @return Collection                       Artist[]
-     */
-    public function getArtists()
+    /** @return Collection                       Artist[] */
+    public function getArtists(): Collection
     {
         return $this->artists;
     }
 
-    /**
-     * @return null|int
-     */
-    public function getId()
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }

@@ -1,28 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Driver as DriverInterface;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
-use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
-
-/**
-  * @requires extension interbase
- */
+/** @requires extension interbase */
 class DriverTest extends AbstractDriverTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (\Satag\DoctrineFirebirdDriver\Test\TestUtil::isDriverClassOneOf(Driver::class)) {
-            return;
-        }
-
-        self::markTestSkipped('This test requires the Firebird driver class.');
-    }
-
     public function testConnectsWithoutDatabaseNameParameter(): void
     {
         self::markTestSkipped('Firebird does not support connecting without database name.');
@@ -31,6 +19,17 @@ class DriverTest extends AbstractDriverTestCase
     public function testReturnsDatabaseNameWithoutDatabaseNameParameter(): void
     {
         self::markTestSkipped('Firebird does not support connecting without database name.');
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (TestUtil::isDriverClassOneOf(Driver::class)) {
+            return;
+        }
+
+        self::markTestSkipped('This test requires the Firebird driver class.');
     }
 
     protected function createDriver(): DriverInterface

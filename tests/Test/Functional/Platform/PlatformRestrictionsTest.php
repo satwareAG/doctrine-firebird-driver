@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function str_repeat;
 
@@ -14,7 +14,7 @@ use function str_repeat;
  * This class holds tests that make sure generated SQL statements respect to platform restrictions
  * like maximum element name length
  */
-class PlatformRestrictionsTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class PlatformRestrictionsTest extends FunctionalTestCase
 {
     /**
      * Tests element names that are at the boundary of the identifier length limit.
@@ -31,7 +31,7 @@ class PlatformRestrictionsTest extends \Satag\DoctrineFirebirdDriver\Test\Functi
         $this->dropAndCreateTable($table);
         $createdTable = $this->connection->getSchemaManager()->introspectTable($tableName);
 
-        $this->assertTrue($createdTable->hasColumn($columnName));
-        $this->assertTrue($createdTable->hasPrimaryKey());
+        self::assertTrue($createdTable->hasColumn($columnName));
+        self::assertTrue($createdTable->hasPrimaryKey());
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
 use Doctrine\DBAL\Driver as DriverInterface;

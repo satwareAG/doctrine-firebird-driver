@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\Common\EventManager;
@@ -35,10 +37,9 @@ use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-
+use Iterator;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
-use Satag\DoctrineFirebirdDriver\Schema\Exception\DatabaseDoesNotExist;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_filter;
 use function array_keys;
@@ -48,30 +49,16 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
-use function get_class;
 use function sprintf;
+use function str_starts_with;
 use function strcasecmp;
 use function strlen;
 use function strtolower;
 use function substr;
 
-abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 {
     protected AbstractSchemaManager $schemaManager;
-
-    abstract protected function supportsPlatform(AbstractPlatform $platform): bool;
-
-    protected function setUp(): void
-    {
-        $platform = $this->connection->getDatabasePlatform();
-
-        if (! $this->supportsPlatform($platform)) {
-            self::markTestSkipped(sprintf('Skipping since connected to %s', get_class($platform)));
-        }
-
-        $this->schemaManager = $this->connection->createSchemaManager();
-    }
-
 
     public function testCreateSequence(): void
     {
@@ -88,29 +75,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertTrue($this->hasElementWithName($this->schemaManager->listSequences(), $name));
     }
 
-    /** @param AbstractAsset[] $items */
-    private function hasElementWithName(array $items, string $name): bool
-    {
-        $filteredList = $this->filterElementsByName($items, $name);
-
-        return count($filteredList) === 1;
-    }
-
-    /**
-     * @param AbstractAsset[] $items
-     *
-     * @return AbstractAsset[]
-     */
-    private function filterElementsByName(array $items, string $name): array
-    {
-        return array_filter(
-            $items,
-            static function (AbstractAsset $item) use ($name): bool {
-                return $item->getShortestName($item->getNamespaceName()) === $name;
-            },
-        );
-    }
-
     public function testListSequences(): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -119,7 +83,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
             self::markTestSkipped('The platform does not support sequences.');
         }
 
-        if (!($platform instanceof Firebird3Platform)) {
+        if (! ($platform instanceof Firebird3Platform)) {
             $this->expectException(Exception::class);
             $this->expectExceptionMessageMatches('/.*not supported.*/');
         }
@@ -150,7 +114,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         try {
             $this->schemaManager->dropDatabase('test_create_database');
-        } catch (Exception\DatabaseDoesNotExist $e) {
+        } catch (Exception\DatabaseDoesNotExist) {
         }
 
         $this->schemaManager->createDatabase('test_create_database');
@@ -160,7 +124,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         } catch (Exception $exception) {
             self::markTestSkipped($exception->getMessage());
         }
-
 
         $databases = array_map('strtolower', $databases);
 
@@ -178,7 +141,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         try {
             $this->schemaManager->dropSchema('test_create_schema');
-        } catch (DatabaseObjectNotFoundException $e) {
+        } catch (DatabaseObjectNotFoundException) {
         }
 
         self::assertNotContains('test_create_schema', $this->schemaManager->listSchemaNames());
@@ -188,22 +151,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         );
 
         self::assertContains('test_create_schema', $method($this->schemaManager));
-    }
-
-    /** @return iterable<list<mixed>> */
-    public static function listSchemaNamesMethodProvider(): iterable
-    {
-        yield [
-            static function (AbstractSchemaManager $schemaManager): array {
-                return $schemaManager->listNamespaceNames();
-            },
-        ];
-
-        yield [
-            static function (AbstractSchemaManager $schemaManager): array {
-                return $schemaManager->listSchemaNames();
-            },
-        ];
     }
 
     public function testListTables(): void
@@ -242,34 +189,21 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $this->markConnectionNotReusable();
 
         $this->connection->getConfiguration()->setSchemaAssetsFilter(
-            static function (string $name) use ($prefix): bool {
-                return substr(strtolower($name), 0, strlen($prefix)) === $prefix;
-            },
+            static fn (string $name): bool => str_starts_with(strtolower($name), $prefix),
         );
 
         self::assertCount($expectedCount, $this->schemaManager->listTableNames());
         self::assertCount($expectedCount, $this->schemaManager->listTables());
     }
 
-    /** @return iterable<string, array{string, int}> */
-    public static function tableFilterProvider(): iterable
-    {
-        yield 'One table' => ['filter_test_1', 1];
-        yield 'Two tables' => ['filter_test_', 2];
-    }
-
     public function testRenameTable(): void
     {
-
         try {
             $this->schemaManager->renameTable('old_name', 'new_name');
             $this->createTestTable('old_name');
         } catch (Exception $e) {
             $this->markTestSkipped($e->getMessage());
         }
-
-
-
 
         // self::assertFalse($this->schemaManager->tablesExist(['old_name']));
         // self::assertTrue($this->schemaManager->tablesExist(['new_name']));
@@ -295,7 +229,8 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
     }
 
     public function testListTableColumns(): void
-    {        $table = $this->createListTableColumns();
+    {
+        $table = $this->createListTableColumns();
 
         $this->dropAndCreateTable($table);
 
@@ -303,8 +238,8 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $columnsKeys = array_keys($columns);
 
         self::assertArrayHasKey('id', $columns);
-        self::assertEquals(0, array_search('id', $columnsKeys, true));
-        self::assertEquals('id', strtolower($columns['id']->getName()));
+        self::assertSame(0, array_search('id', $columnsKeys, true));
+        self::assertSame('id', strtolower($columns['id']->getName()));
         self::assertInstanceOf(IntegerType::class, $columns['id']->getType());
         self::assertEquals(false, $columns['id']->getUnsigned());
         self::assertEquals(true, $columns['id']->getNotnull());
@@ -312,17 +247,17 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertIsArray($columns['id']->getPlatformOptions());
 
         self::assertArrayHasKey('test', $columns);
-        self::assertEquals(1, array_search('test', $columnsKeys, true));
-        self::assertEquals('test', strtolower($columns['test']->getname()));
+        self::assertSame(1, array_search('test', $columnsKeys, true));
+        self::assertSame('test', strtolower($columns['test']->getname()));
         self::assertInstanceOf(StringType::class, $columns['test']->gettype());
-        self::assertEquals(255, $columns['test']->getlength());
+        self::assertSame(255, $columns['test']->getlength());
         self::assertEquals(false, $columns['test']->getfixed());
         self::assertEquals(false, $columns['test']->getnotnull());
-        self::assertEquals('expected default', $columns['test']->getdefault());
+        self::assertSame('expected default', $columns['test']->getdefault());
         self::assertIsArray($columns['test']->getPlatformOptions());
 
-        self::assertEquals('foo', strtolower($columns['foo']->getname()));
-        self::assertEquals(2, array_search('foo', $columnsKeys, true));
+        self::assertSame('foo', strtolower($columns['foo']->getname()));
+        self::assertSame(2, array_search('foo', $columnsKeys, true));
         self::assertInstanceOf(TextType::class, $columns['foo']->gettype());
         self::assertEquals(false, $columns['foo']->getunsigned());
         self::assertEquals(false, $columns['foo']->getfixed());
@@ -330,41 +265,35 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertEquals(null, $columns['foo']->getdefault());
         self::assertIsArray($columns['foo']->getPlatformOptions());
 
-        self::assertEquals('bar', strtolower($columns['bar']->getname()));
-        self::assertEquals(3, array_search('bar', $columnsKeys, true));
+        self::assertSame('bar', strtolower($columns['bar']->getname()));
+        self::assertSame(3, array_search('bar', $columnsKeys, true));
         self::assertInstanceOf(DecimalType::class, $columns['bar']->gettype());
         self::assertEquals(null, $columns['bar']->getlength());
-        self::assertEquals(10, $columns['bar']->getprecision());
-        self::assertEquals(4, $columns['bar']->getscale());
+        self::assertSame(10, $columns['bar']->getprecision());
+        self::assertSame(4, $columns['bar']->getscale());
         self::assertEquals(false, $columns['bar']->getunsigned());
         self::assertEquals(false, $columns['bar']->getfixed());
         self::assertEquals(false, $columns['bar']->getnotnull());
         self::assertEquals(null, $columns['bar']->getdefault());
         self::assertIsArray($columns['bar']->getPlatformOptions());
 
-        self::assertEquals('baz1', strtolower($columns['baz1']->getname()));
-        self::assertEquals(4, array_search('baz1', $columnsKeys, true));
+        self::assertSame('baz1', strtolower($columns['baz1']->getname()));
+        self::assertSame(4, array_search('baz1', $columnsKeys, true));
         self::assertInstanceOf(DateTimeType::class, $columns['baz1']->gettype());
         self::assertEquals(true, $columns['baz1']->getnotnull());
         self::assertEquals(null, $columns['baz1']->getdefault());
         self::assertIsArray($columns['baz1']->getPlatformOptions());
 
-        self::assertEquals('baz2', strtolower($columns['baz2']->getname()));
-        self::assertEquals(5, array_search('baz2', $columnsKeys, true));
-        self::assertContains(
-            $columns['baz2']->gettype()->getName(),
-            [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE],
-        );
+        self::assertSame('baz2', strtolower($columns['baz2']->getname()));
+        self::assertSame(5, array_search('baz2', $columnsKeys, true));
+        self::assertContains($columns['baz2']->gettype()->getName(), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
         self::assertEquals(true, $columns['baz2']->getnotnull());
         self::assertEquals(null, $columns['baz2']->getdefault());
         self::assertIsArray($columns['baz2']->getPlatformOptions());
 
-        self::assertEquals('baz3', strtolower($columns['baz3']->getname()));
-        self::assertEquals(6, array_search('baz3', $columnsKeys, true));
-        self::assertContains(
-            $columns['baz3']->gettype()->getName(),
-            [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE],
-        );
+        self::assertSame('baz3', strtolower($columns['baz3']->getname()));
+        self::assertSame(6, array_search('baz3', $columnsKeys, true));
+        self::assertContains($columns['baz3']->gettype()->getName(), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
         self::assertEquals(true, $columns['baz3']->getnotnull());
         self::assertEquals(null, $columns['baz3']->getdefault());
         self::assertIsArray($columns['baz3']->getPlatformOptions());
@@ -485,17 +414,17 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(3, $tableIndexes);
 
         self::assertArrayHasKey('primary', $tableIndexes, 'listTableIndexes() has to return a "primary" array key.');
-        self::assertEquals(['id', 'other_id'], array_map('strtolower', $tableIndexes['primary']->getColumns()));
+        self::assertSame(['id', 'other_id'], array_map('strtolower', $tableIndexes['primary']->getColumns()));
         self::assertTrue($tableIndexes['primary']->isUnique());
         self::assertTrue($tableIndexes['primary']->isPrimary());
 
-        self::assertEquals('test_index_name', strtolower($tableIndexes['test_index_name']->getName()));
-        self::assertEquals(['test'], array_map('strtolower', $tableIndexes['test_index_name']->getColumns()));
+        self::assertSame('test_index_name', strtolower($tableIndexes['test_index_name']->getName()));
+        self::assertSame(['test'], array_map('strtolower', $tableIndexes['test_index_name']->getColumns()));
         self::assertTrue($tableIndexes['test_index_name']->isUnique());
         self::assertFalse($tableIndexes['test_index_name']->isPrimary());
 
-        self::assertEquals('test_composite_idx', strtolower($tableIndexes['test_composite_idx']->getName()));
-        self::assertEquals(['id', 'test'], array_map('strtolower', $tableIndexes['test_composite_idx']->getColumns()));
+        self::assertSame('test_composite_idx', strtolower($tableIndexes['test_composite_idx']->getName()));
+        self::assertSame(['id', 'test'], array_map('strtolower', $tableIndexes['test_composite_idx']->getColumns()));
         self::assertFalse($tableIndexes['test_composite_idx']->isUnique());
         self::assertFalse($tableIndexes['test_composite_idx']->isPrimary());
     }
@@ -511,8 +440,8 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $this->schemaManager->createIndex($index, $table);
         $tableIndexes = $this->schemaManager->listTableIndexes('test_create_index');
 
-        self::assertEquals('test', strtolower($tableIndexes['test']->getName()));
-        self::assertEquals(['test'], array_map('strtolower', $tableIndexes['test']->getColumns()));
+        self::assertSame('test', strtolower($tableIndexes['test']->getName()));
+        self::assertSame(['test'], array_map('strtolower', $tableIndexes['test']->getColumns()));
         self::assertTrue($tableIndexes['test']->isUnique());
         self::assertFalse($tableIndexes['test']->isPrimary());
     }
@@ -562,9 +491,9 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $fkConstraint = current($fkConstraints);
         self::assertInstanceOf(ForeignKeyConstraint::class, $fkConstraint);
-        self::assertEquals('test_foreign', strtolower($fkConstraint->getForeignTableName()));
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $fkConstraint->getColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $fkConstraint->getForeignColumns()));
+        self::assertSame('test_foreign', strtolower($fkConstraint->getForeignTableName()));
+        self::assertSame(['foreign_key_test'], array_map('strtolower', $fkConstraint->getColumns()));
+        self::assertSame(['id'], array_map('strtolower', $fkConstraint->getForeignColumns()));
 
         self::assertTrue($fkTable->columnsAreIndexed($fkConstraint->getColumns()));
     }
@@ -589,15 +518,15 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(1, $fkeys, "Table 'test_create_fk1' has to have one foreign key.");
 
         self::assertInstanceOf(ForeignKeyConstraint::class, $fkeys[0]);
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
-        self::assertEquals('test_create_fk2', strtolower($fkeys[0]->getForeignTableName()));
+        self::assertSame(['foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
+        self::assertSame(['id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
+        self::assertSame('test_create_fk2', strtolower($fkeys[0]->getForeignTableName()));
 
         if (! $fkeys[0]->hasOption('onDelete')) {
             return;
         }
 
-        self::assertEquals('CASCADE', $fkeys[0]->getOption('onDelete'));
+        self::assertSame('CASCADE', $fkeys[0]->getOption('onDelete'));
     }
 
     public function testCreateForeignKeyWithTableObject(): void
@@ -621,14 +550,9 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(1, $fkeys, "Table 'test_create_fk1' has to have one foreign key.");
 
         self::assertInstanceOf(ForeignKeyConstraint::class, $fkeys[0]);
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
-        self::assertEquals('test_create_fk2', strtolower($fkeys[0]->getForeignTableName()));
-    }
-
-    protected function getCreateExampleViewSql(): void
-    {
-        self::markTestSkipped('No Create Example View SQL was defined for this SchemaManager');
+        self::assertSame(['foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
+        self::assertSame(['id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
+        self::assertSame('test_create_fk2', strtolower($fkeys[0]->getForeignTableName()));
     }
 
     public function testSchemaIntrospection(): void
@@ -709,7 +633,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $table = $this->schemaManager->introspectTable('alter_table');
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('foo_idx'));
-        self::assertEquals(['foo'], array_map('strtolower', $table->getIndex('foo_idx')->getColumns()));
+        self::assertSame(['foo'], array_map('strtolower', $table->getIndex('foo_idx')->getColumns()));
         self::assertFalse($table->getIndex('foo_idx')->isPrimary());
         self::assertFalse($table->getIndex('foo_idx')->isUnique());
 
@@ -725,10 +649,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $table = $this->schemaManager->introspectTable('alter_table');
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('foo_idx'));
-        self::assertEquals(
-            ['foo', 'foreign_key_test'],
-            array_map('strtolower', $table->getIndex('foo_idx')->getColumns()),
-        );
+        self::assertSame(['foo', 'foreign_key_test'], array_map('strtolower', $table->getIndex('foo_idx')->getColumns()));
 
         $newTable = clone $table;
         $newTable->dropIndex('foo_idx');
@@ -743,10 +664,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('bar_idx'));
         self::assertFalse($table->hasIndex('foo_idx'));
-        self::assertEquals(
-            ['foo', 'foreign_key_test'],
-            array_map('strtolower', $table->getIndex('bar_idx')->getColumns()),
-        );
+        self::assertSame(['foo', 'foreign_key_test'], array_map('strtolower', $table->getIndex('bar_idx')->getColumns()));
         self::assertFalse($table->getIndex('bar_idx')->isPrimary());
         self::assertFalse($table->getIndex('bar_idx')->isUnique());
 
@@ -767,9 +685,9 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $fks = $table->getForeignKeys();
         self::assertCount(1, $fks);
         $foreignKey = current($fks);
-        self::assertEquals('alter_table_foreign', strtolower($foreignKey->getForeignTableName()));
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $foreignKey->getColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $foreignKey->getForeignColumns()));
+        self::assertSame('alter_table_foreign', strtolower($foreignKey->getForeignTableName()));
+        self::assertSame(['foreign_key_test'], array_map('strtolower', $foreignKey->getColumns()));
+        self::assertSame(['id'], array_map('strtolower', $foreignKey->getForeignColumns()));
     }
 
     public function testTableInNamespace(): void
@@ -968,7 +886,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $columns = $this->schemaManager->listTableColumns('column_comment_test');
         self::assertCount(1, $columns);
-        self::assertEquals('This is a comment', $columns['id']->getComment());
+        self::assertSame('This is a comment', $columns['id']->getComment());
 
         $newTable = clone $table;
         $newTable->changeColumn('id', ['comment' => null]);
@@ -1007,10 +925,10 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $columns = $this->schemaManager->listTableColumns('column_comment_test2');
         self::assertCount(3, $columns);
-        self::assertEquals('This is a comment', $columns['id']->getComment());
-        self::assertEquals('This is a comment', $columns['obj']->getComment());
+        self::assertSame('This is a comment', $columns['id']->getComment());
+        self::assertSame('This is a comment', $columns['obj']->getComment());
         self::assertInstanceOf(ObjectType::class, $columns['obj']->getType());
-        self::assertEquals('This is a comment', $columns['arr']->getComment());
+        self::assertSame('This is a comment', $columns['arr']->getComment());
         self::assertInstanceOf(ArrayType::class, $columns['arr']->getType());
     }
 
@@ -1035,8 +953,8 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $columns = $this->schemaManager->listTableColumns('column_dateinterval_comment');
         self::assertCount(2, $columns);
-        self::assertEquals('This is a comment', $columns['id']->getComment());
-        self::assertEquals('This is a comment', $columns['date_interval']->getComment());
+        self::assertSame('This is a comment', $columns['id']->getComment());
+        self::assertSame('This is a comment', $columns['date_interval']->getComment());
         self::assertInstanceOf(DateIntervalType::class, $columns['date_interval']->getType());
     }
 
@@ -1066,7 +984,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertEquals(666, $columns['col_int']->getDefault());
 
         self::assertInstanceOf(StringType::class, $columns['col_string']->getType());
-        self::assertEquals('foo', $columns['col_string']->getDefault());
+        self::assertSame('foo', $columns['col_string']->getDefault());
     }
 
     public function testListTableWithBlob(): void
@@ -1080,59 +998,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         self::assertTrue($created->hasColumn('binarydata'));
         self::assertInstanceOf(BlobType::class, $created->getColumn('binarydata')->getType());
-    }
-
-    /** @param mixed[] $data */
-    protected function createTestTable(string $name = 'test_table', array $data = []): Table
-    {
-        $options = $data['options'] ?? [];
-
-        $table = $this->getTestTable($name, $options);
-
-        $this->dropAndCreateTable($table);
-
-        return $table;
-    }
-
-    /** @param mixed[] $options */
-    protected function getTestTable(string $name, array $options = []): Table
-    {
-        $table = new Table($name, [], [], [], [], $options);
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->setPrimaryKey(['id']);
-        $table->addColumn('test', Types::STRING, ['length' => 255]);
-        $table->addColumn('foreign_key_test', Types::INTEGER);
-
-        return $table;
-    }
-
-    protected function getTestCompositeTable(string $name): Table
-    {
-        $table = new Table($name, [], [], [], [], []);
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('other_id', Types::INTEGER, ['notnull' => true]);
-        $table->setPrimaryKey(['id', 'other_id']);
-        $table->addColumn('test', Types::STRING, ['length' => 255]);
-
-        return $table;
-    }
-
-    /** @param Table[] $tables */
-    protected function assertHasTable(array $tables): void
-    {
-        $foundTable = false;
-        foreach ($tables as $table) {
-            self::assertInstanceOf(Table::class, $table, 'No Table instance was found in tables array.');
-            if (strtolower($table->getName()) !== 'list_tables_test_new_name') {
-                continue;
-            }
-
-            $foundTable = true;
-        }
-
-        self::assertTrue($foundTable, 'Could not find new table');
     }
 
     public function testListForeignKeysComposite(): void
@@ -1154,8 +1019,8 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(1, $fkeys, "Table 'test_create_fk3' has to have one foreign key.");
 
         self::assertInstanceOf(ForeignKeyConstraint::class, $fkeys[0]);
-        self::assertEquals(['id', 'foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
-        self::assertEquals(['id', 'other_id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
+        self::assertSame(['id', 'foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
+        self::assertSame(['id', 'other_id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
     }
 
     /**
@@ -1230,22 +1095,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $this->assertVarBinaryColumnIsValid($table, 'column_varbinary', 32);
     }
 
-    protected function assertBinaryColumnIsValid(Table $table, string $columnName, int $expectedLength): void
-    {
-        $column = $table->getColumn($columnName);
-        self::assertInstanceOf(BinaryType::class, $column->getType());
-        self::assertSame($expectedLength, $column->getLength());
-        self::assertTrue($column->getFixed());
-    }
-
-    protected function assertVarBinaryColumnIsValid(Table $table, string $columnName, int $expectedLength): void
-    {
-        $column = $table->getColumn($columnName);
-        self::assertInstanceOf(BinaryType::class, $column->getType());
-        self::assertSame($expectedLength, $column->getLength());
-        self::assertFalse($column->getFixed());
-    }
-
     public function testGetNonExistingTable(): void
     {
         $this->expectException(SchemaException::class);
@@ -1278,18 +1127,9 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $this->dropAndCreateTable($table);
 
-        self::assertEquals(
-            $this->schemaManager->listTableColumns($primaryTableName),
-            $this->schemaManager->listTableColumns($defaultSchemaName . '.' . $primaryTableName),
-        );
-        self::assertEquals(
-            $this->schemaManager->listTableIndexes($primaryTableName),
-            $this->schemaManager->listTableIndexes($defaultSchemaName . '.' . $primaryTableName),
-        );
-        self::assertEquals(
-            $this->schemaManager->listTableForeignKeys($primaryTableName),
-            $this->schemaManager->listTableForeignKeys($defaultSchemaName . '.' . $primaryTableName),
-        );
+        self::assertEquals($this->schemaManager->listTableColumns($primaryTableName), $this->schemaManager->listTableColumns($defaultSchemaName . '.' . $primaryTableName));
+        self::assertEquals($this->schemaManager->listTableIndexes($primaryTableName), $this->schemaManager->listTableIndexes($defaultSchemaName . '.' . $primaryTableName));
+        self::assertEquals($this->schemaManager->listTableForeignKeys($primaryTableName), $this->schemaManager->listTableForeignKeys($defaultSchemaName . '.' . $primaryTableName));
     }
 
     public function testCommentStringsAreQuoted(): void
@@ -1313,7 +1153,7 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $this->schemaManager->createTable($table);
 
         $columns = $this->schemaManager->listTableColumns('my_table');
-        self::assertEquals("It's a comment with a quote", $columns['id']->getComment());
+        self::assertSame("It's a comment with a quote", $columns['id']->getComment());
     }
 
     public function testCommentNotDuplicated(): void
@@ -1355,10 +1195,10 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
      */
     public function testAlterColumnComment(
         callable $comparatorFactory,
-        ?string $comment1,
-        ?string $expectedComment1,
-        ?string $comment2,
-        ?string $expectedComment2
+        string|null $comment1,
+        string|null $expectedComment1,
+        string|null $comment2,
+        string|null $expectedComment2,
     ): void {
         $platform = $this->connection->getDatabasePlatform();
 
@@ -1401,31 +1241,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertSame($expectedComment1, $onlineTable->getColumn('comment2')->getComment());
         self::assertSame($expectedComment1, $onlineTable->getColumn('no_comment1')->getComment());
         self::assertSame($expectedComment2, $onlineTable->getColumn('no_comment2')->getComment());
-    }
-
-    /** @return iterable<mixed[]> */
-    public static function getAlterColumnComment(): iterable
-    {
-        foreach (ComparatorTestUtils::comparatorProvider() as $comparatorArguments) {
-            foreach (
-                [
-                    [null, null, ' ', ' '],
-                    [null, null, '0', '0'],
-                    [null, null, 'foo', 'foo'],
-
-                    ['', null, ' ', ' '],
-                    ['', null, '0', '0'],
-                    ['', null, 'foo', 'foo'],
-
-                    [' ', ' ', '0', '0'],
-                    [' ', ' ', 'foo', 'foo'],
-
-                    ['0', '0', 'foo', 'foo'],
-                ] as $testArguments
-            ) {
-                yield array_merge($comparatorArguments, $testArguments);
-            }
-        }
     }
 
     public function testDoesNotListIndexesImplicitlyCreatedByForeignKeys(): void
@@ -1484,21 +1299,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertSame($expected, $result);
     }
 
-    /** @return string[][] */
-    public static function commentsProvider(): array
-    {
-        $currentType = 'current type';
-
-        return [
-            'invalid custom type comments'      => ['should.return.current.type', $currentType, $currentType],
-            'valid doctrine type'               => ['(DC2Type:guid)', 'guid', $currentType],
-            'valid with dots'                   => ['(DC2Type:type.should.return)', 'type.should.return', $currentType],
-            'valid with namespace'              => ['(DC2Type:Namespace\Class)', 'Namespace\Class', $currentType],
-            'valid with extra closing bracket'  => ['(DC2Type:should.stop)).before)', 'should.stop', $currentType],
-            'valid with extra opening brackets' => ['(DC2Type:should((.stop)).before)', 'should((.stop', $currentType],
-        ];
-    }
-
     public function testCreateAndListSequences(): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSequences()) {
@@ -1516,16 +1316,18 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         $this->schemaManager->createSequence($sequence1);
 
-        if (!($this->connection->getDatabasePlatform() instanceof Firebird3Platform)) {
+        if (! ($this->connection->getDatabasePlatform() instanceof Firebird3Platform)) {
             $this->expectException(Exception::class);
             $this->expectExceptionMessageMatches('/.*not supported.*/');
             $actualSequences = [];
             foreach ($this->schemaManager->listSequences() as $sequence) {
                 $actualSequences[$sequence->getName()] = $sequence;
             }
+
             $actualSequence1 = $actualSequences[$sequence1Name];
             self::assertSame($sequence1Name, $actualSequence1->getName());
             $this->schemaManager->createSequence($sequence2);
+
             return;
         }
 
@@ -1541,12 +1343,12 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         $actualSequence2 = $actualSequences[$sequence2Name];
 
         self::assertSame($sequence1Name, $actualSequence1->getName());
-        self::assertEquals($sequence1AllocationSize, $actualSequence1->getAllocationSize());
-        self::assertEquals($sequence1InitialValue, $actualSequence1->getInitialValue());
+        self::assertSame($sequence1AllocationSize, $actualSequence1->getAllocationSize());
+        self::assertSame($sequence1InitialValue, $actualSequence1->getInitialValue());
 
         self::assertSame($sequence2Name, $actualSequence2->getName());
-        self::assertEquals($sequence2AllocationSize, $actualSequence2->getAllocationSize());
-        self::assertEquals($sequence2InitialValue, $actualSequence2->getInitialValue());
+        self::assertSame($sequence2AllocationSize, $actualSequence2->getAllocationSize());
+        self::assertSame($sequence2InitialValue, $actualSequence2->getInitialValue());
     }
 
     /**
@@ -1565,22 +1367,20 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         try {
             $this->schemaManager->dropSequence($sequence->getName());
-        } catch (DatabaseObjectNotFoundException $e) {
+        } catch (DatabaseObjectNotFoundException) {
         }
 
-        if (!($platform instanceof Firebird3Platform)) {
+        if (! ($platform instanceof Firebird3Platform)) {
             $this->expectException(Exception::class);
             $this->expectExceptionMessageMatches('/.*not supported.*/');
-
         }
+
         $this->schemaManager->createSequence($sequence);
 
         $createdSequence = array_values(
             array_filter(
                 $this->schemaManager->listSequences(),
-                static function (Sequence $sequence) use ($sequenceName): bool {
-                    return strcasecmp($sequence->getName(), $sequenceName) === 0;
-                },
+                static fn (Sequence $sequence): bool => strcasecmp($sequence->getName(), $sequenceName) === 0,
             ),
         )[0] ?? null;
 
@@ -1716,29 +1516,6 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(1, $user->getForeignKeys());
     }
 
-    private function createReservedKeywordTables(): void
-    {
-        $platform = $this->connection->getDatabasePlatform();
-
-        $this->dropTableIfExists($platform->quoteIdentifier('user'));
-        $this->dropTableIfExists($platform->quoteIdentifier('group'));
-
-        $schema = new Schema();
-
-        $user = $schema->createTable('user');
-        $user->addColumn('id', Types::INTEGER);
-        $user->addColumn('group_id', Types::INTEGER);
-        $user->setPrimaryKey(['id']);
-        $user->addForeignKeyConstraint('group', ['group_id'], ['id']);
-
-        $group = $schema->createTable('group');
-        $group->addColumn('id', Types::INTEGER);
-        $group->setPrimaryKey(['id']);
-
-        $schemaManager = $this->connection->createSchemaManager();
-        $schemaManager->createSchemaObjects($schema);
-    }
-
     public function testChangeIndexWithForeignKeys(): void
     {
         $this->dropTableIfExists('child');
@@ -1825,8 +1602,150 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
         self::assertCount(1, $columns);
     }
 
+    /** @return iterable<list<mixed>> */
+    public static function listSchemaNamesMethodProvider(): iterable
+    {
+        yield [
+            static fn (AbstractSchemaManager $schemaManager): array => $schemaManager->listNamespaceNames(),
+        ];
+
+        yield [
+            static fn (AbstractSchemaManager $schemaManager): array => $schemaManager->listSchemaNames(),
+        ];
+    }
+
+    /** @return iterable<string, array{string, int}> */
+    public static function tableFilterProvider(): iterable
+    {
+        yield 'One table' => ['filter_test_1', 1];
+        yield 'Two tables' => ['filter_test_', 2];
+    }
+
+    /** @return iterable<mixed[]> */
+    public static function getAlterColumnComment(): iterable
+    {
+        foreach (ComparatorTestUtils::comparatorProvider() as $comparatorArguments) {
+            foreach (
+                [
+                    [null, null, ' ', ' '],
+                    [null, null, '0', '0'],
+                    [null, null, 'foo', 'foo'],
+
+                    ['', null, ' ', ' '],
+                    ['', null, '0', '0'],
+                    ['', null, 'foo', 'foo'],
+
+                    [' ', ' ', '0', '0'],
+                    [' ', ' ', 'foo', 'foo'],
+
+                    ['0', '0', 'foo', 'foo'],
+                ] as $testArguments
+            ) {
+                yield array_merge($comparatorArguments, $testArguments);
+            }
+        }
+    }
+
+    /** @return string[][] */
+    public static function commentsProvider(): Iterator
+    {
+        $currentType = 'current type';
+
+        yield 'invalid custom type comments' => ['should.return.current.type', $currentType, $currentType];
+        yield 'valid doctrine type' => ['(DC2Type:guid)', 'guid', $currentType];
+        yield 'valid with dots' => ['(DC2Type:type.should.return)', 'type.should.return', $currentType];
+        yield 'valid with namespace' => ['(DC2Type:Namespace\Class)', 'Namespace\Class', $currentType];
+        yield 'valid with extra closing bracket' => ['(DC2Type:should.stop)).before)', 'should.stop', $currentType];
+        yield 'valid with extra opening brackets' => ['(DC2Type:should((.stop)).before)', 'should((.stop', $currentType];
+    }
+
+    protected function setUp(): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        if (! $this->supportsPlatform($platform)) {
+            self::markTestSkipped(sprintf('Skipping since connected to %s', $platform::class));
+        }
+
+        $this->schemaManager = $this->connection->createSchemaManager();
+    }
+
+    protected function getCreateExampleViewSql(): void
+    {
+        self::markTestSkipped('No Create Example View SQL was defined for this SchemaManager');
+    }
+
+    /** @param mixed[] $data */
+    protected function createTestTable(string $name = 'test_table', array $data = []): Table
+    {
+        $options = $data['options'] ?? [];
+
+        $table = $this->getTestTable($name, $options);
+
+        $this->dropAndCreateTable($table);
+
+        return $table;
+    }
+
+    /** @param mixed[] $options */
+    protected function getTestTable(string $name, array $options = []): Table
+    {
+        $table = new Table($name, [], [], [], [], $options);
+        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
+        $table->setPrimaryKey(['id']);
+        $table->addColumn('test', Types::STRING, ['length' => 255]);
+        $table->addColumn('foreign_key_test', Types::INTEGER);
+
+        return $table;
+    }
+
+    protected function getTestCompositeTable(string $name): Table
+    {
+        $table = new Table($name, [], [], [], [], []);
+        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
+        $table->addColumn('other_id', Types::INTEGER, ['notnull' => true]);
+        $table->setPrimaryKey(['id', 'other_id']);
+        $table->addColumn('test', Types::STRING, ['length' => 255]);
+
+        return $table;
+    }
+
+    /** @param Table[] $tables */
+    protected function assertHasTable(array $tables): void
+    {
+        $foundTable = false;
+        foreach ($tables as $table) {
+            self::assertInstanceOf(Table::class, $table, 'No Table instance was found in tables array.');
+            if (strtolower($table->getName()) !== 'list_tables_test_new_name') {
+                continue;
+            }
+
+            $foundTable = true;
+        }
+
+        self::assertTrue($foundTable, 'Could not find new table');
+    }
+
+    protected function assertBinaryColumnIsValid(Table $table, string $columnName, int $expectedLength): void
+    {
+        $column = $table->getColumn($columnName);
+        self::assertInstanceOf(BinaryType::class, $column->getType());
+        self::assertSame($expectedLength, $column->getLength());
+        self::assertTrue($column->getFixed());
+    }
+
+    protected function assertVarBinaryColumnIsValid(Table $table, string $columnName, int $expectedLength): void
+    {
+        $column = $table->getColumn($columnName);
+        self::assertInstanceOf(BinaryType::class, $column->getType());
+        self::assertSame($expectedLength, $column->getLength());
+        self::assertFalse($column->getFixed());
+    }
+
     /** @param list<Table> $tables */
-    protected function findTableByName(array $tables, string $name): ?Table
+    protected function findTableByName(array $tables, string $name): Table|null
     {
         foreach ($tables as $table) {
             if (strtolower($table->getName()) === $name) {
@@ -1836,6 +1755,52 @@ abstract class SchemaManagerFunctionalTestCase extends \Satag\DoctrineFirebirdDr
 
         return null;
     }
+
+    /** @param AbstractAsset[] $items */
+    private function hasElementWithName(array $items, string $name): bool
+    {
+        $filteredList = $this->filterElementsByName($items, $name);
+
+        return count($filteredList) === 1;
+    }
+
+    /**
+     * @param AbstractAsset[] $items
+     *
+     * @return AbstractAsset[]
+     */
+    private function filterElementsByName(array $items, string $name): array
+    {
+        return array_filter(
+            $items,
+            static fn (AbstractAsset $item): bool => $item->getShortestName($item->getNamespaceName()) === $name,
+        );
+    }
+
+    private function createReservedKeywordTables(): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        $this->dropTableIfExists($platform->quoteIdentifier('user'));
+        $this->dropTableIfExists($platform->quoteIdentifier('group'));
+
+        $schema = new Schema();
+
+        $user = $schema->createTable('user');
+        $user->addColumn('id', Types::INTEGER);
+        $user->addColumn('group_id', Types::INTEGER);
+        $user->setPrimaryKey(['id']);
+        $user->addForeignKeyConstraint('group', ['group_id'], ['id']);
+
+        $group = $schema->createTable('group');
+        $group->addColumn('id', Types::INTEGER);
+        $group->setPrimaryKey(['id']);
+
+        $schemaManager = $this->connection->createSchemaManager();
+        $schemaManager->createSchemaObjects($schema);
+    }
+
+    abstract protected function supportsPlatform(AbstractPlatform $platform): bool;
 }
 
 interface ListTableColumnsDispatchEventListener

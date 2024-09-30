@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Tools;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use PHPUnit\Framework\TestCase;
-
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
-use function get_class;
 use function ksort;
 
 /** @psalm-import-type Params from DriverManager */
@@ -24,7 +24,7 @@ final class DsnParserTest extends TestCase
             'port' => 3050,
             'user' => 'user',
             'password' => 'password',
-            'driverClass' => 'Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Driver',
+            'driverClass' => Driver::class,
             'dbname' => 'var/db/mydatabase.fdb',
             'charset' => 'UTF8',
             'role' => 'admin',
@@ -36,6 +36,4 @@ final class DsnParserTest extends TestCase
 
         self::assertSame($expected, $actual);
     }
-
-
 }

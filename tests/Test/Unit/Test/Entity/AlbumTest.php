@@ -1,57 +1,61 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Test\Resource\Entity;
 
+use DateTimeImmutable;
 use Doctrine\Common\Collections\Collection;
-use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 class AlbumTest extends TestCase
 {
-    public function testBasics()
+    public function testBasics(): void
     {
-        $album = new Entity\Album("Communion");
-        $this->assertNull($album->getId());
-        $this->assertInstanceOf(\DateTimeImmutable::class, $album->getTimeCreated());
-        $this->assertSame("Communion", $album->getName());
-        $this->assertNull($album->getArtist());
-        $this->assertInstanceOf(Collection::class, $album->getSongs());
-        $this->assertCount(0, $album->getSongs());
+        $album = new Entity\Album('Communion');
+        self::assertNull($album->getId());
+        self::assertInstanceOf(DateTimeImmutable::class, $album->getTimeCreated());
+        self::assertSame('Communion', $album->getName());
+        self::assertNull($album->getArtist());
+        self::assertInstanceOf(Collection::class, $album->getSongs());
+        self::assertCount(0, $album->getSongs());
     }
 
-    public function testCanAddAndRemoveSong()
+    public function testCanAddAndRemoveSong(): void
     {
-        $album = new Entity\Album("Communion");
-        $song = $this
+        $album = new Entity\Album('Communion');
+        $song  = $this
             ->getMockBuilder(Entity\Song::class)
             ->disableOriginalConstructor()
             ->getMock();
         $album->addSong($song);
-        $this->assertCount(1, $album->getSongs());
-        $this->assertSame($song, $album->getSongs()->first());
+        self::assertCount(1, $album->getSongs());
+        self::assertSame($song, $album->getSongs()->first());
         $album->removeSong($song);
-        $this->assertCount(0, $album->getSongs());
+        self::assertCount(0, $album->getSongs());
     }
 
-    public function testSetArtist()
+    public function testSetArtist(): void
     {
-        $album = new Entity\Album("Communion");
+        $album   = new Entity\Album('Communion');
         $artistA = $this
             ->getMockBuilder(Entity\Artist::class)
             ->disableOriginalConstructor()
             ->getMock();
         $artistB = clone $artistA;
         $album->setArtist($artistA);
-        $this->assertSame($artistA, $album->getArtist());
+        self::assertSame($artistA, $album->getArtist());
         $album->setArtist($artistB);
-        $this->assertSame($artistB, $album->getArtist());
+        self::assertSame($artistB, $album->getArtist());
         $album->setArtist(null);
-        $this->assertNull($album->getArtist());
+        self::assertNull($album->getArtist());
     }
 
-    public function testSetName()
+    public function testSetName(): void
     {
-        $album = new Entity\Album("Communion");
-        $album->setName("Something else");
-        $this->assertSame("Something else", $album->getName());
+        $album = new Entity\Album('Communion');
+        $album->setName('Something else');
+        self::assertSame('Something else', $album->getName());
     }
 }

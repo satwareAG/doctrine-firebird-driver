@@ -1,22 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
-
 class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
-    protected function supportsPlatform(AbstractPlatform $platform): bool
-    {
-        return $platform instanceof Firebird3Platform;
-    }
-
     public function testGetBooleanColumn(): void
     {
         $table = new Table('boolean_column_test');
@@ -34,5 +29,8 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertSame("That's a comment", $columns['bool_commented']->getComment());
     }
 
-
+    protected function supportsPlatform(AbstractPlatform $platform): bool
+    {
+        return $platform instanceof Firebird3Platform;
+    }
 }

@@ -6,26 +6,11 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-class AsciiStringTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class AsciiStringTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('ascii_table');
-        $table->addColumn('id', Types::ASCII_STRING, [
-            'length' => 3,
-            'fixed' => true,
-        ]);
-
-        $table->addColumn('val', Types::ASCII_STRING, ['length' => 4]);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-    }
-
     public function testInsertAndSelect(): void
     {
         $id1 = 'id1';
@@ -39,6 +24,20 @@ class AsciiStringTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestC
 
         self::assertSame($value1, $this->select($id1));
         self::assertSame($value2, $this->select($id2));
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('ascii_table');
+        $table->addColumn('id', Types::ASCII_STRING, [
+            'length' => 3,
+            'fixed' => true,
+        ]);
+
+        $table->addColumn('val', Types::ASCII_STRING, ['length' => 4]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
     }
 
     private function insert(string $id, string $value): void

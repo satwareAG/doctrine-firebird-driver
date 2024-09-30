@@ -27,7 +27,7 @@ use function array_merge;
 class Firebird3Keywords extends FirebirdKeywords
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function getName()
     {
@@ -35,7 +35,7 @@ class Firebird3Keywords extends FirebirdKeywords
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */

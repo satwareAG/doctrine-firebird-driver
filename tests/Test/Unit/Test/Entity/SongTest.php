@@ -1,96 +1,100 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Test\Resource\Entity;
 
+use DateTimeImmutable;
 use Doctrine\Common\Collections\Collection;
-use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 class SongTest extends TestCase
 {
-    public function testBasics()
+    public function testBasics(): void
     {
         $genre = $this
             ->getMockBuilder(Entity\Genre::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $song = new Entity\Song("Foo", $genre);
-        $this->assertNull($song->getId());
-        $this->assertInstanceOf(Collection::class, $song->getAlbums());
-        $this->assertCount(0, $song->getAlbums());
-        $this->assertNull($song->getArtist());
-        $this->assertSame($genre, $song->getGenre());
-        $this->assertSame("Foo", $song->getName());
-        $this->assertInstanceOf(\DateTimeImmutable::class, $song->getTimeCreated());
+        $song  = new Entity\Song('Foo', $genre);
+        self::assertNull($song->getId());
+        self::assertInstanceOf(Collection::class, $song->getAlbums());
+        self::assertCount(0, $song->getAlbums());
+        self::assertNull($song->getArtist());
+        self::assertSame($genre, $song->getGenre());
+        self::assertSame('Foo', $song->getName());
+        self::assertInstanceOf(DateTimeImmutable::class, $song->getTimeCreated());
     }
 
-    public function testAddAndRemoveAlbum()
+    public function testAddAndRemoveAlbum(): void
     {
-        $genre = $this
+        $genre  = $this
             ->getMockBuilder(Entity\Genre::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $song = new Entity\Song("Foo", $genre);
+        $song   = new Entity\Song('Foo', $genre);
         $albumA = $this
             ->getMockBuilder(Entity\Album::class)
             ->disableOriginalConstructor()
             ->getMock();
         $albumB = clone $albumA;
         $song->removeAlbum($albumA);
-        $this->assertCount(0, $song->getAlbums());
+        self::assertCount(0, $song->getAlbums());
         $song->addAlbum($albumA);
         $song->addAlbum($albumA);
-        $this->assertCount(1, $song->getAlbums());
+        self::assertCount(1, $song->getAlbums());
         $song->addAlbum($albumB);
-        $this->assertCount(2, $song->getAlbums());
+        self::assertCount(2, $song->getAlbums());
         $song->removeAlbum($albumA);
         $song->removeAlbum($albumA);
-        $this->assertCount(1, $song->getAlbums());
+        self::assertCount(1, $song->getAlbums());
         $song->removeAlbum($albumB);
-        $this->assertCount(0, $song->getAlbums());
+        self::assertCount(0, $song->getAlbums());
     }
 
-    public function testSetArtistWorks()
+    public function testSetArtistWorks(): void
     {
-        $genre = $this
+        $genre  = $this
             ->getMockBuilder(Entity\Genre::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $song = new Entity\Song("Foo", $genre);
+        $song   = new Entity\Song('Foo', $genre);
         $artist = $this
             ->getMockBuilder(Entity\Artist::class)
             ->disableOriginalConstructor()
             ->getMock();
         $song->setArtist($artist);
-        $this->assertSame($artist, $song->getArtist());
+        self::assertSame($artist, $song->getArtist());
         $song->setArtist(null);
-        $this->assertNull($song->getArtist());
+        self::assertNull($song->getArtist());
     }
 
-    public function testSetGenreWorks()
+    public function testSetGenreWorks(): void
     {
         $genreA = $this
             ->getMockBuilder(Entity\Genre::class)
             ->disableOriginalConstructor()
             ->getMock();
         $genreB = clone $genreA;
-        $song = new Entity\Song("Foo", $genreA);
-        $this->assertSame($genreA, $song->getGenre());
+        $song   = new Entity\Song('Foo', $genreA);
+        self::assertSame($genreA, $song->getGenre());
         $song->setGenre($genreB);
-        $this->assertNotSame($genreA, $song->getGenre());
-        $this->assertSame($genreB, $song->getGenre());
+        self::assertNotSame($genreA, $song->getGenre());
+        self::assertSame($genreB, $song->getGenre());
         $song->setGenre($genreA);
-        $this->assertNotSame($genreB, $song->getGenre());
-        $this->assertSame($genreA, $song->getGenre());
+        self::assertNotSame($genreB, $song->getGenre());
+        self::assertSame($genreA, $song->getGenre());
     }
 
-    public function testSetNameWorks()
+    public function testSetNameWorks(): void
     {
         $genre = $this
             ->getMockBuilder(Entity\Genre::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $song = new Entity\Song("Foo", $genre);
-        $song->setName("Bar");
-        $this->assertSame("Bar", $song->getName());
+        $song  = new Entity\Song('Foo', $genre);
+        $song->setName('Bar');
+        self::assertSame('Bar', $song->getName());
     }
 }

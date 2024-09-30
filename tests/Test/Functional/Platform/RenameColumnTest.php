@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 use function strtolower;
 
-class RenameColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class RenameColumnTest extends FunctionalTestCase
 {
     /** @dataProvider columnNameProvider */
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void

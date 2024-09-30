@@ -1,47 +1,50 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Test\Resource\Entity\Artist;
 
 use Doctrine\Common\Collections\Collection;
-use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 class TypeTest extends TestCase
 {
-    public function testBasics()
+    public function testBasics(): void
     {
-        $type = new Entity\Artist\Type("Foo");
-        $this->assertNull($type->getId());
-        $this->assertSame("Foo", $type->getName());
-        $this->assertInstanceOf(Collection::class, $type->getArtists());
-        $this->assertCount(0, $type->getArtists());
+        $type = new Entity\Artist\Type('Foo');
+        self::assertNull($type->getId());
+        self::assertSame('Foo', $type->getName());
+        self::assertInstanceOf(Collection::class, $type->getArtists());
+        self::assertCount(0, $type->getArtists());
     }
 
-    public function testAddAndRemoveArtist()
+    public function testAddAndRemoveArtist(): void
     {
-        $type = new Entity\Artist\Type("Foo");
+        $type    = new Entity\Artist\Type('Foo');
         $artistA = $this
             ->getMockBuilder(Entity\Artist::class)
             ->disableOriginalConstructor()
             ->getMock();
         $artistB = clone $artistA;
         $type->removeArtist($artistA);
-        $this->assertCount(0, $type->getArtists());
+        self::assertCount(0, $type->getArtists());
         $type->addArtist($artistA);
         $type->addArtist($artistA);
-        $this->assertCount(1, $type->getArtists());
+        self::assertCount(1, $type->getArtists());
         $type->addArtist($artistB);
-        $this->assertCount(2, $type->getArtists());
+        self::assertCount(2, $type->getArtists());
         $type->removeArtist($artistA);
         $type->removeArtist($artistA);
-        $this->assertCount(1, $type->getArtists());
+        self::assertCount(1, $type->getArtists());
         $type->removeArtist($artistB);
-        $this->assertCount(0, $type->getArtists());
+        self::assertCount(0, $type->getArtists());
     }
 
-    public function testSetNameWorks()
+    public function testSetNameWorks(): void
     {
-        $type = new Entity\Artist\Type("Foo");
-        $type->setName("Bar");
-        $this->assertSame("Bar", $type->getName());
+        $type = new Entity\Artist\Type('Foo');
+        $type->setName('Bar');
+        self::assertSame('Bar', $type->getName());
     }
 }

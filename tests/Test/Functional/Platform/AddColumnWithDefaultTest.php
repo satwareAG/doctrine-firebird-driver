@@ -6,10 +6,9 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-class AddColumnWithDefaultTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class AddColumnWithDefaultTest extends FunctionalTestCase
 {
     public function testAddColumnWithDefault(): void
     {

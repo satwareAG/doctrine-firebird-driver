@@ -1,19 +1,151 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use DateTime;
 use Doctrine\DBAL\Schema\Table;
-
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Iterator;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use stdClass;
 
 use function str_repeat;
 
-class TypeConversionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class TypeConversionTest extends FunctionalTestCase
 {
     private static int $typeCounter = 0;
+
+    /** @dataProvider booleanProvider */
+    public function testIdempotentConversionToBoolean(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsBool($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider integerProvider */
+    public function testIdempotentConversionToInteger(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsInt($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider floatProvider */
+    public function testIdempotentConversionToFloat(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsFloat($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider toStringProvider */
+    public function testIdempotentConversionToString(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsString($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider toArrayProvider */
+    public function testIdempotentConversionToArray(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsArray($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider toObjectProvider */
+    public function testIdempotentConversionToObject(string $type, mixed $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertIsObject($dbValue);
+        self::assertEquals($originalValue, $dbValue);
+    }
+
+    /** @dataProvider toDateTimeProvider */
+    public function testIdempotentConversionToDateTime(string $type, DateTime $originalValue): void
+    {
+        $dbValue = $this->processValue($type, $originalValue);
+
+        self::assertInstanceOf(DateTime::class, $dbValue);
+
+        if ($type === Types::DATETIMETZ_MUTABLE) {
+            return;
+        }
+
+        self::assertEquals($originalValue, $dbValue);
+        self::assertEquals($originalValue->getTimezone(), $dbValue->getTimezone());
+    }
+
+    /** @return mixed[][] */
+    public static function booleanProvider(): Iterator
+    {
+        yield 'true' => [Types::BOOLEAN, true];
+        yield 'false' => [Types::BOOLEAN, false];
+    }
+
+    /** @return mixed[][] */
+    public static function integerProvider(): Iterator
+    {
+        yield 'smallint' => [Types::SMALLINT, 123];
+    }
+
+    /** @return mixed[][] */
+    public static function floatProvider(): Iterator
+    {
+        yield 'float' => [Types::FLOAT, 1.5];
+    }
+
+    /** @return mixed[][] */
+    public static function toStringProvider(): Iterator
+    {
+        yield 'string' => [Types::STRING, 'ABCDEFGabcdefg'];
+        yield 'text' => [Types::TEXT, str_repeat('foo ', 1000)];
+    }
+
+    /**
+     * @return mixed[][]
+     *
+     * @psalm-suppress DeprecatedConstant
+     */
+    public static function toArrayProvider(): Iterator
+    {
+        yield 'array' => [Types::ARRAY, ['foo' => 'bar']];
+        yield 'json' => [Types::JSON, ['foo' => 'bar']];
+    }
+
+    /**
+     * @return mixed[][]
+     *
+     * @psalm-suppress DeprecatedConstant
+     */
+    public static function toObjectProvider(): Iterator
+    {
+        $obj      = new stdClass();
+        $obj->foo = 'bar';
+        $obj->bar = 'baz';
+
+        yield 'object' => [Types::OBJECT, $obj];
+    }
+
+    /** @return mixed[][] */
+    public static function toDateTimeProvider(): Iterator
+    {
+        yield 'datetime' => [Types::DATETIME_MUTABLE, new DateTime('2010-04-05 10:10:10')];
+        yield 'datetimetz' => [Types::DATETIMETZ_MUTABLE, new DateTime('2010-04-05 10:10:10')];
+        yield 'date' => [Types::DATE_MUTABLE, new DateTime('2010-04-05')];
+        yield 'time' => [Types::TIME_MUTABLE, new DateTime('1970-01-01 10:10:10')];
+    }
 
     /** @psalm-suppress DeprecatedConstant */
     protected function setUp(): void
@@ -39,183 +171,7 @@ class TypeConversionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTe
         $this->dropAndCreateTable($table);
     }
 
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider booleanProvider
-     */
-    public function testIdempotentConversionToBoolean(string $type, $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsBool($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /** @return mixed[][] */
-    public static function booleanProvider(): iterable
-    {
-        return [
-            'true' => [Types::BOOLEAN, true],
-            'false' => [Types::BOOLEAN, false],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider integerProvider
-     */
-    public function testIdempotentConversionToInteger(string $type, $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsInt($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /** @return mixed[][] */
-    public static function integerProvider(): iterable
-    {
-        return [
-            'smallint' => [Types::SMALLINT, 123],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider floatProvider
-     */
-    public function testIdempotentConversionToFloat(string $type, $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsFloat($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /** @return mixed[][] */
-    public static function floatProvider(): iterable
-    {
-        return [
-            'float' => [Types::FLOAT, 1.5],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider toStringProvider
-     */
-    public function testIdempotentConversionToString(string $type, $originalValue): void
-    {
-
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsString($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /** @return mixed[][] */
-    public static function toStringProvider(): iterable
-    {
-        return [
-            'string' => [Types::STRING, 'ABCDEFGabcdefg'],
-            'text' => [Types::TEXT, str_repeat('foo ', 1000)],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider toArrayProvider
-     */
-    public function testIdempotentConversionToArray(string $type, $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsArray($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /**
-     * @return mixed[][]
-     *
-     * @psalm-suppress DeprecatedConstant
-     */
-    public static function toArrayProvider(): iterable
-    {
-        return [
-            'array' => [Types::ARRAY, ['foo' => 'bar']],
-            'json' => [Types::JSON, ['foo' => 'bar']],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @dataProvider toObjectProvider
-     */
-    public function testIdempotentConversionToObject(string $type, $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsObject($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /**
-     * @return mixed[][]
-     *
-     * @psalm-suppress DeprecatedConstant
-     */
-    public static function toObjectProvider(): iterable
-    {
-        $obj      = new stdClass();
-        $obj->foo = 'bar';
-        $obj->bar = 'baz';
-
-        return [
-            'object' => [Types::OBJECT, $obj],
-        ];
-    }
-
-    /** @dataProvider toDateTimeProvider */
-    public function testIdempotentConversionToDateTime(string $type, DateTime $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertInstanceOf(DateTime::class, $dbValue);
-
-        if ($type === Types::DATETIMETZ_MUTABLE) {
-            return;
-        }
-
-        self::assertEquals($originalValue, $dbValue);
-        self::assertEquals(
-            $originalValue->getTimezone(),
-            $dbValue->getTimezone(),
-        );
-    }
-
-    /** @return mixed[][] */
-    public static function toDateTimeProvider(): iterable
-    {
-        return [
-            'datetime' => [Types::DATETIME_MUTABLE, new DateTime('2010-04-05 10:10:10')],
-            'datetimetz' => [Types::DATETIMETZ_MUTABLE, new DateTime('2010-04-05 10:10:10')],
-            'date' => [Types::DATE_MUTABLE, new DateTime('2010-04-05')],
-            'time' => [Types::TIME_MUTABLE, new DateTime('1970-01-01 10:10:10')],
-        ];
-    }
-
-    /**
-     * @param mixed $originalValue
-     *
-     * @return mixed
-     */
-    private function processValue(string $type, $originalValue)
+    private function processValue(string $type, mixed $originalValue): mixed
     {
         $columnName     = 'test_' . $type;
         $typeInstance   = Type::getType($type);

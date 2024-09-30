@@ -6,31 +6,16 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\TestUtil;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function is_resource;
 use function random_bytes;
 use function str_replace;
 use function stream_get_contents;
 
-class BinaryTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class BinaryTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('binary_table');
-        $table->addColumn('id', Types::BINARY, [
-            'length' => 16,
-            'fixed' => true,
-        ]);
-        $table->addColumn('val', Types::BINARY, ['length' => 64]);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-    }
-
     public function testInsertAndSelect(): void
     {
         $id1 = random_bytes(16);
@@ -52,6 +37,19 @@ class BinaryTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         self::assertSame($value2, $this->select($id2));
     }
 
+    protected function setUp(): void
+    {
+        $table = new Table('binary_table');
+        $table->addColumn('id', Types::BINARY, [
+            'length' => 16,
+            'fixed' => true,
+        ]);
+        $table->addColumn('val', Types::BINARY, ['length' => 64]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
+    }
+
     private function insert(string $id, string $value): void
     {
         $result = $this->connection->insert('binary_table', [
@@ -65,8 +63,7 @@ class BinaryTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
         self::assertSame(1, $result);
     }
 
-    /** @return mixed */
-    private function select(string $id)
+    private function select(string $id): mixed
     {
         $value = $this->connection->fetchOne(
             'SELECT val FROM binary_table WHERE id = ?',

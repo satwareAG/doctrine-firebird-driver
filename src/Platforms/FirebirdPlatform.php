@@ -239,7 +239,7 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function usesSequenceEmulatedIdentityColumns()
     {
@@ -247,7 +247,7 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function getIdentitySequenceName($tableName, $columnName): string
     {
@@ -870,7 +870,7 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function getCreateTableSQL(Table $table, $createFlags = self::CREATE_INDEXES): array
     {
@@ -1586,7 +1586,7 @@ SQL
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     protected function getBinaryTypeDeclarationSQLSnippet($length, $fixed)
     {

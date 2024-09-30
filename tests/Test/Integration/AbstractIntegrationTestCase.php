@@ -1,16 +1,15 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Integration;
 
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird;
@@ -18,15 +17,23 @@ use Satag\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use SebastianBergmann\Timer\Timer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Throwable;
 
+use function array_filter;
+use function array_walk;
+use function implode;
+use function is_string;
+
+use const PHP_EOL;
 
 abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 {
-    const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
-    const DEFAULT_DATABASE_USERNAME = 'SYSDBA';
-    const DEFAULT_DATABASE_PASSWORD = 'masterkey';
+    public const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
+    public const DEFAULT_DATABASE_USERNAME  = 'SYSDBA';
+    public const DEFAULT_DATABASE_PASSWORD  = 'masterkey';
 
     protected $_entityManager;
     protected $_platform;
@@ -36,7 +43,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         $this->installFirebirdDatabase($configurationArray);
 
-
         $this->connect();
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
@@ -44,37 +50,20 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration, $eventManager);
 
-
         $this->_platform = $this->_entityManager->getConnection()->getDatabasePlatform();
-
     }
 
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
+
         parent::tearDown();
     }
 
-    private function stopIfOver(int $seconds, string $cmd) {
-        static $timer;
-        if (!$timer) {
-            $timer = new Timer();
-            $timer->start();
-        }
-
-
-        if (($took = $timer->stop()->asSeconds()) > $seconds) {
-            $timer->start();
-            $this->addWarning("Execution time for $cmd took {$took} seconds exceeding maximum execute Time of  {$seconds} seconds.");
-
-        }
-        $timer->start();
-
-    }
-    protected function installFirebirdDatabase(array $configurationArray)
+    protected function installFirebirdDatabase(array $configurationArray): void
     {
         $this->stopIfOver(999, 'installFirebirdDatabase');
-        $sm = $this->connection->createSchemaManager();
+        $this->connection->createSchemaManager();
 
         $schema = new Schema();
         $tAlbum = $schema->createTable('Album');
@@ -83,7 +72,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tAlbum->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
         $tAlbum->addColumn('artist_id', 'integer', ['notnull' => false]);
         $tAlbum->setPrimaryKey(['id']);
-
 
         $tAlbumSongmap = $schema->createTable('Album_Songmap');
         $tAlbumSongmap->addColumn('album_id', 'integer', ['notnull' => true]);
@@ -94,7 +82,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tArtist->addColumn('name', 'string', ['notnull' => true, 'length' => 255]);
         $tArtist->addColumn('type_id', 'integer', ['notnull' => false]);
         $tArtist->setPrimaryKey(['id']);
-
 
         $tArtistType = $schema->createTable('Artist_Type');
         $tArtistType->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
@@ -125,11 +112,10 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addColumn('tophit', 'boolean', ['notnull' => true]);
         $tSong->setPrimaryKey(['id']);
 
-
-        $tAlbum->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [],'FK_Album_artist_id');
+        $tAlbum->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Album_artist_id');
         $tAlbumSongmap->addForeignKeyConstraint($tAlbum, ['album_id'], ['id'], [], 'FK_Album_SongMap_album_id');
         $tAlbumSongmap->addForeignKeyConstraint($tSong, ['song_id'], ['id'], [], 'FK_Album_Songmap_song_id');
-        $tAlbumSongmap->addUniqueConstraint(['album_id', 'song_id'],  'UK_Album_SongMap');
+        $tAlbumSongmap->addUniqueConstraint(['album_id', 'song_id'], 'UK_Album_SongMap');
         $tCasesCascadingremove->addForeignKeyConstraint($tCasesCascadingremoveSubclass, ['subclass_id'], ['id'], [], 'UK_CASES_CASCREM_SUBCLASS_id');
         $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
@@ -141,20 +127,21 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         foreach ($queriesRemove as $query) {
             try {
                 $this->connection->executeStatement($query);
-            } catch (DatabaseObjectNotFoundException $e) {
-            } catch (\Exception  $e) {}
+            } catch (DatabaseObjectNotFoundException | Throwable) {
+            }
         }
-        $this->connection->commit();
 
+        $this->connection->commit();
 
         $this->connection->beginTransaction();
         foreach ($queriesInsert as $sql) {
             $this->connection->executeStatement($sql);
         }
+
         $this->connection->commit();
 
         $this->connection->beginTransaction();
-        foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $id => $name) {
+        foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $name) {
             $this->connection->insert($tArtistType->getName(), ['name' => $name]);
         }
 
@@ -162,8 +149,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             $this->connection->insert($tArtist->getName(), ['name' => $name, 'type_id' => $type]);
         }
 
-
-        foreach (['Unclassified genre', 'Rock', 'Pop', 'Classical'] as $id => $name) {
+        foreach (['Unclassified genre', 'Rock', 'Pop', 'Classical'] as $name) {
             $this->connection->insert($tGenre->getName(), ['name' => $name]);
         }
 
@@ -177,42 +163,37 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
 
         $this->connection->commit();
-
     }
 
-    /**
-     * @return string
-     */
-    protected static function statementArrayToText(array $statements)
+    protected static function statementArrayToText(array $statements): string
     {
-        $statements = array_filter($statements, fn($statement) => is_string($statement));
-        if ($statements) {
-            $indent = "    ";
-            array_walk($statements, function(&$v) use ($indent){
+        $statements = array_filter($statements, static fn ($statement) => is_string($statement));
+        if ($statements !== []) {
+            $indent = '    ';
+            array_walk($statements, static function (&$v) use ($indent): void {
                 $v = $indent . $v;
             });
+
             return PHP_EOL . implode(PHP_EOL, $statements);
         }
-        return "";
+
+        return '';
     }
 
-    /**
-     * @return Configuration
-     */
     protected static function getSetUpDoctrineConfiguration(Connection $connection): Configuration
     {
-        $cache = new ArrayAdapter();
-        $proxyDir = ROOT_PATH . '/var/doctrine-proxies';
+        $cache                 = new ArrayAdapter();
+        $proxyDir              = ROOT_PATH . '/var/doctrine-proxies';
         $doctrineConfiguration = ORMSetup::createAttributeMetadataConfiguration(
             [ROOT_PATH . '/Test/Resource/Entity'],
             true,
             $proxyDir . '-annotations',
-            $cache
+            $cache,
         );
         $doctrineConfiguration->setProxyNamespace('DoctrineFirebirdDriver\Proxies');
         if ($connection->getDatabasePlatform() instanceof Firebird3Platform) {
             $doctrineConfiguration->setIdentityGenerationPreferences([
-                FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY
+                FirebirdPlatform::class => ClassMetadata::GENERATOR_TYPE_IDENTITY,
             ]);
         }
 
@@ -221,19 +202,33 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         return $doctrineConfiguration;
     }
 
-    /**
-     * @return array
-     */
     protected static function getSetUpDoctrineConfigurationArray(array $overrideConfigs = []): array
     {
-        $params = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
+        $params = TestUtil::getConnectionParams();
+
         return [
             'host' => $params['host'],
-            'dbname' => static::DEFAULT_DATABASE_FILE_PATH,
-            'user' => static::DEFAULT_DATABASE_USERNAME,
-            'password' => static::DEFAULT_DATABASE_PASSWORD,
+            'dbname' => self::DEFAULT_DATABASE_FILE_PATH,
+            'user' => self::DEFAULT_DATABASE_USERNAME,
+            'password' => self::DEFAULT_DATABASE_PASSWORD,
             'charset' => 'UTF-8',
-            'driverClass' => Firebird\Driver::class
+            'driverClass' => Firebird\Driver::class,
         ];
+    }
+
+    private function stopIfOver(int $seconds, string $cmd): void
+    {
+        static $timer;
+        if (! $timer) {
+            $timer = new Timer();
+            $timer->start();
+        }
+
+        if (($took = $timer->stop()->asSeconds()) > $seconds) {
+            $timer->start();
+            $this->addWarning("Execution time for $cmd took {$took} seconds exceeding maximum execute Time of  {$seconds} seconds.");
+        }
+
+        $timer->start();
     }
 }

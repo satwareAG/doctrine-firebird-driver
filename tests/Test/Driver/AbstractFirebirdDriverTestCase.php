@@ -1,21 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
-use Doctrine\DBAL\Driver\API\PostgreSQL;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQL94Platform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\PostgreSQLSchemaManager;
-use Doctrine\DBAL\Tests\Driver\AbstractDriverTestCase;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
-/** @extends \Satag\DoctrineFirebirdDriver\Test\Driver\AbstractDriverTestCase<PostgreSQLPlatform> */
-abstract class AbstractFirebirdDriverTestCase extends \Satag\DoctrineFirebirdDriver\Test\Driver\AbstractDriverTestCase
+/** @extends AbstractDriverTestCase<PostgreSQLPlatform> */
+abstract class AbstractFirebirdDriverTestCase extends AbstractDriverTestCase
 {
     protected function createPlatform(): AbstractPlatform
     {

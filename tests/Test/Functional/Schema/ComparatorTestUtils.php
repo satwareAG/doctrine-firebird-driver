@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\DBAL\Connection;
@@ -12,32 +14,24 @@ use PHPUnit\Framework\TestCase;
 
 final class ComparatorTestUtils
 {
-    /**
-     * @return TableDiff|false
-     *
-     * @throws Exception
-     */
+    /** @throws Exception */
     public static function diffFromActualToDesiredTable(
         AbstractSchemaManager $schemaManager,
         Comparator $comparator,
-        Table $desiredTable
-    ) {
+        Table $desiredTable,
+    ): TableDiff|false {
         return $comparator->diffTable(
             $schemaManager->introspectTable($desiredTable->getName()),
             $desiredTable,
         );
     }
 
-    /**
-     * @return TableDiff|false
-     *
-     * @throws Exception
-     */
+    /** @throws Exception */
     public static function diffFromDesiredToActualTable(
         AbstractSchemaManager $schemaManager,
         Comparator $comparator,
-        Table $desiredTable
-    ) {
+        Table $desiredTable,
+    ): TableDiff|false {
         return $comparator->diffTable(
             $desiredTable,
             $schemaManager->introspectTable($desiredTable->getName()),
@@ -62,15 +56,11 @@ final class ComparatorTestUtils
     public static function comparatorProvider(): iterable
     {
         yield 'Generic comparator' => [
-            static function (): Comparator {
-                return new Comparator();
-            },
+            static fn (): Comparator => new Comparator(),
         ];
 
         yield 'Platform-specific comparator' => [
-            static function (AbstractSchemaManager $schemaManager): Comparator {
-                return $schemaManager->createComparator();
-            },
+            static fn (AbstractSchemaManager $schemaManager): Comparator => $schemaManager->createComparator(),
         ];
     }
 }

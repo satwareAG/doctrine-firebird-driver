@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
-
-
-final class ConcatExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class ConcatExpressionTest extends FunctionalTestCase
 {
     /**
      * @param list<string> $arguments
@@ -20,7 +18,7 @@ final class ConcatExpressionTest extends \Satag\DoctrineFirebirdDriver\Test\Func
         $platform = $this->connection->getDatabasePlatform();
         $query    = $platform->getDummySelectSQL($platform->getConcatExpression(...$arguments));
 
-        self::assertEquals($expected, $this->connection->fetchOne($query));
+        self::assertSame($expected, $this->connection->fetchOne($query));
     }
 
     /** @return iterable<string,array{list<string>,string}> */

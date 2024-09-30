@@ -1,46 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
-use Doctrine\DBAL\Driver\PDO\Connection as PDOConnection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\DB2Platform;
-use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
-use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Error;
-use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use PDO;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 
 use function file_exists;
 use function unlink;
 
-
-class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class ConnectionTest extends FunctionalTestCase
 {
     use VerifyDeprecations;
 
     private const TABLE = 'connection_test';
-
-    protected function tearDown(): void
-    {
-        if (file_exists('/tmp/test_nesting.sqlite')) {
-            unlink('/tmp/test_nesting.sqlite');
-        }
-
-        $this->markConnectionNotReusable();
-    }
 
     public function testGetWrappedConnection(): void
     {
@@ -91,7 +81,7 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
             $this->connection->commit(); // should throw exception
             self::fail('Transaction commit after failed nested transaction should fail.');
-        } catch (ConnectionException $e) {
+        } catch (ConnectionException) {
             self::assertSame(1, $this->connection->getTransactionNestingLevel());
             $this->connection->rollBack();
             self::assertSame(0, $this->connection->getTransactionNestingLevel());
@@ -100,7 +90,7 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $this->connection->beginTransaction();
         $this->connection->close();
         $this->connection->beginTransaction();
-        self::assertEquals(1, $this->connection->getTransactionNestingLevel());
+        self::assertSame(1, $this->connection->getTransactionNestingLevel());
     }
 
     public function testTransactionNestingLevelIsResetOnReconnect(): void
@@ -130,7 +120,7 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $connection->executeQuery('insert into test_nesting values (33)');
         $connection->rollBack();
 
-        self::assertEquals(0, $connection->fetchOne('select count(*) from test_nesting'));
+        self::assertSame(0, $connection->fetchOne('select count(*) from test_nesting'));
     }
 
     public function testTransactionNestingBehaviorWithSavepoints(): void
@@ -166,12 +156,12 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
             try {
                 $this->connection->setNestTransactionsWithSavepoints(false);
                 self::fail('Should not be able to disable savepoints in usage inside a nested open transaction.');
-            } catch (ConnectionException $e) {
+            } catch (ConnectionException) {
                 self::assertTrue($this->connection->getNestTransactionsWithSavepoints());
             }
 
             $this->connection->commit(); // should not throw exception
-        } catch (ConnectionException $e) {
+        } catch (ConnectionException) {
             self::fail('Transaction commit after failed nested transaction should not fail when using savepoints.');
         }
     }
@@ -285,22 +275,17 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
                 throw new Error('Ooops!');
             });
             self::fail('Expected exception');
-        } catch (Error $expected) {
-            self::assertEquals(0, $this->connection->getTransactionNestingLevel());
+        } catch (Error) {
+            self::assertSame(0, $this->connection->getTransactionNestingLevel());
         }
     }
 
-    /**
-     * @return void
-     * @throws Throwable
-     */
+    /** @throws Throwable */
     public function testTransactional(): void
     {
         $this->createTestTable();
 
-        $res = $this->connection->transactional(static function (Connection $connection) {
-            return $connection->insert(self::TABLE, ['id' => 2]);
-        });
+        $res = $this->connection->transactional(static fn (Connection $connection) => $connection->insert(self::TABLE, ['id' => 2]));
 
         self::assertSame(1, $res);
         self::assertSame(0, $this->connection->getTransactionNestingLevel());
@@ -308,11 +293,9 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
     public function testTransactionalReturnValue(): void
     {
-        $res = $this->connection->transactional(static function (): int {
-            return 42;
-        });
+        $res = $this->connection->transactional(static fn (): int => 42);
 
-        self::assertEquals(42, $res);
+        self::assertSame(42, $res);
     }
 
     /**
@@ -320,10 +303,7 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
      */
     public function testQuote(): void
     {
-        self::assertEquals(
-            $this->connection->quote('foo', Types::STRING),
-            $this->connection->quote('foo', ParameterType::STRING),
-        );
+        self::assertEquals($this->connection->quote('foo', Types::STRING), $this->connection->quote('foo', ParameterType::STRING));
     }
 
     public function testConnectWithoutExplicitDatabaseName(): void
@@ -374,9 +354,9 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
 
     public function testPersistentConnection(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
+        $this->connection->getDatabasePlatform();
 
-        $params               = \Satag\DoctrineFirebirdDriver\Test\TestUtil::getConnectionParams();
+        $params               = TestUtil::getConnectionParams();
         $params['persistent'] = true;
 
         $connection       = DriverManager::getConnection($params);
@@ -408,6 +388,15 @@ class ConnectionTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCa
         $this->expectException(DriverException::class);
 
         $this->connection->prepare('foo')->executeStatement();
+    }
+
+    protected function tearDown(): void
+    {
+        if (file_exists('/tmp/test_nesting.sqlite')) {
+            unlink('/tmp/test_nesting.sqlite');
+        }
+
+        $this->markConnectionNotReusable();
     }
 
     private function createTestTable(): void

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -32,7 +34,7 @@ class MoneyType extends Type
     /**
      * {@inheritDoc}
      */
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): ?string
+    public function convertToDatabaseValue($value, AbstractPlatform $platform): string|null
     {
         if ($value === null) {
             return $value;
@@ -48,7 +50,7 @@ class MoneyType extends Type
     /**
      * {@inheritDoc}
      */
-    public function convertToPHPValue($value, AbstractPlatform $platform): ?Money
+    public function convertToPHPValue($value, AbstractPlatform $platform): Money|null
     {
         if ($value === null || $value instanceof Money) {
             return $value;

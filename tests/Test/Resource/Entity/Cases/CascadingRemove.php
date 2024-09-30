@@ -1,33 +1,32 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Cases;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove\Subclass;
 
 #[ORM\Table(name: 'CASES_CASCADINGREMOVE')]
 #[ORM\Entity]
 class CascadingRemove
 {
-    #[ORM\Column(type: \Doctrine\DBAL\Types\Types::INTEGER)]
+    #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
-    private ?int $id = 1;
+    private int|null $id = 1;
 
-    public function __construct(#[ORM\OneToOne(targetEntity: \Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove\Subclass::class, cascade: ['remove'])]
-    private ?\Satag\DoctrineFirebirdDriver\Test\Resource\Entity\Cases\CascadingRemove\Subclass $subclass)
+    public function __construct(#[ORM\OneToOne(targetEntity: Subclass::class, cascade: ['remove'])]
+    private Subclass|null $subclass,)
     {
     }
 
-    /**
-     * @return null|int
-     */
-    public function getId()
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    /**
-     * @return CascadingRemove\Subclass
-     */
-    public function getSubclass()
+    public function getSubclass(): CascadingRemove\Subclass
     {
         return $this->subclass;
     }

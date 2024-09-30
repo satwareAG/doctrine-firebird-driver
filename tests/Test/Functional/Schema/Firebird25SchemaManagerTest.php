@@ -1,26 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BooleanType;
-use Doctrine\DBAL\Types\IntegerType;
-use Doctrine\DBAL\Types\SmallIntType;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
-use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
+use function assert;
 
 class Firebird25SchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
-    protected function supportsPlatform(AbstractPlatform $platform): bool
-    {
-        return !($platform instanceof Firebird3Platform);
-    }
-
     public function testGetBooleanColumn(): void
     {
         $table = new Table('boolean_column_test');
@@ -40,10 +34,8 @@ class Firebird25SchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testGetBooleanAsCharColumn(): void
     {
-        /**
-         * @var $platform FirebirdPlatform
-         */
         $platform = $this->connection->getDatabasePlatform();
+        assert($platform instanceof FirebirdPlatform);
         $platform->setUseSmallIntBoolean(false);
 
         $table = new Table('boolean_column_as_char_test');
@@ -61,5 +53,8 @@ class Firebird25SchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertSame("That's a comment", $columns['bool_commented']->getComment());
     }
 
-
+    protected function supportsPlatform(AbstractPlatform $platform): bool
+    {
+        return ! ($platform instanceof Firebird3Platform);
+    }
 }

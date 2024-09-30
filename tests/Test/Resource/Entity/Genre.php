@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
@@ -13,78 +16,60 @@ class Genre
     #[ORM\Column(type: Types::INTEGER)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
-    private ?int $id = null;
+    private int|null $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    private ?string $name = null;
+    private string|null $name = null;
 
     #[ORM\OneToMany(targetEntity: 'Song', mappedBy: 'genre')]
-    private \Doctrine\Common\Collections\Collection $songs;
+    private Collection $songs;
 
-    /**
-     * @param string $name
-     */
-    public function __construct($name)
+    public function __construct(string $name)
     {
         $this->setName($name);
-        $this->songs = new ArrayCollection;
+        $this->songs = new ArrayCollection();
     }
 
-    /**
-     * @return self
-     */
-    public function addSong(Song $song)
+    public function addSong(Song $song): self
     {
-        if (false == $this->songs->contains($song)) {
+        if ($this->songs->contains($song) === false) {
             $this->songs->add($song);
             if ($this->getId() !== $song->getGenre()->getId()) {
                 $song->setGenre($this);
             }
         }
+
         return $this;
     }
 
-    /**
-     * @return self
-     */
-    public function removeSong(Song $song)
+    public function removeSong(Song $song): self
     {
         if ($this->songs->contains($song)) {
             $this->songs->removeElement($song);
         }
+
         return $this;
     }
 
-    /**
-     * @param string $name
-     * @return self
-     */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
-    /**
-     * @return null|int
-     */
-    public function getId()
+    public function getId(): int|null
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * @return Collection                       Song[]
-     */
-    public function getSongs()
+    /** @return Collection                       Song[] */
+    public function getSongs(): Collection
     {
         return $this->songs;
     }

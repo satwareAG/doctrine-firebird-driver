@@ -1,24 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
 use PHPUnit\Framework\Constraint\IsType;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-abstract class AbstractDriverTestCase extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+abstract class AbstractDriverTestCase extends FunctionalTestCase
 {
     /**
      * The driver instance under test.
      */
     protected Driver $driver;
-
-    protected function setUp(): void
-    {
-        $this->driver = $this->createDriver();
-    }
 
     public function testConnectsWithoutDatabaseNameParameter(): void
     {
@@ -42,10 +39,7 @@ abstract class AbstractDriverTestCase extends \Satag\DoctrineFirebirdDriver\Test
             $this->connection->getEventManager(),
         );
 
-        self::assertSame(
-            static::getDatabaseNameForConnectionWithoutDatabaseNameParameter(),
-            $connection->getDatabase(),
-        );
+        self::assertSame(static::getDatabaseNameForConnectionWithoutDatabaseNameParameter(), $connection->getDatabase());
     }
 
     public function testProvidesAccessToTheNativeConnection(): void
@@ -58,10 +52,15 @@ abstract class AbstractDriverTestCase extends \Satag\DoctrineFirebirdDriver\Test
         ));
     }
 
-    abstract protected function createDriver(): Driver;
+    protected function setUp(): void
+    {
+        $this->driver = $this->createDriver();
+    }
 
-    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter(): ?string
+    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter(): string|null
     {
         return null;
     }
+
+    abstract protected function createDriver(): Driver;
 }

@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\SQL\Builder;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function strtolower;
 
-class CreateAndDropSchemaObjectsSQLBuilderTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class CreateAndDropSchemaObjectsSQLBuilderTest extends FunctionalTestCase
 {
     public function testCreateAndDropTablesWithCircularForeignKeys(): void
     {
@@ -41,7 +43,7 @@ class CreateAndDropSchemaObjectsSQLBuilderTest extends \Satag\DoctrineFirebirdDr
     private function introspectForeignKey(
         AbstractSchemaManager $schemaManager,
         string $tableName,
-        string $expectedForeignTableName
+        string $expectedForeignTableName,
     ): void {
         $foreignKeys = $schemaManager->listTableForeignKeys($tableName);
         self::assertCount(1, $foreignKeys);

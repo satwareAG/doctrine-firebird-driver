@@ -1,16 +1,22 @@
 <?php
 
-namespace Satag\DoctrineFirebirdDriver\Test\Functional;
+declare(strict_types=1);
 
+namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-
-class AutoIncrementColumnTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class AutoIncrementColumnTest extends FunctionalTestCase
 {
     private bool $shouldDisableIdentityInsert = false;
+
+    public function testInsertIdentityValue(): void
+    {
+        $this->connection->insert('auto_increment_table', ['id' => 2]);
+        self::assertSame(2, $this->connection->fetchOne('SELECT id FROM auto_increment_table'));
+    }
 
     protected function setUp(): void
     {
@@ -28,11 +34,5 @@ class AutoIncrementColumnTest extends \Satag\DoctrineFirebirdDriver\Test\Functio
         }
 
         $this->connection->executeStatement('SET IDENTITY_INSERT auto_increment_table OFF');
-    }
-
-    public function testInsertIdentityValue(): void
-    {
-        $this->connection->insert('auto_increment_table', ['id' => 2]);
-        self::assertEquals(2, $this->connection->fetchOne('SELECT id FROM auto_increment_table'));
     }
 }

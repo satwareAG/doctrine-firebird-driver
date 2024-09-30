@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test;
 
 use Doctrine\DBAL\ColumnCase;
@@ -14,20 +16,16 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 use Monolog\Processor\MemoryUsageProcessor;
-use PHPUnit\Framework\Assert;
-
-
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 
 use function array_keys;
 use function array_map;
 use function array_values;
-use function extension_loaded;
 use function implode;
 use function in_array;
 use function is_string;
+use function str_starts_with;
 use function strlen;
-use function strpos;
 use function substr;
 
 /**
@@ -64,13 +62,14 @@ class TestUtil
             self::$initialized = true;
         }
 
-        $params = self::getConnectionParams();
+        $params                 = self::getConnectionParams();
         $params['wrapperClass'] = ConnectionWrapper::class;
-        $configuration = self::createConfiguration($params['driverClass']);
+        $configuration          = self::createConfiguration();
 
         $configuration->setMiddlewares([
             new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
         ]);
+
         return DriverManager::getConnection(
             $params,
             $configuration,
@@ -83,7 +82,37 @@ class TestUtil
         if (self::hasRequiredConnectionParams()) {
             return self::getTestConnectionParameters();
         }
+
         return [];
+    }
+
+    public static function getPrivilegedConnection(): Connection
+    {
+        return DriverManager::getConnection(self::getPrivilegedConnectionParameters());
+    }
+
+    public static function isDriverClassOneOf(string ...$names): bool
+    {
+        return in_array(self::getConnectionParams()['driverClass'], $names, true);
+    }
+
+    /**
+     * Generates a query that will return the given rows without the need to create a temporary table.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     */
+    public static function generateResultSetQuery(array $rows, AbstractPlatform $platform): string
+    {
+        return implode(' UNION ALL ', array_map(static fn (array $row): string => $platform->getDummySelectSQL(
+            implode(', ', array_map(static function (string $column, $value) use ($platform): string {
+                if (is_string($value)) {
+                    // We need TRIM here, because Firebird pads all CHAR Types
+                    $value = 'TRIM(' . $platform->quoteStringLiteral($value) . ')';
+                }
+
+                return $value . $platform->quoteIdentifier($column);
+            }, array_keys($row), array_values($row))),
+        ), $rows));
     }
 
     private static function hasRequiredConnectionParams(): bool
@@ -93,45 +122,28 @@ class TestUtil
 
     private static function initializeDatabase(): void
     {
-        $params = self::getTestConnectionParameters();
+        $params     = self::getTestConnectionParameters();
         $connection = DriverManager::getConnection($params);
-        $sm = $connection->createSchemaManager();
+        $sm         = $connection->createSchemaManager();
         try {
             $sm->dropDatabase($params['dbname']);
-        } catch (DatabaseDoesNotExist $e) {
+        } catch (DatabaseDoesNotExist) {
         }
 
         $sm->createDatabase($params['dbname']);
         $connection->close();
     }
 
-    /** @return mixed[] */
-    private static function getFallbackConnectionParams(): array
-    {
-        if (! extension_loaded('pdo_sqlite')) {
-            Assert::markTestSkipped('PDO SQLite extension is not loaded');
-        }
-
-        return [
-            'driver' => 'pdo_sqlite',
-            'memory' => true,
-        ];
-    }
-
-    private static function createConfiguration(string $driver): Configuration
+    private static function createConfiguration(): Configuration
     {
         $configuration = new Configuration();
-
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-
         $logger = new Logger('sql_logger');
         $logger
             ->pushProcessor(new MemoryUsageProcessor())
             ->pushHandler(
-            (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug))
-        );
-
-
+                (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug)),
+            );
         $configuration->setMiddlewares([
             new Middleware($logger),
         ]);
@@ -146,10 +158,7 @@ class TestUtil
             return self::mapConnectionParameters($GLOBALS, 'tmpdb_');
         }
 
-        $parameters = self::mapConnectionParameters($GLOBALS, 'db_');
-
-
-        return $parameters;
+        return self::mapConnectionParameters($GLOBALS, 'db_');
     }
 
     /** @return mixed[] */
@@ -195,7 +204,7 @@ class TestUtil
         }
 
         foreach ($configuration as $param => $value) {
-            if (strpos($param, $prefix . 'driver_option_') !== 0) {
+            if (! str_starts_with($param, $prefix . 'driver_option_')) {
                 continue;
             }
 
@@ -203,36 +212,7 @@ class TestUtil
         }
 
         $parameters['driverClass'] = $configuration['db_driver_class'];
+
         return $parameters;
-    }
-
-    public static function getPrivilegedConnection(): Connection
-    {
-        return DriverManager::getConnection(self::getPrivilegedConnectionParameters());
-    }
-
-    public static function isDriverClassOneOf(string ...$names): bool
-    {
-        return in_array(self::getConnectionParams()['driverClass'], $names, true);
-    }
-
-    /**
-     * Generates a query that will return the given rows without the need to create a temporary table.
-     *
-     * @param array<int,array<string,mixed>> $rows
-     */
-    public static function generateResultSetQuery(array $rows, AbstractPlatform $platform): string
-    {
-        return implode(' UNION ALL ', array_map(static function (array $row) use ($platform): string {
-            return $platform->getDummySelectSQL(
-                implode(', ', array_map(static function (string $column, $value) use ($platform): string {
-                    if (is_string($value)) {
-                        $value = $platform->quoteStringLiteral($value);
-                    }
-                    // We need TRIM here, because Firebird pads all CHAR Types
-                    return 'TRIM('. $value . ') ' . $platform->quoteIdentifier($column);
-                }, array_keys($row), array_values($row))),
-            );
-        }, $rows));
     }
 }

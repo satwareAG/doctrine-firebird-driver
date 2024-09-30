@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
 
-final class FetchEmptyTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+final class FetchEmptyTest extends FunctionalTestCase
 {
     private string $query;
 

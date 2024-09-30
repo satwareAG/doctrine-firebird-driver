@@ -8,27 +8,15 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-
-use Satag\DoctrineFirebirdDriver\Test\Functional\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function is_resource;
 use function json_decode;
 use function ksort;
 use function stream_get_contents;
 
-class JsonTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
+class JsonTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = new Table('json_test_table');
-        $table->addColumn('id', Types::INTEGER);
-
-        $table->addColumn('val', Types::JSON);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-    }
-
     public function testInsertAndSelect(): void
     {
         $id1 = 1;
@@ -58,6 +46,17 @@ class JsonTest extends \Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase
 
         self::assertSame($value1, $res1);
         self::assertSame($value2, $res2);
+    }
+
+    protected function setUp(): void
+    {
+        $table = new Table('json_test_table');
+        $table->addColumn('id', Types::INTEGER);
+
+        $table->addColumn('val', Types::JSON);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
     }
 
     /** @param array<scalar|array> $value */
