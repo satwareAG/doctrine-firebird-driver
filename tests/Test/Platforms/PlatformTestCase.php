@@ -30,7 +30,7 @@ use function sprintf;
 use function str_repeat;
 
 /** @template T of AbstractPlatform */
-abstract class AbstractPlatformTestCase extends TestCase
+abstract class PlatformTestCase extends TestCase
 {
     /** @var T */
     protected AbstractPlatform $platform;

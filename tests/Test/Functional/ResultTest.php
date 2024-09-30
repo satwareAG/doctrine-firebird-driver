@@ -38,35 +38,44 @@ class ResultTest extends FunctionalTestCase
     public static function methodProvider(): iterable
     {
         yield 'fetchNumeric' => [
-            static fn
-        (Result $result) => $result->fetchNumeric(),
+            static function (Result $result) {
+                return $result->fetchNumeric();
+            },
             false,
         ];
 
         yield 'fetchAssociative' => [
-            static fn
-        (Result $result) => $result->fetchAssociative(),
+            static function (Result $result) {
+                return $result->fetchAssociative();
+            },
             false,
         ];
 
         yield 'fetchOne' => [
-            static fn
-        (Result $result) => $result->fetchOne(),
+            static function (Result $result) {
+                return $result->fetchOne();
+            },
             false,
         ];
 
         yield 'fetchAllNumeric' => [
-            static fn (Result $result): array => $result->fetchAllNumeric(),
+            static function (Result $result): array {
+                return $result->fetchAllNumeric();
+            },
             [],
         ];
 
         yield 'fetchAllAssociative' => [
-            static fn (Result $result): array => $result->fetchAllAssociative(),
+            static function (Result $result): array {
+                return $result->fetchAllAssociative();
+            },
             [],
         ];
 
         yield 'fetchFirstColumn' => [
-            static fn (Result $result): array => $result->fetchFirstColumn(),
+            static function (Result $result): array {
+                return $result->fetchFirstColumn();
+            },
             [],
         ];
     }

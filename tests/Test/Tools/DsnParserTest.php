@@ -11,10 +11,10 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
 use function ksort;
 
-/** @psalm-import-type Params from DriverManager */
+/** @psalm-import-type OverrideParams from DriverManager */
 final class DsnParserTest extends TestCase
 {
-    public function testDatabaseUrl(string $dsn = '', array $expected = []): void
+    public function testDatabaseUrl(): void
     {
         $parser = new DsnParser(['firebird' => Driver::class, 'firebird3' => Driver::class]);
         $actual = $parser->parse('firebird://user:password@192.168.1.10:3050/var/db/mydatabase.fdb?charset=UTF8&role=admin');

@@ -22,8 +22,8 @@ use function sprintf;
 use function strtoupper;
 use function uniqid;
 
-/** @extends AbstractPlatformTestCase<Firebird3Platform> */
-class Firebird3PlatformTest extends AbstractPlatformTestCase
+/** @extends PlatformTestCase<Firebird3Platform> */
+class Firebird3PlatformTest extends PlatformTestCase
 {
     /** @dataProvider dataValidIdentifiers */
     public function testValidIdentifiers(string $identifier): void
