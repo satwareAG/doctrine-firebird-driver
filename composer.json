@@ -1,7 +1,16 @@
 {
     "name": "satag/doctrine-firebird-driver",
     "type": "library",
+    "description": "Doctrine DBAL/ORM driver for Firebird SQL 2.5 and newer",
     "license": "MIT",
+    "keywords": [
+        "firebird",
+        "interbase",
+        "fbird",
+        "sql",
+        "dbal",
+        "orm"
+    ],
     "authors": [
         {
             "name": "Michael Wegener",
@@ -50,10 +59,10 @@
     "require-dev": {
         "bamarni/composer-bin-plugin": "^1.8",
         "dg/bypass-finals": "^1.8",
-        "doctrine/coding-standard": "^11",
+        "doctrine/coding-standard": "12.0.0",
         "doctrine/orm": "^3.0",
         "fig/log-test": "^1",
-        "jetbrains/phpstorm-stubs": "2023.1",
+        "jetbrains/phpstorm-stubs": "2024.2",
         "monolog/monolog": "^3.7",
         "phpstan/phpstan": "1.12.0",
         "phpstan/phpstan-doctrine": "^1.5",
