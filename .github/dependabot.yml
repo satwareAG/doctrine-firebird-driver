@@ -20,7 +20,7 @@ updates:
 
 
   - package-ecosystem: "composer"
-    directory: "/vendor-bin"
+    directory: "/vendor-bin/rector"
     schedule:
       interval: "weekly"
     labels:
