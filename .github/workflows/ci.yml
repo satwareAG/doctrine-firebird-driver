@@ -1,0 +1,68 @@
+name: CI Pipeline with Multiple PHP Versions and Firebird 2.5 to 5
+
+on:
+  push:
+    branches:
+      - 3.0.x
+  pull_request:
+    branches:
+      - 3.0.x
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    services:
+      firebird3:
+        image: jacobalberty/firebird:v3
+        options: >-
+          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      firebird4:
+        image: jacobalberty/firebird:v4
+        options: >-
+          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      firebird5:
+        image: jacobalberty/firebird:v5
+        options: >-
+          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      firebird25:
+        image: jacobalberty/firebird:2.5-sc
+        options: >-
+          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for PHP ${{ matrix.php-version }}
+        run: docker build -t my-php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
+
+      - name: Wait for Firebird services to be ready
+        run: sleep 5  # Adjust this if Firebird initialization takes longer
+
+      - name: Run tests in Docker for PHP ${{ matrix.php-version }}
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/app -w /app my-php-dev-${{ matrix.php-version }} bash -c "
+          composer install --prefer-dist --no-progress --no-suggest && \
+          ./vendor/bin/phpunit --configuration tests/phpunit.xml && \
+          ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml && \
+          "
