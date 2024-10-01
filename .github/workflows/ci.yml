@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build Docker image for PHP ${{ matrix.php-version }}
-        run: docker build -t my-php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
+        run: docker build -t php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
 
       - name: Run tests in Docker for PHP ${{ matrix.php-version }}
         run: |
