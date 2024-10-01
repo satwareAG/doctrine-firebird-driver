@@ -9,7 +9,11 @@
         "fbird",
         "sql",
         "dbal",
-        "orm"
+        "orm",
+        "doctrine",
+        "firebird driver",
+        "database driver",
+        "sql driver"
     ],
     "authors": [
         {
@@ -24,6 +28,10 @@
             "name": "Uffe Petersen"
         }
     ],
+    "support": {
+        "issues": "https://github.com/satwareAG/doctrine-firebird-driver/issues",
+        "source": "https://github.com/satwareAG/doctrine-firebird-driver"
+    },
     "config": {
         "sort-packages": true,
         "allow-plugins": {
