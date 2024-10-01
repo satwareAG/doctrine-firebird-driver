@@ -19,35 +19,27 @@ jobs:
     services:
       firebird3:
         image: jacobalberty/firebird:v3
-        options: >-
-          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        env:
+          ISC_PASSWORD: masterkey
+          TZ: Europe/Berlin
 
       firebird4:
         image: jacobalberty/firebird:v4
-        options: >-
-          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        env:
+          ISC_PASSWORD: masterkey
+          TZ: Europe/Berlin
 
       firebird5:
         image: jacobalberty/firebird:v5
-        options: >-
-          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        env:
+          ISC_PASSWORD: masterkey
+          TZ: Europe/Berlin
 
       firebird25:
         image: jacobalberty/firebird:2.5-sc
-        options: >-
-          --health-cmd "isql-fb -user sysdba -password masterkey -sql 'SELECT 1 FROM RDB$DATABASE'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        env:
+          ISC_PASSWORD: masterkey
+          TZ: Europe/Berlin
 
     steps:
       - name: Checkout code
