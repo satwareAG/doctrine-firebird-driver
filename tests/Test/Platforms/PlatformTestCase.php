@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\Common\EventManager;
@@ -22,9 +24,9 @@ use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
+use Iterator;
 use PHPUnit\Framework\TestCase;
 
-use function get_class;
 use function implode;
 use function sprintf;
 use function str_repeat;
@@ -35,7 +37,7 @@ abstract class PlatformTestCase extends TestCase
     /** @var T */
     protected AbstractPlatform $platform;
 
-    private ?Type $backedUpType = null;
+    private Type|null $backedUpType = null;
 
     /** @return T */
     abstract public function createPlatform(): AbstractPlatform;
@@ -76,7 +78,7 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return mixed[][] */
-    public static function getReturnsForeignKeyReferentialActionSQL(): \Iterator
+    public static function getReturnsForeignKeyReferentialActionSQL(): Iterator
     {
         yield ['CASCADE', 'CASCADE'];
         yield ['SET NULL', 'SET NULL'];
@@ -91,6 +93,7 @@ abstract class PlatformTestCase extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->platform->getForeignKeyReferentialActionSQL('unknown');
     }
+
     /** @return mixed[][] */
     public static function getGeneratesAdvancedForeignKeyOptionsSQLData(): iterable
     {
@@ -107,6 +110,7 @@ abstract class PlatformTestCase extends TestCase
 
         ];
     }
+
     public function testGetUnknownDoctrineMappingType(): void
     {
         $this->expectException(Exception::class);
@@ -309,22 +313,21 @@ abstract class PlatformTestCase extends TestCase
         return 'BIN_AND (' . $value1 . ', ' . $value2 . ')';
     }
 
-
     public function testGeneratesBitAndComparisonExpressionSql(): void
     {
-        $sql = $this->platform->getBitAndComparisonExpression(2, 4);
-        self::assertSame($this->getBitAndComparisonExpressionSql(2, 4), $sql);
+        $sql = $this->platform->getBitAndComparisonExpression('2', '4');
+        self::assertEquals($this->getBitAndComparisonExpressionSql('2', '4'), $sql);
     }
 
     protected function getBitOrComparisonExpressionSql(string $value1, string $value2): string
     {
-        return sprintf('BIN_OR (%s, %s)',$value1, $value2 );
+        return sprintf('BIN_OR (%s, %s)', $value1, $value2);
     }
 
     public function testGeneratesBitOrComparisonExpressionSql(): void
     {
-        $sql = $this->platform->getBitOrComparisonExpression(2, 4);
-        self::assertSame($this->getBitOrComparisonExpressionSql(2, 4), $sql);
+        $sql = $this->platform->getBitOrComparisonExpression('2', '4');
+        self::assertEquals($this->getBitOrComparisonExpressionSql('2', '4'), $sql);
     }
 
     public function getGenerateConstraintUniqueIndexSql(): string
@@ -1100,7 +1103,7 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return mixed[][] */
-    public static function getGeneratesInlineColumnCommentSQL(): \Iterator
+    public static function getGeneratesInlineColumnCommentSQL(): Iterator
     {
         yield 'regular comment' => ['Regular comment', static::getInlineColumnRegularCommentSQL()];
         yield 'comment requiring escaping' => [
@@ -1110,6 +1113,7 @@ abstract class PlatformTestCase extends TestCase
             ),
             static::getInlineColumnCommentRequiringEscapingSQL(),
         ];
+
         yield 'empty comment' => ['', static::getInlineColumnEmptyCommentSQL()];
     }
 
@@ -1266,7 +1270,7 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return mixed[][] */
-    public static function getGeneratesDecimalTypeDeclarationSQL(): \Iterator
+    public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
         yield [[], 'NUMERIC(10, 0)'];
         yield [['unsigned' => true], 'NUMERIC(10, 0)'];
@@ -1287,7 +1291,7 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return mixed[][] */
-    public static function getGeneratesFloatDeclarationSQL(): \Iterator
+    public static function getGeneratesFloatDeclarationSQL(): Iterator
     {
         yield [[], 'DOUBLE PRECISION'];
         yield [['unsigned' => true], 'DOUBLE PRECISION'];
@@ -1331,7 +1335,7 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return array<int, array{string, array<string, mixed>}> */
-    public static function asciiStringSqlDeclarationDataProvider(): \Iterator
+    public static function asciiStringSqlDeclarationDataProvider(): Iterator
     {
         yield ['VARCHAR(12)', ['length' => 12]];
         yield ['CHAR(12)', ['length' => 12, 'fixed' => true]];
@@ -1343,10 +1347,11 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->appendLockHint('TABLE', 128);
     }
 
-    public function testGetName()
+    public function testGetName(): void
     {
         self::assertStringEndsWith($this->platform->getName() . 'Platform', $this->platform::class);
     }
+
     public function testItAddsCommentsForOverridingTypes(): void
     {
         $this->backedUpType = Type::getType(Types::STRING);
@@ -1396,37 +1401,11 @@ abstract class PlatformTestCase extends TestCase
 
     public function tearDown(): void
     {
-        if (!$this->backedUpType instanceof \Doctrine\DBAL\Types\Type) {
+        if (! $this->backedUpType instanceof Type) {
             return;
         }
 
         Type::getTypeRegistry()->override(Types::STRING, $this->backedUpType);
         $this->backedUpType = null;
     }
-}
-
-interface GetCreateTableSqlDispatchEventListener
-{
-    public function onSchemaCreateTable(): void;
-
-    public function onSchemaCreateTableColumn(): void;
-}
-
-interface GetAlterTableSqlDispatchEventListener
-{
-    public function onSchemaAlterTable(): void;
-
-    public function onSchemaAlterTableAddColumn(): void;
-
-    public function onSchemaAlterTableRemoveColumn(): void;
-
-    public function onSchemaAlterTableChangeColumn(): void;
-
-    public function onSchemaAlterTableRenameColumn(): void;
-}
-
-
-interface GetDropTableSqlDispatchEventListener
-{
-    public function onSchemaDropTable(): void;
 }

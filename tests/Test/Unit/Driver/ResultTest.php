@@ -14,7 +14,8 @@ class ResultTest extends TestCase
     public function testBasics(): void
     {
         $connection = $this->_mockConnection();
-        $result     = new Result(null, $connection, 0, 0);
+        $resource = null;
+        $result     = new Result($resource, $connection, 0, 0);
 
         self::assertSame(0, $result->columnCount());
         self::assertSame(0, $result->rowCount());

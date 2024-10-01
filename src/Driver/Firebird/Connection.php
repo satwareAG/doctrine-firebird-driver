@@ -38,6 +38,8 @@ use function is_float;
 use function is_int;
 use function is_object;
 use function is_resource;
+use function is_scalar;
+use function is_string;
 use function preg_match;
 use function sprintf;
 use function str_contains;
@@ -53,6 +55,7 @@ use const IBASE_SVC_SERVER_VERSION;
 final class Connection implements ServerInfoAwareConnection
 {
     private bool $closed = false;
+
     private ExecutionMode $executionMode;
 
     /**
@@ -84,9 +87,9 @@ final class Connection implements ServerInfoAwareConnection
     private $firebirdActiveTransaction = null;
 
     /**
-     * @param resource|null        $connection
-     * @param resource             $firebirdService
      * @param array<string, mixed> $params
+     * @param resource|null        $connection
+     * @param resource|null        $firebirdService
      *
      * @throws Exception
      */
@@ -167,11 +170,6 @@ final class Connection implements ServerInfoAwareConnection
         return is_resource($this->firebirdService) ? @fbird_server_info($this->firebirdService, IBASE_SVC_SERVER_VERSION) : '';
     }
 
-    public function requiresQueryForServerVersion(): bool
-    {
-        return false;
-    }
-
     /**
      * @throws Exception
      * @throws Exception
@@ -198,7 +196,7 @@ final class Connection implements ServerInfoAwareConnection
                 $sql .= ' NO WAIT';
             }
 
-            $this->firebirdActiveTransaction = $this->createTransaction(true, $sql);
+            $this->firebirdActiveTransaction = $this->createTransaction($sql);
             $this->fbirdTransactionLevel++;
 
             return new Statement(
@@ -215,7 +213,7 @@ final class Connection implements ServerInfoAwareConnection
         );
     }
 
-    public function setConnectionInsertTableColumn(string|null $table, string|null $column): void
+    public function setConnectionInsertColumn(string|null $column): void
     {
         $this->connectionInsertColumn = $column;
     }
@@ -234,7 +232,11 @@ final class Connection implements ServerInfoAwareConnection
             return $value;
         }
 
-        $value = str_replace("'", "''", $value);
+        if (! is_scalar($value)) {
+            throw new InvalidArgumentException('Given value is not scalar.');
+        }
+
+        $value = str_replace("'", "''", (string) $value);
 
         return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
     }
@@ -249,9 +251,15 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws InvalidArgumentException
      * @throws UnexpectedValueException
+     *
+     * @psalm-suppress DocblockTypeContradiction
      */
     public function lastInsertId($name = null)
     {
+        if ($name !== null && ! is_string($name)) {
+            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
+        }
+
         if ($name === null && $this->connectionInsertId !== null) {
             return $this->connectionInsertId;
         }
@@ -266,7 +274,7 @@ final class Connection implements ServerInfoAwareConnection
             'The usage of Connection::lastInsertId() with a sequence name is deprecated.',
         );
 
-        if (str_contains((string) $name, '.')) {
+        if (str_contains($name, '.')) {
             return $this->connectionInsertId ?? false;
         }
 
@@ -328,7 +336,7 @@ final class Connection implements ServerInfoAwareConnection
     public function beginTransaction(): bool
     {
         if ($this->fbirdTransactionLevel < 1) {
-            $this->firebirdActiveTransaction = $this->createTransaction(true);
+            $this->firebirdActiveTransaction = $this->createTransaction();
             $this->fbirdTransactionLevel++;
         }
 
@@ -349,7 +357,7 @@ final class Connection implements ServerInfoAwareConnection
 
             $success = @fbird_commit_ret($this->firebirdActiveTransaction);
             if ($success === false) {
-                $this->checkLastApiCall(null, $this->firebirdActiveTransaction);
+                $this->checkLastApiCall($this->firebirdActiveTransaction);
             }
 
             $this->fbirdTransactionLevel--;
@@ -357,7 +365,7 @@ final class Connection implements ServerInfoAwareConnection
 
         if ($this->fbirdTransactionLevel === 0) {
             @fbird_commit($this->firebirdActiveTransaction);
-            $this->firebirdActiveTransaction = $this->createTransaction(true);
+            $this->firebirdActiveTransaction = $this->createTransaction();
         }
 
         $this->executionMode->enableAutoCommit();
@@ -370,25 +378,25 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws RuntimeException|Exception
      */
-    public function autoCommit(): bool|null
+    public function autoCommit(): void
     {
-        if ($this->executionMode->isAutoCommitEnabled() && $this->fbirdTransactionLevel < 1) {
-            if (is_resource($this->firebirdActiveTransaction) === false) {
-                throw new RuntimeException(sprintf(
-                    'No active transaction. $this->_fbirdTransactionLevel = %d',
-                    $this->fbirdTransactionLevel,
-                ));
-            }
-
-            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
-            if ($success === false) {
-                $this->checkLastApiCall();
-            }
-
-            return true;
+        if (! $this->executionMode->isAutoCommitEnabled() || $this->fbirdTransactionLevel >= 1) {
+            return;
         }
 
-        return null;
+        if (is_resource($this->firebirdActiveTransaction) === false) {
+            throw new RuntimeException(sprintf(
+                'No active transaction. $this->_fbirdTransactionLevel = %d',
+                $this->fbirdTransactionLevel,
+            ));
+        }
+
+        $success = @fbird_commit_ret($this->firebirdActiveTransaction);
+        if ($success !== false) {
+            return;
+        }
+
+        $this->checkLastApiCall();
     }
 
     /**
@@ -414,7 +422,7 @@ final class Connection implements ServerInfoAwareConnection
             $this->fbirdTransactionLevel--;
         }
 
-        $this->firebirdActiveTransaction = $this->createTransaction(true);
+        $this->firebirdActiveTransaction = $this->createTransaction();
         $this->executionMode->enableAutoCommit();
 
         return true;
@@ -444,12 +452,11 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Checks fbird_error and raises an exception if an error occured
      *
-     * @param resource|null $preparedStatement
      * @param resource|null $transaction
      *
      * @throws DriverException
      */
-    public function checkLastApiCall($preparedStatement = null, $transaction = null): void
+    public function checkLastApiCall($transaction = null): void
     {
         $lastError = $this->errorInfo();
         if (! isset($lastError['code']) || $lastError['code'] === 0) {
@@ -459,7 +466,7 @@ final class Connection implements ServerInfoAwareConnection
         if (isset($transaction) && $this->firebirdActiveTransaction < 1) {
             $result = @fbird_rollback($transaction);
             if ($result) {
-                $this->firebirdActiveTransaction = $this->createTransaction(true);
+                $this->firebirdActiveTransaction = $this->createTransaction();
             }
         }
 
@@ -506,20 +513,21 @@ final class Connection implements ServerInfoAwareConnection
         $this->checkLastApiCall();
     }
 
-    /** @return false|resource */
+    /** @return resource|null */
     public function getNativeConnection()
     {
-        return $this->connection ?? false;
+        return $this->connection;
     }
 
     /**
      * @return resource The firebird transaction.
+     * @psalm-return resource
      *
      * @throws DriverException
      */
-    private function createTransaction(bool $commitDefaultTransaction = true, string|null $sql = null)
+    private function createTransaction(string|null $sql = null)
     {
-        if ($commitDefaultTransaction && is_resource($this->connection)) {
+        if (is_resource($this->connection)) {
             @fbird_commit($this->connection);
         }
 
@@ -532,6 +540,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         $result = @fbird_query($this->connection, $sql);
+
         if (! is_resource($result)) {
             $this->checkLastApiCall();
         }

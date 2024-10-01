@@ -1802,18 +1802,3 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     abstract protected function supportsPlatform(AbstractPlatform $platform): bool;
 }
-
-interface ListTableColumnsDispatchEventListener
-{
-    public function onSchemaColumnDefinition(): void;
-}
-
-interface ListTableIndexesDispatchEventListener
-{
-    public function onSchemaIndexDefinition(): void;
-}
-
-interface CreateTableDispatchEventListener
-{
-    public function onSchemaCreateTable(): void;
-}

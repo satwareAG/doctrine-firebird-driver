@@ -54,15 +54,15 @@ class Statement implements StatementInterface
     private mixed $parameterMap;
 
     /**
-     * @param resource|false    $statement
-     * @param array<int|string> $parameterMap
+     * @param resource|false|null $statement
+     * @param array<int|string>   $parameterMap
      *
      * @throws Exception
      */
     public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
     {
         if (! is_resource($statement)) {
-            $connection->checkLastApiCall();
+            $this->connection->checkLastApiCall();
         }
 
         $this->parameterMap = $parameterMap;
@@ -84,6 +84,8 @@ class Statement implements StatementInterface
 
     /**
      * {@inheritDoc}
+     *
+     * @psalm-suppress PossiblyUnusedReturnValue
      */
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
@@ -178,48 +180,47 @@ class Statement implements StatementInterface
      */
     public function execute($params = null): ResultInterface
     {
-        if ($params !== null) {
-            Deprecation::trigger(
-                'doctrine/dbal',
-                'https://github.com/doctrine/dbal/pull/5556',
-                'Passing $params to Statement::execute() is deprecated. Bind parameters using'
-                . ' Statement::bindParam() or Statement::bindValue() instead.',
-            );
+        assert(is_resource($this->statement));
 
-            foreach ($params as $key => $val) {
-                if (is_int($key)) {
-                    $this->bindValue($key + 1, $val, ParameterType::STRING);
-                } else {
-                    $check = array_flip($this->parameterMap);
-                    $this->bindValue($check[':' . $key] ?? 0, ParameterType::STRING);
-                }
-            }
-        }
-
-        // Execute statement
-        foreach ($this->queryParamTypes as $param => $type) {
-            switch ($type) {
-                case ParameterType::LARGE_OBJECT:
-                    // recheck with BindParams
-                    $this->bindValue($param, $this->queryParamBindings[$param], ParameterType::LARGE_OBJECT);
-                    break;
-            }
-        }
-
-        $callArgs = $this->queryParamBindings;
-
-        // sort
-        ksort($callArgs);
-
-        array_unshift($callArgs, $this->statement);
-
-        $statementType = get_resource_type($this->statement);
-        if ($statementType === 'Firebird/InterBase transaction') {
+        if (get_resource_type($this->statement) === 'Firebird/InterBase transaction') {
             $fbirdResultRc = 1;
         } else {
+            if ($params !== null) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/5556',
+                    'Passing $params to Statement::execute() is deprecated. Bind parameters using'
+                    . ' Statement::bindParam() or Statement::bindValue() instead.',
+                );
+
+                foreach ($params as $key => $val) {
+                    if (is_int($key)) {
+                        $this->bindValue($key + 1, $val, ParameterType::STRING);
+                    } else {
+                        $check = array_flip($this->parameterMap);
+                        $this->bindValue($check[':' . $key] ?? 0, ParameterType::STRING);
+                    }
+                }
+            }
+
+            // Execute statement
+            foreach ($this->queryParamTypes as $param => $type) {
+                switch ($type) {
+                    case ParameterType::LARGE_OBJECT:
+                        // recheck with BindParams
+                        $this->bindValue($param, $this->queryParamBindings[$param], ParameterType::LARGE_OBJECT);
+                        break;
+                }
+            }
+
+            $callArgs = $this->queryParamBindings;
+            // sort
+            ksort($callArgs);
+            array_unshift($callArgs, $this->statement);
+
             $fbirdResultRc = @fbird_execute(...$callArgs);
             if ($fbirdResultRc === false) {
-                $this->connection->checkLastApiCall($this->statement);
+                $this->connection->checkLastApiCall();
             }
 
             // Result seems ok - is either #rows or result handle

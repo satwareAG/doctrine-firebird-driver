@@ -19,7 +19,7 @@ class VersionAwarePlatformDriverTest extends TestCase
 {
     use VerifyDeprecations;
 
-    /** @dataProvider FirebirdVersionProvider */
+    /** @dataProvider firebirdVersionProvider */
     public function testFirebird(string $version, string $expectedClass): void
     {
         $this->assertDriverInstantiatesDatabasePlatform(new Driver(), $version, $expectedClass);
@@ -30,7 +30,7 @@ class VersionAwarePlatformDriverTest extends TestCase
      *
      * @return array<array{string, class-string<AbstractPlatform>}>
      */
-    public static function FirebirdVersionProvider(): Iterator
+    public static function firebirdVersionProvider(): Iterator
     {
         yield ['WI-V2.1.4.18393', FirebirdPlatform::class];
         yield ['LI-V2.1.4.18393', FirebirdPlatform::class];

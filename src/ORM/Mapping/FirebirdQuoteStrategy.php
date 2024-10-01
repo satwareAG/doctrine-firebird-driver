@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
 
 use function strtoupper;
 
+/** @psalm-suppress UnusedClass */
 class FirebirdQuoteStrategy extends DefaultQuoteStrategy
 {
     public function getColumnAlias(

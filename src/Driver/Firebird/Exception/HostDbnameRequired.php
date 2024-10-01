@@ -22,9 +22,4 @@ final class HostDbnameRequired extends AbstractException
     {
         return new self('The "host" and "dbname" parameters are required for Connection');
     }
-
-    public static function noHostParameter(): self
-    {
-        return self::new();
-    }
 }

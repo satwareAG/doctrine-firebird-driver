@@ -44,8 +44,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         self::assertNull($connection->getAttribute(-1));
         self::assertSame(TransactionIsolationLevel::READ_COMMITTED, $connection->getAttribute(FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL));
         self::assertIsResource($connection->getNativeConnection());
-        self::assertFalse($connection->requiresQueryForServerVersion());
-                self::assertSame("'''foo'''", $connection->quote("'foo'"));
+        self::assertSame("'''foo'''", $connection->quote("'foo'"));
         self::assertIsString($connection->getStartTransactionSql(TransactionIsolationLevel::READ_UNCOMMITTED));
         self::assertSame('foo/3333:bar', (string) FirebirdConnectString::fromConnectionParameters([
             'host' => 'foo',

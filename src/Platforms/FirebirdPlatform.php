@@ -254,7 +254,7 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->generateIdentifier([$tableName], 'D2IS', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    public function getIdentitySequenceTriggerName(mixed $tableName, mixed $columnName): string
+    public function getIdentitySequenceTriggerName(mixed $tableName): string
     {
         return $this->generateIdentifier([$tableName], 'D2IT', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
@@ -411,7 +411,7 @@ class FirebirdPlatform extends AbstractPlatform
         }
 
         if ($sequence->getCache() !== null) {
-            throw Exception::notSupported(sprintf(__METHOD__ . ' with cache not null (%s given)', $sequence->getCache()));
+            throw Exception::notSupported(sprintf(__METHOD__ . ' with cache not null (%s given)', (string) $sequence->getCache()));
         }
 
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -547,6 +547,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      *
+     * @psalm-suppress DocblockTypeContradiction
      * NOTE: This statement also tries to drop related views and the trigger used to simulate autoinc-fields
      */
     public function getDropTableSQL($table): string
@@ -570,7 +571,7 @@ class FirebirdPlatform extends AbstractPlatform
 
         $statements = [];
 
-        $statements[] = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table, null), true);
+        $statements[] = $this->getDropTriggerIfExistsPSql($this->getIdentitySequenceTriggerName($table), true);
         $statements[] = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
 
         $dropAutoincrementSql = $this->getDropAutoincrementSql($table);
@@ -610,7 +611,7 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * Taken from the PostgreSql-Driver and adapted for Firebird
      */
-    public function getAlterTableSQL(TableDiff $diff): array
+    public function getAlterTableSQL(TableDiff $diff)
     {
         $sql         = [];
         $commentsSQL = [];
@@ -748,8 +749,6 @@ class FirebirdPlatform extends AbstractPlatform
         if (! $this->onSchemaAlterTable($diff, $tableSql)) {
             $sql = array_merge($sql, $commentsSQL);
 
-            $newName = $diff->getNewName();
-
             $sql = array_merge(
                 $this->getPreAlterTableIndexForeignKeySQL($diff),
                 $sql,
@@ -757,7 +756,7 @@ class FirebirdPlatform extends AbstractPlatform
             );
         }
 
-        return array_merge($sql, $tableSql, $columnSql);
+        return array_values(array_merge($sql, $tableSql, $columnSql));
     }
 
     /**
@@ -911,7 +910,7 @@ class FirebirdPlatform extends AbstractPlatform
         }
 
         $sequenceName = $this->getIdentitySequenceName($tableName->getName(), $column->getName());
-        $triggerName  = $this->getIdentitySequenceTriggerName($tableName, $column);
+        $triggerName  = $this->getIdentitySequenceTriggerName($tableName);
         $sequence     = new Sequence($sequenceName, 1, 1);
 
         $sql[] = $this->getCreateSequenceSQL($sequence);
@@ -1066,7 +1065,7 @@ ___query___;
      ORDER BY RDB$INDICES.RDB$INDEX_NAME, RDB$RELATION_CONSTRAINTS.RDB$CONSTRAINT_NAME, RDB$INDEX_SEGMENTS.RDB$FIELD_POSITION
 ___query___;
 
-        return (string) str_replace(':TABLE', $table, $query);
+        return str_replace(':TABLE', $table, $query);
     }
 
     public function getCurrentDatabaseExpression(): string
@@ -1325,16 +1324,16 @@ SQL
      */
     protected function doModifyLimitQuery($query, $limit, $offset): string
     {
-        if ((int) $limit === 0 && (int) $offset === 0) {
-            return $query; // No limitation specified - change nothing
+        if ($limit === null && $offset <= 0) {
+            return $query;
         }
 
-        if ($offset === null) {
+        if ($offset === 0) {
             // A limit is specified, but no offset, so the syntax ROWS <n> is used
             return $query . ' ROWS 1 TO ' . (int) $limit;
         }
 
-        $from = (int) $offset + 1; // Firebird starts the offset at 1
+        $from = $offset + 1; // Firebird starts the offset at 1
         if ($limit === null) {
             $to = PHP_INT_MAX; // should be beyond a reasonable  number of rows
         } else {
@@ -1394,7 +1393,7 @@ SQL
             $params,
         );
 
-        if ($params['formatLineBreak']) {
+        if ($params['formatLineBreak'] === true) {
             $break  = "\n";
             $indent = '  ';
         } else {
@@ -1438,7 +1437,7 @@ SQL
     /**
      * Builds an Execute Block statement with a bunch of Execute Statement calls
      *
-     * @param array<int|string, mixed> $params
+     * @param array<string, mixed> $params
      */
     protected function getExecuteBlockWithExecuteStatementsSql(array $params = []): string
     {

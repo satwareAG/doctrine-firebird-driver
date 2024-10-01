@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\AbstractException;
 
+/** @psalm-immutable */
 class Exception extends AbstractException
 {
     public static function fromErrorInfo(string $message, int $code): Exception

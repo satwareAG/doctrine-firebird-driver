@@ -58,7 +58,14 @@ abstract class FunctionalTestCase extends TestCase
         $schemaManager->createTable($table);
     }
 
-    public function reConnect(array $newParams = [])
+    /**
+     * @param array<array-key, mixed> $newParams
+     *
+     * @throws Exception
+     *
+     * @psalm-import-type OverrideParams from DriverManager
+     */
+    public function reConnect(array $newParams = []): Connection
     {
         $params = array_merge($this->connection->getParams(), $newParams);
         $this->connection->close();

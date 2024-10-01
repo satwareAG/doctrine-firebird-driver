@@ -19,6 +19,8 @@ use function stristr;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
+ *
+ * @psalm-suppress UnusedClass
  */
 final class Driver extends FirebirdDriver
 {

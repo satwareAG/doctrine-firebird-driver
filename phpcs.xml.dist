@@ -17,6 +17,7 @@
     <rule ref="Doctrine"/>
     <!-- Class structure -->
     <rule ref="SlevomatCodingStandard.Classes.ClassStructure">
+        <exclude-pattern>tests/Test/Platforms/PlatformTestCase.php</exclude-pattern>
         <properties>
             <property name="groups" type="array">
                 <!-- Group use statements together -->
@@ -75,7 +76,25 @@
                 <element value="protected static final methods"/>
 
                 <!-- Magic methods -->
-                <element value="magic methods"/>            </property>
+                <element value="magic methods"/>
+                </property>
         </properties>
     </rule>
+    <rule ref="PSR2.Methods.MethodDeclaration.Underscore">
+        <exclude-pattern>src/*.php</exclude-pattern>
+    </rule>
+	<rule ref="PSR2.Methods.MethodDeclaration.Underscore">
+		<exclude-pattern>src/*.php</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment.InvalidNoReturn">
+		<exclude-pattern>tests/Test/Platforms/PlatformTestCase.php</exclude-pattern>
+	</rule>
+	<rule ref="SlevomatCodingStandard.Classes.SuperfluousAbstractClassNaming.SuperfluousPrefix">
+    		<exclude-pattern>tests/*.php</exclude-pattern>
+    	</rule>
+
+     <!-- Old tests, will be removed in 4.x -->
+    <exclude-pattern>tests/Test/Unit/*</exclude-pattern>
+    <exclude-pattern>tests/Test/Integration/*</exclude-pattern>
+    <exclude-pattern>tests/Test/Resource/*</exclude-pattern>
 </ruleset>

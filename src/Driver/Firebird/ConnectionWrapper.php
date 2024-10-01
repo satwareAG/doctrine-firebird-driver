@@ -20,6 +20,7 @@ use function sprintf;
 use function strtolower;
 use function strtoupper;
 
+/** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection
 {
     private int|null $lastInsertIdentityId  = null;
@@ -34,15 +35,15 @@ final class ConnectionWrapper extends Connection
                 $identityColumnTables[$table] = $this->getIdentityColumnForTable($table);
             }
 
-            if (! $identityColumnTables[$table]) {
+            if ($identityColumnTables[$table] === null) {
                 $this->addSequenceNameForTable($table);
             }
         }
 
-        if (isset($identityColumnTables[$table])) {
+        if (isset($identityColumnTables[$table]['id'])) {
             $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
             if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
-                $this->_conn->setConnectionInsertTableColumn($table, $identityColumnTables[$table]['id']);
+                $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
             }
         }
 
@@ -87,7 +88,10 @@ final class ConnectionWrapper extends Connection
         return parent::executeStatement($sql, $params, $types);
     }
 
-    /** @inheritDoc */
+    /**
+     * @inheritDoc
+     * @psalm-suppress DocblockTypeContradiction
+     * */
     public function lastInsertId($name = null)
     {
         if ($name !== null && ! is_string($name)) {
@@ -149,19 +153,19 @@ final class ConnectionWrapper extends Connection
         if (! isset($tableSequences[$tableName])) {
             $schemaManager = $this->createSchemaManager();
             // Get the columns for the table
-            $sequenceForTable = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
-            $sequences        = $schemaManager->listSequences();
-            $D2IS             = null;
+            $sequenceForTable      = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
+            $sequences             = $schemaManager->listSequences();
+            $_identitySequenceName = null;
             foreach ($sequences as $sequence) {
                 if (strtolower($sequence->getName()) !== strtolower($sequenceForTable)) {
                     continue;
                 }
 
-                $D2IS                     = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
-                $this->lastInsertSequence = $D2IS;
+                $_identitySequenceName    = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
+                $this->lastInsertSequence = $_identitySequenceName;
             }
 
-            $tableSequences[$tableName] = $D2IS;
+            $tableSequences[$tableName] = $_identitySequenceName;
         } else {
             $this->lastInsertSequence = $tableSequences[$tableName];
         }

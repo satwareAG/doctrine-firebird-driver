@@ -9,7 +9,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
 /** @requires extension interbase */
-class DriverTest extends AbstractDriverTestCase
+class DriverTest extends DriverTestCase
 {
     public function testConnectsWithoutDatabaseNameParameter(): void
     {

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 
+use function array_values;
 use function fbird_affected_rows;
 use function fbird_close;
 use function fbird_fetch_assoc;
@@ -15,6 +16,7 @@ use function fbird_fetch_row;
 use function fbird_free_result;
 use function fbird_num_fields;
 use function get_resource_type;
+use function is_array;
 use function is_numeric;
 use function is_resource;
 
@@ -26,19 +28,20 @@ final class Result implements ResultInterface
      * @internal The result can only be instantiated by its driver connection or statement.
      *
      * @param bool|int|resource|null $firebirdResultResource;
+     * @psalm-param bool|int|resource|null $firebirdResultResource;
      *
      * @throws Exception
      */
     public function __construct(
-        private $firebirdResultResource,
+        private mixed $firebirdResultResource,
         private readonly Connection $connection,
     ) {
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
 
-        $this->connection->setConnectionInsertTableColumn(null, null);
-        $this->connection->setLastInsertId($this->fetchOne());
+        $this->connection->setConnectionInsertColumn(null);
+        $this->connection->setLastInsertId((int) $this->fetchOne());
     }
 
     /** @throws Exception */
@@ -47,11 +50,18 @@ final class Result implements ResultInterface
         $this->free();
     }
 
-    /** @inheritDoc */
+    /**
+     * {@inheritDoc}
+     *
+     * @return false|list<mixed>
+     */
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
-            return @fbird_fetch_row($this->firebirdResultResource, IBASE_TEXT);
+            $result = @fbird_fetch_row($this->firebirdResultResource, IBASE_TEXT);
+            if (is_array($result)) {
+                return array_values($result);
+            }
         }
 
         return false;

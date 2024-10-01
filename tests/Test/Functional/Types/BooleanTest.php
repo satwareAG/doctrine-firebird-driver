@@ -11,6 +11,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class BooleanTest extends FunctionalTestCase
 {
+    /** @return Iterator<int, array<int, bool|string>> */
     public function booleanProvider(): Iterator
     {
         yield [true, true];

@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver;
 use function addcslashes;
 use function array_unique;
 use function count;
+use function get_resource_id;
 use function gettype;
 use function implode;
 use function is_array;
@@ -50,7 +51,7 @@ abstract class ValueFormatter
         }
 
         if (is_resource($value)) {
-            return '#' . $value;
+            return '#Resource id #' . get_resource_id($value);
         }
 
         if (is_string($value)) {
@@ -101,7 +102,7 @@ abstract class ValueFormatter
         }
 
         if (is_resource($value)) {
-            return '(resource) ' . $value;
+            return '(resource) Resource id #' . get_resource_id($value);
         }
 
         if (is_string($value)) {

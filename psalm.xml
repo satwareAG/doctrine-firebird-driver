@@ -16,4 +16,86 @@
     <stubs>
         <file name="vendor/jetbrains/phpstorm-stubs/interbase/interbase.php" />
     </stubs>
+    <issueHandlers>
+        <InvalidReturnType>
+            <errorLevel type="suppress">
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </InvalidReturnType>
+        <InvalidReturnStatement>
+            <errorLevel type="suppress">
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </InvalidReturnStatement>
+        <TooManyArguments>
+            <errorLevel type="suppress">
+                <referencedFunction name="fbird_prepare"/>
+            </errorLevel>
+        </TooManyArguments>
+        <InvalidArgument>
+            <errorLevel type="suppress">
+                <referencedFunction name="fbird_prepare"/>
+            </errorLevel>
+        </InvalidArgument>
+        <DeprecatedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::getIdentitySequenceName"/>
+                <file name="src/Platforms/FirebirdPlatform.php"/>
+                <file name="src/Platforms/Firebird3Platform.php"/>
+            </errorLevel>
+        </DeprecatedMethod>
+        <DeprecatedProperty>
+            <errorLevel type="suppress">
+                <file name="src/Platforms/FirebirdPlatform.php"/>
+            </errorLevel>
+        </DeprecatedProperty>
+
+        <DeprecatedInterface>
+            <errorLevel type="suppress">
+                <file name="src/Driver/FirebirdDriver.php"/>
+                <file name="src/Driver/Firebird/Driver.php"/>
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </DeprecatedInterface>
+        <InternalClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Doctrine\DBAL\SQL\Parser"/>
+                <file name="src/Driver/Firebird/Exception.php"/>
+                <file name="src/Driver/Firebird/Result.php"/>
+                <file name="src/Driver/Firebird/Exception/HostDbnameRequired.php"/>
+            </errorLevel>
+        </InternalClass>
+        <InternalMethod>
+            <errorLevel type="suppress">
+                <file name="src/Schema/FirebirdSchemaManager.php"/>
+                <file name="src/Driver/Firebird/Connection.php"/>
+                <file name="src/Driver/Firebird/Exception.php"/>
+                <file name="src/Driver/Firebird/Exception/HostDbnameRequired.php"/>
+                <file name="src/Driver/Firebird/ExceptionConverter.php"/>
+                <file name="src/Driver/Firebird/Result.php"/>
+                <file name="src/Driver/Firebird/Statement.php"/>
+                <file name="src/Platforms/FirebirdPlatform.php"/>
+                <file name="src/Platforms/SQL/Builder/FirebirdSelectSQLBuilder.php"/>
+            </errorLevel>
+        </InternalMethod>
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::getAttribute"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::getNativeConnection"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::setCharTrue"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::setCharFalse"/>
+                <referencedMethod
+                        name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::setUseSmallIntBoolean"/>
+                <referencedMethod
+                        name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::assertValidIdentifier"/>
+                <referencedMethod
+                        name="Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap"/>
+            </errorLevel>
+        </PossiblyUnusedMethod>
+        <PossiblyUnusedReturnValue>
+            <errorLevel type="suppress">
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </PossiblyUnusedReturnValue>
+    </issueHandlers>
 </psalm>

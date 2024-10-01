@@ -16,8 +16,9 @@ use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
 use function array_merge;
-use function is_string;
+use function array_values;
 use function json_encode;
+use function sprintf;
 use function str_replace;
 
 class Firebird3Platform extends FirebirdPlatform
@@ -118,7 +119,6 @@ class Firebird3Platform extends FirebirdPlatform
             if ($columnDiff->hasAutoIncrementChanged()) {
                 // Step 1: Add a new temporary column with the desired data type
                 $tempColumn       = $this->getTemporaryColumnName($oldColumnName);
-                $type             = $newColumn->getType();
                 $columnDefinition = $newColumn->toArray();
 
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD ' . $this->getColumnDeclarationSQL(
@@ -175,8 +175,6 @@ class Firebird3Platform extends FirebirdPlatform
         if (! $this->onSchemaAlterTable($diff, $tableSql)) {
             $sql = array_merge($sql, $commentsSQL);
 
-            $newName = $diff->getNewName();
-
             $sql = array_merge(
                 $this->getPreAlterTableIndexForeignKeySQL($diff),
                 $sql,
@@ -184,13 +182,10 @@ class Firebird3Platform extends FirebirdPlatform
             );
         }
 
-        return array_merge($sql, $tableSql, $columnSql);
+        return array_values(array_merge($sql, $tableSql, $columnSql));
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsIdentityColumns()
+    public function supportsIdentityColumns(): bool
     {
         return true;
     }
@@ -335,8 +330,11 @@ ___query___;
     /** @inheritDoc */
     public function getIdentitySequenceName($tableName, $columnName): string
     {
-        return $this->normalizeIdentifier($tableName)->getQuotedName($this)
-            . (is_string($columnName) ? '.' . $this->normalizeIdentifier($columnName)->getQuotedName($this) : '');
+        return sprintf(
+            '%s.%s',
+            $this->normalizeIdentifier($tableName)->getQuotedName($this),
+            $this->normalizeIdentifier($columnName)->getQuotedName($this),
+        );
     }
 
     /** @inheritDoc */

@@ -16,11 +16,12 @@ use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_change_key_case;
 use function array_merge;
-use function array_values;
 use function fbird_close;
 use function fbird_connect;
 use function fbird_drop_db;
@@ -43,7 +44,7 @@ use const IBASE_CREATE;
 /**
  * Firebird Schema Manager.
  *
- * @extends AbstractSchemaManager<FirebirdPlatform|Firebird3Platform>
+ * @extends AbstractSchemaManager<FirebirdPlatform|Firebird3Platform|Firebird4Platform|Firebird5Platform>
  */
 class FirebirdSchemaManager extends AbstractSchemaManager
 {
@@ -63,6 +64,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * @throws Exception
      *
+     * @psalm-suppress PossiblyUndefinedArrayOffset
      * @inheritDoc
      */
     public function dropDatabase($database): void
@@ -112,9 +114,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $charset          = $params['charset'] ?? 'UTF8';
         $user             = $params['user'] ?? '';
         $password         = $params['password'] ?? '';
-        $pageSize         = $params['page_size'] ?? '16384';
+        $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
+        /** @psalm-suppress InvalidArgument */
         $result = @fbird_query(
             IBASE_CREATE,
             sprintf(
@@ -154,7 +157,11 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return $this->doListTableDetails($name);
     }
 
-    /** @return array<int, string> */
+    /**
+     * @return array<int, string>
+     *
+     * @psalm-suppress
+     */
     public static function getFieldTypeIdToColumnTypeMap(): array
     {
         return [
@@ -232,7 +239,6 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         $dbType = strtolower((string) $tableColumn['FIELD_TYPE_NAME']);
 
-        $type  = [];
         $fixed = null;
 
         if (! isset($tableColumn['FIELD_NAME'])) {
@@ -332,7 +338,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableForeignKeysList($tableForeignKeys): array
     {
         $list = [];
-        foreach ($tableForeignKeys as $key => $value) {
+        foreach ($tableForeignKeys as $value) {
             $value = array_change_key_case($value, CASE_LOWER);
             if (! isset($list[$value['constraint_name']])) {
                 if (! isset($value['on_delete']) || $value['on_delete'] === 'RESTRICT') {
@@ -360,9 +366,9 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $result = [];
         foreach ($list as $constraint) {
             $result[] = new ForeignKeyConstraint(
-                array_values($constraint['local']),
+                $constraint['local'],
                 $constraint['foreignTable'],
-                array_values($constraint['foreign']),
+                $constraint['foreign'],
                 $constraint['name'],
                 [
                     'onDelete' => $constraint['onDelete'],

@@ -7,7 +7,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use DateTime;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Platforms\TrimMode;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -370,10 +369,6 @@ class DataAccessTest extends FunctionalTestCase
     public function testSqliteDateArithmeticWithDynamicInterval(): void
     {
         $platform = $this->connection->getDatabasePlatform();
-
-        if (! $platform instanceof SqlitePlatform) {
-          //  self::markTestSkipped('test is for sqlite only');
-        }
 
         $table = new Table('fetch_table_date_math');
         $table->addColumn('test_date', Types::DATE_MUTABLE);
