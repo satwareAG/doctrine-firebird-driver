@@ -50,7 +50,9 @@ jobs:
 
       - name: Run tests in Docker for PHP ${{ matrix.php-version }}
         run: |
-          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app my-php-dev-${{ matrix.php-version }} bash -c "
+          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app \
+          -e PHP_DISMOD=ioncube \  # Set the PHP_DISMOD environment variable 
+          -w /app php-dev-${{ matrix.php-version }} bash -c "
           composer install --prefer-dist --no-progress --no-suggest && \
           ./vendor/bin/phpunit --configuration tests/phpunit.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml \
