@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build Docker image for PHP ${{ matrix.php-version }}
         run: docker build -t php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
