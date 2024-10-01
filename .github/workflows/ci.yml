@@ -48,12 +48,9 @@ jobs:
       - name: Build Docker image for PHP ${{ matrix.php-version }}
         run: docker build -t my-php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
 
-      - name: Wait for Firebird services to be ready
-        run: sleep 5  # Adjust this if Firebird initialization takes longer
-
       - name: Run tests in Docker for PHP ${{ matrix.php-version }}
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app -w /app my-php-dev-${{ matrix.php-version }} bash -c "
+          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app my-php-dev-${{ matrix.php-version }} bash -c "
           composer install --prefer-dist --no-progress --no-suggest && \
           ./vendor/bin/phpunit --configuration tests/phpunit.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml \
