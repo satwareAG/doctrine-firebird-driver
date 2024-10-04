@@ -9,13 +9,18 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use SensitiveParameter;
 
+use function fbird_close;
 use function fbird_connect;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_pconnect;
+use function fbird_server_info;
 use function fbird_service_attach;
+use function fbird_service_detach;
 use function is_resource;
 use function stristr;
+
+use const IBASE_SVC_SERVER_VERSION;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
@@ -48,6 +53,13 @@ final class Driver extends FirebirdDriver
             throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
         }
 
+        $serverVersion = @fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
+        if (! @fbird_service_detach($firebirdService) || ! @fbird_close($firebirdService)) {
+            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+        }
+
+        unset($firebirdService);
+
         if ($persistent) {
             $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         } else {
@@ -67,7 +79,7 @@ final class Driver extends FirebirdDriver
             $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
 
-        return new Connection($connection, $firebirdService, $persistent, $notFoundException, $params);
+        return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
     }
 
     public function getExceptionConverter(): ExceptionConverter

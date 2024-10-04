@@ -157,11 +157,11 @@ class WriteTest extends FunctionalTestCase
 
         $sequence = new Sequence('write_table_id_seq');
         try {
-            $this->connection->getSchemaManager()->createSequence($sequence);
+            $this->connection->createSchemaManager()->createSequence($sequence);
         } catch (Throwable) {
         }
 
-        $sequences = $this->connection->getSchemaManager()->listSequences();
+        $sequences = $this->connection->createSchemaManager()->listSequences();
         self::assertCount(1, array_filter($sequences, static fn ($sequence): bool => strtolower((string) $sequence->getName()) === 'write_table_id_seq'));
 
         $nextSequenceVal = $this->connection->fetchOne(
@@ -264,7 +264,7 @@ class WriteTest extends FunctionalTestCase
         $table->setPrimaryKey(['id']);
 
         try {
-            $this->connection->getSchemaManager()->dropTable($table->getQuotedName($platform));
+            $this->connection->createSchemaManager()->dropTable($table->getQuotedName($platform));
         } catch (Throwable) {
         }
 

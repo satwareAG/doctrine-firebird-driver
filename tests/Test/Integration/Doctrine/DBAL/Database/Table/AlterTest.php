@@ -20,13 +20,14 @@ class AlterTest extends AbstractIntegrationTestCase
 {
     public function setUp(): void
     {
-        parent::setUp();
+        // no Database needed here.
+        $this->_platform = $this->connection->getDatabasePlatform();
     }
 
     public function testAlterTable(): void
     {
         self::assertTrue(true);
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $sql        = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);

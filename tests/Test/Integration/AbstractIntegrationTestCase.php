@@ -43,7 +43,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         $this->installFirebirdDatabase($configurationArray);
 
-        $this->connect();
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
         $eventManager = new EventManager();
@@ -55,9 +54,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
     public function tearDown(): void
     {
-        $this->markConnectionNotReusable();
-
-        parent::tearDown();
+       $this->markConnectionNotReusable();
     }
 
     protected function installFirebirdDatabase(array $configurationArray): void

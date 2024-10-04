@@ -126,18 +126,16 @@ final class Result implements ResultInterface
     /** @throws Exception */
     public function free(): void
     {
-        while (is_resource($this->firebirdResultResource) && get_resource_type($this->firebirdResultResource) !== 'Unknown') {
-            if (! @fbird_free_result($this->firebirdResultResource)) {
-                $this->connection->checkLastApiCall();
-            }
-
-            if (@fbird_close($this->firebirdResultResource)) {
-                continue;
-            }
-
-            $this->connection->checkLastApiCall();
+        if (! is_resource($this->firebirdResultResource)) {
+            return;
         }
 
-        $this->firebirdResultResource = null;
+        $type = get_resource_type($this->firebirdResultResource);
+        if ($type !== 'interbase result') {
+            return;
+        }
+
+        @fbird_free_result($this->firebirdResultResource);
+        @fbird_close($this->firebirdResultResource);
     }
 }

@@ -19,26 +19,9 @@ use UnexpectedValueException;
 
 class ConnectionTest extends AbstractIntegrationTestCase
 {
-    public $wrappedConnection;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $this->connection        = $connection = $this->reConnect();
-        $this->wrappedConnection = $connection->getWrappedConnection();
-    }
-
-    public function tearDown(): void
-    {
-        $this->connection->close();
-
-        parent::tearDown();
-    }
-
     public function testBasics(): void
     {
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
         self::assertIsObject($connection);
         self::assertInstanceOf(Connection::class, $connection);
         self::assertNull($connection->getAttribute(-1));
@@ -153,13 +136,13 @@ class ConnectionTest extends AbstractIntegrationTestCase
     {
         $this->expectExceptionMessage('Isolation level -1 is not supported');
         $this->expectException(Exception::class);
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
         $connection->getStartTransactionSql(-1);
     }
 
     public function testBeginTransaction(): void
     {
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
 
         $reflectionObject = new ReflectionObject($connection);
 

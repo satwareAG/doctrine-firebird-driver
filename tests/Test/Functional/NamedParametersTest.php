@@ -179,7 +179,7 @@ class NamedParametersTest extends FunctionalTestCase
             $table->addColumn('bar', Types::STRING);
             $table->setPrimaryKey(['id']);
 
-            $sm = $this->connection->getSchemaManager();
+            $sm = $this->connection->createSchemaManager();
             $sm->createTable($table);
 
             $this->connection->insert('ddc1372_foobar', [

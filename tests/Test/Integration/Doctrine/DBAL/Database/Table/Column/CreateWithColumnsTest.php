@@ -31,13 +31,19 @@ use const PHP_INT_MAX;
 
 class CreateWithColumnsTest extends AbstractIntegrationTestCase
 {
+    public function setUp(): void
+    {
+        // no Database needed here.
+        $this->_platform = $this->connection->getDatabasePlatform();
+    }
+
     /** @dataProvider dataProvider_testCreateTableWithVariousColumnOptionCombinations */
     public function testCreateTableWithVariousColumnOptionCombinations(
         $inputFieldType,
         $expectedFieldType,
         array $options,
     ): void {
-        $connection     = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName      = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap()[$inputFieldType];
 
@@ -97,6 +103,13 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
 
     public function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
     {
+
+        yield [
+            FirebirdSchemaManager::META_FIELD_TYPE_DATE,
+            FirebirdSchemaManager::META_FIELD_TYPE_DATE,
+            ['notnull' => true, 'default' => '2018-01-01'],
+        ];
+
         yield [
             FirebirdSchemaManager::META_FIELD_TYPE_CHAR,
             FirebirdSchemaManager::META_FIELD_TYPE_CHAR,
@@ -140,12 +153,6 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         ];
 
         yield [
-            FirebirdSchemaManager::META_FIELD_TYPE_DATE,
-            FirebirdSchemaManager::META_FIELD_TYPE_DATE,
-            ['notnull' => true, 'default' => '2018-01-01'],
-        ];
-
-        yield [
             FirebirdSchemaManager::META_FIELD_TYPE_TIME,
             FirebirdSchemaManager::META_FIELD_TYPE_TIME,
             ['notnull' => true, 'default' => '13:37:00'],
@@ -178,7 +185,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithManyDifferentColumns(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
 
         $table     = new Table($tableName);
@@ -210,6 +217,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             JOIN RDB\$RELATION_FIELDS RF ON RF.RDB\$FIELD_SOURCE = F.RDB\$FIELD_NAME
             WHERE RF.RDB\$RELATION_NAME = '{$tableName}'"
         );
+
         $result = $connection->query($sql);
         self::assertInstanceOf(Result::class, $result);
         $rows = $result->fetchAll();

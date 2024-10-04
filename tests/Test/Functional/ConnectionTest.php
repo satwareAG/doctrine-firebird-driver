@@ -12,7 +12,6 @@ use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
@@ -22,9 +21,6 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
-
-use function file_exists;
-use function unlink;
 
 class ConnectionTest extends FunctionalTestCase
 {
@@ -95,19 +91,7 @@ class ConnectionTest extends FunctionalTestCase
 
     public function testTransactionNestingLevelIsResetOnReconnect(): void
     {
-        if ($this->connection->getDatabasePlatform() instanceof SqlitePlatform) {
-            $params           = $this->connection->getParams();
-            $params['memory'] = false;
-            $params['path']   = '/tmp/test_nesting.sqlite';
-
-            $connection = DriverManager::getConnection(
-                $params,
-                $this->connection->getConfiguration(),
-                $this->connection->getEventManager(),
-            );
-        } else {
-            $connection = $this->connection;
-        }
+        $connection = $this->connection;
 
         $this->dropTableIfExists('test_nesting');
         $connection->executeQuery('CREATE TABLE test_nesting(test int not null)');
@@ -125,10 +109,6 @@ class ConnectionTest extends FunctionalTestCase
 
     public function testTransactionNestingBehaviorWithSavepoints(): void
     {
-        if (! $this->connection->getDatabasePlatform()->supportsSavepoints()) {
-            self::markTestSkipped('This test requires the platform to support savepoints.');
-        }
-
         $this->createTestTable();
 
         $this->connection->setNestTransactionsWithSavepoints(true);
@@ -183,30 +163,6 @@ class ConnectionTest extends FunctionalTestCase
         $this->connection->close();
 
         self::assertFalse($this->connection->isTransactionActive());
-    }
-
-    public function testCreateSavepointsNotSupportedThrowsException(): void
-    {
-        if ($this->connection->getDatabasePlatform()->supportsSavepoints()) {
-            self::markTestSkipped('This test requires the platform not to support savepoints.');
-        }
-
-        $this->expectException(ConnectionException::class);
-        $this->expectExceptionMessage('Savepoints are not supported by this driver.');
-
-        $this->connection->createSavepoint('foo');
-    }
-
-    public function testReleaseSavepointsNotSupportedThrowsException(): void
-    {
-        if ($this->connection->getDatabasePlatform()->supportsSavepoints()) {
-            self::markTestSkipped('This test requires the platform not to support savepoints.');
-        }
-
-        $this->expectException(ConnectionException::class);
-        $this->expectExceptionMessage('Savepoints are not supported by this driver.');
-
-        $this->connection->releaseSavepoint('foo');
     }
 
     public function testRollbackSavepointsNotSupportedThrowsException(): void
@@ -392,10 +348,6 @@ class ConnectionTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        if (file_exists('/tmp/test_nesting.sqlite')) {
-            unlink('/tmp/test_nesting.sqlite');
-        }
-
         $this->markConnectionNotReusable();
     }
 

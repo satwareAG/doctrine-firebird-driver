@@ -56,7 +56,7 @@ class ExceptionTest extends FunctionalTestCase
 
     public function testTableExistsException(): void
     {
-        $schemaManager = $this->connection->getSchemaManager();
+        $schemaManager = $this->connection->createSchemaManager();
         $table         = new Table('alreadyexist_table');
         $table->addColumn('id', Types::INTEGER, []);
         $table->setPrimaryKey(['id']);
@@ -331,7 +331,7 @@ class ExceptionTest extends FunctionalTestCase
 
     private function setUpForeignKeyConstraintViolationExceptionTest(): void
     {
-        $schemaManager = $this->connection->getSchemaManager();
+        $schemaManager = $this->connection->createSchemaManager();
 
         $table = new Table('constraint_error_table');
         $table->addColumn('id', Types::INTEGER, []);
@@ -349,7 +349,7 @@ class ExceptionTest extends FunctionalTestCase
 
     private function tearDownForeignKeyConstraintViolationExceptionTest(): void
     {
-        $schemaManager = $this->connection->getSchemaManager();
+        $schemaManager = $this->connection->createSchemaManager();
 
         $schemaManager->dropTable('owning_table');
         $schemaManager->dropTable('constraint_error_table');

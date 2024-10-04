@@ -68,13 +68,8 @@ abstract class FunctionalTestCase extends TestCase
     public function reConnect(array $newParams = []): Connection
     {
         $params = array_merge($this->connection->getParams(), $newParams);
-        $this->connection->close();
 
-        $this->connection = DriverManager::getConnection($params);
-
-        $this->connection->connect();
-
-        return $this->connection;
+        return DriverManager::getConnection($params);
     }
 
     public function getFirebirdConnection(): FirebirdConnection|null

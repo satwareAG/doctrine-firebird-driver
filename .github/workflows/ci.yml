@@ -52,8 +52,12 @@ jobs:
         run: |
           docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app -e PHP_DISMOD=ioncube php-dev-${{ matrix.php-version }} bash -c "
           composer install --prefer-dist --no-progress --no-suggest && \
-          ./vendor/bin/phpunit --configuration tests/phpunit.xml && \
+          ./vendor/bin/phpunit --configuration tests/phpunit.xml --coverage-clover coverage.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird4.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird5.xml \
           "
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          files: ./coverage.xml

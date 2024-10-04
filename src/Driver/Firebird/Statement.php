@@ -16,6 +16,7 @@ use function assert;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
+use function fbird_close;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
@@ -50,22 +51,19 @@ class Statement implements StatementInterface
      */
     protected array $queryParamTypes = [];
 
-    /** @var array<int|string> */
-    private mixed $parameterMap;
-
     /**
      * @param resource|false|null $statement
      * @param array<int|string>   $parameterMap
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
+    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [])
     {
-        if (! is_resource($statement)) {
-            $this->connection->checkLastApiCall();
+        if (is_resource($statement)) {
+            return;
         }
 
-        $this->parameterMap = $parameterMap;
+        $this->connection->checkLastApiCall();
     }
 
     public function __destruct()
@@ -79,7 +77,13 @@ class Statement implements StatementInterface
             return;
         }
 
-        @fbird_free_query($this->statement);
+        if ($statementType === 'interbase query') {
+            @fbird_free_query($this->statement);
+            @fbird_close($this->statement);
+            unset($this->statement);
+        }
+
+        $this->statement = null;
     }
 
     /**
@@ -223,10 +227,10 @@ class Statement implements StatementInterface
                 $this->connection->checkLastApiCall();
             }
 
-            // Result seems ok - is either #rows or result handle
-            // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
-            // function autoCommit of the connection
-            $this->connection->autoCommit();
+                // Result seems ok - is either #rows or result handle
+                // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
+                // function autoCommit of the connection
+                $this->connection->autoCommit();
         }
 
         return new Result($fbirdResultRc, $this->connection);
