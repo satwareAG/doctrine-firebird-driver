@@ -3,10 +3,10 @@ name: CI Pipeline with Multiple PHP Versions and Firebird 2.5 to 5
 on:
   push:
     branches:
-      - 3.0.x
+      - 3.0.*
   pull_request:
     branches:
-      - 3.0.x
+      - 3.0.*
 
 jobs:
   build:
