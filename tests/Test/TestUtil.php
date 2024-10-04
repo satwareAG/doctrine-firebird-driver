@@ -139,7 +139,7 @@ class TestUtil
         static $logger = null;
         $configuration = new Configuration();
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        if($logger === null) {
+        if ($logger === null) {
             $logger = new Logger('sql_logger');
             $logger
                 ->pushProcessor(new MemoryUsageProcessor())

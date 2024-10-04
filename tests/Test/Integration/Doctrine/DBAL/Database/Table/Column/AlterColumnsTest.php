@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
@@ -27,14 +28,20 @@ use function substr;
 
 class AlterColumnsTest extends AbstractIntegrationTestCase
 {
-    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testAlterTableWithVariousColumnOptionCombinations')]
+    public function setUp(): void
+    {
+        // no Database needed here.
+        $this->_platform = $this->connection->getDatabasePlatform();
+    }
+
+    #[DataProvider('dataProvider_testAlterTableWithVariousColumnOptionCombinations')]
     public function testAlterTableWithVariousColumnOptionCombinations(
         $expectedFieldType,
         array $options,
         $createColumnSql,
     ): void {
-        $connection     = $this->_entityManager->getConnection();
-        $sm             = $connection->getSchemaManager();
+        $connection     = $this->connection;
+        $sm             = $connection->createSchemaManager();
         $tableName      = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap()[$expectedFieldType];
         $sql            = "CREATE TABLE {$tableName} ({$createColumnSql})";

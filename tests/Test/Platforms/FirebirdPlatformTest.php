@@ -45,11 +45,6 @@ class FirebirdPlatformTest extends PlatformTestCase
         $platform->assertValidIdentifier($identifier);
     }
 
-    public function createPlatform(): AbstractPlatform
-    {
-        return new FirebirdPlatform();
-    }
-
     public function getGenerateTableSql(): string
     {
         return 'CREATE TABLE test (id INTEGER NOT NULL, test VARCHAR(255) DEFAULT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))';
@@ -432,6 +427,11 @@ EOD;
     public function testQuotesTableNameInListTableColumnsSQL(): void
     {
         self::assertStringContainsStringIgnoringCase("'Foo''Bar\\'", $this->platform->getListTableColumnsSQL("Foo'Bar\\"));
+    }
+
+    public static function createPlatform(): AbstractPlatform
+    {
+        return new FirebirdPlatform();
     }
 
     /** @return mixed[][] */

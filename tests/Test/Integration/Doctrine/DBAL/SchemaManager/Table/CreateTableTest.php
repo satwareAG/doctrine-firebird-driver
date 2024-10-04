@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Integration\Doctrine\DBAL\SchemaManager\Table;
+namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\SchemaManager\Table;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\StringType;
@@ -14,10 +14,15 @@ use function substr;
 
 class CreateTableTest extends AbstractIntegrationTestCase
 {
+    public function setUp(): void
+    {
+        // no Database needed here.
+        $this->_platform = $this->connection->getDatabasePlatform();
+    }
     public function testCreateTable(): void
     {
-        $connection = $this->_entityManager->getConnection();
-        $sm         = $connection->getSchemaManager();
+        $connection = $this->connection;
+        $sm         = $connection->createSchemaManager();
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);

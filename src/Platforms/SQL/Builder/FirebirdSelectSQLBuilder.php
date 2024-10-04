@@ -6,17 +6,17 @@ namespace Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Query\ForUpdate;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 
-use function count;
 use function implode;
 
 final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 {
     /** @internal The SQL builder should be instantiated only by database platforms. */
-    public function __construct(private AbstractPlatform $platform, private string|null $forUpdateSQL, private string|null $skipLockedSQL)
+    public function __construct(private readonly AbstractPlatform $platform, private readonly string|null $forUpdateSQL, private readonly string|null $skipLockedSQL)
     {
     }
 
@@ -33,7 +33,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 
         $from = $query->getFrom();
 
-        if (count($from) > 0) {
+        if ($from !== []) {
             $parts[] = 'FROM ' . implode(', ', $from);
         }
 
@@ -45,7 +45,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 
         $forUpdate = $query->getForUpdate();
 
-        if ($forUpdate !== null) {
+        if ($forUpdate instanceof ForUpdate) {
             if ($this->forUpdateSQL === null) {
                 throw Exception::notSupported('FOR UPDATE');
             }
@@ -63,7 +63,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 
         $groupBy = $query->getGroupBy();
 
-        if (count($groupBy) > 0) {
+        if ($groupBy !== []) {
             $parts[] = 'GROUP BY ' . implode(', ', $groupBy);
         }
 
@@ -75,7 +75,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 
         $orderBy = $query->getOrderBy();
 
-        if (count($orderBy) > 0) {
+        if ($orderBy !== []) {
             $parts[] = 'ORDER BY ' . implode(', ', $orderBy);
         }
 

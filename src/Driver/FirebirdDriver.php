@@ -40,7 +40,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
         if (
             preg_match(
                 '/^(LI|WI)-([VT])(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
-                $version,
+                (string) $version,
                 $versionParts,
             ) !== 1
         ) {
@@ -78,26 +78,5 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     public function getExceptionConverter(): ExceptionConverter
     {
         return new Firebird\ExceptionConverter();
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
-     *
-     * @return FirebirdSchemaManager
-     */
-    public function getSchemaManager(Connection $conn, AbstractPlatform $platform)
-    {
-        Deprecation::triggerIfCalledFromOutside(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/5458',
-            'FirebirdDriver::getSchemaManager() is deprecated.'
-            . ' Use FirebirdPlatform::createSchemaManager() instead.',
-        );
-
-        assert($platform instanceof FirebirdPlatform);
-
-        return new FirebirdSchemaManager($conn, $platform);
     }
 }

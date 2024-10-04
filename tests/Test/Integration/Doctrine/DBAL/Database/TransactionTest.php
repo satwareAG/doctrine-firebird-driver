@@ -15,9 +15,10 @@ use function substr;
 
 class TransactionTest extends AbstractIntegrationTestCase
 {
+
     public function testWillAutoCommitBottomLevelTransaction(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
@@ -29,7 +30,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyCommitASingleTransactionForInsert(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
@@ -47,7 +48,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyCommitASingleTransactionForUpdate(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
@@ -69,7 +70,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyCommitMultipleTransactionsForInsert(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
@@ -113,7 +114,7 @@ class TransactionTest extends AbstractIntegrationTestCase
             44 => 54,
         ];
 
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
@@ -153,7 +154,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyRollbackASingleTransactionForInsert(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
@@ -171,7 +172,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyRollbackASingleTransactionForUpdate(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
@@ -197,7 +198,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyRollbackMultipleTransactionsForInsert(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
@@ -241,7 +242,7 @@ class TransactionTest extends AbstractIntegrationTestCase
             44 => 54,
         ];
 
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
@@ -282,7 +283,7 @@ class TransactionTest extends AbstractIntegrationTestCase
 
     public function testCanSuccessfullyCommitAndRollbackMultipleTransactionsForInsert(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
@@ -338,7 +339,7 @@ class TransactionTest extends AbstractIntegrationTestCase
             45 => 55,
         ];
 
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {

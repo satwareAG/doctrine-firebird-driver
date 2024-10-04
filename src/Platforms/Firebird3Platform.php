@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
@@ -374,6 +375,11 @@ ___query___;
         parent::initializeDoctrineTypeMappings();
 
         $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
+    }
+
+    protected function createReservedKeywordsList(): KeywordList
+    {
+        return new Firebird3Keywords();
     }
 
     /**

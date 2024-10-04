@@ -33,7 +33,7 @@ final class Result implements ResultInterface
      * @throws Exception
      */
     public function __construct(
-        private mixed $firebirdResultResource,
+        private readonly mixed $firebirdResultResource,
         private readonly Connection $connection,
     ) {
         if ($this->connection->getConnectionInsertColumn() === null) {
@@ -55,7 +55,7 @@ final class Result implements ResultInterface
      *
      * @return false|list<mixed>
      */
-    public function fetchNumeric()
+    public function fetchNumeric(): false|array
     {
         if (is_resource($this->firebirdResultResource)) {
             $result = @fbird_fetch_row($this->firebirdResultResource, IBASE_TEXT);
@@ -67,8 +67,7 @@ final class Result implements ResultInterface
         return false;
     }
 
-    /** @inheritDoc */
-    public function fetchAssociative()
+    public function fetchAssociative(): false|array
     {
         if (is_resource($this->firebirdResultResource)) {
             return @fbird_fetch_assoc($this->firebirdResultResource, IBASE_TEXT);
@@ -77,8 +76,7 @@ final class Result implements ResultInterface
         return false;
     }
 
-    /** @inheritDoc */
-    public function fetchOne()
+    public function fetchOne(): mixed
     {
         return FetchUtils::fetchOne($this);
     }
@@ -126,18 +124,16 @@ final class Result implements ResultInterface
     /** @throws Exception */
     public function free(): void
     {
-        while (is_resource($this->firebirdResultResource) && get_resource_type($this->firebirdResultResource) !== 'Unknown') {
-            if (! @fbird_free_result($this->firebirdResultResource)) {
-                $this->connection->checkLastApiCall();
-            }
-
-            if (@fbird_close($this->firebirdResultResource)) {
-                continue;
-            }
-
-            $this->connection->checkLastApiCall();
+        if (! is_resource($this->firebirdResultResource)) {
+            return;
         }
 
-        $this->firebirdResultResource = null;
+        $type = get_resource_type($this->firebirdResultResource);
+        if ($type !== 'interbase result') {
+            return;
+        }
+
+        @fbird_free_result($this->firebirdResultResource);
+        @fbird_close($this->firebirdResultResource);
     }
 }

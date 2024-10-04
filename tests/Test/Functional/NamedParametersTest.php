@@ -168,7 +168,7 @@ class NamedParametersTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        if ($this->connection->getSchemaManager()->tablesExist('ddc1372_foobar')) {
+        if ($this->connection->createSchemaManager()->tablesExist('ddc1372_foobar')) {
             return;
         }
 
@@ -179,7 +179,7 @@ class NamedParametersTest extends FunctionalTestCase
             $table->addColumn('bar', Types::STRING);
             $table->setPrimaryKey(['id']);
 
-            $sm = $this->connection->getSchemaManager();
+            $sm = $this->connection->createSchemaManager();
             $sm->createTable($table);
 
             $this->connection->insert('ddc1372_foobar', [

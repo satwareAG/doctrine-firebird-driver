@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
@@ -13,6 +15,7 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -61,6 +64,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
     public const META_FIELD_TYPE_BLOB      = 261;
 
+    public Connection $conn;
+    /** @var FirebirdPlatform */
+    public AbstractPlatform $platform;
+
     /**
      * @throws Exception
      *
@@ -69,7 +76,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      */
     public function dropDatabase($database): void
     {
-        $params           = $this->_conn->getParams();
+        $params           = $this->conn->getParams();
         $params['dbname'] = $database;
 
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
@@ -85,7 +92,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception($msg, null, $code);
         }
 
-        $this->_conn->close();
+        $this->conn->close();
         $result = @fbird_drop_db(
             $connection,
         );
@@ -93,9 +100,8 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception((string) @fbird_errmsg(), null, (int) @fbird_errcode());
         }
 
-        $ret = @fbird_commit($connection);
-        $ret = @fbird_close($connection);
-        $connection = null;
+        @fbird_close($connection);
+        unset($connection);
     }
 
     /**
@@ -111,7 +117,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      */
     public function createDatabase($database): void
     {
-        $params           = $this->_conn->getParams();
+        $params           = $this->conn->getParams();
         $params['dbname'] = $database;
         $charset          = $params['charset'] ?? 'UTF8';
         $user             = $params['user'] ?? '';
@@ -140,7 +146,6 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         @fbird_close($result);
-        $result = null;
     }
 
     /**
@@ -196,7 +201,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableViewDefinition($view): bool|View
+    protected function _getPortableViewDefinition($view): View
     {
         $view = array_change_key_case($view, CASE_LOWER);
 
@@ -211,7 +216,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      *
      * @todo Read current generator value
      */
-    protected function _getPortableSequenceDefinition($sequence)
+    protected function _getPortableSequenceDefinition($sequence): Sequence
     {
         $sequence = array_change_key_case($sequence, CASE_LOWER);
         $comment  = (string) $sequence['comment'];
@@ -228,13 +233,13 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableDatabaseDefinition($database)
+    protected function _getPortableDatabaseDefinition($database): string
     {
         return $database['Database'];
     }
 
     /** {@inheritDoc} */
-    protected function _getPortableTableColumnDefinition($tableColumn)
+    protected function _getPortableTableColumnDefinition($tableColumn): Column
     {
         $options = [];
 
@@ -256,7 +261,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             $options['length'] = $tableColumn['FIELD_CHAR_LENGTH'];
         }
 
-        $type = $this->_platform->getDoctrineTypeMapping($dbType);
+        $type = $this->platform->getDoctrineTypeMapping($dbType);
 
         switch ($tableColumn['FIELD_TYPE']) {
             case self::META_FIELD_TYPE_CHAR:
@@ -277,10 +282,8 @@ class FirebirdSchemaManager extends AbstractSchemaManager
                 $options['length'] = null;
                 break;
             case self::META_FIELD_TYPE_BLOB:
-                switch ($tableColumn['FIELD_SUB_TYPE']) {
-                    case 1:
-                        $type = 'text';
-                        break;
+                if ($tableColumn['FIELD_SUB_TYPE'] === 1) {
+                    $type = 'text';
                 }
         }
 
@@ -303,13 +306,11 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         if (preg_match('/^.*default\s*\'(.*)\'\s*$/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches) === 1) {
             // default definition is a string
             $options['default'] = $matches[1];
-        } else {
-            if (preg_match('/^.*DEFAULT\s*(.*)\s*/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches) === 1) {
-                // Default is numeric or a constant or a function
-                $options['default'] = $matches[1];
-                if (strtoupper(trim($options['default'])) === 'NULL') {
-                    $options['default'] = null;
-                }
+        } elseif (preg_match('/^.*DEFAULT\s*(.*)\s*/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches) === 1) {
+            // Default is numeric or a constant or a function
+            $options['default'] = $matches[1];
+            if (strtoupper(trim($options['default'])) === 'NULL') {
+                $options['default'] = null;
             }
         }
 
@@ -433,7 +434,7 @@ ___query___;
         }
 
         /** @var array<string,array<string,mixed>> $metadata */
-        $metadata = $this->_conn->executeQuery($sql)
+        $metadata = $this->conn->executeQuery($sql)
             ->fetchAllAssociativeIndexed();
 
         $tableOptions = [];
@@ -455,6 +456,34 @@ ___query___;
         return $identifier->isQuoted() ? $identifier->getName() : strtoupper($name);
     }
 
+    protected function selectTableNames(string $databaseName): Result
+    {
+        // TODO: Implement selectTableNames() method.
+    }
+
+    protected function selectTableColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        // TODO: Implement selectTableColumns() method.
+    }
+
+    protected function selectIndexColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        // TODO: Implement selectIndexColumns() method.
+    }
+
+    protected function selectForeignKeyColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        // TODO: Implement selectForeignKeyColumns() method.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getPortableTableForeignKeyDefinition(array $tableForeignKey): ForeignKeyConstraint
+    {
+        // TODO: Implement _getPortableTableForeignKeyDefinition() method.
+    }
+
     /**
      * Returns the quoted identifier if necessary
      *
@@ -466,7 +495,7 @@ ___query___;
     private function getQuotedIdentifierName(string $identifier): string
     {
         if (preg_match('/[a-z]/', $identifier) === 1) {
-            return $this->_platform->quoteIdentifier($identifier);
+            return $this->platform->quoteIdentifier($identifier);
         }
 
         return $identifier;

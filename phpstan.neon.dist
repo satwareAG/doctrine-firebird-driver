@@ -1,6 +1,8 @@
 parameters:
     level: 8
     phpVersion: 80300
+    parallel:
+        maximumNumberOfProcesses: 0
     paths:
         - src
     bootstrapFiles:

@@ -42,7 +42,7 @@ abstract class PlatformTestCase extends TestCase
     private Type|null $backedUpType = null;
 
     /** @return T */
-    abstract public function createPlatform(): AbstractPlatform;
+    abstract public static function createPlatform(): AbstractPlatform;
 
     protected function setUp(): void
     {
@@ -181,9 +181,9 @@ abstract class PlatformTestCase extends TestCase
     }
 
     /** @return mixed[] */
-    public function getIsCommentedDoctrineType(): iterable
+    public static function getIsCommentedDoctrineType(): iterable
     {
-        $this->setUp();
+        $platform = static::createPlatform();
 
         $data = [];
 
@@ -192,7 +192,7 @@ abstract class PlatformTestCase extends TestCase
 
             $data[$typeName] = [
                 $type,
-                $type->requiresSQLCommentHint($this->platform),
+                $type->requiresSQLCommentHint($platform),
             ];
         }
 

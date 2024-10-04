@@ -161,9 +161,4 @@ class DialectTest extends AbstractIntegrationTestCase
 
         $connection->close();
     }
-
-    public function setUp(): void
-    {
-        parent::setUp();
-    }
 }

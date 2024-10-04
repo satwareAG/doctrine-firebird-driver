@@ -12,6 +12,7 @@ use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
+use function array_key_exists;
 use function crc32;
 use function dechex;
 use function is_string;
@@ -31,7 +32,7 @@ final class ConnectionWrapper extends Connection
         static $identityColumnTables = [];
         $table                       = $this->getTableNameFromInsert($sql);
         if ($table !== null) {
-            if (! isset($identityColumnTables[$table])) {
+            if (! array_key_exists($table, $identityColumnTables)) {
                 $identityColumnTables[$table] = $this->getIdentityColumnForTable($table);
             }
 
@@ -81,7 +82,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
-    public function executeStatement($sql, array $params = [], array $types = [])
+    public function executeStatement($sql, array $params = [], array $types = []): int|string
     {
         $sql = $this->extractIdentityColumn($sql);
 
@@ -92,7 +93,7 @@ final class ConnectionWrapper extends Connection
      * @inheritDoc
      * @psalm-suppress DocblockTypeContradiction
      * */
-    public function lastInsertId($name = null)
+    public function lastInsertId($name = null): int|string
     {
         if ($name !== null && ! is_string($name)) {
             throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
@@ -106,13 +107,10 @@ final class ConnectionWrapper extends Connection
             $name = $this->lastInsertSequence;
         }
 
-        return parent::lastInsertId($name);
+        return parent::lastInsertId();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDatabase()
+    public function getDatabase(): string|null
     {
         static $database = null;
         if ($database === null) {
@@ -150,7 +148,7 @@ final class ConnectionWrapper extends Connection
     private function addSequenceNameForTable(string $tableName): void
     {
         static $tableSequences = [];
-        if (! isset($tableSequences[$tableName])) {
+        if (! array_key_exists($tableName, $tableSequences)) {
             $schemaManager = $this->createSchemaManager();
             // Get the columns for the table
             $sequenceForTable      = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');

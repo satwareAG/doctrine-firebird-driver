@@ -16,6 +16,7 @@ use function assert;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
+use function fbird_close;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
@@ -50,22 +51,19 @@ class Statement implements StatementInterface
      */
     protected array $queryParamTypes = [];
 
-    /** @var array<int|string> */
-    private mixed $parameterMap;
-
     /**
      * @param resource|false|null $statement
      * @param array<int|string>   $parameterMap
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, array $parameterMap = [])
+    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [])
     {
-        if (! is_resource($statement)) {
-            $this->connection->checkLastApiCall();
+        if (is_resource($statement)) {
+            return;
         }
 
-        $this->parameterMap = $parameterMap;
+        $this->connection->checkLastApiCall();
     }
 
     public function __destruct()
@@ -79,7 +77,13 @@ class Statement implements StatementInterface
             return;
         }
 
-        @fbird_free_query($this->statement);
+        if ($statementType === 'interbase query') {
+            @fbird_free_query($this->statement);
+            @fbird_close($this->statement);
+            unset($this->statement);
+        }
+
+        $this->statement = null;
     }
 
     /**
@@ -87,7 +91,7 @@ class Statement implements StatementInterface
      *
      * @psalm-suppress PossiblyUnusedReturnValue
      */
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
+    public function bindValue($param, $value, $type = ParameterType::STRING): void
     {
         if (func_num_args() < 3) {
             Deprecation::trigger(
@@ -97,21 +101,6 @@ class Statement implements StatementInterface
                 . ' Pass the type corresponding to the parameter being bound.',
             );
         }
-
-        return $this->bindParam($param, $value, $type, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
-    {
-        Deprecation::trigger(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/5563',
-            '%s is deprecated. Use bindValue() instead.',
-            __METHOD__,
-        );
 
         if (func_num_args() < 3) {
             Deprecation::trigger(
@@ -135,42 +124,38 @@ class Statement implements StatementInterface
             $param = $params[$param];
         }
 
-        if ($type === ParameterType::LARGE_OBJECT) {
-            if ($variable !== null) {
-                $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
-                if (! is_resource($blobResource)) {
-                    throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) fbird_errcode());
-                }
-
-                if (! is_resource($variable)) {
-                    $fp = fopen('php://temp', 'rb+');
-                    assert(is_resource($fp));
-                    fwrite($fp, $variable);
-                    fseek($fp, 0);
-                    $variable = $fp;
-                }
-
-                while (! feof($variable)) {
-                    $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
-                    if ($chunk === false || strlen($chunk) <= 0) {
-                        continue;
-                    }
-
-                    @fbird_blob_add($blobResource, $chunk);
-                }
-
-                fclose($variable);
-                // Close the BLOB
-                $variable = @fbird_blob_close($blobResource);
-                $type     = ParameterType::STRING;
+        if ($type === ParameterType::LARGE_OBJECT && $value !== null) {
+            $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
+            if (! is_resource($blobResource)) {
+                throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) fbird_errcode());
             }
+
+            if (! is_resource($value)) {
+                $fp = fopen('php://temp', 'rb+');
+                assert(is_resource($fp));
+                fwrite($fp, $variable);
+                fseek($fp, 0);
+                $variable = $fp;
+            }
+
+            while (! feof($value)) {
+                $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                if ($chunk === false || strlen($chunk) <= 0) {
+                    continue;
+                }
+
+                @fbird_blob_add($blobResource, $chunk);
+            }
+
+            fclose($value);
+            // Close the BLOB
+            $value = @fbird_blob_close($blobResource);
+            $type  = ParameterType::STRING;
         }
 
         assert(is_int($param));
-        $this->queryParamBindings[$param] = &$variable;
+        $this->queryParamBindings[$param] = &$value;
         $this->queryParamTypes[$param]    = $type;
-
-        return true;
     }
 
     /**
@@ -205,12 +190,12 @@ class Statement implements StatementInterface
 
             // Execute statement
             foreach ($this->queryParamTypes as $param => $type) {
-                switch ($type) {
-                    case ParameterType::LARGE_OBJECT:
-                        // recheck with BindParams
-                        $this->bindValue($param, $this->queryParamBindings[$param], ParameterType::LARGE_OBJECT);
-                        break;
+                if ($type !== ParameterType::LARGE_OBJECT) {
+                    continue;
                 }
+
+                // recheck with BindParams
+                $this->bindValue($param, $this->queryParamBindings[$param], ParameterType::LARGE_OBJECT);
             }
 
             $callArgs = $this->queryParamBindings;
@@ -223,10 +208,10 @@ class Statement implements StatementInterface
                 $this->connection->checkLastApiCall();
             }
 
-            // Result seems ok - is either #rows or result handle
-            // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
-            // function autoCommit of the connection
-            $this->connection->autoCommit();
+                // Result seems ok - is either #rows or result handle
+                // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
+                // function autoCommit of the connection
+                $this->connection->autoCommit();
         }
 
         return new Result($fbirdResultRc, $this->connection);

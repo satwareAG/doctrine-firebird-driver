@@ -43,7 +43,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
         $this->installFirebirdDatabase($configurationArray);
 
-        $this->connect();
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
         $eventManager = new EventManager();
@@ -55,9 +54,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
     public function tearDown(): void
     {
-        $this->markConnectionNotReusable();
-
-        parent::tearDown();
+       $this->markConnectionNotReusable();
     }
 
     protected function installFirebirdDatabase(array $configurationArray): void
@@ -122,7 +119,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         $queriesRemove = $schema->toDropSql($this->connection->getDatabasePlatform());
         $queriesInsert = $schema->toSql($this->connection->getDatabasePlatform());
-
+     //   $this->connection->commit();
         $this->connection->beginTransaction();
         foreach ($queriesRemove as $query) {
             try {
@@ -159,6 +156,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0]);
         $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1]);
 
+        $resourceList = get_resources();
         $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 1]);
         $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
 
