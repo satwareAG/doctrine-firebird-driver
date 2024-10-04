@@ -7,22 +7,12 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class BooleanTest extends FunctionalTestCase
 {
-    /** @return Iterator<int, array<int, bool|string>> */
-    public function booleanProvider(): Iterator
-    {
-        yield [true, true];
-        yield [false, true];
-        yield [true, false];
-        yield [false, false];
-        yield [true, false, 'J', 'N'];
-        yield [true, false, 'U', 'N'];
-    }
-
-    /** @dataProvider booleanProvider */
+    #[DataProvider('booleanProvider')]
     public function testInsertAndSelect(bool $boolValue, bool $useSmallIntBoolean = true, string $charTrue = 'Y', string $charFalse = 'N'): void
     {
         $this->connection->getDatabasePlatform()->setUseSmallIntBoolean($useSmallIntBoolean);
@@ -41,5 +31,16 @@ class BooleanTest extends FunctionalTestCase
         $value = $this->connection->fetchOne('SELECT bool FROM boolean_table');
 
         self::assertSame($boolValue, $this->connection->getDatabasePlatform()->convertFromBoolean($value));
+    }
+
+    /** @return Iterator<int, array<int, bool|string>> */
+    public static function booleanProvider(): Iterator
+    {
+        yield [true, true];
+        yield [false, true];
+        yield [true, false];
+        yield [false, false];
+        yield [true, false, 'J', 'N'];
+        yield [true, false, 'U', 'N'];
     }
 }

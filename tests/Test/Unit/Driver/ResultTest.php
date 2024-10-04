@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Result;
 
-/** @covers \Satag\DoctrineFirebirdDriver\Driver\Firebird\Result */
+#[\PHPUnit\Framework\Attributes\CoversClass(\Satag\DoctrineFirebirdDriver\Driver\Firebird\Result::class)]
 class ResultTest extends TestCase
 {
     public function testBasics(): void

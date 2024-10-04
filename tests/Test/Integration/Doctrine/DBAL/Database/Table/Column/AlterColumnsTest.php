@@ -27,7 +27,7 @@ use function substr;
 
 class AlterColumnsTest extends AbstractIntegrationTestCase
 {
-    /** @dataProvider dataProvider_testAlterTableWithVariousColumnOptionCombinations */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testAlterTableWithVariousColumnOptionCombinations')]
     public function testAlterTableWithVariousColumnOptionCombinations(
         $expectedFieldType,
         array $options,
@@ -110,7 +110,7 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default. SQL: ' . self::statementArrayToText($statements));
     }
 
-    public function dataProvider_testAlterTableWithVariousColumnOptionCombinations(): Iterator
+    public static function dataProvider_testAlterTableWithVariousColumnOptionCombinations(): Iterator
     {
         /**
          * XXX

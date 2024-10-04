@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDr
 use Doctrine\DBAL\TransactionIsolationLevel;
 use InvalidArgumentException;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
@@ -19,26 +20,9 @@ use UnexpectedValueException;
 
 class ConnectionTest extends AbstractIntegrationTestCase
 {
-    public $wrappedConnection;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $this->connection        = $connection = $this->reConnect();
-        $this->wrappedConnection = $connection->getWrappedConnection();
-    }
-
-    public function tearDown(): void
-    {
-        $this->connection->close();
-
-        parent::tearDown();
-    }
-
     public function testBasics(): void
     {
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
         self::assertIsObject($connection);
         self::assertInstanceOf(Connection::class, $connection);
         self::assertNull($connection->getAttribute(-1));
@@ -89,7 +73,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->_entityManager->getConnection()->lastInsertId('FOO_Ø');
     }
 
-    /** @dataProvider dataProvider_testGetStartTransactionSqlWorks */
+    #[DataProvider('dataProvider_testGetStartTransactionSqlWorks')]
     public function testGetStartTransactionSqlWorks($expected, $isolationLevel, $timeout): void
     {
         $connection = $this->reConnect(
@@ -104,7 +88,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $connection->close();
     }
 
-    public function dataProvider_testGetStartTransactionSqlWorks(): Iterator
+    public static function dataProvider_testGetStartTransactionSqlWorks(): Iterator
     {
         yield [
             'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5',
@@ -153,13 +137,13 @@ class ConnectionTest extends AbstractIntegrationTestCase
     {
         $this->expectExceptionMessage('Isolation level -1 is not supported');
         $this->expectException(Exception::class);
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
         $connection->getStartTransactionSql(-1);
     }
 
     public function testBeginTransaction(): void
     {
-        $connection = $this->wrappedConnection;
+        $connection = $this->connection->getWrappedConnection();
 
         $reflectionObject = new ReflectionObject($connection);
 

@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_change_key_case;
@@ -308,7 +309,7 @@ class DataAccessTest extends FunctionalTestCase
         self::assertSame([[100], [101], [102], [103], [104]], $data);
     }
 
-    /** @dataProvider getTrimExpressionData */
+    #[DataProvider('getTrimExpressionData')]
     public function testTrimExpression(string $value, int $position, string|false $char, string $expectedResult): void
     {
         $sql = 'SELECT ' .

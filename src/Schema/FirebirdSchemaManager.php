@@ -93,7 +93,9 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception((string) @fbird_errmsg(), null, (int) @fbird_errcode());
         }
 
-        @fbird_close($connection);
+        $ret = @fbird_commit($connection);
+        $ret = @fbird_close($connection);
+        $connection = null;
     }
 
     /**
@@ -138,6 +140,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         @fbird_close($result);
+        $result = null;
     }
 
     /**

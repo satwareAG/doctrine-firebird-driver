@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -19,7 +20,7 @@ class VersionAwarePlatformDriverTest extends TestCase
 {
     use VerifyDeprecations;
 
-    /** @dataProvider firebirdVersionProvider */
+    #[DataProvider('firebirdVersionProvider')]
     public function testFirebird(string $version, string $expectedClass): void
     {
         $this->assertDriverInstantiatesDatabasePlatform(new Driver(), $version, $expectedClass);

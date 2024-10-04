@@ -16,6 +16,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
@@ -26,7 +27,7 @@ use function uniqid;
 /** @extends PlatformTestCase<FirebirdPlatform> */
 class FirebirdPlatformTest extends PlatformTestCase
 {
-    /** @dataProvider dataValidIdentifiers */
+    #[DataProvider('dataValidIdentifiers')]
     public function testValidIdentifiers(string $identifier): void
     {
         $platform = $this->createPlatform();
@@ -35,7 +36,7 @@ class FirebirdPlatformTest extends PlatformTestCase
         $this->expectNotToPerformAssertions();
     }
 
-    /** @dataProvider dataInvalidIdentifiers */
+    #[DataProvider('dataInvalidIdentifiers')]
     public function testInvalidIdentifiers(string $identifier): void
     {
         $this->expectException(Exception::class);
@@ -146,11 +147,8 @@ END
         return 'CREATE UNIQUE INDEX index_name ON test (test, test2)';
     }
 
-    /**
-     * @param mixed[] $options
-     *
-     * @dataProvider getGeneratesAdvancedForeignKeyOptionsSQLData
-     */
+    /** @param mixed[] $options */
+    #[DataProvider('getGeneratesAdvancedForeignKeyOptionsSQLData')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL(array $options, string $expectedSql): void
     {
         $foreignKey = new ForeignKeyConstraint(['foo'], 'foreign_table', ['bar'], null, $options);
@@ -333,7 +331,7 @@ SQL
         self::assertSame('"mytable_D2IS"', $this->platform->getIdentitySequenceName('"mytable"', '"mycolumn"'));
     }
 
-    /** @dataProvider dataCreateSequenceWithCache */
+    #[DataProvider('dataCreateSequenceWithCache')]
     public function testCreateSequenceWithCache(int $cacheSize, string $expectedSql): void
     {
         if (! ($this->platform instanceof Firebird3Platform)) {
@@ -357,11 +355,8 @@ SQL
         return ['ALTER TABLE foo ALTER COLUMN bar TO baz'];
     }
 
-    /**
-     * @param string|string[] $expectedSql
-     *
-     * @dataProvider getReturnsDropAutoincrementSQL
-     */
+    /** @param string|string[] $expectedSql */
+    #[DataProvider('getReturnsDropAutoincrementSQL')]
     public function testReturnsDropAutoincrementSQL(string $table, string|array $expectedSql): void
     {
         $resultSql = $this->platform->getDropAutoincrementSql($table);
@@ -410,7 +405,7 @@ EOD;
         self::assertSame($createTriggerStatement, $sql[2]);
     }
 
-    /** @dataProvider getReturnsGetListTableColumnsSQL */
+    #[DataProvider('getReturnsGetListTableColumnsSQL')]
     public function testReturnsGetListTableColumnsSQL(string|null $database, string $expectedSql): void
     {
         // note: this assertion is a bit strict, as it compares a full SQL string.

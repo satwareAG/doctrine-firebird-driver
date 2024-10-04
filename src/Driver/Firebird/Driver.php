@@ -47,6 +47,11 @@ final class Driver extends FirebirdDriver
         if (! is_resource($firebirdService)) {
             throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
         }
+        $serverVersion = @fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
+        if (!@fbird_service_detach($firebirdService)) {
+            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+        }
+
 
         if ($persistent) {
             $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
@@ -67,7 +72,7 @@ final class Driver extends FirebirdDriver
             $notFoundException = Exception::fromErrorInfo($msg, $code);
         }
 
-        return new Connection($connection, $firebirdService, $persistent, $notFoundException, $params);
+        return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
     }
 
     public function getExceptionConverter(): ExceptionConverter

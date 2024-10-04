@@ -89,7 +89,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame(str_repeat((string) $c, 4), $this->_platform->quoteIdentifier($c));
     }
 
-    /** @group DDC-1360 */
+    #[\PHPUnit\Framework\Attributes\Group('DDC-1360')]
     public function testQuoteSingleIdentifier(): void
     {
         $c = $this->_platform->getIdentifierQuoteCharacter();
@@ -129,7 +129,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         $this->_platform->getCreateTableSQL($table);
     }
 
-    /** @group DBAL-45 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-45')]
     public function testKeywordList(): void
     {
         $keywordList = $this->_platform->getReservedKeywordsList();
@@ -265,7 +265,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         }
     }
 
-    /** @dataProvider dataProvider_testDoModifyLimitQuery */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testDoModifyLimitQuery')]
     public function testDoModifyLimitQuery($expected, $query, $limit, $offset): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -276,7 +276,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testDoModifyLimitQuery(): Iterator
+    public static function dataProvider_testDoModifyLimitQuery(): Iterator
     {
         yield ['foo', 'foo', null, null];
         yield ['foo ROWS 1 TO 3', 'foo', 3, null];
@@ -296,7 +296,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertIsString($found);
     }
 
-    /** @dataProvider dataProvider_testMakeSimpleMetadataSelectExpression */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testMakeSimpleMetadataSelectExpression')]
     public function testMakeSimpleMetadataSelectExpression($expected, $expressions): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -307,7 +307,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testMakeSimpleMetadataSelectExpression(): Iterator
+    public static function dataProvider_testMakeSimpleMetadataSelectExpression(): Iterator
     {
         yield ["(UPPER(foo) = UPPER('bar'))", ['foo' => 'bar']];
         yield ['(foo IS NULL)', ['foo' => null]];
@@ -320,7 +320,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertIsString($found);
     }
 
-    /** @dataProvider dataProvider_testGetExecuteBlockSql */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetExecuteBlockSql')]
     public function testGetExecuteBlockSql($expected, $params): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -331,7 +331,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetExecuteBlockSql(): Iterator
+    public static function dataProvider_testGetExecuteBlockSql(): Iterator
     {
         yield ["EXECUTE BLOCK AS\nBEGIN\nEND\n", []];
         yield ['EXECUTE BLOCK AS BEGIN END ', ['formatLineBreak' => false]];
@@ -340,7 +340,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         yield ["EXECUTE BLOCK AS\nBEGIN\n  foo\n  bar\nEND\n", ['statements' => ['foo', 'bar']]];
     }
 
-    /** @dataProvider dataProvider_testGetExecuteBlockWithExecuteStatementsSql */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetExecuteBlockWithExecuteStatementsSql')]
     public function testGetExecuteBlockWithExecuteStatementsSql($expected, $params): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -351,7 +351,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetExecuteBlockWithExecuteStatementsSql(): Iterator
+    public static function dataProvider_testGetExecuteBlockWithExecuteStatementsSql(): Iterator
     {
         yield ["EXECUTE BLOCK AS\nBEGIN\nEND\n", []];
         yield ['EXECUTE BLOCK AS BEGIN END ', ['formatLineBreak' => false]];
@@ -431,7 +431,7 @@ END
         self::assertSame('DROP TRIGGER foo', $found);
     }
 
-    /** @dataProvider dataProvider_testGetDropTriggerIfExistsPSql */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetDropTriggerIfExistsPSql')]
     public function testGetDropTriggerIfExistsPSql(
         $expectedStartsWith,
         $expectedEndsWith,
@@ -448,7 +448,7 @@ END
         self::assertStringEndsWith($expectedEndsWith, $found);
     }
 
-    public function dataProvider_testGetDropTriggerIfExistsPSql(): Iterator
+    public static function dataProvider_testGetDropTriggerIfExistsPSql(): Iterator
     {
         yield [
             'IF (EXISTS (SELECT 1 FROM RDB$TRIGGERS WHERE',
@@ -550,7 +550,7 @@ END
         self::assertSame('BIGINT', $found);
     }
 
-    /** @dataProvider dataProvider_testGetTruncateTableSQL */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetTruncateTableSQL')]
     public function testGetTruncateTableSQL($cascade): void
     {
         $found = $this->_platform->getTruncateTableSQL('foo', $cascade);
@@ -558,7 +558,7 @@ END
         self::assertSame('DELETE FROM FOO', $found);
     }
 
-    public function dataProvider_testGetTruncateTableSQL(): Iterator
+    public static function dataProvider_testGetTruncateTableSQL(): Iterator
     {
         yield [false];
         yield [true];
@@ -732,7 +732,7 @@ END
         self::assertSame('', $found);
     }
 
-    /** @dataProvider dataProvider_testGetClobTypeDeclarationSQL */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetClobTypeDeclarationSQL')]
     public function testGetClobTypeDeclarationSQL($expected, $field): void
     {
         $found = $this->_platform->getClobTypeDeclarationSQL($field);
@@ -740,7 +740,7 @@ END
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetClobTypeDeclarationSQL(): Iterator
+    public static function dataProvider_testGetClobTypeDeclarationSQL(): Iterator
     {
         yield ['BLOB SUB_TYPE TEXT', []];
         yield ['VARCHAR(255)', ['length' => 255]];
@@ -774,7 +774,7 @@ END
         self::assertSame('DATE', $found);
     }
 
-    /** @dataProvider dataProvider_testGetVarcharTypeDeclarationSQLSnippet */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetVarcharTypeDeclarationSQLSnippet')]
     public function testGetVarcharTypeDeclarationSQLSnippet($expected, $length, $fixed): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -785,7 +785,7 @@ END
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetVarcharTypeDeclarationSQLSnippet(): Iterator
+    public static function dataProvider_testGetVarcharTypeDeclarationSQLSnippet(): Iterator
     {
         yield ['CHAR(32)', 32, true];
         yield ['CHAR(255)', 0, true];
@@ -793,7 +793,7 @@ END
         yield ['VARCHAR(255)', 0, false];
     }
 
-    /** @dataProvider dataProvider_testGetColumnCharsetDeclarationSQL */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetColumnCharsetDeclarationSQL')]
     public function testGetColumnCharsetDeclarationSQL($expected, $charset): void
     {
         $found = $this->_platform->getColumnCharsetDeclarationSQL($charset);
@@ -801,7 +801,7 @@ END
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetColumnCharsetDeclarationSQL(): Iterator
+    public static function dataProvider_testGetColumnCharsetDeclarationSQL(): Iterator
     {
         yield ['', ''];
         yield [' CHARACTER SET foo', 'foo'];
@@ -813,7 +813,7 @@ END
         self::assertSame('VARCHAR(255)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetBinaryTypeDeclarationSQLSnippet */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetBinaryTypeDeclarationSQLSnippet')]
     public function testGetBinaryTypeDeclarationSQLSnippet($expected, $length, $fixed): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -824,7 +824,7 @@ END
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetBinaryTypeDeclarationSQLSnippet(): Iterator
+    public static function dataProvider_testGetBinaryTypeDeclarationSQLSnippet(): Iterator
     {
         yield ['CHAR(32)', 32, true];
         yield ['CHAR(8191)', 0, true];
@@ -865,7 +865,7 @@ END
         self::assertSame('GLOBAL TEMPORARY', $found);
     }
 
-    /** @dataProvider dataProvider_testGetCreateTableSQL */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetCreateTableSQL')]
     public function testGetCreateTableSQL($expected, $options): void
     {
         $type = $this
@@ -886,7 +886,7 @@ END
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetCreateTableSQL(): Iterator
+    public static function dataProvider_testGetCreateTableSQL(): Iterator
     {
         yield [
             [0 => 'CREATE TABLE foo (0 baz DEFAULT NULL)'],
@@ -969,13 +969,13 @@ END
             self::assertStringEndsWith('foo', $sql);
     }
 
-    /** @group DBAL-553 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-553')]
     public function testHasNativeJsonType(): void
     {
         self::assertFalse($this->_platform->hasNativeJsonType());
     }
 
-    /** @group DBAL-553 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-553')]
     public function testReturnsJsonTypeDeclarationSQL(): void
     {
         $column = ['length' => 666, 'notnull' => true, 'type' => Type::getType('json')];

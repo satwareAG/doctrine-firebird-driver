@@ -9,6 +9,8 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Schema\Table;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
 
@@ -68,13 +70,9 @@ abstract class FunctionalTestCase extends TestCase
     public function reConnect(array $newParams = []): Connection
     {
         $params = array_merge($this->connection->getParams(), $newParams);
-        $this->connection->close();
+        return DriverManager::getConnection($params);
 
-        $this->connection = DriverManager::getConnection($params);
 
-        $this->connection->connect();
-
-        return $this->connection;
     }
 
     public function getFirebirdConnection(): FirebirdConnection|null
@@ -99,7 +97,7 @@ abstract class FunctionalTestCase extends TestCase
         $this->isConnectionReusable = false;
     }
 
-    /** @before */
+    #[Before]
     final protected function connect(): void
     {
         if (! self::$sharedConnection instanceof Connection) {
@@ -109,7 +107,7 @@ abstract class FunctionalTestCase extends TestCase
         $this->connection = self::$sharedConnection;
     }
 
-    /** @after */
+    #[After]
     final protected function disconnect(): void
     {
         while ($this->connection->isTransactionActive()) {

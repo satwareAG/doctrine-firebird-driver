@@ -11,6 +11,7 @@ use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
@@ -45,9 +46,8 @@ class PortabilityTest extends FunctionalTestCase
     /**
      * @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case
      * @param list<string>                          $expected
-     *
-     * @dataProvider caseProvider
      */
+    #[DataProvider('caseProvider')]
     public function testCaseConversion(int $case, array $expected): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_FIX_CASE, $case);
@@ -73,11 +73,8 @@ class PortabilityTest extends FunctionalTestCase
         self::assertArrayNotHasKey(0, $row, 'The row should not contain numerical keys.');
     }
 
-    /**
-     * @param mixed[] $expected
-     *
-     * @dataProvider fetchColumnProvider
-     */
+    /** @param mixed[] $expected */
+    #[DataProvider('fetchColumnProvider')]
     public function testFetchColumn(string $column, array $expected): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_RTRIM, 0);

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
@@ -311,9 +312,8 @@ class ExceptionTest extends FunctionalTestCase
     /**
      * @param array<string, mixed> $params
      * @psalm-param Params $params
-     *
-     * @dataProvider getConnectionParams
      */
+    #[DataProvider('getConnectionParams')]
     private function testConnectionException(array $params): void
     {
         $platform = $this->connection->getDatabasePlatform();

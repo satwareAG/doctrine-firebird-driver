@@ -93,7 +93,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws Exception
      */
-    public function __construct(private $connection, private $firebirdService, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
+    public function __construct(private $connection, private $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
     {
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
@@ -167,7 +167,7 @@ final class Connection implements ServerInfoAwareConnection
 
     public function getServerVersion(): string
     {
-        return is_resource($this->firebirdService) ? @fbird_server_info($this->firebirdService, IBASE_SVC_SERVER_VERSION) : '';
+        return $this->serverVersion;
     }
 
     /**
@@ -475,8 +475,9 @@ final class Connection implements ServerInfoAwareConnection
 
     public function close(): void
     {
-        if (
-                   is_resource($this->firebirdActiveTransaction)
+        if (                    is_resource($this->connection)
+            && get_resource_type($this->connection) !== 'Unknown'
+                 &&  is_resource($this->firebirdActiveTransaction)
                 && get_resource_type($this->firebirdActiveTransaction) !== 'Unknown'
         ) {
             if ($this->fbirdTransactionLevel > 0) {
@@ -494,12 +495,6 @@ final class Connection implements ServerInfoAwareConnection
         ) {
             $success = @fbird_close($this->connection);
         }
-
-        if (is_resource($this->firebirdService)) {
-            @fbird_service_detach($this->firebirdService);
-            $success = @fbird_close($this->firebirdService);
-        }
-
             $this->connection                = null;
             $this->firebirdActiveTransaction = null;
             $this->fbirdTransactionLevel     = 0;
@@ -528,7 +523,7 @@ final class Connection implements ServerInfoAwareConnection
     private function createTransaction(string|null $sql = null)
     {
         if (is_resource($this->connection)) {
-            @fbird_commit($this->connection);
+           // @fbird_commit($this->connection);
         }
 
         if ($sql === null) {

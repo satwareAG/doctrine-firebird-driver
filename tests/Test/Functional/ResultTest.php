@@ -6,11 +6,12 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class ResultTest extends FunctionalTestCase
 {
-    /** @dataProvider methodProvider */
+    #[DataProvider('methodProvider')]
     public function testExceptionHandling(callable $method, mixed $expected): void
     {
         $result = $this->connection->executeQuery(
@@ -34,49 +35,41 @@ class ResultTest extends FunctionalTestCase
         self::assertSame($expected, $value);
     }
 
+    // phpcs:disable Squiz.Arrays.ArrayDeclaration.ValueNoNewline
+
     /** @return iterable<string, array{callable(Result):mixed, mixed}> */
     public static function methodProvider(): iterable
     {
         yield 'fetchNumeric' => [
-            static function (Result $result) {
-                return $result->fetchNumeric();
-            },
+            static fn (Result $result) => $result->fetchNumeric(),
             false,
         ];
 
         yield 'fetchAssociative' => [
-            static function (Result $result) {
-                return $result->fetchAssociative();
-            },
+            static fn (Result $result) => $result->fetchAssociative(),
             false,
         ];
 
         yield 'fetchOne' => [
-            static function (Result $result) {
-                return $result->fetchOne();
-            },
+            static fn (Result $result) => $result->fetchOne(),
             false,
         ];
 
         yield 'fetchAllNumeric' => [
-            static function (Result $result): array {
-                return $result->fetchAllNumeric();
-            },
+            static fn (Result $result): array => $result->fetchAllNumeric(),
             [],
         ];
 
         yield 'fetchAllAssociative' => [
-            static function (Result $result): array {
-                return $result->fetchAllAssociative();
-            },
+            static fn (Result $result): array => $result->fetchAllAssociative(),
             [],
         ];
 
         yield 'fetchFirstColumn' => [
-            static function (Result $result): array {
-                return $result->fetchFirstColumn();
-            },
+            static fn (Result $result): array => $result->fetchFirstColumn(),
             [],
         ];
     }
+
+    // phpcs:enable
 }

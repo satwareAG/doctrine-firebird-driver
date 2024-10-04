@@ -21,8 +21,6 @@ use function strlen;
  */
 class DialectTest extends AbstractIntegrationTestCase
 {
-    /** @override */
-
     /**
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
@@ -162,5 +160,10 @@ class DialectTest extends AbstractIntegrationTestCase
         self::assertSame(0, $result['NUMBER']);
 
         $connection->close();
+    }
+
+    public function setUp(): void
+    {
+        parent::setUp();
     }
 }

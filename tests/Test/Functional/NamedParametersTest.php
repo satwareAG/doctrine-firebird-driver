@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
@@ -22,9 +23,8 @@ class NamedParametersTest extends FunctionalTestCase
      * @param mixed[] $params
      * @param int[]   $types
      * @param int[]   $expected
-     *
-     * @dataProvider ticketProvider
      */
+    #[DataProvider('ticketProvider')]
     public function testTicket(string $query, array $params, array $types, array $expected): void
     {
         $data = $this->connection->fetchAllAssociative($query, $params, $types);

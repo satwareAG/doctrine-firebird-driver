@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\SmallIntType;
 use Doctrine\DBAL\Types\StringType;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
@@ -31,7 +32,7 @@ use const PHP_INT_MAX;
 
 class CreateWithColumnsTest extends AbstractIntegrationTestCase
 {
-    /** @dataProvider dataProvider_testCreateTableWithVariousColumnOptionCombinations */
+    #[DataProvider('dataProvider_testCreateTableWithVariousColumnOptionCombinations')]
     public function testCreateTableWithVariousColumnOptionCombinations(
         $inputFieldType,
         $expectedFieldType,
@@ -95,7 +96,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default.');
     }
 
-    public function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
+    public static function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
     {
         yield [
             FirebirdSchemaManager::META_FIELD_TYPE_CHAR,

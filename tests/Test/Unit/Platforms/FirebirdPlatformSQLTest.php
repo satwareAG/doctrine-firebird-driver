@@ -68,7 +68,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetDateArithmeticIntervalExpression */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetDateArithmeticIntervalExpression')]
     public function testGetDateArithmeticIntervalExpression($expected, $operator, $interval, $unit): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -79,7 +79,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
+    public static function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
     {
         yield ['DATEADD(DAY, 1, 2018-01-01)', '', 1, DateIntervalUnit::DAY];
         yield ['DATEADD(DAY, -1, 2018-01-01)', '-', 1, DateIntervalUnit::DAY];
@@ -109,7 +109,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(-1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetLocateExpression */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGetLocateExpression')]
     public function testGetLocateExpression($expected, $startPos): void
     {
         $found = $this->_platform->getLocateExpression('foo', 'o', $startPos);
@@ -117,7 +117,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetLocateExpression(): Iterator
+    public static function dataProvider_testGetLocateExpression(): Iterator
     {
         yield ['POSITION (o in foo)', false];
         yield ['POSITION (o, foo, 1)', 1];
@@ -182,10 +182,8 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('VARCHAR(255)', $this->_platform->getVarcharTypeDeclarationSQL([]));
     }
 
-    /**
-     * @group DBAL-1097
-     * @dataProvider dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL')]
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1097')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL($expected, array $options): void
     {
         $foreignKey = new ForeignKeyConstraint(
@@ -199,7 +197,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     }
 
     /** @return array */
-    public function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
+    public static function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
     {
         yield ['', []];
         yield [' ON UPDATE CASCADE', ['onUpdate' => 'CASCADE']];
@@ -301,10 +299,8 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    /**
-     * @group DBAL-472
-     * @group DBAL-1001
-     */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-472')]
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1001')]
     public function testAlterTableNotNULL(): void
     {
         $sm        = $this->connection->createSchemaManager();
@@ -385,7 +381,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         }
     }
 
-    /** @group DBAL-1004 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1004')]
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers(): void
     {
         $table1     = new Table(
@@ -550,7 +546,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $listenerMock = $this
             ->getMockBuilder('GetCreateTableSqlDispatchEvenListener')
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->onlyMethods([
                 'onSchemaCreateTable',
                 'onSchemaCreateTableColumn',
             ])
@@ -581,7 +577,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $listenerMock = $this
             ->getMockBuilder('GetDropTableSqlDispatchEventListener')
             ->disableOriginalConstructor()
-            ->setMethods(['onSchemaDropTable'])
+            ->onlyMethods(['onSchemaDropTable'])
             ->getMock();
         $listenerMock
             ->expects($this->once())
@@ -597,7 +593,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $listenerMock = $this
             ->getMockBuilder('GetAlterTableSqlDispatchEvenListener')
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->onlyMethods([
                 'onSchemaAlterTable',
                 'onSchemaAlterTableAddColumn',
                 'onSchemaAlterTableRemoveColumn',
@@ -663,7 +659,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $this->_platform->getAlterTableSQL($tableDiff);
     }
 
-    /** @group DBAL-42 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-42')]
     public function testCreateTableColumnComments(): void
     {
         $table = new Table('test');
@@ -677,7 +673,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame("COMMENT ON COLUMN test.id IS 'This is a comment'", $found[1]);
     }
 
-    /** @group DBAL-42 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-42')]
     public function testAlterTableColumnComments(): void
     {
         $tableDiff                        = new TableDiff('mytable');
@@ -762,7 +758,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         }
     }
 
-    /** @group DBAL-374 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-374')]
     public function testQuotedColumnInPrimaryKeyPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -776,7 +772,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found[0]);
     }
 
-    /** @group DBAL-374 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-374')]
     public function testQuotedColumnInIndexPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -803,7 +799,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    /** @group DBAL-374 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-374')]
     public function testQuotedColumnInForeignKeyPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -858,7 +854,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar") REFERENCES "foo-bar" ("create", bar, "foo-bar")', $found[3]);
     }
 
-    /** @group DBAL-1051 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1051')]
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): void
     {
         $index = new UniqueConstraint('select', ['foo']);
@@ -866,7 +862,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('CONSTRAINT "select" UNIQUE (foo)', $found);
     }
 
-    /** @group DBAL-1051 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1051')]
     public function testQuotesReservedKeywordInIndexDeclarationSQL(): void
     {
         $index = new Index('select', ['foo']);
@@ -874,7 +870,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('INDEX "select" (foo)', $found);
     }
 
-    /** @group DBAL-585 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-585')]
     public function testAlterTableChangeQuotedColumn(): void
     {
         $tableDiff                        = new TableDiff('mytable');
@@ -890,7 +886,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertStringContainsString($this->_platform->quoteIdentifier('select'), implode(';', $this->_platform->getAlterTableSQL($tableDiff)));
     }
 
-    /** @group DBAL-234 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-234')]
     public function testAlterTableRenameIndex(): void
     {
         $tableDiff            = new TableDiff('mytable');
@@ -909,7 +905,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('CREATE INDEX idx_bar ON mytable (id)', $found[1]);
     }
 
-    /** @group DBAL-234 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-234')]
     public function testQuotesAlterTableRenameIndex(): void
     {
         $tableDiff            = new TableDiff('table');
@@ -933,7 +929,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('CREATE INDEX "bar" ON "table" (id)', $found[3]);
     }
 
-    /** @group DBAL-835 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-835')]
     public function testQuotesAlterTableRenameColumn(): void
     {
         $fromTable = new Table('mytable');
@@ -980,7 +976,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('ALTER TABLE mytable ALTER COLUMN quoted3 TO "baz"', $found[8]);
     }
 
-    /** @group DBAL-807 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-807')]
     public function testAlterTableRenameIndexInSchema(): void
     {
         $tableDiff            = new TableDiff('myschema.mytable');
@@ -999,7 +995,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('CREATE INDEX idx_bar ON myschema.mytable (id)', $found[1]);
     }
 
-    /** @group DBAL-807 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-807')]
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
         $tableDiff            = new TableDiff('`schema`.table');
@@ -1035,7 +1031,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame("COMMENT ON COLUMN mytable.id IS 'It''s a quote !'", $found);
     }
 
-    /** @group DBAL-1004 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1004')]
     public function testGetCommentOnColumnSQL(): void
     {
         $found = $this->_platform->getCommentOnColumnSQL('foo', 'bar', 'comment'); // regular identifiers
@@ -1056,7 +1052,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame("''''", $found);
     }
 
-    /** @group DBAL-1010 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1010')]
     public function testGeneratesAlterTableRenameColumnSQL(): void
     {
         $table = new Table('foo');
@@ -1079,7 +1075,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('ALTER TABLE foo ALTER COLUMN bar TO baz', $found[0]);
     }
 
-    /** @group DBAL-1016 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1016')]
     public function testQuotesTableIdentifiersInAlterTableSQL(): void
     {
         $table = new Table('"foo"');
@@ -1136,7 +1132,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[8]);
     }
 
-    /** @group DBAL-1090 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1090')]
     public function testAlterStringToFixedString(): void
     {
         $table = new Table('mytable');
@@ -1159,7 +1155,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('ALTER TABLE mytable ALTER COLUMN name TYPE CHAR(2)', $found[0]);
     }
 
-    /** @group DBAL-1062 */
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1062')]
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): void
     {
         $foreignTable = new Table('foreign_table');
@@ -1185,17 +1181,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('CREATE INDEX idx_foo_renamed ON mytable (foo)', $found[1]);
     }
 
-    /**
-     * @group DBAL-1082
-     * @dataProvider getGeneratesDecimalTypeDeclarationSQL
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1082')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getDecimalTypeDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesDecimalTypeDeclarationSQL(): Iterator
+    public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
         yield [[], 'NUMERIC(10, 0)'];
         yield [['unsigned' => true], 'NUMERIC(10, 0)'];
@@ -1205,17 +1199,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
-    /**
-     * @group DBAL-1082
-     * @dataProvider getGeneratesFloatDeclarationSQL
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getGeneratesFloatDeclarationSQL')]
+    #[\PHPUnit\Framework\Attributes\Group('DBAL-1082')]
     public function testGeneratesFloatDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getFloatDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesFloatDeclarationSQL(): Iterator
+    public static function getGeneratesFloatDeclarationSQL(): Iterator
     {
         yield [[], 'DOUBLE PRECISION'];
         yield [['unsigned' => true], 'DOUBLE PRECISION'];
