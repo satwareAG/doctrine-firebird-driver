@@ -12,6 +12,7 @@ use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
+use function array_key_exists;
 use function crc32;
 use function dechex;
 use function is_string;
@@ -31,7 +32,7 @@ final class ConnectionWrapper extends Connection
         static $identityColumnTables = [];
         $table                       = $this->getTableNameFromInsert($sql);
         if ($table !== null) {
-            if (! isset($identityColumnTables[$table])) {
+            if (! array_key_exists($table, $identityColumnTables)) {
                 $identityColumnTables[$table] = $this->getIdentityColumnForTable($table);
             }
 
@@ -150,7 +151,7 @@ final class ConnectionWrapper extends Connection
     private function addSequenceNameForTable(string $tableName): void
     {
         static $tableSequences = [];
-        if (! isset($tableSequences[$tableName])) {
+        if (! array_key_exists($tableName, $tableSequences)) {
             $schemaManager = $this->createSchemaManager();
             // Get the columns for the table
             $sequenceForTable      = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');

@@ -3,10 +3,10 @@ name: CI Pipeline with Multiple PHP Versions and Firebird 2.5 to 5
 on:
   push:
     branches:
-      - 3.0.x
+      - 3.0.*
   pull_request:
     branches:
-      - 3.0.x
+      - 3.0.*
 
 jobs:
   build:
@@ -50,10 +50,22 @@ jobs:
 
       - name: Run tests in Docker for PHP ${{ matrix.php-version }}
         run: |
-          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app -e PHP_DISMOD=ioncube php-dev-${{ matrix.php-version }} bash -c "
+          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app -e XDEBUG_MODE=coverage -e PHP_DISMOD=ioncube php-dev-${{ matrix.php-version }} bash -c "
           composer install --prefer-dist --no-progress --no-suggest && \
-          ./vendor/bin/phpunit --configuration tests/phpunit.xml && \
+          ./vendor/bin/phpunit --configuration tests/phpunit.xml --coverage-clover coverage.xml --log-junit junit.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird4.xml && \
           ./vendor/bin/phpunit --configuration tests/phpunit-firebird5.xml \
           "
+      - name: Upload Codecoverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: ./junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+

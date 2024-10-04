@@ -136,14 +136,18 @@ class TestUtil
 
     private static function createConfiguration(): Configuration
     {
+        static $logger = null;
         $configuration = new Configuration();
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        $logger = new Logger('sql_logger');
-        $logger
-            ->pushProcessor(new MemoryUsageProcessor())
-            ->pushHandler(
-                (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug)),
-            );
+        if ($logger === null) {
+            $logger = new Logger('sql_logger');
+            $logger
+                ->pushProcessor(new MemoryUsageProcessor())
+                ->pushHandler(
+                    (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug)),
+                );
+        }
+
         $configuration->setMiddlewares([
             new Middleware($logger),
         ]);

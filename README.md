@@ -1,6 +1,8 @@
 Doctrine Firebird driver
 ---------------------------
 
+[![codecov](https://codecov.io/github/satwareAG/doctrine-firebird-driver/graph/badge.svg?token=O66YV6TGM1)](https://codecov.io/github/satwareAG/doctrine-firebird-driver)
+
 [Firebird](https://firebirdsql.org/) driver for the [Doctrine DBAL](https://github.com/doctrine/dbal)
 
 # Requirements

@@ -21,8 +21,6 @@ use function strlen;
  */
 class DialectTest extends AbstractIntegrationTestCase
 {
-    /** @override */
-
     /**
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception

@@ -19,7 +19,6 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
-use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
@@ -31,8 +30,6 @@ use function fbird_errmsg;
 use function fbird_prepare;
 use function fbird_query;
 use function fbird_rollback;
-use function fbird_server_info;
-use function fbird_service_detach;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -46,17 +43,13 @@ use function str_contains;
 use function str_replace;
 use function str_starts_with;
 
-use const IBASE_SVC_SERVER_VERSION;
-
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
  * and Doctrine\DBAL\Driver\OCI8\Connection
  */
 final class Connection implements ServerInfoAwareConnection
 {
-    private bool $closed = false;
-
-    private ExecutionMode $executionMode;
+    private readonly ExecutionMode $executionMode;
 
     /**
      * Isolation level used when a transaction is started.
@@ -87,19 +80,17 @@ final class Connection implements ServerInfoAwareConnection
     private $firebirdActiveTransaction = null;
 
     /**
-     * @param array<string, mixed> $params
      * @param resource|null        $connection
-     * @param resource|null        $firebirdService
+     * @param array<string, mixed> $params
      *
      * @throws Exception
      */
-    public function __construct(private $connection, private $firebirdService, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
+    public function __construct(private $connection, private readonly string $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
     {
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
         if ($connection !== null) {
             $this->firebirdActiveTransaction = $this->createTransaction();
-            $this->closed                    = false;
         }
 
         foreach ($params as $key => $value) {
@@ -109,14 +100,35 @@ final class Connection implements ServerInfoAwareConnection
 
     public function __destruct()
     {
-        if ($this->closed) {
-            return;
+        $connectionClosable = false;
+        if (is_resource($this->connection)) {
+            $type = get_resource_type($this->connection);
+            if ($type === 'Firebird/InterBase link') {
+                $connectionClosable = true;
+            } elseif ($type === 'Firebird/InterBase persistent link') {
+                $connectionClosable = false;
+            } elseif ($type === 'Unknown') {
+                $this->connection = null;
+            }
         }
 
-        try {
-            $this->close();
-        } catch (Throwable) {
+        if (is_resource($this->firebirdActiveTransaction)) {
+            $type = get_resource_type($this->firebirdActiveTransaction);
+            if ($type === 'Firebird/InterBase transaction') {
+                @fbird_commit($this->firebirdActiveTransaction);
+                @fbird_close($this->firebirdActiveTransaction);
+            }
+
+            unset($this->firebirdActiveTransaction);
+            $this->firebirdActiveTransaction = null;
         }
+
+        if ($connectionClosable) {
+            @fbird_close($this->connection);
+        }
+
+        unset($this->connection);
+        $this->connection = null;
     }
 
     /** @return resource|null */
@@ -167,7 +179,7 @@ final class Connection implements ServerInfoAwareConnection
 
     public function getServerVersion(): string
     {
-        return is_resource($this->firebirdService) ? @fbird_server_info($this->firebirdService, IBASE_SVC_SERVER_VERSION) : '';
+        return $this->serverVersion;
     }
 
     /**
@@ -336,6 +348,8 @@ final class Connection implements ServerInfoAwareConnection
     public function beginTransaction(): bool
     {
         if ($this->fbirdTransactionLevel < 1) {
+            // as Firebird always generates a transaction, we have to commit everything now.
+            fbird_commit($this->firebirdActiveTransaction);
             $this->firebirdActiveTransaction = $this->createTransaction();
             $this->fbirdTransactionLevel++;
         }
@@ -357,7 +371,7 @@ final class Connection implements ServerInfoAwareConnection
 
             $success = @fbird_commit_ret($this->firebirdActiveTransaction);
             if ($success === false) {
-                $this->checkLastApiCall($this->firebirdActiveTransaction);
+                $this->checkLastApiCall();
             }
 
             $this->fbirdTransactionLevel--;
@@ -452,65 +466,16 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Checks fbird_error and raises an exception if an error occured
      *
-     * @param resource|null $transaction
-     *
      * @throws DriverException
      */
-    public function checkLastApiCall($transaction = null): void
+    public function checkLastApiCall(): void
     {
         $lastError = $this->errorInfo();
         if (! isset($lastError['code']) || $lastError['code'] === 0) {
             return;
         }
 
-        if (isset($transaction) && $this->firebirdActiveTransaction < 1) {
-            $result = @fbird_rollback($transaction);
-            if ($result) {
-                $this->firebirdActiveTransaction = $this->createTransaction();
-            }
-        }
-
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
-    }
-
-    public function close(): void
-    {
-        if (
-                   is_resource($this->firebirdActiveTransaction)
-                && get_resource_type($this->firebirdActiveTransaction) !== 'Unknown'
-        ) {
-            if ($this->fbirdTransactionLevel > 0) {
-                $this->rollBack(); // Auto-rollback explicit transactions
-            }
-
-            $this->autoCommit();
-        }
-
-            $success = true;
-
-        while (
-                    is_resource($this->connection)
-                && get_resource_type($this->connection) !== 'Unknown'
-        ) {
-            $success = @fbird_close($this->connection);
-        }
-
-        if (is_resource($this->firebirdService)) {
-            @fbird_service_detach($this->firebirdService);
-            $success = @fbird_close($this->firebirdService);
-        }
-
-            $this->connection                = null;
-            $this->firebirdActiveTransaction = null;
-            $this->fbirdTransactionLevel     = 0;
-
-        if ($success !== false) {
-            $this->closed = true;
-
-            return;
-        }
-
-        $this->checkLastApiCall();
     }
 
     /** @return resource|null */
@@ -527,10 +492,6 @@ final class Connection implements ServerInfoAwareConnection
      */
     private function createTransaction(string|null $sql = null)
     {
-        if (is_resource($this->connection)) {
-            @fbird_commit($this->connection);
-        }
-
         if ($sql === null) {
             $sql = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
         }

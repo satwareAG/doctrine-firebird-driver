@@ -11,13 +11,6 @@ use Throwable;
 
 class StatementTest extends AbstractIntegrationTestCase
 {
-    public function tearDown(): void
-    {
-        $this->connection->close();
-
-        parent::tearDown();
-    }
-
     public function testFetchWorks(): void
     {
         $statement = $this->connection->prepare('SELECT * FROM Album');

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
+use Stringable;
 
 use function is_numeric;
 
-final class FirebirdConnectString
+final class FirebirdConnectString implements Stringable
 {
-    private function __construct(private string $string)
+    private function __construct(private readonly string $string)
     {
     }
 

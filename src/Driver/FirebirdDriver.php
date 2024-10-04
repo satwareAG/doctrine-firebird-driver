@@ -36,6 +36,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
       */
     public function createDatabasePlatformForVersion($version)
     {
+        $versionParts = [];
         if (
             preg_match(
                 '/^(LI|WI)-([VT])(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',

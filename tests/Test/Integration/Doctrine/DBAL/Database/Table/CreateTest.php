@@ -14,11 +14,17 @@ use function preg_match;
 use function strtoupper;
 use function substr;
 
+
 class CreateTest extends AbstractIntegrationTestCase
 {
+    public function setUp(): void
+    {
+        // no Database needed here.
+        $this->_platform = $this->connection->getDatabasePlatform();
+    }
     public function testCreateTable(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
@@ -36,7 +42,7 @@ class CreateTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithPrimaryKey(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
@@ -67,7 +73,7 @@ class CreateTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithPrimaryKeyAndAutoIncrement(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
@@ -110,7 +116,7 @@ class CreateTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithIndex(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('foo', 'integer');
@@ -162,7 +168,7 @@ class CreateTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithUniqueIndex(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $table->addColumn('foo', 'integer');
@@ -194,7 +200,7 @@ class CreateTest extends AbstractIntegrationTestCase
 
     public function testCreateTableWithCommentedColumn(): void
     {
-        $connection = $this->_entityManager->getConnection();
+        $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $table      = new Table($tableName);
         $comment    = 'Lorem ipsum';
