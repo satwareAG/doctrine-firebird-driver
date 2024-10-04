@@ -8,10 +8,9 @@ environment:
     - PHP_VERSION: '8.3'
 
 init:
-  # Install PHP and configure environment variables
-  - ps: Install-Module -Name PHPManager -Force
-  - ps: Install-PackageProvider -Name NuGet -Force
-  - ps: Install-Package -Name php -RequiredVersion $env:PHP_VERSION -Source chocolatey -Force
+  - SET PATH=C:\Program Files\OpenSSL;c:\tools\php;C:\tools\composer;%PATH%
+  - SET COMPOSER_NO_INTERACTION=1
+  - SET ANSICON=121x90 (121x90)
 
 install:
   # Install Firebird
