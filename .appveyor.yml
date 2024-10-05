@@ -24,6 +24,11 @@ environment:
       db_version: 3.0.12
       php: 8.1
 
+init:
+  - SET PATH=C:\Program Files\OpenSSL;c:\tools\php;C:\tools\composer;%PATH%
+  - SET COMPOSER_NO_INTERACTION=1
+  - SET ANSICON=121x90 (121x90)
+
 install:
   # Upgrade to 0.10.16-beta to benefit from a bugfix for
   # https://github.com/chocolatey/choco/issues/1843
@@ -71,13 +76,11 @@ install:
           Set-Content -path 'C:\tools\composer\composer.bat' -Value ('@php C:\tools\composer\composer.phar %*')
         }
       }
-  - ps: |
-      # Install Composer
-      Invoke-WebRequest -Uri https://getcomposer.org/installer -OutFile composer-setup.php
-      php composer-setup.php --install-dir=C:\tools\composer --filename=composer
-      Remove-Item composer-setup.php
-      setx path "%path%;C:\tools\composer"
-      refreshenv
+  # install composer dependencies
+  - cd C:\projects\doctrine-firebird-driver
+  - appveyor-retry composer self-update
+  - appveyor-retry composer install --no-progress --prefer-dist
+
 
 test_script:
   - ps: >-
