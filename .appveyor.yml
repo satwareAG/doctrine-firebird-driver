@@ -31,7 +31,6 @@ install:
   # Install Firebird and start the service, then set SYSDBA password
   - ps: |
       choco install $env:db --version=$env:db_version
-      net start FirebirdServerDefaultInstance
       "C:\\Program Files\\Firebird\\Firebird_3_0\\bin\\gsec.exe -user sysdba -password masterkey -modify sysdba -pw masterkey"
   - ps: |
       # Check if installation is cached
@@ -73,7 +72,7 @@ install:
         }
       }
   # install composer dependencies
-  - cd C:\projects\dbal
+  - cd C:\projects\doctrine-firebird-driver
   - appveyor-retry composer self-update
   - appveyor-retry composer install --no-progress --prefer-dist
 
