@@ -79,7 +79,7 @@ install:
   # install composer dependencies
   - cd C:\projects\doctrine-firebird-driver
   - appveyor-retry composer self-update
-  - appveyor-retry composer install --ignore-platform-req=ext-posix --no-progress --prefer-dist
+  - appveyor-retry composer install --ignore-platform-req=ext-posix --no-progress -quiet --prefer-dist
 
 
 test_script:
