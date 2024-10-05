@@ -84,7 +84,7 @@ install:
 
 test_script:
   - ps: >-
-      vendor\bin\phpunit -c tests\phpunit-appveyor --coverage-clover clover.xml
+      vendor\bin\phpunit -c tests\phpunit-appveyor.xml --coverage-clover clover.xml
 
       if ($LastExitCode -ne 0) {
         $host.SetShouldExit($LastExitCode)
