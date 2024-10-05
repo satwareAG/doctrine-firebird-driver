@@ -37,6 +37,9 @@ install:
   - ps: |
       choco install --no-progress $env:db --version=$env:db_version
       "C:\\Program Files\\Firebird\\Firebird_3_0\\bin\\gsec.exe -user sysdba -password masterkey -modify sysdba -pw masterkey"
+      if (!(Test-Path "C:\\Program Files\\Firebird\\Firebird_3_0\\data")) {
+        New-Item -path "C:\\Program Files\\Firebird\\Firebird_3_0\\" -name data -itemtype directory
+      }
   - ps: |
       # Check if installation is cached
       if (!(Test-Path c:\tools\php)) {
