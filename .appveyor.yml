@@ -50,8 +50,8 @@ install:
       
         $FirebirdDLLVersion = "php_8.1.0-interbase-3.0.1-win-x64-nts.dll"
         cd c:\tools\php\ext
-        $source = "https://github.com/FirebirdSQL/php-firebird/releases/download/v3.0.1/$($env:FirebirdDLLVersion)"
-        $destination = "c:\tools\php\ext\$($env:FirebirdDLLVersion)"
+        $source = "https://github.com/FirebirdSQL/php-firebird/releases/download/v3.0.1/$($FirebirdDLLVersion)"
+        $destination = "c:\tools\php\ext\$($FirebirdDLLVersion)"
         Invoke-WebRequest $source -OutFile $destination
         $DLLVersion = (Invoke-WebRequest "https://pecl.php.net/rest/r/pcov/stable.txt").Content
         Invoke-WebRequest https://windows.php.net/downloads/pecl/releases/pcov/$($DLLVersion)/php_pcov-$($DLLVersion)-$($env:php)-nts-vs16-$($env:platform).zip -OutFile pcov.zip
