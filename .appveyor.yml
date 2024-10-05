@@ -58,7 +58,7 @@ install:
         7z x -y pcov.zip > $null
         Remove-Item c:\tools\php\* -include .zip
         cd c:\tools\php
-        Add-Content php.ini "`nextension=$($env:FirebirdDLLVersion)"
+        Add-Content php.ini "`nextension=$($FirebirdDLLVersion)"
         Add-Content php.ini "`nextension=php_pcov.dll"
         Add-Content php.ini "`n"
       
@@ -71,11 +71,13 @@ install:
           Set-Content -path 'C:\tools\composer\composer.bat' -Value ('@php C:\tools\composer\composer.phar %*')
         }
       }
-  # install composer dependencies
-  - cd C:\projects\doctrine-firebird-driver
-  - appveyor-retry composer self-update
-  - appveyor-retry composer install --no-progress --prefer-dist
-
+  - ps: |
+      # Install Composer
+      Invoke-WebRequest -Uri https://getcomposer.org/installer -OutFile composer-setup.php
+      php composer-setup.php --install-dir=C:\tools\composer --filename=composer
+      Remove-Item composer-setup.php
+      setx path "%path%;C:\tools\composer"
+      refreshenv
 
 test_script:
   - ps: >-
