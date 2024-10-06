@@ -12,7 +12,7 @@
   <php>
     <ini name="error_reporting" value="-1"/>
     <var name="db_driver_class" value="Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver"/>
-    <var name="db_host" value="localhost"/>
+    <var name="db_host" value="127.0.0.1"/>
     <var name="db_user" value="sysdba"/>
     <var name="db_password" value="masterkey"/>
     <var name="db_dbname" value="C:/Program Files/Firebird/Firebird_3_0/data/phpunit-integration-tests.fdb"/>
