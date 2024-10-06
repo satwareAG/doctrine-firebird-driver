@@ -39,7 +39,7 @@ install:
       "C:\\Program Files\\Firebird\\Firebird_3_0\\bin\\gsec.exe -user sysdba -password masterkey -modify sysdba -pw masterkey"
       if (!(Test-Path C:\projects\doctrine-firebird-driver\database)) {
         New-Item -path "C:\projects\doctrine-firebird-driver" -name database -ItemType Directory
-        C:\\Program Files\\Firebird\\Firebird_3_0\\bin\\isql -user sysdba -password masterkey -execute "CREATE DATABASE 'C:\\projects\\doctrine-firebird-driver\\database\\phpunit-integration-tests.fdb' USER 'SYSDBA' PASSWORD 'masterkey' PAGE_SIZE 16384;"
+        & "C:\\Program Files\\Firebird\\Firebird_3_0\\bin\\isql.exe" -user sysdba -password masterkey -execute "CREATE DATABASE 'C:\\projects\\doctrine-firebird-driver\\database\\phpunit-integration-tests.fdb' USER 'SYSDBA' PASSWORD 'masterkey' PAGE_SIZE 16384;"
       }
 
   - ps: |
