@@ -41,8 +41,8 @@ install:
         New-Item -path "C:\\Program Files\\Firebird\\Firebird_3_0\\" -name data -itemtype directory
       }
       if (!(Test-Path C:\projects\doctrine-firebird-driver\database)) {
-        New-Item -path C:\projects\doctrine-firebird-driver -name database -itemtype directory
-        New-Item -Name C:\projects\doctrine-firebird-driver\database\phpunit-integration-tests.fdb -ItemType File
+        New-Item -path "C:\projects\doctrine-firebird-driver" -name database -ItemType Directory
+        New-Item -Name "C:\projects\doctrine-firebird-driver\database\phpunit-integration-tests.fdb" -ItemType File
       }
 
   - ps: |
