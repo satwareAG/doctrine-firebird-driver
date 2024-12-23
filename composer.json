@@ -70,7 +70,7 @@
         "doctrine/deprecations": "^0.5.3|^1",
         "doctrine/orm": "^3.0",
         "fig/log-test": "^1",
-        "jetbrains/phpstorm-stubs": "2024.2",
+        "jetbrains/phpstorm-stubs": "2024.3",
         "monolog/monolog": "^3.7",
         "phpstan/phpstan": "1.12.5",
         "phpstan/phpstan-doctrine": "^1.5",
