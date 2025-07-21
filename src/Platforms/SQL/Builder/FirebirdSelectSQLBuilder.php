@@ -43,6 +43,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
             $parts[] = 'WHERE ' . $where;
         }
 
+/*  gehört an Ende des SQL strings
         $forUpdate = $query->getForUpdate();
 
         if ($forUpdate !== null) {
@@ -60,7 +61,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
                 $parts[] = ' ' . $this->skipLockedSQL;
             }
         }
-
+*/
         $groupBy = $query->getGroupBy();
 
         if (count($groupBy) > 0) {
@@ -85,6 +86,24 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
         if ($limit->isDefined()) {
             $sql = $this->platform->modifyLimitQuery($sql, $limit->getMaxResults(), $limit->getFirstResult());
         }
+
+        $forUpdate = $query->getForUpdate();
+
+        if ($forUpdate !== null) {
+            if ($this->forUpdateSQL === null) {
+                throw Exception::notSupported('FOR UPDATE');
+            }
+
+            $sql .=  ' ' .  $this->forUpdateSQL;
+
+            if ($forUpdate->getConflictResolutionMode() === ConflictResolutionMode::SKIP_LOCKED) {
+                if ($this->skipLockedSQL === null) {
+                    throw Exception::notSupported('SKIP LOCKED');
+                }
+             //   $parts[] = ' ' . $this->skipLockedSQL;
+            }
+        }
+
 
         return $sql;
     }
