@@ -43,25 +43,6 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
             $parts[] = 'WHERE ' . $where;
         }
 
-/*  gehört an Ende des SQL strings
-        $forUpdate = $query->getForUpdate();
-
-        if ($forUpdate !== null) {
-            if ($this->forUpdateSQL === null) {
-                throw Exception::notSupported('FOR UPDATE');
-            }
-
-            $parts[] =  $this->forUpdateSQL;
-
-            if ($forUpdate->getConflictResolutionMode() === ConflictResolutionMode::SKIP_LOCKED) {
-                if ($this->skipLockedSQL === null) {
-                    throw Exception::notSupported('SKIP LOCKED');
-                }
-
-                $parts[] = ' ' . $this->skipLockedSQL;
-            }
-        }
-*/
         $groupBy = $query->getGroupBy();
 
         if (count($groupBy) > 0) {
@@ -100,7 +81,8 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
                 if ($this->skipLockedSQL === null) {
                     throw Exception::notSupported('SKIP LOCKED');
                 }
-             //   $parts[] = ' ' . $this->skipLockedSQL;
+
+                $sql .= ' ' . $this->skipLockedSQL;
             }
         }
 
