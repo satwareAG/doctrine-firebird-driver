@@ -8,9 +8,11 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function strpos;
+
 /**
  * Test for Issue #17: WITH LOCK must be positioned AFTER ORDER BY and ROWS clauses
- * 
+ *
  * Firebird expects: SELECT ... FROM ... ORDER BY ... ROWS ... WITH LOCK
  * Bug was: SELECT ... FROM ... WITH LOCK ORDER BY ...
  */
@@ -38,7 +40,7 @@ final class ForUpdateWithLockPositionTest extends FunctionalTestCase
 
         // Verify ORDER BY comes before ROWS
         $orderByPos = strpos($sql, 'ORDER BY');
-        $rowsPos = strpos($sql, 'ROWS');
+        $rowsPos    = strpos($sql, 'ROWS');
         self::assertLessThan($rowsPos, $orderByPos, 'ORDER BY must come before ROWS');
 
         // Verify ROWS comes before WITH LOCK (this is the critical test for issue #17)
@@ -70,7 +72,7 @@ final class ForUpdateWithLockPositionTest extends FunctionalTestCase
         self::assertMatchesRegularExpression(
             $expectedPattern,
             $sql,
-            'SQL must have ORDER BY before ROWS before WITH LOCK'
+            'SQL must have ORDER BY before ROWS before WITH LOCK',
         );
 
         // Ensure WITH LOCK is NOT before ORDER BY (the bug reported in #17)
@@ -78,7 +80,7 @@ final class ForUpdateWithLockPositionTest extends FunctionalTestCase
         self::assertDoesNotMatchRegularExpression(
             $wrongPattern,
             $sql,
-            'SQL must NOT have WITH LOCK before ORDER BY (Issue #17 bug)'
+            'SQL must NOT have WITH LOCK before ORDER BY (Issue #17 bug)',
         );
     }
 
