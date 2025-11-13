@@ -38,6 +38,9 @@ final class Driver extends FirebirdDriver
         #[SensitiveParameter]
         array $params,
     ): Connection {
+        // Store Firebird-specific options for platform configuration
+        $this->firebirdOptions = $params['firebird'] ?? [];
+
         $host       = $params['host'] ?? 'localhost';
         $username   = $params['user'] ?? 'SYSDBA';
         $password   = $params['password'] ?? 'masterkey';

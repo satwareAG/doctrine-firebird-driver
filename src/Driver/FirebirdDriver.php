@@ -14,6 +14,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
 use function assert;
@@ -30,6 +31,13 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     public const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
 
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
+
+    /**
+     * Firebird-specific connection options.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $firebirdOptions = [];
 
      /**
       * {@inheritDoc}
@@ -56,13 +64,17 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
         $buildVersion = $versionParts['build'] ?? 0;
         $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
 
-        return match (true) {
+        $platform = match (true) {
             version_compare($version, '6.0', '>=') => new Firebird5Platform(),
             version_compare($version, '5.0', '>=') => new Firebird5Platform(),
             version_compare($version, '4.0', '>=') => new Firebird4Platform(),
             version_compare($version, '3.0', '>=') => new Firebird3Platform(),
             default => new FirebirdPlatform(),
         };
+
+        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
+
+        return $platform;
     }
 
     /**
@@ -72,7 +84,10 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
      */
     public function getDatabasePlatform()
     {
-        return new FirebirdPlatform();
+        $platform = new FirebirdPlatform();
+        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
+
+        return $platform;
     }
 
     public function getExceptionConverter(): ExceptionConverter
