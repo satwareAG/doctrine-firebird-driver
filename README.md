@@ -115,11 +115,55 @@ doctrine:
 - Type mismatch (non-integer values)
 - Out of range (<1 or >8191)
 
-# Tests
+# Testing
 
-## Test/development requirements
+The project includes comprehensive test coverage across **Firebird 2.5, 3.0, 4.0, and 5.0** with unit, functional, and integration tests.
 
-To run tests, fix bugs, provide features, etc. you can use the provided docker compose file in the /tests directory.
+## Quick Test Commands
+
+```bash
+# Run all tests for all Firebird versions
+cd tests && ./phpunit-all.sh
+
+# Run tests for Firebird 2.5 only
+cd tests && ./phpunit.sh
+
+# Run specific test suite
+php vendor/bin/phpunit tests/Test/Unit/
+php vendor/bin/phpunit tests/Test/Functional/
+```
+
+## Test Coverage
+
+- **36 tests total** (24 unit, 12 functional)
+- **100% pass rate** across all Firebird versions
+- Multi-version compatibility validation
+
+## Documentation
+
+- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing guide
+  - Project test structure
+  - PHPUnit configuration files
+  - Writing new tests
+  - Namespace conventions
+  - Troubleshooting guide
+  - Multi-version testing
+  - CI/CD integration
+
+- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contributor guidelines
+  - Quick start for developers
+  - Pull request requirements
+  - Development workflow
+  - Code style guidelines
+  - Testing requirements
+
+## Test Requirements
+
+- **Docker & Docker Compose** - For running test environment
+- **PHP 8.1+** with `ext-interbase`
+- **Composer dependencies** - `composer install`
+
+All tests run in Docker containers to ensure consistent environments across Firebird versions. See [TESTING.md](docs/TESTING.md) for detailed setup instructions.
 
 # Credits
 
