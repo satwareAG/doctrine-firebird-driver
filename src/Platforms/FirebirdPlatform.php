@@ -23,6 +23,7 @@ use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
@@ -72,9 +73,15 @@ class FirebirdPlatform extends AbstractPlatform
      */
     private bool $useSmallIntBoolean = true;
 
+    /**
+     * Platform configuration for customizable parameters
+     */
+    private FirebirdPlatformConfiguration $configuration;
+
     public function __construct()
     {
         Type::overrideType('boolean', FirebirdBooleanType::class);
+        $this->configuration = new FirebirdPlatformConfiguration([]);
     }
 
     public function setCharTrue(string $char): FirebirdPlatform
@@ -96,6 +103,40 @@ class FirebirdPlatform extends AbstractPlatform
         $this->useSmallIntBoolean = $useSmallIntBoolean;
 
         return $this;
+    }
+
+    /**
+     * Sets the platform configuration
+     *
+     * @param FirebirdPlatformConfiguration $configuration Platform configuration
+     *
+     * @return $this
+     */
+    public function setConfiguration(FirebirdPlatformConfiguration $configuration): self
+    {
+        $this->configuration = $configuration;
+
+        return $this;
+    }
+
+    /**
+     * Gets the platform configuration
+     */
+    public function getConfiguration(): FirebirdPlatformConfiguration
+    {
+        return $this->configuration;
+    }
+
+    /**
+     * Returns the maximum VARCHAR length for LIKE column CAST operations
+     *
+     * This value can be configured via the platform configuration.
+     * Default: 255 (backward compatible)
+     * Range: 1-8191 (Firebird VARCHAR limit for UTF-8)
+     */
+    public function getLikeCastLength(): int
+    {
+        return $this->configuration->getLikeCastLength();
     }
 
     /**
@@ -1732,7 +1773,7 @@ SQL
 
     protected function getVarcharMaxCastLength(): int
     {
-        return 255;
+        return $this->configuration->getLikeCastLength();
     }
 
     private function getBooleanDatabaseValue(mixed $value): bool|int|string

@@ -51,9 +51,12 @@ final class FirebirdPlatformConfiguration
      */
     public function __construct(array $options = [])
     {
-        $this->likeCastLength = $this->validateLikeCastLength(
-            $options['like_cast_length'] ?? self::DEFAULT_LIKE_CAST_LENGTH,
-        );
+        // Use default if key doesn't exist, but validate if explicitly provided
+        $value = array_key_exists('like_cast_length', $options)
+            ? $options['like_cast_length']
+            : self::DEFAULT_LIKE_CAST_LENGTH;
+
+        $this->likeCastLength = $this->validateLikeCastLength($value);
     }
 
     /**
