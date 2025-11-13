@@ -37,6 +37,17 @@ Via Github:
 
     git clone https://github.com/satwareAG/doctrine-firebird-driver.git
 
+## Working with LIKE Expressions
+
+Firebird has a known issue where `LIKE` parameters longer than a column’s `VARCHAR` length can cause silent query failures (zero rows returned instead of an error). This driver automatically wraps the left operand of `LIKE`/`NOT LIKE` with `CAST(column AS VARCHAR(255))` to prevent this behavior.
+
+**Performance note:** Casting disables index usage for that predicate and can trigger full table scans on large tables. To mitigate:
+- Filter by indexed columns first in the `WHERE` clause.
+- Validate parameter length at the application layer when appropriate.
+- See our [Best Practices Guide](docs/firebird-like-best-practices.md) for detailed strategies and examples.
+
+**Validated across:** Firebird 2.5, 3.0, 4.0, 5.0 (24/24 tests passing)
+
 ## Configuration
 
 ### Manual configuration
