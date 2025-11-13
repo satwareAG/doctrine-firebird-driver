@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function assert;
 use function count;
@@ -18,16 +19,6 @@ use function sprintf;
 
 final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 {
-    /**
-     * Maximum VARCHAR length for CAST wrapper in LIKE expressions.
-     *
-     * This value is used to prevent silent query failures when LIKE parameters
-     * exceed the actual VARCHAR field length in Firebird.
-     *
-     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/16
-     */
-    private const CAST_VARCHAR_LENGTH = 255;
-
     /** @internal The SQL builder should be instantiated only by database platforms. */
     public function __construct(private AbstractPlatform $platform, private string|null $forUpdateSQL, private string|null $skipLockedSQL)
     {
@@ -134,6 +125,10 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
      */
     private function wrapLikeColumnsWithCast(string $expression): string
     {
+        // Get CAST length from platform configuration (supports dynamic configuration)
+        assert($this->platform instanceof FirebirdPlatform);
+        $castLength = $this->platform->getLikeCastLength();
+
         // Match LIKE expressions with column operands
         // Pattern captures:
         // - Group 1: column name (with optional table/schema prefix and alias)
@@ -141,16 +136,16 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
         // - Group 3: parameter placeholder (? or :name)
         $pattern = '/(\w+(?:\.\w+)*)\s+(NOT\s+)?LIKE\s+([?:][\w]*)/i';
 
-        $result = preg_replace_callback($pattern, static function ($matches) {
+        $result = preg_replace_callback($pattern, static function ($matches) use ($castLength) {
             $column    = $matches[1];
             $not       = $matches[2];  // 'NOT ' or empty string when optional group doesn't match
             $parameter = $matches[3];
 
-            // Wrap column in CAST to VARCHAR(255)
+            // Wrap column in CAST to configured VARCHAR length
             return sprintf(
                 'CAST(%s AS VARCHAR(%d)) %sLIKE %s',
                 $column,
-                self::CAST_VARCHAR_LENGTH,
+                $castLength,
                 $not,
                 $parameter,
             );
