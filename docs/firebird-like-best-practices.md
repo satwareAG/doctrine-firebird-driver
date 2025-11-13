@@ -1044,11 +1044,13 @@ All LIKE column operands are automatically wrapped with `CAST(column AS VARCHAR(
 
 ---
 
-### Phase 1: Configurable CAST Length (Upcoming)
+### Phase 1: Configurable CAST Length ✅ IMPLEMENTED
 
-**Status:** ⚠️ **Planned feature** (Phase 1 of roadmap)
+**Status:** ✅ **Available Now**
 
-Future releases will allow customization of the CAST VARCHAR length per connection, enabling applications to adjust the trade-off between safety and performance based on their specific requirements.
+This feature allows customization of the CAST VARCHAR length per connection, enabling applications to adjust the trade-off between safety and performance based on their specific requirements.
+
+**Documentation:** See README.md for complete configuration guide.
 
 ---
 

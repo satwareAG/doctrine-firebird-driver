@@ -50,15 +50,43 @@ Firebird has a known issue where `LIKE` parameters longer than a column’s `VAR
 
 ## Configuration
 
-### Manual configuration
+### Configurable LIKE CAST Length
 
-### Symfony configuration (YAML)
+The driver wraps LIKE column operands in `CAST(column AS VARCHAR(length))` to prevent silent query failures when parameters exceed column lengths. The CAST length is configurable:
+
+**Default:** `255` (backward compatible)  
+**Range:** `1` to `8191` (Firebird VARCHAR limit)  
+**Parameter:** `firebird.like_cast_length`
+
+#### Manual Configuration
+
+```php
+use Doctrine\DBAL\DriverManager;
+
+$params = [
+    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'host'         => 'localhost',
+    'dbname'       => '/path/to/database.fdb',
+    'user'         => 'SYSDBA',
+    'password'     => 'masterkey',
+    'charset'      => 'UTF8',
+    
+    // Optional: Configure LIKE CAST length (default: 255)
+    'firebird'     => [
+        'like_cast_length' => 500,  // Increase for longer search parameters
+    ],
+];
+
+$connection = DriverManager::getConnection($params);
+```
+
+#### Symfony Configuration (YAML)
 
 This driver may be used like any other Doctrine DBAL driver in [Symfony](https://symfony.com/), e.g. with [doctrine/doctrine-bundle](https://packagist.org/packages/doctrine/doctrine-bundle). However, the `driver_class` option must be specified instead of simply `driver`. This is due to the driver not being part of the [core Doctrine DBAL library](https://github.com/doctrine/dbal).
 
 Sample YAML configuration:
 
-```
+```yaml
 doctrine:
     dbal:
         default_connection: default
@@ -71,7 +99,21 @@ doctrine:
                 user:           "%database_user%"
                 password:       "%database_password%"
                 charset:        "UTF-8"
+                
+                # Optional: Configure Firebird-specific options
+                options:
+                    firebird:
+                        like_cast_length: 500  # Default: 255
 ```
+
+**When to adjust `like_cast_length`:**
+- **100-255**: Small text fields, optimized performance
+- **500-1000**: Medium text fields, typical applications
+- **1000-8191**: Large text fields, full-text search (slower)
+
+**Invalid configurations throw `InvalidConfigurationException`:**
+- Type mismatch (non-integer values)
+- Out of range (<1 or >8191)
 
 # Tests
 
@@ -134,4 +176,3 @@ You can reference the following resources for guidance:
 
 The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit and Integration Tests against all Firebird Server Versions.
 Have an eye on modern development principles, performance and security.
-

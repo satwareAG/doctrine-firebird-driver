@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use SensitiveParameter;
 
 use function fbird_close;
@@ -40,6 +41,9 @@ final class Driver extends FirebirdDriver
     ): Connection {
         // Store Firebird-specific options for platform configuration
         $this->firebirdOptions = $params['firebird'] ?? [];
+
+        // Validate configuration early (fail-fast)
+        new FirebirdPlatformConfiguration($this->firebirdOptions);
 
         $host       = $params['host'] ?? 'localhost';
         $username   = $params['user'] ?? 'SYSDBA';
