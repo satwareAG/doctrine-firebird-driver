@@ -14,6 +14,8 @@ final class FetchEmptyTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+        
         $this->query = sprintf(
             'SELECT * FROM (%s) t WHERE 1 = 0',
             $this->connection->getDatabasePlatform()

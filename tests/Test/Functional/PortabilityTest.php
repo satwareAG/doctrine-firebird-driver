@@ -129,6 +129,7 @@ class PortabilityTest extends FunctionalTestCase
     {
         // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
         // see https://github.com/doctrine/dbal/issues/4515
+        $this->markConnectionNotReusable();
         $this->connection->close();
     }
 
@@ -144,8 +145,8 @@ class PortabilityTest extends FunctionalTestCase
      /** @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case */
     private function connectWithPortability(int $mode, int $case): void
     {
-        // closing the default connection prior to 4.0.0 to prevent connection leak
-        $this->connection->close();
+        // Mark connection not reusable - framework will handle cleanup
+        $this->markConnectionNotReusable();
 
         $configuration = $this->connection->getConfiguration();
         $configuration->setMiddlewares(

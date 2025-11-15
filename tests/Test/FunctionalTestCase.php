@@ -115,6 +115,12 @@ abstract class FunctionalTestCase extends TestCase
             return;
         }
 
+        // Close the current connection (which might be different from shared if test replaced it)
+        if (isset($this->connection)) {
+            $this->connection->close();
+        }
+
+        // Also close and reset the shared connection reference
         if (self::$sharedConnection instanceof Connection) {
             self::$sharedConnection->close();
             self::$sharedConnection = null;

@@ -40,6 +40,7 @@ final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
         
         self::assertSame(100, $platform->getLikeCastLength());
         
+        $this->markConnectionNotReusable();
         $connection->close();
     }
 
@@ -56,6 +57,7 @@ final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
         
         self::assertSame(500, $platform->getLikeCastLength());
         
+        $this->markConnectionNotReusable();
         $connection->close();
     }
 
@@ -72,6 +74,7 @@ final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
         
         self::assertSame(1000, $platform->getLikeCastLength());
         
+        $this->markConnectionNotReusable();
         $connection->close();
     }
 
@@ -88,6 +91,7 @@ final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
         
         self::assertSame(8191, $platform->getLikeCastLength());
         
+        $this->markConnectionNotReusable();
         $connection->close();
     }
 
@@ -112,6 +116,7 @@ final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
         // Verify CAST with configured length (500) instead of default (255)
         self::assertStringContainsString('CAST(column1 AS VARCHAR(500))', $sql);
         
+        $this->markConnectionNotReusable();
         $connection->close();
     }
 }

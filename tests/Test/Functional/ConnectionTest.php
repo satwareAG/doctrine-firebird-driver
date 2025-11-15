@@ -84,6 +84,7 @@ class ConnectionTest extends FunctionalTestCase
         }
 
         $this->connection->beginTransaction();
+        $this->markConnectionNotReusable();
         $this->connection->close();
         $this->connection->beginTransaction();
         self::assertSame(1, $this->connection->getTransactionNestingLevel());
@@ -98,6 +99,7 @@ class ConnectionTest extends FunctionalTestCase
 
         $this->connection->beginTransaction();
         $this->connection->beginTransaction();
+        $this->markConnectionNotReusable();
         $connection->close(); // connection closed in runtime (for example if lost or another application logic)
 
         $connection->beginTransaction();
@@ -204,6 +206,7 @@ class ConnectionTest extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 2]);
         $this->connection->commit();
         self::assertSame(0, $this->connection->getTransactionNestingLevel());
+        $this->markConnectionNotReusable();
         $this->connection->close();
     }
 
