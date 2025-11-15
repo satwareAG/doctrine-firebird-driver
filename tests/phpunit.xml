@@ -7,6 +7,8 @@
          failOnRisky="true"
          failOnWarning="true"
          convertDeprecationsToExceptions="true"
+         stopOnError="false"
+         stopOnFailure="false"
          bootstrap="phpunit.bootstrap.php"
 >
   <php>
