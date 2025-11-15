@@ -12,7 +12,7 @@ final class FetchEmptyTest extends FunctionalTestCase
 {
     private string $query;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->query = sprintf(
             'SELECT * FROM (%s) t WHERE 1 = 0',

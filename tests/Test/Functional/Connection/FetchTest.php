@@ -15,7 +15,7 @@ class FetchTest extends FunctionalTestCase
 {
     private string $query;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->query = TestUtil::generateResultSetQuery([
             [
