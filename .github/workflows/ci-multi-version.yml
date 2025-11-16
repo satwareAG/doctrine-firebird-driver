@@ -1,0 +1,131 @@
+name: Multi-Version CI (PHP × Firebird Matrix)
+
+on:
+  push:
+    branches:
+      - '3.0.*'
+      - '3.10-dev'
+  pull_request:
+    branches:
+      - '3.0.*'
+      - '3.10-dev'
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird-version }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false  # Allow all combinations to complete independently
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        firebird-version: ['2.5', '3.0', '4.0', '5.0']
+        include:
+          # Firebird 2.5 configuration
+          - firebird-version: '2.5'
+            firebird-image: 'jacobalberty/firebird:2.5-sc'
+            firebird-service: 'firebird25'
+            phpunit-config: 'phpunit-firebird25.xml'
+          # Firebird 3.0 configuration
+          - firebird-version: '3.0'
+            firebird-image: 'jacobalberty/firebird:v3'
+            firebird-service: 'firebird3'
+            phpunit-config: 'phpunit.xml'
+          # Firebird 4.0 configuration
+          - firebird-version: '4.0'
+            firebird-image: 'jacobalberty/firebird:v4'
+            firebird-service: 'firebird4'
+            phpunit-config: 'phpunit-firebird4.xml'
+          # Firebird 5.0 configuration
+          - firebird-version: '5.0'
+            firebird-image: 'jacobalberty/firebird:v5'
+            firebird-service: 'firebird5'
+            phpunit-config: 'phpunit-firebird5.xml'
+
+    # Start Firebird service container matching matrix combination
+    # Service accessible via hostname 'firebird' (overrides phpunit config db_host)
+    services:
+      firebird:
+        image: ${{ matrix.firebird-image }}
+        env:
+          ISC_PASSWORD: masterkey
+          TZ: Europe/Berlin
+        options: >-
+          --health-cmd "echo 'SELECT 1 FROM RDB\$DATABASE;' | isql -user sysdba -password masterkey localhost:/firebird/data/test.fdb || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: interbase, mbstring, xml, curl, json
+          coverage: pcov
+          ini-values: memory_limit=4G
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Wait for Firebird to be ready
+        run: |
+          echo "Waiting for Firebird ${{ matrix.firebird-version }} service..."
+          sleep 10
+
+      - name: Run PHPUnit tests
+        run: |
+          # Override db_host to 'firebird' (GitHub Actions service hostname)
+          # phpunit configs expect version-specific names (firebird3, firebird25, etc.)
+          # but service is accessible via 'firebird' in matrix strategy
+          vendor/bin/phpunit --configuration tests/${{ matrix.phpunit-config }} \
+            --php db_host=firebird \
+            --coverage-clover coverage-${{ matrix.php-version }}-${{ matrix.firebird-version }}.xml \
+            --log-junit junit-${{ matrix.php-version }}-${{ matrix.firebird-version }}.xml
+
+      - name: Upload code coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.php-version == '8.4' && matrix.firebird-version == '5.0'
+        with:
+          files: coverage-${{ matrix.php-version }}-${{ matrix.firebird-version }}.xml
+          flags: php-${{ matrix.php-version }},firebird-${{ matrix.firebird-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        uses: codecov/test-results-action@v1
+        if: ${{ !cancelled() }}
+        with:
+          files: junit-${{ matrix.php-version }}-${{ matrix.firebird-version }}.xml
+          flags: php-${{ matrix.php-version }},firebird-${{ matrix.firebird-version }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Summary job that requires all matrix combinations to pass
+  ci-success:
+    name: CI Matrix Success
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check matrix job results
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ One or more matrix combinations failed"
+            exit 1
+          fi
+          echo "✅ All PHP × Firebird combinations passed"
