@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Issue #22: [FB 2.5] Connection Resource Invalidation in Fetch Tests**
+  - Fixed 22 test failures (16 in FetchTest, 6 in FetchEmptyTest) caused by invalid `parent::setUp()` calls
+  - Root cause: Child test classes called `parent::setUp()` when parent class `FunctionalTestCase` uses `@before` annotation for `initConnection()`
+  - Invalid parent calls attempted to execute non-existent setUp() method, invalidating database connection resources
+  - Fix: Removed invalid `parent::setUp()` calls from both test classes, keeping custom setup logic
+  - Result: All 1253 tests passing across all Firebird versions (2.5, 3.0, 4.0, 5.0)
+  - Validated: Connection resources remain valid throughout test lifecycle
+  - See: `docs/issues/2025-11-15-solution-summary.md` for complete technical analysis
 - **Issue #16: LIKE Expression Silent Failures with Oversized Parameters**
   - Fixed silent query failures when LIKE parameters exceed VARCHAR field length
   - Automatically wraps LIKE column operands in `CAST(column AS VARCHAR(255))`
@@ -16,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validated across Firebird 2.5, 3.0, 4.0, and 5.0 - consistent behavior (24/24 tests passed)
   - **Performance Impact**: CAST prevents index usage, requires full table scan
   - **Mitigation**: For performance-critical queries, filter by indexed columns first or validate parameters at application level
-  - See: https://github.com/satwareAG/doctrine-firebird-driver/issues/16
 
 ### Added
 - **Configurable LIKE CAST Length** (`firebird.like_cast_length` parameter)
