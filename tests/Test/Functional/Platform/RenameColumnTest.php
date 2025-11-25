@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
@@ -14,7 +15,7 @@ use function strtolower;
 
 class RenameColumnTest extends FunctionalTestCase
 {
-    /** @dataProvider columnNameProvider */
+    #[DataProvider('columnNameProvider')]
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void
     {
         $table = new Table('test_rename');

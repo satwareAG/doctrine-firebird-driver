@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 final class ConcatExpressionTest extends FunctionalTestCase
 {
     /**
      * @param list<string> $arguments
-     *
-     * @dataProvider expressionProvider
      */
+    #[DataProvider('expressionProvider')]
     public function testConcatExpression(array $arguments, string $expected): void
     {
         $platform = $this->connection->getDatabasePlatform();

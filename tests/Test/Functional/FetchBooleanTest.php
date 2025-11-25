@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class FetchBooleanTest extends FunctionalTestCase
 {
-    /** @dataProvider booleanLiteralProvider */
+    #[DataProvider('booleanLiteralProvider')]
     public function testBooleanConversionSqlLiteral(string $literal, bool $expected): void
     {
         self::assertSame([$expected], $this->connection->fetchNumeric(

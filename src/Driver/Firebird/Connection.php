@@ -115,8 +115,8 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                @fbird_commit($this->firebirdActiveTransaction);
-                @fbird_close($this->firebirdActiveTransaction);
+                fbird_commit($this->firebirdActiveTransaction);
+                fbird_close($this->firebirdActiveTransaction);
             }
 
             unset($this->firebirdActiveTransaction);
@@ -124,7 +124,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($connectionClosable) {
-            @fbird_close($this->connection);
+            fbird_close($this->connection);
         }
 
         unset($this->connection);
@@ -220,7 +220,7 @@ final class Connection implements ServerInfoAwareConnection
 
         return new Statement(
             $this,
-            @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
+            fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
             $visitor->getParameterMap(),
         );
     }
@@ -369,7 +369,7 @@ final class Connection implements ServerInfoAwareConnection
                 ));
             }
 
-            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
+            $success = fbird_commit_ret($this->firebirdActiveTransaction);
             if ($success === false) {
                 $this->checkLastApiCall();
             }
@@ -378,7 +378,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($this->fbirdTransactionLevel === 0) {
-            @fbird_commit($this->firebirdActiveTransaction);
+            fbird_commit($this->firebirdActiveTransaction);
             $this->firebirdActiveTransaction = $this->createTransaction();
         }
 
@@ -405,7 +405,7 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
-        $success = @fbird_commit_ret($this->firebirdActiveTransaction);
+        $success = fbird_commit_ret($this->firebirdActiveTransaction);
         if ($success !== false) {
             return;
         }
@@ -428,7 +428,7 @@ final class Connection implements ServerInfoAwareConnection
                 ));
             }
 
-            $success = @fbird_rollback($this->firebirdActiveTransaction);
+            $success = fbird_rollback($this->firebirdActiveTransaction);
             if ($success === false) {
                 $this->checkLastApiCall();
             }
@@ -449,11 +449,11 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function errorInfo(): array
     {
-        $errorCode = @fbird_errcode();
+        $errorCode = fbird_errcode();
         if ($errorCode !== false) {
             return [
                 'code' => $errorCode,
-                'message' => @fbird_errmsg(),
+                'message' => fbird_errmsg(),
             ];
         }
 
@@ -500,7 +500,7 @@ final class Connection implements ServerInfoAwareConnection
             $this->checkLastApiCall();
         }
 
-        $result = @fbird_query($this->connection, $sql);
+        $result = fbird_query($this->connection, $sql);
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();

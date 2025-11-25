@@ -6,13 +6,14 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function key;
 
 class QuotingTest extends FunctionalTestCase
 {
-    /** @dataProvider stringLiteralProvider */
+    #[DataProvider('stringLiteralProvider')]
     public function testQuoteStringLiteral(string $string): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -23,7 +24,7 @@ class QuotingTest extends FunctionalTestCase
         self::assertSame($string, $this->connection->fetchOne($query));
     }
 
-    /** @dataProvider identifierProvider */
+    #[DataProvider('identifierProvider')]
     public function testQuoteIdentifier(string $identifier): void
     {
         $platform = $this->connection->getDatabasePlatform();

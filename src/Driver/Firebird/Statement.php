@@ -23,11 +23,8 @@ use function fbird_execute;
 use function fbird_free_query;
 use function fclose;
 use function feof;
-use function fopen;
 use function fread;
-use function fseek;
 use function func_num_args;
-use function fwrite;
 use function get_resource_type;
 use function is_int;
 use function is_resource;
@@ -78,8 +75,8 @@ class Statement implements StatementInterface
         }
 
         if ($statementType === 'interbase query') {
-            @fbird_free_query($this->statement);
-            @fbird_close($this->statement);
+            fbird_free_query($this->statement);
+            fbird_close($this->statement);
             unset($this->statement);
         }
 
@@ -140,18 +137,10 @@ class Statement implements StatementInterface
         }
 
         if ($type === ParameterType::LARGE_OBJECT) {
-            if ($variable !== null) {
-                $blobResource = @fbird_blob_create($this->connection->getActiveTransaction());
+            if ($variable !== null && is_resource($variable)) {
+                $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
                 if (! is_resource($blobResource)) {
-                    throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) fbird_errcode());
-                }
-
-                if (! is_resource($variable)) {
-                    $fp = fopen('php://temp', 'rb+');
-                    assert(is_resource($fp));
-                    fwrite($fp, $variable);
-                    fseek($fp, 0);
-                    $variable = $fp;
+                    throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
                 }
 
                 while (! feof($variable)) {
@@ -160,12 +149,12 @@ class Statement implements StatementInterface
                         continue;
                     }
 
-                    @fbird_blob_add($blobResource, $chunk);
+                    fbird_blob_add($blobResource, $chunk);
                 }
 
                 fclose($variable);
                 // Close the BLOB
-                $variable = @fbird_blob_close($blobResource);
+                $variable = fbird_blob_close($blobResource);
                 $type     = ParameterType::STRING;
             }
         }
@@ -222,7 +211,7 @@ class Statement implements StatementInterface
             ksort($callArgs);
             array_unshift($callArgs, $this->statement);
 
-            $fbirdResultRc = @fbird_execute(...$callArgs);
+            $fbirdResultRc = fbird_execute(...$callArgs);
             if ($fbirdResultRc === false) {
                 $this->connection->checkLastApiCall();
             }

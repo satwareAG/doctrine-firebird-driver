@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms\Exception;
 
 use Exception;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Platforms\Exception\InvalidConfigurationException;
 
@@ -24,7 +25,7 @@ final class InvalidConfigurationExceptionTest extends TestCase
         self::assertInstanceOf(InvalidConfigurationException::class, $exception);
     }
 
-    /** @dataProvider provideTypeMismatchData */
+    #[DataProvider('provideTypeMismatchData')]
     public function testTypeMismatchCreatesCorrectMessage(
         string $paramName,
         string $expectedType,
@@ -36,7 +37,7 @@ final class InvalidConfigurationExceptionTest extends TestCase
         self::assertSame($expectedMessage, $exception->getMessage());
     }
 
-    public function provideTypeMismatchData(): Iterator
+    public static function provideTypeMismatchData(): Iterator
     {
         yield 'integer expected, string given' => [
             'like_cast_length',
@@ -67,7 +68,7 @@ final class InvalidConfigurationExceptionTest extends TestCase
         ];
     }
 
-    /** @dataProvider provideRangeValidationData */
+    #[DataProvider('provideRangeValidationData')]
     public function testRangeValidationCreatesCorrectMessage(
         string $paramName,
         int $min,
@@ -80,7 +81,7 @@ final class InvalidConfigurationExceptionTest extends TestCase
         self::assertSame($expectedMessage, $exception->getMessage());
     }
 
-    public function provideRangeValidationData(): Iterator
+    public static function provideRangeValidationData(): Iterator
     {
         yield 'value below minimum' => [
             'like_cast_length',

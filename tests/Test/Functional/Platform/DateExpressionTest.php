@@ -7,13 +7,14 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
 
 class DateExpressionTest extends FunctionalTestCase
 {
-    /** @dataProvider differenceProvider */
+    #[DataProvider('differenceProvider')]
     public function testDifference(string $date1, string $date2, int $expected): void
     {
         $table = new Table('date_expr_test');

@@ -25,6 +25,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function implode;
@@ -71,7 +72,7 @@ abstract class PlatformTestCase extends TestCase
         self::assertSame(str_repeat($c, 4), $this->platform->quoteSingleIdentifier($c));
     }
 
-    /** @dataProvider getReturnsForeignKeyReferentialActionSQL */
+    #[DataProvider('getReturnsForeignKeyReferentialActionSQL')]
     public function testReturnsForeignKeyReferentialActionSQL(string $action, string $expectedSQL): void
     {
         self::assertSame($expectedSQL, $this->platform->getForeignKeyReferentialActionSQL($action));
@@ -172,25 +173,22 @@ abstract class PlatformTestCase extends TestCase
         self::assertTrue($this->platform->isCommentedDoctrineType($type));
     }
 
-    /** @dataProvider getIsCommentedDoctrineType */
-    public function testIsCommentedDoctrineType(Type $type, bool $commented): void
+    #[DataProvider('getIsCommentedDoctrineType')]
+    public function testIsCommentedDoctrineType(string $typeName): void
     {
+        $type      = Type::getType($typeName);
+        $commented = $type->requiresSQLCommentHint($this->platform);
         self::assertSame($commented, $this->platform->isCommentedDoctrineType($type));
     }
 
     /** @return mixed[] */
-    public function getIsCommentedDoctrineType(): iterable
+    public static function getIsCommentedDoctrineType(): iterable
     {
-        $this->setUp();
-
         $data = [];
 
         foreach (Type::getTypesMap() as $typeName => $className) {
-            $type = Type::getType($typeName);
-
             $data[$typeName] = [
-                $type,
-                $type->requiresSQLCommentHint($this->platform),
+                $typeName,
             ];
         }
 
@@ -1092,7 +1090,7 @@ abstract class PlatformTestCase extends TestCase
         ]);
     }
 
-    /** @dataProvider getGeneratesInlineColumnCommentSQL */
+    #[DataProvider('getGeneratesInlineColumnCommentSQL')]
     public function testGeneratesInlineColumnCommentSQL(string $comment, string $expectedSql): void
     {
         if (! $this->platform->supportsInlineColumnComments()) {
@@ -1261,9 +1259,8 @@ abstract class PlatformTestCase extends TestCase
 
     /**
      * @param mixed[] $column
-     *
-     * @dataProvider getGeneratesDecimalTypeDeclarationSQL
      */
+    #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, string $expectedSql): void
     {
         self::assertSame($expectedSql, $this->platform->getDecimalTypeDeclarationSQL($column));
@@ -1282,9 +1279,8 @@ abstract class PlatformTestCase extends TestCase
 
     /**
      * @param mixed[] $column
-     *
-     * @dataProvider getGeneratesFloatDeclarationSQL
      */
+    #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, string $expectedSql): void
     {
         self::assertSame($expectedSql, $this->platform->getFloatDeclarationSQL($column));
@@ -1325,9 +1321,8 @@ abstract class PlatformTestCase extends TestCase
 
     /**
      * @param array<string, mixed> $column
-     *
-     * @dataProvider asciiStringSqlDeclarationDataProvider
      */
+    #[DataProvider('asciiStringSqlDeclarationDataProvider')]
     public function testAsciiSQLDeclaration(string $expectedSql, array $column): void
     {
         $declarationSql = $this->platform->getAsciiStringTypeDeclarationSQL($column);

@@ -55,29 +55,29 @@ final class Driver extends FirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        $firebirdService = @fbird_service_attach($host, $username, $password);
+        $firebirdService = fbird_service_attach($host, $username, $password);
         if (! is_resource($firebirdService)) {
-            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 
-        $serverVersion = @fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
-        if (! @fbird_service_detach($firebirdService) || ! @fbird_close($firebirdService)) {
-            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+        $serverVersion = fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
+        if (! fbird_service_detach($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 
         unset($firebirdService);
 
         if ($persistent) {
-            $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         } else {
-            $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         }
 
         $notFoundException = null;
 
         if ($connection === false) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
             if ($code !== -902 || stristr($msg, 'no such file or directory') === false) {
                 throw Exception::fromErrorInfo($msg, $code);
             }

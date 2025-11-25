@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDr
 use Doctrine\DBAL\TransactionIsolationLevel;
 use InvalidArgumentException;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
@@ -72,7 +73,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->_entityManager->getConnection()->lastInsertId('FOO_Ø');
     }
 
-    /** @dataProvider dataProvider_testGetStartTransactionSqlWorks */
+    #[DataProvider('dataProvider_testGetStartTransactionSqlWorks')]
     public function testGetStartTransactionSqlWorks($expected, $isolationLevel, $timeout): void
     {
         $connection = $this->reConnect(

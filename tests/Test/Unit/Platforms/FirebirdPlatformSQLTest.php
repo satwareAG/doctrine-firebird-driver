@@ -20,6 +20,7 @@ use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
@@ -68,7 +69,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetDateArithmeticIntervalExpression */
+    #[DataProvider('dataProvider_testGetDateArithmeticIntervalExpression')]
     public function testGetDateArithmeticIntervalExpression($expected, $operator, $interval, $unit): void
     {
         $reflection = new ReflectionObject($this->_platform);
@@ -79,7 +80,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
+    public static function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
     {
         yield ['DATEADD(DAY, 1, 2018-01-01)', '', 1, DateIntervalUnit::DAY];
         yield ['DATEADD(DAY, -1, 2018-01-01)', '-', 1, DateIntervalUnit::DAY];
@@ -109,7 +110,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(-1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetLocateExpression */
+    #[DataProvider('dataProvider_testGetLocateExpression')]
     public function testGetLocateExpression($expected, $startPos): void
     {
         $found = $this->_platform->getLocateExpression('foo', 'o', $startPos);
@@ -117,7 +118,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetLocateExpression(): Iterator
+    public static function dataProvider_testGetLocateExpression(): Iterator
     {
         yield ['POSITION (o in foo)', false];
         yield ['POSITION (o, foo, 1)', 1];
@@ -184,8 +185,8 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1097
-     * @dataProvider dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL
      */
+    #[DataProvider('dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL($expected, array $options): void
     {
         $foreignKey = new ForeignKeyConstraint(
@@ -199,7 +200,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     }
 
     /** @return array */
-    public function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
+    public static function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
     {
         yield ['', []];
         yield [' ON UPDATE CASCADE', ['onUpdate' => 'CASCADE']];
@@ -548,9 +549,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetCreateTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetCreateTableSqlDispatchEvenListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->addMethods([
                 'onSchemaCreateTable',
                 'onSchemaCreateTableColumn',
             ])
@@ -579,9 +580,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetDropTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetDropTableSqlDispatchEventListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods(['onSchemaDropTable'])
+            ->addMethods(['onSchemaDropTable'])
             ->getMock();
         $listenerMock
             ->expects($this->once())
@@ -595,9 +596,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetAlterTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetAlterTableSqlDispatchEvenListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->addMethods([
                 'onSchemaAlterTable',
                 'onSchemaAlterTableAddColumn',
                 'onSchemaAlterTableRemoveColumn',
@@ -1187,15 +1188,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1082
-     * @dataProvider getGeneratesDecimalTypeDeclarationSQL
      */
+    #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getDecimalTypeDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesDecimalTypeDeclarationSQL(): Iterator
+    public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
         yield [[], 'NUMERIC(10, 0)'];
         yield [['unsigned' => true], 'NUMERIC(10, 0)'];
@@ -1207,15 +1208,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1082
-     * @dataProvider getGeneratesFloatDeclarationSQL
      */
+    #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getFloatDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesFloatDeclarationSQL(): Iterator
+    public static function getGeneratesFloatDeclarationSQL(): Iterator
     {
         yield [[], 'DOUBLE PRECISION'];
         yield [['unsigned' => true], 'DOUBLE PRECISION'];

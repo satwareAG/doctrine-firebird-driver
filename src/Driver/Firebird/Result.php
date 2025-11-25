@@ -20,7 +20,7 @@ use function is_array;
 use function is_numeric;
 use function is_resource;
 
-use const IBASE_TEXT;
+use const IBASE_FETCH_BLOBS;
 
 final class Result implements ResultInterface
 {
@@ -58,7 +58,7 @@ final class Result implements ResultInterface
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
-            $result = @fbird_fetch_row($this->firebirdResultResource, IBASE_TEXT);
+            $result = fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
             if (is_array($result)) {
                 return array_values($result);
             }
@@ -71,7 +71,7 @@ final class Result implements ResultInterface
     public function fetchAssociative()
     {
         if (is_resource($this->firebirdResultResource)) {
-            return @fbird_fetch_assoc($this->firebirdResultResource, IBASE_TEXT);
+            return fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
         }
 
         return false;
@@ -108,7 +108,7 @@ final class Result implements ResultInterface
         }
 
         if (is_resource($this->firebirdResultResource)) {
-            return @fbird_affected_rows($this->connection->getActiveTransaction());
+            return fbird_affected_rows($this->connection->getActiveTransaction());
         }
 
         return 0;
@@ -117,7 +117,7 @@ final class Result implements ResultInterface
     public function columnCount(): int
     {
         if (is_resource($this->firebirdResultResource)) {
-            return @fbird_num_fields($this->firebirdResultResource);
+            return fbird_num_fields($this->firebirdResultResource);
         }
 
         return 0;
@@ -135,7 +135,7 @@ final class Result implements ResultInterface
             return;
         }
 
-        @fbird_free_result($this->firebirdResultResource);
-        @fbird_close($this->firebirdResultResource);
+        fbird_free_result($this->firebirdResultResource);
+        fbird_close($this->firebirdResultResource);
     }
 }

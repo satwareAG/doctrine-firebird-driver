@@ -74,10 +74,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+        $connection = fbird_connect($dbname, $params['user'], $params['password']);
         if (! is_resource($connection)) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
             if ($code === -902) {
                 throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
             }
@@ -86,14 +86,14 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         $this->_conn->close();
-        $result = @fbird_drop_db(
+        $result = fbird_drop_db(
             $connection,
         );
         if (! $result) {
-            throw new Exception((string) @fbird_errmsg(), null, (int) @fbird_errcode());
+            throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
         }
 
-        @fbird_close($connection);
+        fbird_close($connection);
     }
 
     /**
@@ -118,7 +118,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
         /** @psalm-suppress InvalidArgument */
-        $result = @fbird_query(
+        $result = fbird_query(
             IBASE_CREATE,
             sprintf(
                 "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
@@ -131,13 +131,13 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         );
 
         if (! is_resource($result)) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
 
             throw new Exception($msg, null, $code);
         }
 
-        @fbird_close($result);
+        fbird_close($result);
     }
 
     /**

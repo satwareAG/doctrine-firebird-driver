@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use stdClass;
 
@@ -18,7 +19,7 @@ class TypeConversionTest extends FunctionalTestCase
 {
     private static int $typeCounter = 0;
 
-    /** @dataProvider booleanProvider */
+    #[DataProvider('booleanProvider')]
     public function testIdempotentConversionToBoolean(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -27,7 +28,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider integerProvider */
+    #[DataProvider('integerProvider')]
     public function testIdempotentConversionToInteger(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -36,7 +37,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider floatProvider */
+    #[DataProvider('floatProvider')]
     public function testIdempotentConversionToFloat(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -45,7 +46,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider toStringProvider */
+    #[DataProvider('toStringProvider')]
     public function testIdempotentConversionToString(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -54,7 +55,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider toArrayProvider */
+    #[DataProvider('toArrayProvider')]
     public function testIdempotentConversionToArray(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -63,7 +64,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider toObjectProvider */
+    #[DataProvider('toObjectProvider')]
     public function testIdempotentConversionToObject(string $type, mixed $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);
@@ -72,7 +73,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @dataProvider toDateTimeProvider */
+    #[DataProvider('toDateTimeProvider')]
     public function testIdempotentConversionToDateTime(string $type, DateTime $originalValue): void
     {
         $dbValue = $this->processValue($type, $originalValue);

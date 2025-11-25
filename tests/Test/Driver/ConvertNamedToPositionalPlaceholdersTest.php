@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
 use Doctrine\DBAL\SQL\Parser;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 
@@ -13,9 +14,8 @@ class ConvertNamedToPositionalPlaceholdersTest extends TestCase
 {
     /**
      * @param mixed[] $expectedOutputParamsMap
-     *
-     * @dataProvider positionalToNamedPlaceholdersProvider
      */
+    #[DataProvider('positionalToNamedPlaceholdersProvider')]
     public function testNamedToPositionalPlaceholders(
         string $inputSQL,
         string $expectedOutputSQL,

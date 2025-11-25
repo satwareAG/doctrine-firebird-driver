@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Platforms\Exception\InvalidConfigurationException;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
@@ -30,7 +31,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         self::assertSame(255, $config->getLikeCastLength());
     }
 
-    /** @dataProvider provideValidLikeCastLengths */
+    #[DataProvider('provideValidLikeCastLengths')]
     public function testConstructorAcceptsValidLikeCastLength(int $length): void
     {
         $config = new FirebirdPlatformConfiguration(['like_cast_length' => $length]);
@@ -38,7 +39,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         self::assertSame($length, $config->getLikeCastLength());
     }
 
-    public function provideValidLikeCastLengths(): Iterator
+    public static function provideValidLikeCastLengths(): Iterator
     {
         yield 'minimum value (1)' => [1];
         yield 'small value (50)' => [50];
@@ -48,7 +49,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         yield 'maximum value (8191)' => [8191];
     }
 
-    /** @dataProvider provideInvalidLikeCastLengthTypes */
+    #[DataProvider('provideInvalidLikeCastLengthTypes')]
     public function testConstructorThrowsExceptionForInvalidType(mixed $value, string $expectedType): void
     {
         $this->expectException(InvalidConfigurationException::class);
@@ -59,7 +60,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         new FirebirdPlatformConfiguration(['like_cast_length' => $value]);
     }
 
-    public function provideInvalidLikeCastLengthTypes(): Iterator
+    public static function provideInvalidLikeCastLengthTypes(): Iterator
     {
         yield 'string value' => ['255', 'string'];
         yield 'float value' => [255.0, 'float'];
@@ -68,7 +69,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         yield 'array value' => [[255], 'array'];
     }
 
-    /** @dataProvider provideOutOfRangeLikeCastLengths */
+    #[DataProvider('provideOutOfRangeLikeCastLengths')]
     public function testConstructorThrowsExceptionForOutOfRangeValues(int $value): void
     {
         $this->expectException(InvalidConfigurationException::class);
@@ -79,7 +80,7 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         new FirebirdPlatformConfiguration(['like_cast_length' => $value]);
     }
 
-    public function provideOutOfRangeLikeCastLengths(): Iterator
+    public static function provideOutOfRangeLikeCastLengths(): Iterator
     {
         yield 'zero' => [0];
         yield 'negative value (-1)' => [-1];
