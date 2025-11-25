@@ -156,11 +156,11 @@ class ExceptionTest extends FunctionalTestCase
 
     public function testForeignKeyConstraintViolationExceptionOnTruncate(): void
     {
+        $this->setUpForeignKeyConstraintViolationExceptionTest();
+
         // Force fresh connection for this test
         $this->connection = TestUtil::getConnection();
         $platform         = $this->connection->getDatabasePlatform();
-
-        $this->setUpForeignKeyConstraintViolationExceptionTest();
 
         try {
             $this->connection->insert($this->tableConstraint, ['id' => 1]);
