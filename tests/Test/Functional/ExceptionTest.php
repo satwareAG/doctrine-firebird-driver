@@ -408,16 +408,15 @@ class ExceptionTest extends FunctionalTestCase
         $schemaManager      = $teardownConnection->createSchemaManager();
 
         try {
-            try {
-                $schemaManager->dropTable($this->tableOwning);
-            } catch (Throwable) {
-            }
-
-            try {
-                $schemaManager->dropTable($this->tableConstraint);
-            } catch (Throwable) {
-            }
+            $schemaManager->dropTable($this->tableOwning);
+        } catch (Throwable) {
         }
+
+        try {
+            $schemaManager->dropTable($this->tableConstraint);
+        } catch (Throwable) {
+        }
+
         // Let GC handle close
     }
 
