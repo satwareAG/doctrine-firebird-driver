@@ -19,6 +19,24 @@ class PlatformRestrictionsTest extends FunctionalTestCase
 {
     private string $table;
 
+    /**
+     * Tests element names that are at the boundary of the identifier length limit.
+     * Ensures generated auto-increment identifier name respects to platform restrictions.
+     */
+    public function testMaxIdentifierLengthLimitWithAutoIncrement(): void
+    {
+        $platform   = $this->connection->getDatabasePlatform();
+        $columnName = str_repeat('y', $platform->getMaxIdentifierLength());
+        $table      = new Table($this->table);
+        $table->addColumn($columnName, Types::INTEGER, ['autoincrement' => true]);
+        $table->setPrimaryKey([$columnName]);
+        $this->dropAndCreateTable($table);
+        $createdTable = $this->connection->createSchemaManager()->introspectTable($this->table);
+
+        self::assertTrue($createdTable->hasColumn($columnName));
+        self::assertTrue($createdTable->hasPrimaryKey());
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -36,23 +54,5 @@ class PlatformRestrictionsTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }
-
-    /**
-     * Tests element names that are at the boundary of the identifier length limit.
-     * Ensures generated auto-increment identifier name respects to platform restrictions.
-     */
-    public function testMaxIdentifierLengthLimitWithAutoIncrement(): void
-    {
-        $platform   = $this->connection->getDatabasePlatform();
-        $columnName = str_repeat('y', $platform->getMaxIdentifierLength());
-        $table      = new Table($this->table);
-        $table->addColumn($columnName, Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey([$columnName]);
-        $this->dropAndCreateTable($table);
-        $createdTable = $this->connection->createSchemaManager()->introspectTable($this->table);
-
-        self::assertTrue($createdTable->hasColumn($columnName));
-        self::assertTrue($createdTable->hasPrimaryKey());
     }
 }

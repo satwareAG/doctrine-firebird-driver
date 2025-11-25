@@ -18,6 +18,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use function array_change_key_case;
 use function date;
 use function strtotime;
+use function uniqid;
 
 use const CASE_LOWER;
 
@@ -523,7 +524,7 @@ class DataAccessTest extends FunctionalTestCase
     protected function setUp(): void
     {
         $this->table = 'fetch_table' . uniqid();
-        $table = new Table($this->table);
+        $table       = new Table($this->table);
         $table->addColumn('test_int', Types::INTEGER);
         $table->addColumn('test_string', Types::STRING);
         $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);

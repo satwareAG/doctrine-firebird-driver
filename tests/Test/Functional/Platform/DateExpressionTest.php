@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
+use function uniqid;
 
 class DateExpressionTest extends FunctionalTestCase
 {
@@ -23,7 +24,7 @@ class DateExpressionTest extends FunctionalTestCase
     public function testDifference(string $date1, string $date2, int $expected): void
     {
         $tableName = 'date_expr_test' . uniqid();
-        $table = new Table($tableName);
+        $table     = new Table($tableName);
         $table->addColumn('date1', Types::DATETIME_MUTABLE);
         $table->addColumn('date2', Types::DATETIME_MUTABLE);
         $this->dropAndCreateTable($table);

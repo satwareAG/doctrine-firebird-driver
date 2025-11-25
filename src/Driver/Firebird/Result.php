@@ -10,7 +10,6 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 
 use function array_values;
 use function fbird_affected_rows;
-use function fbird_close;
 use function fbird_fetch_assoc;
 use function fbird_fetch_row;
 use function fbird_free_result;

@@ -73,9 +73,7 @@ class PortabilityTest extends FunctionalTestCase
         self::assertArrayNotHasKey(0, $row, 'The row should not contain numerical keys.');
     }
 
-    /**
-     * @param mixed[] $expected
-     */
+    /** @param mixed[] $expected */
     #[DataProvider('fetchColumnProvider')]
     public function testFetchColumn(string $column, array $expected): void
     {
@@ -147,7 +145,12 @@ class PortabilityTest extends FunctionalTestCase
         // Mark connection not reusable - framework will handle cleanup
         $this->markConnectionNotReusable();
 
+        $params        = $this->connection->getParams();
         $configuration = $this->connection->getConfiguration();
+
+        // Close the existing shared connection to prevent locking issues during DROP TABLE
+        $this->connection->close();
+
         $configuration->setMiddlewares(
             array_merge(
                 $configuration->getMiddlewares(),
@@ -155,7 +158,7 @@ class PortabilityTest extends FunctionalTestCase
             ),
         );
 
-        $this->connection = DriverManager::getConnection($this->connection->getParams(), $configuration);
+        $this->connection = DriverManager::getConnection($params, $configuration);
     }
 
     private function createTable(): void

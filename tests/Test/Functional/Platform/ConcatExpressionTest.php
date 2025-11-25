@@ -9,9 +9,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 final class ConcatExpressionTest extends FunctionalTestCase
 {
-    /**
-     * @param list<string> $arguments
-     */
+    /** @param list<string> $arguments */
     #[DataProvider('expressionProvider')]
     public function testConcatExpression(array $arguments, string $expected): void
     {

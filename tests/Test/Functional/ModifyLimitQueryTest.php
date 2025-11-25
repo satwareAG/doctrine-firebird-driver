@@ -13,12 +13,13 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_change_key_case;
 use function count;
+use function uniqid;
 
 use const CASE_LOWER;
 
 class ModifyLimitQueryTest extends FunctionalTestCase
 {
-    private string $table = 'modify_limit_table';
+    private string $table  = 'modify_limit_table';
     private string $table2 = 'modify_limit_table2';
 
     public function tearDown(): void
@@ -182,7 +183,7 @@ SQL;
 
     protected function setUp(): void
     {
-        $this->table = 'modify_limit_' . uniqid();
+        $this->table  = 'modify_limit_' . uniqid();
         $this->table2 = 'modify_limit2_' . uniqid();
 
         $table = new Table($this->table);

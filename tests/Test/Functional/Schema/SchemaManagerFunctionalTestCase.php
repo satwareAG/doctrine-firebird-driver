@@ -380,9 +380,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $schemaManager->createTable($table);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testDiffListTableColumns(callable $comparatorFactory): void
     {
@@ -778,9 +776,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($inferredTable->getColumn('id')->getAutoincrement());
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testUpdateSchemaWithForeignKeyRenaming(callable $comparatorFactory): void
     {
@@ -823,9 +819,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame(['rename_fk_id'], array_map('strtolower', current($foreignKeys)->getColumns()));
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testRenameIndexUsedInForeignKeyConstraint(callable $comparatorFactory): void
     {
@@ -1022,9 +1016,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame(['id', 'other_id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testColumnDefaultLifecycle(callable $comparatorFactory): void
     {
@@ -1186,9 +1178,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertStringNotContainsString('unexpected_column_comment', $sql[0]);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProvider('getAlterColumnComment')]
     public function testAlterColumnComment(
         callable $comparatorFactory,
@@ -1263,9 +1253,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertArrayHasKey('idx_3d6c147fdc58d6c', $indexes);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparatorShouldNotAddCommentToJsonTypeSinceItIsTheDefaultNow(callable $comparatorFactory): void
     {
@@ -1347,9 +1335,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame($sequence2InitialValue, $actualSequence2->getInitialValue());
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
     #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparisonWithAutoDetectedSequenceDefinition(callable $comparatorFactory): void
     {

@@ -17,16 +17,21 @@ use Monolog\Level;
 use Monolog\Logger;
 use Monolog\Processor\MemoryUsageProcessor;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
+use Throwable;
 
 use function array_keys;
 use function array_map;
 use function array_values;
+use function file_exists;
 use function implode;
 use function in_array;
 use function is_string;
+use function str_ends_with;
 use function str_starts_with;
 use function strlen;
 use function substr;
+use function unlink;
 
 /**
  * TestUtil is a class with static utility methods used during tests.
@@ -37,7 +42,7 @@ class TestUtil
     private static bool $initialized = false;
 
     /** The actual database name being used (after resolving locks). */
-    private static ?string $effectiveDbName = null;
+    private static string|null $effectiveDbName = null;
 
     /**
      * Creates a new <b>test</b> database connection using the following parameters
@@ -126,21 +131,21 @@ class TestUtil
     private static function initializeDatabase(): void
     {
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
-        $baseName = $baseParams['dbname'];
-        $ext = '';
+        $baseName   = $baseParams['dbname'];
+        $ext        = '';
         if (str_ends_with($baseName, '.fdb')) {
             $baseName = substr($baseName, 0, -4);
-            $ext = '.fdb';
+            $ext      = '.fdb';
         }
 
         $maxSlots = 5;
         for ($i = 0; $i < $maxSlots; $i++) {
             $currentName = $i === 0 ? $baseParams['dbname'] : $baseName . '_' . $i . $ext;
 
-            $params = $baseParams;
+            $params           = $baseParams;
             $params['dbname'] = $currentName;
             // Explicitly disable persistence
-            $params['persistent'] = false;
+            $params['persistent']                  = false;
             $params['driverOptions']['persistent'] = false;
 
             $connection = DriverManager::getConnection($params);
@@ -151,27 +156,28 @@ class TestUtil
                     @$sm->dropDatabase($currentName);
                 } catch (DatabaseDoesNotExist) {
                     // Expected
-                } catch (\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception $e) {
+                } catch (Exception $e) {
                     // Fallback: try local unlink if possible
-                    if (str_ends_with($currentName, '.fdb') && file_exists($currentName)) {
-                        unlink($currentName);
-                    } else {
+                    if (! str_ends_with($currentName, '.fdb') || ! file_exists($currentName)) {
                         // If we cannot drop/delete, and it's not the last slot, try next slot
                         if ($i < $maxSlots - 1) {
                             $connection->close();
                             continue;
                         }
+
                         throw $e;
                     }
+
+                    unlink($currentName);
                 }
 
                 // If we are here, database is dropped or didn't exist. Now create it.
                 $sm->createDatabase($currentName);
                 self::$effectiveDbName = $currentName;
                 $connection->close();
-                return;
 
-            } catch (\Exception $e) {
+                return;
+            } catch (Throwable $e) {
                 $connection->close();
                 if ($i === $maxSlots - 1) {
                     throw $e;
@@ -190,7 +196,7 @@ class TestUtil
             $logger
                 ->pushProcessor(new MemoryUsageProcessor())
                 ->pushHandler(
-                    (new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug)),
+                    new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug),
                 );
         }
 

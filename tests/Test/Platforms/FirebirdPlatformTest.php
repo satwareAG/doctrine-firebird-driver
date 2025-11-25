@@ -142,9 +142,7 @@ END
         return 'CREATE UNIQUE INDEX index_name ON test (test, test2)';
     }
 
-    /**
-     * @param mixed[] $options
-     */
+    /** @param mixed[] $options */
     #[DataProvider('getGeneratesAdvancedForeignKeyOptionsSQLData')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL(array $options, string $expectedSql): void
     {
@@ -352,9 +350,7 @@ SQL
         return ['ALTER TABLE foo ALTER COLUMN bar TO baz'];
     }
 
-    /**
-     * @param string|string[] $expectedSql
-     */
+    /** @param string|string[] $expectedSql */
     #[DataProvider('getReturnsDropAutoincrementSQL')]
     public function testReturnsDropAutoincrementSQL(string $table, string|array $expectedSql): void
     {

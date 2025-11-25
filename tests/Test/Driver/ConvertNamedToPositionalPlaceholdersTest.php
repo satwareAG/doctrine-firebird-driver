@@ -12,9 +12,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 
 class ConvertNamedToPositionalPlaceholdersTest extends TestCase
 {
-    /**
-     * @param mixed[] $expectedOutputParamsMap
-     */
+    /** @param mixed[] $expectedOutputParamsMap */
     #[DataProvider('positionalToNamedPlaceholdersProvider')]
     public function testNamedToPositionalPlaceholders(
         string $inputSQL,

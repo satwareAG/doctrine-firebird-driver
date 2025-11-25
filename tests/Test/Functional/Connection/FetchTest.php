@@ -179,7 +179,7 @@ class FetchTest extends FunctionalTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->query = TestUtil::generateResultSetQuery([
             [
                 'a' => 'foo',

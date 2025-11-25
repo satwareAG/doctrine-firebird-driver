@@ -187,9 +187,7 @@ abstract class PlatformTestCase extends TestCase
         $data = [];
 
         foreach (Type::getTypesMap() as $typeName => $className) {
-            $data[$typeName] = [
-                $typeName,
-            ];
+            $data[$typeName] = [$typeName];
         }
 
         return $data;
@@ -1257,9 +1255,7 @@ abstract class PlatformTestCase extends TestCase
     /** @return string[] */
     abstract protected function getGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): array;
 
-    /**
-     * @param mixed[] $column
-     */
+    /** @param mixed[] $column */
     #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, string $expectedSql): void
     {
@@ -1277,9 +1273,7 @@ abstract class PlatformTestCase extends TestCase
         yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
-    /**
-     * @param mixed[] $column
-     */
+    /** @param mixed[] $column */
     #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, string $expectedSql): void
     {
@@ -1319,9 +1313,7 @@ abstract class PlatformTestCase extends TestCase
         return 'SELECT * FROM user LIMIT 1 OFFSET 2';
     }
 
-    /**
-     * @param array<string, mixed> $column
-     */
+    /** @param array<string, mixed> $column */
     #[DataProvider('asciiStringSqlDeclarationDataProvider')]
     public function testAsciiSQLDeclaration(string $expectedSql, array $column): void
     {

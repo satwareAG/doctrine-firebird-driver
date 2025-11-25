@@ -10,9 +10,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 final class LengthExpressionTest extends FunctionalTestCase
 {
-    /**
-     * @link https://docs.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support
-     */
+    /** @link https://docs.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support */
     #[DataProvider('expressionProvider')]
     public function testLengthExpression(string $value, int $expected, bool $isMultibyte): void
     {

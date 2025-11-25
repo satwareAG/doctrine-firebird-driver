@@ -8,6 +8,8 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Table;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function uniqid;
+
 /**
  * Test case for Issue #16: LIKE Expression parameter length exceeding VARCHAR field length
  *

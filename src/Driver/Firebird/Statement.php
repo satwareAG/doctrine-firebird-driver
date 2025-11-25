@@ -16,7 +16,6 @@ use function assert;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
-use function fbird_close;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;

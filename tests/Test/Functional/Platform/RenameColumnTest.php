@@ -18,20 +18,6 @@ class RenameColumnTest extends FunctionalTestCase
 {
     private string $table;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->table = 'test_rename_' . uniqid();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-
-        parent::tearDown();
-    }
-
     #[DataProvider('columnNameProvider')]
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void
     {
@@ -61,5 +47,19 @@ class RenameColumnTest extends FunctionalTestCase
         yield ['c1', 'c1_x'];
         yield ['C1', 'c1_x'];
         yield ['importantColumn', 'veryImportantColumn'];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'test_rename_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
     }
 }

@@ -30,6 +30,7 @@ use function fbird_errmsg;
 use function fbird_prepare;
 use function fbird_query;
 use function fbird_rollback;
+use function fbird_trans;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -381,6 +382,7 @@ final class Connection implements ServerInfoAwareConnection
             if (! @fbird_commit($this->firebirdActiveTransaction)) {
                 @fbird_rollback($this->firebirdActiveTransaction);
             }
+
             $this->firebirdActiveTransaction = $this->createTransaction();
         }
 
@@ -498,15 +500,36 @@ final class Connection implements ServerInfoAwareConnection
      */
     private function createTransaction(string|null $sql = null)
     {
-        if ($sql === null) {
-            $sql = $this->getStartTransactionSql($this->attrDcTransIsolationLevel);
-        }
-
         if (! is_resource($this->connection) || get_resource_type($this->connection) === 'Unknown') {
             $this->checkLastApiCall();
         }
 
-        $result = fbird_query($this->connection, $sql);
+        $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
+
+        switch ($this->attrDcTransIsolationLevel) {
+            case TransactionIsolationLevel::READ_UNCOMMITTED:
+                $flags = IBASE_READ | IBASE_COMMITTED | IBASE_REC_VERSION;
+                break;
+            case TransactionIsolationLevel::READ_COMMITTED:
+                $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
+                break;
+            case TransactionIsolationLevel::REPEATABLE_READ:
+                $flags = IBASE_WRITE | IBASE_CONCURRENCY;
+                break;
+            case TransactionIsolationLevel::SERIALIZABLE:
+                $flags = IBASE_WRITE | IBASE_CONSISTENCY;
+                break;
+        }
+
+        if ($this->attrDcTransWait === -1) {
+            $flags |= IBASE_WAIT;
+        } elseif ($this->attrDcTransWait === 0) {
+            $flags |= IBASE_NOWAIT;
+        } else {
+            $flags |= IBASE_WAIT;
+        }
+
+        $result = fbird_trans($this->connection, $flags);
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();

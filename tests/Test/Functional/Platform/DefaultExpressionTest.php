@@ -18,20 +18,6 @@ class DefaultExpressionTest extends FunctionalTestCase
 {
     private string $table;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->table = 'def_expr_' . uniqid();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-
-        parent::tearDown();
-    }
-
     public function testCurrentDate(): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -61,6 +47,20 @@ class DefaultExpressionTest extends FunctionalTestCase
     public function testCurrentTimestamp(): void
     {
         $this->assertDefaultExpression(Types::DATETIME_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentTimestampSQL());
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'def_expr_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
     }
 
     private function assertDefaultExpression(string $type, callable $expression): void

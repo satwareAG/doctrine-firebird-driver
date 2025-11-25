@@ -25,6 +25,7 @@ use function posix_getpwuid;
 use function sprintf;
 use function sys_get_temp_dir;
 use function touch;
+use function uniqid;
 use function unlink;
 
 use const E_ALL;
@@ -35,7 +36,7 @@ use const PHP_OS_FAMILY;
 class ExceptionTest extends FunctionalTestCase
 {
     private string $tableConstraint = 'con_err_tbl';
-    private string $tableOwning = 'own_tbl';
+    private string $tableOwning     = 'own_tbl';
 
     public function tearDown(): void
     {
@@ -157,7 +158,7 @@ class ExceptionTest extends FunctionalTestCase
     {
         // Force fresh connection for this test
         $this->connection = TestUtil::getConnection();
-        $platform = $this->connection->getDatabasePlatform();
+        $platform         = $this->connection->getDatabasePlatform();
 
         $this->setUpForeignKeyConstraintViolationExceptionTest();
 
@@ -222,12 +223,12 @@ class ExceptionTest extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         $this->expectException(Exception\NotNullConstraintViolationException::class);
-        
+
         // WORKAROUND: Use explicit NULL in SQL string instead of parameter binding
         // Original code that DOESN'T WORK: $this->connection->insert('notnull_table', ['id' => 1, 'val' => null]);
         // Correctly triggers NOT NULL constraint violation:
         $this->connection->executeStatement(
-            "INSERT INTO notnull_table (id, val) VALUES (1, NULL)"
+            'INSERT INTO notnull_table (id, val) VALUES (1, NULL)',
         );
     }
 
@@ -378,11 +379,11 @@ class ExceptionTest extends FunctionalTestCase
     private function setUpForeignKeyConstraintViolationExceptionTest(): void
     {
         $this->tableConstraint = 'ce_' . uniqid();
-        $this->tableOwning = 'ot_' . uniqid();
+        $this->tableOwning     = 'ot_' . uniqid();
 
         // Use a separate connection for setup to avoid lock contamination
         $setupConnection = TestUtil::getConnection();
-        $schemaManager = $setupConnection->createSchemaManager();
+        $schemaManager   = $setupConnection->createSchemaManager();
 
         // ... definition ...
         $table = new Table($this->tableConstraint);
@@ -397,22 +398,25 @@ class ExceptionTest extends FunctionalTestCase
 
         $schemaManager->createTable($table);
         $schemaManager->createTable($owningTable);
-        
+
         // Let GC handle close to avoid accidental sharing issues
     }
 
     private function tearDownForeignKeyConstraintViolationExceptionTest(): void
     {
         $teardownConnection = TestUtil::getConnection();
-        $schemaManager = $teardownConnection->createSchemaManager();
-        
+        $schemaManager      = $teardownConnection->createSchemaManager();
+
         try {
             try {
-               $schemaManager->dropTable($this->tableOwning);
-            } catch (\Exception $e) {}
+                $schemaManager->dropTable($this->tableOwning);
+            } catch (Throwable) {
+            }
+
             try {
-               $schemaManager->dropTable($this->tableConstraint);
-            } catch (\Exception $e) {}
+                $schemaManager->dropTable($this->tableConstraint);
+            } catch (Throwable) {
+            }
         } finally {
             // Let GC handle close
         }

@@ -23,20 +23,6 @@ class CustomIntrospectionTest extends FunctionalTestCase
 {
     private string $table;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->table = 'test_c_int_' . uniqid();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-
-        parent::tearDown();
-    }
-
     public function testCustomColumnIntrospection(): void
     {
         $schemaManager = $this->connection->createSchemaManager();
@@ -74,5 +60,19 @@ class CustomIntrospectionTest extends FunctionalTestCase
     public static function setUpBeforeClass(): void
     {
         Type::addType('money', MoneyType::class);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'test_c_int_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
     }
 }

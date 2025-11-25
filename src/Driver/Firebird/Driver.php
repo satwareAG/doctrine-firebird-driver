@@ -10,7 +10,6 @@ use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use SensitiveParameter;
 
-use function fbird_close;
 use function fbird_connect;
 use function fbird_errcode;
 use function fbird_errmsg;
