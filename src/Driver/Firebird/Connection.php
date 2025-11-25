@@ -201,15 +201,7 @@ final class Connection implements ServerInfoAwareConnection
         $sql = $visitor->getSQL();
 
         if (str_starts_with($sql, 'SET TRANSACTION')) {
-            if (($this->attrDcTransWait > 0)) {
-                $sql .= ' WAIT LOCK TIMEOUT ' . $this->attrDcTransWait;
-            } elseif (($this->attrDcTransWait === -1)) {
-                $sql .= ' WAIT';
-            } else {
-                $sql .= ' NO WAIT';
-            }
-
-            $this->firebirdActiveTransaction = $this->createTransaction($sql);
+            $this->firebirdActiveTransaction = $this->createTransaction();
             $this->fbirdTransactionLevel++;
 
             return new Statement(
@@ -314,36 +306,6 @@ final class Connection implements ServerInfoAwareConnection
     public function setLastInsertId(int $id): void
     {
         $this->connectionInsertId = $id;
-    }
-
-    /** @throws DriverException */
-    public function getStartTransactionSql(int $isolationLevel): string
-    {
-        $sql = '';
-        match ($isolationLevel) {
-            TransactionIsolationLevel::READ_UNCOMMITTED
-                => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION',
-            TransactionIsolationLevel::READ_COMMITTED
-                => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION',
-            TransactionIsolationLevel::REPEATABLE_READ
-                => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT',
-            TransactionIsolationLevel::SERIALIZABLE
-                => $sql .= 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY',
-            default => throw new DriverException(sprintf(
-                'Isolation level %s is not supported',
-                ValueFormatter::cast($isolationLevel),
-            )),
-        };
-
-        if (($this->attrDcTransWait > 0)) {
-            $sql .= ' WAIT LOCK TIMEOUT ' . $this->attrDcTransWait;
-        } elseif (($this->attrDcTransWait === -1)) {
-            $sql .= ' WAIT';
-        } else {
-            $sql .= ' NO WAIT';
-        }
-
-        return $sql;
     }
 
     public function beginTransaction(): bool
@@ -498,7 +460,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws DriverException
      */
-    private function createTransaction(string|null $sql = null)
+    private function createTransaction()
     {
         if (! is_resource($this->connection) || get_resource_type($this->connection) === 'Unknown') {
             $this->checkLastApiCall();
@@ -508,7 +470,7 @@ final class Connection implements ServerInfoAwareConnection
 
         switch ($this->attrDcTransIsolationLevel) {
             case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $flags = IBASE_READ | IBASE_COMMITTED | IBASE_REC_VERSION;
+                $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
                 break;
             case TransactionIsolationLevel::READ_COMMITTED:
                 $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
