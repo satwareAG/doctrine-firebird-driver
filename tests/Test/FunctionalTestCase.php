@@ -152,7 +152,13 @@ abstract class FunctionalTestCase extends TestCase
         gc_collect_cycles();
 
         while ($this->connection->isTransactionActive()) {
-            $this->connection->rollBack();
+            try {
+                $this->connection->rollBack();
+            } catch (\Exception) {
+                // If rollback fails, we can't do much about it.
+                // Breaking the loop prevents infinite loop if nesting level doesn't decrease.
+                break;
+            }
         }
 
         // Ensure any implicit driver-level lock is released (e.g. from auto-commit commit_ret)

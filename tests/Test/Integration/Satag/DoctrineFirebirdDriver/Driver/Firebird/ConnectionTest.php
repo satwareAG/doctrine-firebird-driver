@@ -88,7 +88,7 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $connection->close();
     }
 
-    public function dataProvider_testGetStartTransactionSqlWorks(): Iterator
+    public static function dataProvider_testGetStartTransactionSqlWorks(): Iterator
     {
         yield [
             'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5',

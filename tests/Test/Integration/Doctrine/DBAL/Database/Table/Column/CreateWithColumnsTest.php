@@ -101,7 +101,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default.');
     }
 
-    public function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
+    public static function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
     {
 
         yield [

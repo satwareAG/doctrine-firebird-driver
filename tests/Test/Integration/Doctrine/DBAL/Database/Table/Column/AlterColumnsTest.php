@@ -116,7 +116,7 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default. SQL: ' . self::statementArrayToText($statements));
     }
 
-    public function dataProvider_testAlterTableWithVariousColumnOptionCombinations(): Iterator
+    public static function dataProvider_testAlterTableWithVariousColumnOptionCombinations(): Iterator
     {
         /**
          * XXX
