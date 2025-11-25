@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function str_repeat;
+use function uniqid;
 
 /**
  * This class holds tests that make sure generated SQL statements respect to platform restrictions
@@ -16,6 +17,27 @@ use function str_repeat;
  */
 class PlatformRestrictionsTest extends FunctionalTestCase
 {
+    private string $table;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $platform = $this->connection->getDatabasePlatform();
+        $maxLen   = $platform->getMaxIdentifierLength();
+        $suffix   = uniqid();
+        $prefix   = str_repeat('x', $maxLen - 14); // 13 chars for uniqid + 1 for underscore
+
+        $this->table = $prefix . '_' . $suffix;
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }
+
     /**
      * Tests element names that are at the boundary of the identifier length limit.
      * Ensures generated auto-increment identifier name respects to platform restrictions.
@@ -23,13 +45,12 @@ class PlatformRestrictionsTest extends FunctionalTestCase
     public function testMaxIdentifierLengthLimitWithAutoIncrement(): void
     {
         $platform   = $this->connection->getDatabasePlatform();
-        $tableName  = str_repeat('x', $platform->getMaxIdentifierLength());
         $columnName = str_repeat('y', $platform->getMaxIdentifierLength());
-        $table      = new Table($tableName);
+        $table      = new Table($this->table);
         $table->addColumn($columnName, Types::INTEGER, ['autoincrement' => true]);
         $table->setPrimaryKey([$columnName]);
         $this->dropAndCreateTable($table);
-        $createdTable = $this->connection->createSchemaManager()->introspectTable($tableName);
+        $createdTable = $this->connection->createSchemaManager()->introspectTable($this->table);
 
         self::assertTrue($createdTable->hasColumn($columnName));
         self::assertTrue($createdTable->hasPrimaryKey());
