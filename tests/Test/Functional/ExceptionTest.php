@@ -417,9 +417,8 @@ class ExceptionTest extends FunctionalTestCase
                 $schemaManager->dropTable($this->tableConstraint);
             } catch (Throwable) {
             }
-        } finally {
-            // Let GC handle close
         }
+        // Let GC handle close
     }
 
     private function isLinuxRoot(): bool
