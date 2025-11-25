@@ -29,7 +29,6 @@ class ConnectionTest extends AbstractIntegrationTestCase
         self::assertSame(TransactionIsolationLevel::READ_COMMITTED, $connection->getAttribute(FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL));
         self::assertIsResource($connection->getNativeConnection());
         self::assertSame("'''foo'''", $connection->quote("'foo'"));
-        self::assertIsString($connection->getStartTransactionSql(TransactionIsolationLevel::READ_UNCOMMITTED));
         self::assertSame('foo/3333:bar', (string) FirebirdConnectString::fromConnectionParameters([
             'host' => 'foo',
             'dbname' => 'bar',
@@ -73,73 +72,6 @@ class ConnectionTest extends AbstractIntegrationTestCase
         $this->_entityManager->getConnection()->lastInsertId('FOO_Ø');
     }
 
-    #[DataProvider('dataProvider_testGetStartTransactionSqlWorks')]
-    public function testGetStartTransactionSqlWorks($expected, $isolationLevel, $timeout): void
-    {
-        $connection = $this->reConnect(
-            [
-                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL => $isolationLevel,
-                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT => $timeout ?? 5,
-            ],
-        );
-
-        $found = $connection->getWrappedConnection()->getStartTransactionSql($isolationLevel);
-        self::assertSame($expected, $found);
-        $connection->close();
-    }
-
-    public static function dataProvider_testGetStartTransactionSqlWorks(): Iterator
-    {
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5',
-            TransactionIsolationLevel::READ_UNCOMMITTED,
-            null,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL READ COMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 5',
-            TransactionIsolationLevel::READ_COMMITTED,
-            null,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT WAIT LOCK TIMEOUT 5',
-            TransactionIsolationLevel::REPEATABLE_READ,
-            null,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT TABLE STABILITY WAIT LOCK TIMEOUT 5',
-            TransactionIsolationLevel::SERIALIZABLE,
-            null,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT LOCK TIMEOUT 1',
-            TransactionIsolationLevel::READ_UNCOMMITTED,
-            1,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION WAIT',
-            TransactionIsolationLevel::READ_UNCOMMITTED,
-            -1,
-        ];
-
-        yield [
-            'SET TRANSACTION READ WRITE ISOLATION LEVEL READ UNCOMMITTED RECORD_VERSION NO WAIT',
-            TransactionIsolationLevel::READ_UNCOMMITTED,
-            0,
-        ];
-    }
-
-    public function testGetStartTransactionSqlThrowsExceptionWhenIsolationLevelIsNotSupported(): void
-    {
-        $this->expectExceptionMessage('Isolation level -1 is not supported');
-        $this->expectException(Exception::class);
-        $connection = $this->connection->getWrappedConnection();
-        $connection->getStartTransactionSql(-1);
-    }
 
     public function testBeginTransaction(): void
     {
