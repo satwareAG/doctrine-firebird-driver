@@ -502,6 +502,7 @@ final class Connection implements ServerInfoAwareConnection
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();
+
             // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
             throw new DriverException('Failed to create transaction');
         }

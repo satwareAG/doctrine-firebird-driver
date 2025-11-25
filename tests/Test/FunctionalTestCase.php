@@ -15,8 +15,8 @@ use Throwable;
 
 use function array_merge;
 use function gc_collect_cycles;
-use function sleep;
 use function str_contains;
+use function usleep;
 
 abstract class FunctionalTestCase extends TestCase
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver\Firebird;
 
-use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Doctrine\DBAL\TransactionIsolationLevel;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 /** @requires extension interbase **/
 class TransactionTest extends FunctionalTestCase
@@ -22,7 +22,7 @@ class TransactionTest extends FunctionalTestCase
     {
         // Test setting isolation level effectively usage of attributes
         $this->connection->setTransactionIsolation(TransactionIsolationLevel::READ_UNCOMMITTED);
-        
+
         $this->connection->beginTransaction();
         self::assertTrue($this->connection->isTransactionActive());
         $this->connection->commit();
@@ -33,13 +33,13 @@ class TransactionTest extends FunctionalTestCase
         // This tests the "prepare" interception behavior
         // Note: Current implementation effectively ignores the SQL content and uses attributes
         // checking if it runs without error (no deadlock)
-        
-        $sql = "SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT";
+
+        $sql       = 'SET TRANSACTION READ WRITE ISOLATION LEVEL SNAPSHOT';
         $statement = $this->connection->prepare($sql);
-        
+
         // Execution should be "fake" successful
         $result = $statement->execute();
-        
-        self::assertTrue(true, "SET TRANSACTION should not fail or hang");
+
+        self::assertTrue(true, 'SET TRANSACTION should not fail or hang');
     }
 }
