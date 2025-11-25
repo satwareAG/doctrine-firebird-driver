@@ -22,6 +22,9 @@ abstract class FunctionalTestCase extends TestCase
 {
     protected Connection $connection;
 
+    /** @var list<string> */
+    protected array $createdTables = [];
+
     /**
      * Whether the shared connection could be reused by subsequent tests.
      */
@@ -101,6 +104,7 @@ abstract class FunctionalTestCase extends TestCase
 
         $this->dropTableIfExists($tableName);
         $schemaManager->createTable($table);
+        $this->createdTables[] = $tableName;
         // Explicit commit removed to avoid hangs with Firebird auto-commit behavior
         // $this->getFirebirdConnection()?->commit();
     }
@@ -174,6 +178,15 @@ abstract class FunctionalTestCase extends TestCase
         } catch (Throwable) {
             // Ignore rollback errors during cleanup
         }
+
+        foreach ($this->createdTables as $tableName) {
+            try {
+                $this->dropTableIfExists($tableName);
+            } catch (Throwable) {
+                // Ignore errors during cleanup
+            }
+        }
+        $this->createdTables = [];
 
         if ($this->isConnectionReusable) {
             return;
