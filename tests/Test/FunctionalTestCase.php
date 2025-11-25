@@ -39,7 +39,47 @@ abstract class FunctionalTestCase extends TestCase
 
         try {
             $schemaManager->dropTable($name);
+            $this->getFirebirdConnection()?->commit();
         } catch (DatabaseObjectNotFoundException) {
+        } catch (\Exception $e) {
+            // If table is in use, try to force rollback/commit to release locks and retry
+            if (str_contains($e->getMessage(), 'in use')) {
+                // Try up to 3 times with delay
+                $success = false;
+                for ($i = 0; $i < 3; $i++) {
+                    try {
+                        // Try rollback first to clear pending failed transaction
+                        try {
+                            $this->getFirebirdConnection()?->rollBack();
+                        } catch (\Throwable) {
+                            @$this->getFirebirdConnection()?->commit();
+                        }
+                        
+                        // Wait for server to release locks
+                        if ($i > 0) {
+                            sleep(1);
+                        }
+
+                        $schemaManager->dropTable($name);
+                        $this->getFirebirdConnection()?->commit();
+                        $success = true;
+                        break;
+                    } catch (DatabaseObjectNotFoundException) {
+                        $success = true;
+                        break;
+                    } catch (\Exception $e2) {
+                        if (!str_contains($e2->getMessage(), 'in use') && !str_contains($e2->getMessage(), 'deadlock')) {
+                            throw $e2;
+                        }
+                        // Continue loop if lock error
+                    }
+                }
+                if (!$success) {
+                    throw $e;
+                }
+            } else {
+                throw $e;
+            }
         }
     }
 
@@ -56,6 +96,7 @@ abstract class FunctionalTestCase extends TestCase
 
         $this->dropTableIfExists($tableName);
         $schemaManager->createTable($table);
+        $this->getFirebirdConnection()?->commit();
     }
 
     /**
@@ -107,8 +148,19 @@ abstract class FunctionalTestCase extends TestCase
     /** @after */
     final protected function disconnect(): void
     {
+        // Attempt to free any lingering statement resources via GC
+        gc_collect_cycles();
+
         while ($this->connection->isTransactionActive()) {
             $this->connection->rollBack();
+        }
+
+        // Ensure any implicit driver-level lock is released (e.g. from auto-commit commit_ret)
+        // Use rollBack instead of commit to ensure locks are released even if commit fails
+        try {
+            @$this->getFirebirdConnection()?->rollBack();
+        } catch (\Throwable) {
+            // Ignore rollback errors during cleanup
         }
 
         if ($this->isConnectionReusable) {

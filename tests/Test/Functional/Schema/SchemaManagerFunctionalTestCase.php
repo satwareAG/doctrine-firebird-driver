@@ -39,6 +39,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
@@ -382,7 +383,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testDiffListTableColumns(callable $comparatorFactory): void
     {
         if ($this->connection->getDatabasePlatform() instanceof OraclePlatform) {
@@ -780,7 +781,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testUpdateSchemaWithForeignKeyRenaming(callable $comparatorFactory): void
     {
         $table = new Table('test_fk_base');
@@ -825,7 +826,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testRenameIndexUsedInForeignKeyConstraint(callable $comparatorFactory): void
     {
         $primaryTable = new Table('test_rename_index_primary');
@@ -1024,7 +1025,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testColumnDefaultLifecycle(callable $comparatorFactory): void
     {
         $table = new Table('col_def_lifecycle');
@@ -1265,7 +1266,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparatorShouldNotAddCommentToJsonTypeSinceItIsTheDefaultNow(callable $comparatorFactory): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -1349,7 +1350,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
      */
-    #[DataProvider('\Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider')]
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparisonWithAutoDetectedSequenceDefinition(callable $comparatorFactory): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -1662,6 +1663,13 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         }
 
         $this->schemaManager = $this->connection->createSchemaManager();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
     }
 
     protected function getCreateExampleViewSql(): void

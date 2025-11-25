@@ -9,7 +9,7 @@ use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-use function key;
+use function array_key_first;
 
 class QuotingTest extends FunctionalTestCase
 {
@@ -41,7 +41,7 @@ class QuotingTest extends FunctionalTestCase
         $row = $this->connection->fetchAssociative($query);
 
         self::assertNotFalse($row);
-        self::assertSame($identifier, key($row));
+        self::assertSame($identifier, array_key_first($row));
     }
 
     /** @return mixed[][] */

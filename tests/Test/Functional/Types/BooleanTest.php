@@ -7,12 +7,13 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class BooleanTest extends FunctionalTestCase
 {
     /** @return Iterator<int, array<int, bool|string>> */
-    public function booleanProvider(): Iterator
+    public static function booleanProvider(): Iterator
     {
         yield [true, true];
         yield [false, true];
@@ -22,7 +23,7 @@ class BooleanTest extends FunctionalTestCase
         yield [true, false, 'U', 'N'];
     }
 
-    /** @dataProvider booleanProvider */
+    #[DataProvider('booleanProvider')]
     public function testInsertAndSelect(bool $boolValue, bool $useSmallIntBoolean = true, string $charTrue = 'Y', string $charFalse = 'N'): void
     {
         $this->connection->getDatabasePlatform()->setUseSmallIntBoolean($useSmallIntBoolean);

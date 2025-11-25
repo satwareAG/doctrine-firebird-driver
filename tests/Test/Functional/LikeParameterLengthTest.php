@@ -17,6 +17,13 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 final class LikeParameterLengthTest extends FunctionalTestCase
 {
+    private string $table = 'like_param_test';
+
+    public function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+    }
+
     /**
      * Test 1: Direct LIKE with parameter exceeding field length
      * With Issue #16 fix: CAST wrapper prevents exception, query executes successfully
@@ -27,7 +34,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
 
         $qb = $this->connection->createQueryBuilder();
         $qb->select('*')
-           ->from('like_param_test')
+           ->from($this->table)
            ->where($qb->expr()->like('auftragnr', ':search'));
         $qb->setParameter('search', '%' . $searchTerm . '%');
 
@@ -52,7 +59,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
 
         $qb = $this->connection->createQueryBuilder();
         $qb->select('*')
-           ->from('like_param_test')
+           ->from($this->table)
            ->where(
                $qb->expr()->or(
                    $qb->expr()->like('auftragnr', ':searchNr'),
@@ -81,7 +88,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
         $searchTerm = '12345678901234567890'; // 20 chars
 
         // Use CAST to work around the limitation
-        $sql = 'SELECT * FROM like_param_test WHERE CAST(auftragnr AS VARCHAR(100)) LIKE ?';
+        $sql = 'SELECT * FROM ' . $this->table . ' WHERE CAST(auftragnr AS VARCHAR(100)) LIKE ?';
 
         $result = $this->connection->executeQuery($sql, ['%' . $searchTerm . '%'])->fetchAllAssociative();
 
@@ -100,7 +107,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
         // Test with QueryBuilder (uses CAST wrapper automatically)
         $qb = $this->connection->createQueryBuilder();
         $qb->select('*')
-           ->from('like_param_test')
+           ->from($this->table)
            ->where($qb->expr()->like('auftragnr', ':search'));
         $qb->setParameter('search', '%' . $searchTerm . '%');
 
@@ -120,7 +127,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
 
         $qb = $this->connection->createQueryBuilder();
         $qb->select('*')
-           ->from('like_param_test')
+           ->from($this->table)
            ->where($qb->expr()->like('auftragnr', ':search'));
         $qb->setParameter('search', $searchTerm);
 
@@ -139,7 +146,7 @@ final class LikeParameterLengthTest extends FunctionalTestCase
 
         $qb = $this->connection->createQueryBuilder();
         $qb->select('*')
-           ->from('like_param_test')
+           ->from($this->table)
            ->where($qb->expr()->like('auftragnr', ':search'));
         $qb->setParameter('search', '%' . $searchTerm . '%'); // Total 10 chars with wildcards
 
@@ -156,8 +163,10 @@ final class LikeParameterLengthTest extends FunctionalTestCase
     {
         parent::setUp();
 
+        $this->table = 'likeparam_' . uniqid();
+
         // Create test table with small VARCHAR field
-        $table = new Table('like_param_test');
+        $table = new Table($this->table);
         $table->addColumn('id', 'integer');
         $table->addColumn('auftragnr', 'string', ['length' => 10]); // Small field
         $table->addColumn('name', 'string', ['length' => 50]);
@@ -166,12 +175,12 @@ final class LikeParameterLengthTest extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         // Insert test data
-        $this->connection->insert('like_param_test', [
+        $this->connection->insert($this->table, [
             'id' => 1,
             'auftragnr' => '12345',
             'name' => 'Test Customer',
         ]);
-        $this->connection->insert('like_param_test', [
+        $this->connection->insert($this->table, [
             'id' => 2,
             'auftragnr' => '67890',
             'name' => 'Another Customer',

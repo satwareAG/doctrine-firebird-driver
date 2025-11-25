@@ -36,6 +36,9 @@ class TestUtil
     /** Whether the database schema is initialized. */
     private static bool $initialized = false;
 
+    /** The actual database name being used (after resolving locks). */
+    private static ?string $effectiveDbName = null;
+
     /**
      * Creates a new <b>test</b> database connection using the following parameters
      * of the $GLOBALS array:
@@ -122,16 +125,59 @@ class TestUtil
 
     private static function initializeDatabase(): void
     {
-        $params     = self::getTestConnectionParameters();
-        $connection = DriverManager::getConnection($params);
-        $sm         = $connection->createSchemaManager();
-        try {
-            $sm->dropDatabase($params['dbname']);
-        } catch (DatabaseDoesNotExist) {
+        $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
+        $baseName = $baseParams['dbname'];
+        $ext = '';
+        if (str_ends_with($baseName, '.fdb')) {
+            $baseName = substr($baseName, 0, -4);
+            $ext = '.fdb';
         }
 
-        $sm->createDatabase($params['dbname']);
-        $connection->close();
+        $maxSlots = 5;
+        for ($i = 0; $i < $maxSlots; $i++) {
+            $currentName = $i === 0 ? $baseParams['dbname'] : $baseName . '_' . $i . $ext;
+
+            $params = $baseParams;
+            $params['dbname'] = $currentName;
+            // Explicitly disable persistence
+            $params['persistent'] = false;
+            $params['driverOptions']['persistent'] = false;
+
+            $connection = DriverManager::getConnection($params);
+            // Silencing createSchemaManager/dropDatabase because they might trigger connection which warns if DB doesn't exist
+            try {
+                $sm = @$connection->createSchemaManager();
+                try {
+                    @$sm->dropDatabase($currentName);
+                } catch (DatabaseDoesNotExist) {
+                    // Expected
+                } catch (\Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception $e) {
+                    // Fallback: try local unlink if possible
+                    if (str_ends_with($currentName, '.fdb') && file_exists($currentName)) {
+                        unlink($currentName);
+                    } else {
+                        // If we cannot drop/delete, and it's not the last slot, try next slot
+                        if ($i < $maxSlots - 1) {
+                            $connection->close();
+                            continue;
+                        }
+                        throw $e;
+                    }
+                }
+
+                // If we are here, database is dropped or didn't exist. Now create it.
+                $sm->createDatabase($currentName);
+                self::$effectiveDbName = $currentName;
+                $connection->close();
+                return;
+
+            } catch (\Exception $e) {
+                $connection->close();
+                if ($i === $maxSlots - 1) {
+                    throw $e;
+                }
+            }
+        }
     }
 
     private static function createConfiguration(): Configuration
@@ -168,7 +214,13 @@ class TestUtil
     /** @return mixed[] */
     private static function getTestConnectionParameters(): array
     {
-        return self::mapConnectionParameters($GLOBALS, 'db_');
+        $params = self::mapConnectionParameters($GLOBALS, 'db_');
+
+        if (self::$effectiveDbName !== null) {
+            $params['dbname'] = self::$effectiveDbName;
+        }
+
+        return $params;
     }
 
     /**

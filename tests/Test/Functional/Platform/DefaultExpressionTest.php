@@ -12,9 +12,26 @@ use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function sprintf;
+use function uniqid;
 
 class DefaultExpressionTest extends FunctionalTestCase
 {
+    private string $table;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'def_expr_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }
+
     public function testCurrentDate(): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -51,19 +68,20 @@ class DefaultExpressionTest extends FunctionalTestCase
         $platform   = $this->connection->getDatabasePlatform();
         $defaultSql = $expression($platform, $this);
 
-        $table = new Table('default_expr_test');
+        $table = new Table($this->table);
         $table->addColumn('actual_value', $type);
         $table->addColumn('default_value', $type, ['default' => $defaultSql]);
         $this->dropAndCreateTable($table);
 
         $this->connection->executeStatement(
             sprintf(
-                'INSERT INTO default_expr_test (actual_value) VALUES (%s)',
+                'INSERT INTO %s (actual_value) VALUES (%s)',
+                $this->table,
                 $defaultSql,
             ),
         );
 
-        $row = $this->connection->fetchNumeric('SELECT default_value, actual_value FROM default_expr_test');
+        $row = $this->connection->fetchNumeric(sprintf('SELECT default_value, actual_value FROM %s', $this->table));
         self::assertNotFalse($row);
 
         self::assertEquals(...$row);

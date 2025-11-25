@@ -136,6 +136,5 @@ final class Result implements ResultInterface
         }
 
         fbird_free_result($this->firebirdResultResource);
-        fbird_close($this->firebirdResultResource);
     }
 }

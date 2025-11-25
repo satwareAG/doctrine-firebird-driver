@@ -76,7 +76,6 @@ class Statement implements StatementInterface
 
         if ($statementType === 'interbase query') {
             fbird_free_query($this->statement);
-            fbird_close($this->statement);
             unset($this->statement);
         }
 
@@ -211,7 +210,7 @@ class Statement implements StatementInterface
             ksort($callArgs);
             array_unshift($callArgs, $this->statement);
 
-            $fbirdResultRc = fbird_execute(...$callArgs);
+            $fbirdResultRc = @fbird_execute(...$callArgs);
             if ($fbirdResultRc === false) {
                 $this->connection->checkLastApiCall();
             }

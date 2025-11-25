@@ -55,7 +55,7 @@ final class Driver extends FirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        $firebirdService = fbird_service_attach($host, $username, $password);
+        $firebirdService = @fbird_service_attach($host, $username, $password);
         if (! is_resource($firebirdService)) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
@@ -68,9 +68,9 @@ final class Driver extends FirebirdDriver
         unset($firebirdService);
 
         if ($persistent) {
-            $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         } else {
-            $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
         }
 
         $notFoundException = null;

@@ -115,8 +115,8 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                fbird_commit($this->firebirdActiveTransaction);
-                fbird_close($this->firebirdActiveTransaction);
+                @fbird_commit($this->firebirdActiveTransaction);
+                @fbird_close($this->firebirdActiveTransaction);
             }
 
             unset($this->firebirdActiveTransaction);
@@ -220,7 +220,7 @@ final class Connection implements ServerInfoAwareConnection
 
         return new Statement(
             $this,
-            fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
+            @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql),
             $visitor->getParameterMap(),
         );
     }
@@ -369,7 +369,7 @@ final class Connection implements ServerInfoAwareConnection
                 ));
             }
 
-            $success = fbird_commit_ret($this->firebirdActiveTransaction);
+            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
             if ($success === false) {
                 $this->checkLastApiCall();
             }
@@ -378,7 +378,9 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($this->fbirdTransactionLevel === 0) {
-            fbird_commit($this->firebirdActiveTransaction);
+            if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                @fbird_rollback($this->firebirdActiveTransaction);
+            }
             $this->firebirdActiveTransaction = $this->createTransaction();
         }
 
@@ -405,7 +407,7 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
-        $success = fbird_commit_ret($this->firebirdActiveTransaction);
+        $success = @fbird_commit_ret($this->firebirdActiveTransaction);
         if ($success !== false) {
             return;
         }
@@ -428,12 +430,16 @@ final class Connection implements ServerInfoAwareConnection
                 ));
             }
 
-            $success = fbird_rollback($this->firebirdActiveTransaction);
+            $success = @fbird_rollback($this->firebirdActiveTransaction);
             if ($success === false) {
                 $this->checkLastApiCall();
             }
 
             $this->fbirdTransactionLevel--;
+        }
+
+        if ($this->fbirdTransactionLevel === 0 && is_resource($this->firebirdActiveTransaction)) {
+            @fbird_rollback($this->firebirdActiveTransaction);
         }
 
         $this->firebirdActiveTransaction = $this->createTransaction();

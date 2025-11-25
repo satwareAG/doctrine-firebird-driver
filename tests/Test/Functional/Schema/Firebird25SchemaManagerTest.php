@@ -21,7 +21,7 @@ class Firebird25SchemaManagerTest extends SchemaManagerFunctionalTestCase
         $table->addColumn('bool', Types::BOOLEAN);
         $table->addColumn('bool_commented', Types::BOOLEAN, ['comment' => "That's a comment"]);
 
-        $this->schemaManager->createTable($table);
+        $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('boolean_column_test');
 
@@ -42,7 +42,7 @@ class Firebird25SchemaManagerTest extends SchemaManagerFunctionalTestCase
         $table->addColumn('bool', Types::BOOLEAN);
         $table->addColumn('bool_commented', Types::BOOLEAN, ['comment' => "That's a comment"]);
 
-        $this->schemaManager->createTable($table);
+        $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('boolean_column_as_char_test');
 

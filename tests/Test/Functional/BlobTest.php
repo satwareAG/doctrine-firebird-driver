@@ -16,6 +16,11 @@ use function stream_get_contents;
 
 class BlobTest extends FunctionalTestCase
 {
+    public function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+    }
+
     public function testInsert(): void
     {
         $ret = $this->connection->insert('blob_table', [
