@@ -64,7 +64,7 @@ abstract class FunctionalTestCase extends TestCase
 
                     // Wait for server to release locks
                     if ($i > 0) {
-                        usleep(100000); // 100ms wait
+                        usleep(50000); // 50ms wait
                     }
 
                     $schemaManager->dropTable($name);
