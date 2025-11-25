@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
 echo ''|vendor/bin/phpcs
-vendor/bin/phpstan analyse
+vendor/bin/phpstan analyse --memory-limit=1G
 vendor/bin/psalm
 vendor/bin/phpunit -c tests/phpunit.xml
 vendor/bin/phpunit -c tests/phpunit-firebird25.xml

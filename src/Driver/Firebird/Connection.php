@@ -28,7 +28,6 @@ use function fbird_commit_ret;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_prepare;
-use function fbird_query;
 use function fbird_rollback;
 use function fbird_trans;
 use function get_resource_type;
@@ -43,6 +42,14 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
+
+use const IBASE_COMMITTED;
+use const IBASE_CONCURRENCY;
+use const IBASE_CONSISTENCY;
+use const IBASE_NOWAIT;
+use const IBASE_REC_VERSION;
+use const IBASE_WAIT;
+use const IBASE_WRITE;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -491,10 +498,12 @@ final class Connection implements ServerInfoAwareConnection
             $flags |= IBASE_WAIT;
         }
 
-        $result = fbird_trans($this->connection, $flags);
+        $result = fbird_trans($flags, $this->connection);
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();
+            // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
+            throw new DriverException('Failed to create transaction');
         }
 
         return $result;
