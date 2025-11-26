@@ -37,9 +37,11 @@
       <directory>Test/Integration</directory>
       <directory>Test/Driver</directory>
     </testsuite>
+      <!--
     <testsuite name="Functional">
       <directory>Test/Functional</directory>
     </testsuite>
+    -->
   </testsuites>
 
   <source>

@@ -6,4 +6,3 @@ RUN apt-get update  \
     && docker-php-source extract \
     && git clone --branch fix/phpt6-stored-procedures --depth 1 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/interbase \
     && docker-php-ext-install interbase
-
