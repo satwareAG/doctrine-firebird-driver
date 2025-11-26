@@ -186,6 +186,7 @@ abstract class FunctionalTestCase extends TestCase
                 // Ignore errors during cleanup
             }
         }
+
         $this->createdTables = [];
 
         if ($this->isConnectionReusable) {
