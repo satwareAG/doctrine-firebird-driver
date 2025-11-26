@@ -48,18 +48,18 @@ use const IBASE_CREATE;
  */
 class FirebirdSchemaManager extends AbstractSchemaManager
 {
-    public const int META_FIELD_TYPE_SMALLINT  = 7; // Integer Type
-    public const int META_FIELD_TYPE_INTEGER   = 8; // Integer Type
-    public const int META_FIELD_TYPE_FLOAT     = 10;
-    public const int META_FIELD_TYPE_DATE      = 12;
-    public const int META_FIELD_TYPE_TIME      = 13;
-    public const int META_FIELD_TYPE_CHAR      = 14;
-    public const int META_FIELD_TYPE_BIGINT    = 16; // 64 Bit Integer
-    public const int META_FIELD_TYPE_DOUBLE    = 27;
-    public const int META_FIELD_TYPE_TIMESTAMP = 35;
-    public const int META_FIELD_TYPE_VARCHAR   = 37;
-    public const int META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
-    public const int META_FIELD_TYPE_BLOB      = 261;
+    public const META_FIELD_TYPE_SMALLINT  = 7; // Integer Type
+    public const META_FIELD_TYPE_INTEGER   = 8; // Integer Type
+    public const META_FIELD_TYPE_FLOAT     = 10;
+    public const META_FIELD_TYPE_DATE      = 12;
+    public const META_FIELD_TYPE_TIME      = 13;
+    public const META_FIELD_TYPE_CHAR      = 14;
+    public const META_FIELD_TYPE_BIGINT    = 16; // 64 Bit Integer
+    public const META_FIELD_TYPE_DOUBLE    = 27;
+    public const META_FIELD_TYPE_TIMESTAMP = 35;
+    public const META_FIELD_TYPE_VARCHAR   = 37;
+    public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
+    public const META_FIELD_TYPE_BLOB      = 261;
 
     /**
      * @throws Exception

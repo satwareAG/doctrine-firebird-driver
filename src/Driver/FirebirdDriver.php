@@ -26,11 +26,11 @@ use function version_compare;
  */
 abstract class FirebirdDriver implements VersionAwarePlatformDriver
 {
-    public const string ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
-    public const string ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
 
-    public const string ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
+    public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
     /**
      * Firebird-specific connection options.

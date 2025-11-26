@@ -5,8 +5,6 @@
          bootstrap="phpunit.bootstrap.php"
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
-         requireCoverageMetadata="false"
-         beStrictAboutCoverageMetadata="false"
          failOnRisky="true"
          failOnWarning="true"
          failOnDeprecation="true"
@@ -46,7 +44,7 @@
 
   <source>
     <include>
-      <directory suffix=".php">../src</directory>
+      <directory>../src</directory>
     </include>
   </source>
 </phpunit>

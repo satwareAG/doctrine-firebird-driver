@@ -5,8 +5,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo ''|vendor/bin/phpcs
+echo ''|vendor/bin/phpcs || vendor/bin/phpcbf
 vendor/bin/phpstan analyse --memory-limit=1G
-vendor/bin/psalm
+vendor/bin/psalm --show-info=true
 vendor/bin/phpunit -c tests/phpunit.xml
 vendor/bin/phpunit -c tests/phpunit-firebird25.xml
