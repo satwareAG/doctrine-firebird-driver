@@ -15,6 +15,7 @@ use function array_unshift;
 use function assert;
 use function fbird_blob_add;
 use function fbird_blob_close;
+use function fbird_affected_rows;
 use function fbird_blob_create;
 use function fbird_errcode;
 use function fbird_errmsg;
@@ -211,13 +212,36 @@ class Statement implements StatementInterface
 
             $fbirdResultRc = @fbird_execute(...$callArgs);
             if ($fbirdResultRc === false) {
-                $this->connection->checkLastApiCall();
+                $lastError = $this->connection->errorInfo();
+                
+                // Retry if object is in use (lock conflict) and we are in auto-commit mode
+                // Error code -901: "unsuccessful metadata update object ... is in use"
+                // Error code -913: "deadlock" or "update conflicts"
+                // Error code -607: "unsuccessful metadata update" (e.g. object in use)
+                if (
+                    ($lastError['code'] === -901 || $lastError['code'] === -913 || $lastError['code'] === -607)
+                    && $this->connection->canRetryAutoCommit()
+                ) {
+                    $this->connection->forceCommit();
+                    $fbirdResultRc = @fbird_execute(...$callArgs);
+                }
+
+                if ($fbirdResultRc === false) {
+                    $this->connection->checkLastApiCall();
+                }
             }
 
-                // Result seems ok - is either #rows or result handle
-                // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
-                // function autoCommit of the connection
+            // Result seems ok - is either #rows or result handle
+            if (is_resource($fbirdResultRc)) {
                 $this->connection->autoCommit();
+            } else {
+                // Determine affected rows logic
+                if ($fbirdResultRc === true) {
+                    $fbirdResultRc = fbird_affected_rows($this->connection->getActiveTransaction());
+                }
+
+                $this->connection->autoCommit(true);
+            }
         }
 
         return new Result($fbirdResultRc, $this->connection);

@@ -76,6 +76,11 @@ final class Connection implements ServerInfoAwareConnection
      */
     private bool $attrAutoCommit = true;
 
+    /**
+     * True if retry on lock conflict is enabled (default: true)
+     */
+    private bool $attrRetryOnLock = true;
+
     private string|null $connectionInsertColumn = null;
 
     private int|null $connectionInsertId = null;
@@ -162,6 +167,9 @@ final class Connection implements ServerInfoAwareConnection
             case FirebirdDriver::ATTR_AUTOCOMMIT:
                 $this->attrAutoCommit = $value;
                 break;
+            case FirebirdDriver::ATTR_DOCTRINE_RETRY_ON_LOCK:
+                $this->attrRetryOnLock = (bool) $value;
+                break;
         }
     }
 
@@ -174,6 +182,8 @@ final class Connection implements ServerInfoAwareConnection
               => $this->attrDcTransWait,
             PDO::ATTR_AUTOCOMMIT
               => $this->attrAutoCommit,
+            FirebirdDriver::ATTR_DOCTRINE_RETRY_ON_LOCK
+              => $this->attrRetryOnLock,
             PDO::ATTR_PERSISTENT
               => $this->isPersistent,
             default => null,
@@ -361,11 +371,11 @@ final class Connection implements ServerInfoAwareConnection
     }
 
     /**
-     * Commits the transaction if autocommit is enabled no explicte transaction has been started.
+     * Commits the transaction if autocommit is enabled no explicit transaction has been started.
      *
      * @throws RuntimeException|Exception
      */
-    public function autoCommit(): void
+    public function autoCommit(bool $releaseLocks = false): void
     {
         if (! $this->executionMode->isAutoCommitEnabled() || $this->fbirdTransactionLevel >= 1) {
             return;
@@ -378,12 +388,46 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
+        if ($releaseLocks) {
+            if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                $this->checkLastApiCall();
+            }
+
+            $this->firebirdActiveTransaction = $this->createTransaction();
+
+            return;
+        }
+
         $success = @fbird_commit_ret($this->firebirdActiveTransaction);
         if ($success !== false) {
             return;
         }
 
         $this->checkLastApiCall();
+    }
+
+    public function canRetryAutoCommit(): bool
+    {
+        return $this->attrRetryOnLock
+            && $this->executionMode->isAutoCommitEnabled()
+            && $this->fbirdTransactionLevel < 1;
+    }
+
+    public function forceCommit(): void
+    {
+        if (! $this->canRetryAutoCommit()) {
+            return;
+        }
+
+        if (is_resource($this->firebirdActiveTransaction) === false) {
+            return;
+        }
+
+        if (! @fbird_commit($this->firebirdActiveTransaction)) {
+            $this->checkLastApiCall();
+        }
+
+        $this->firebirdActiveTransaction = $this->createTransaction();
     }
 
     /**

@@ -33,6 +33,11 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
     /**
+     * Retry DML/DDL on lock conflicts (e.g. objects in use) by forcing a full commit
+     */
+    public const ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
+
+    /**
      * Firebird-specific connection options.
      *
      * @var array<string, mixed>
