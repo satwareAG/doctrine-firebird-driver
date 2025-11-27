@@ -306,14 +306,6 @@ ___query___;
         ]);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getBooleanTypeDeclarationSQL(array $column): string
-    {
-        return 'BOOLEAN';
-    }
-
     public function isCommentedDoctrineType(Type $doctrineType): bool
     {
         return AbstractPlatform::isCommentedDoctrineType($doctrineType);

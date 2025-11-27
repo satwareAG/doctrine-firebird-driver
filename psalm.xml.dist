@@ -22,11 +22,6 @@
                 <file name="src/Driver/Firebird/Connection.php"/>
             </errorLevel>
         </InvalidReturnType>
-        <InvalidReturnStatement>
-            <errorLevel type="suppress">
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </InvalidReturnStatement>
         <TooManyArguments>
             <errorLevel type="suppress">
                 <referencedFunction name="fbird_prepare"/>
@@ -92,10 +87,5 @@
                         name="Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap"/>
             </errorLevel>
         </PossiblyUnusedMethod>
-        <PossiblyUnusedReturnValue>
-            <errorLevel type="suppress">
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </PossiblyUnusedReturnValue>
     </issueHandlers>
 </psalm>

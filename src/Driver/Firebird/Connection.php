@@ -123,8 +123,8 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                @fbird_commit($this->firebirdActiveTransaction);
-                @fbird_close($this->firebirdActiveTransaction);
+                // DEBUG: Commented out to test crash
+                // @fbird_commit($this->firebirdActiveTransaction);
             }
 
             unset($this->firebirdActiveTransaction);
@@ -132,7 +132,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($connectionClosable) {
-            fbird_close($this->connection);
+            // DEBUG: fbird_close($this->connection);
         }
 
         unset($this->connection);
@@ -208,14 +208,18 @@ final class Connection implements ServerInfoAwareConnection
         $sql = $visitor->getSQL();
 
         if (str_starts_with($sql, 'SET TRANSACTION')) {
-            $this->firebirdActiveTransaction = $this->createTransaction();
-            $this->fbirdTransactionLevel++;
+        if (is_resource($this->firebirdActiveTransaction)) {
+            $type = get_resource_type($this->firebirdActiveTransaction);
+            if ($type === 'Firebird/InterBase transaction') {
+                @fbird_commit($this->firebirdActiveTransaction);
+                @fbird_close($this->firebirdActiveTransaction);
+            }
 
-            return new Statement(
-                $this,
-                $this->firebirdActiveTransaction,
-                $visitor->getParameterMap(),
-            );
+            unset($this->firebirdActiveTransaction);
+        }
+
+        if ($connectionClosable) {
+            fbird_close($this->connection);
         }
 
         return new Statement(
@@ -317,13 +321,20 @@ final class Connection implements ServerInfoAwareConnection
 
     public function beginTransaction(): bool
     {
-        if ($this->fbirdTransactionLevel < 1) {
+        if ($this->fbirdTransactionLevel === 0) {
             // as Firebird always generates a transaction, we have to commit everything now.
-            fbird_commit($this->firebirdActiveTransaction);
+            if (is_resource($this->firebirdActiveTransaction)) {
+                if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                    // If implicit commit fails, try rollback to clear state before throwing
+                    @fbird_rollback($this->firebirdActiveTransaction);
+                    $this->checkLastApiCall();
+                }
+            }
+
             $this->firebirdActiveTransaction = $this->createTransaction();
-            $this->fbirdTransactionLevel++;
         }
 
+        $this->fbirdTransactionLevel++;
         $this->executionMode->disableAutoCommit();
 
         return true;
@@ -332,30 +343,27 @@ final class Connection implements ServerInfoAwareConnection
     public function commit(): bool
     {
         if ($this->fbirdTransactionLevel > 0) {
-            if (! is_resource($this->firebirdActiveTransaction)) {
-                throw new RuntimeException(sprintf(
-                    'No active transaction. $this->_fbirdTransactionLevel = %d',
-                    $this->fbirdTransactionLevel,
-                ));
-            }
-
-            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
-            if ($success === false) {
-                $this->checkLastApiCall();
-            }
-
             $this->fbirdTransactionLevel--;
         }
 
         if ($this->fbirdTransactionLevel === 0) {
+            if (! is_resource($this->firebirdActiveTransaction)) {
+                throw new RuntimeException('No active transaction resource.');
+            }
+
             if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                // Capture error, attempt rollback cleanup, then throw
+                $lastError = $this->errorInfo();
                 @fbird_rollback($this->firebirdActiveTransaction);
+
+                if (isset($lastError['code']) && $lastError['code'] !== 0) {
+                    throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
+                }
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
+            $this->executionMode->enableAutoCommit();
         }
-
-        $this->executionMode->enableAutoCommit();
 
         return true;
     }
@@ -394,27 +402,29 @@ final class Connection implements ServerInfoAwareConnection
     public function rollBack(): bool
     {
         if ($this->fbirdTransactionLevel > 0) {
-            if (is_resource($this->firebirdActiveTransaction) === false) {
-                throw new RuntimeException(sprintf(
-                    'No active transaction. $this->_fbirdTransactionLevel = %d',
-                    $this->fbirdTransactionLevel,
-                ));
-            }
-
-            $success = @fbird_rollback($this->firebirdActiveTransaction);
-            if ($success === false) {
-                $this->checkLastApiCall();
-            }
-
             $this->fbirdTransactionLevel--;
         }
 
-        if ($this->fbirdTransactionLevel === 0 && is_resource($this->firebirdActiveTransaction)) {
-            @fbird_rollback($this->firebirdActiveTransaction);
-        }
+        if ($this->fbirdTransactionLevel === 0) {
+            if (! is_resource($this->firebirdActiveTransaction)) {
+                throw new RuntimeException('No active transaction resource.');
+            }
 
-        $this->firebirdActiveTransaction = $this->createTransaction();
-        $this->executionMode->enableAutoCommit();
+            $success = @fbird_rollback($this->firebirdActiveTransaction);
+
+            if (! $success) {
+                // Capture error before resetting state
+                $lastError = $this->errorInfo();
+            }
+
+            // Always attempt to restore valid state for next operation
+            $this->firebirdActiveTransaction = $this->createTransaction();
+            $this->executionMode->enableAutoCommit();
+
+            if (! $success && isset($lastError['code']) && $lastError['code'] !== 0) {
+                throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
+            }
+        }
 
         return true;
     }

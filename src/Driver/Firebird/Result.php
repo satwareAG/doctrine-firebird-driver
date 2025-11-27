@@ -14,7 +14,6 @@ use function fbird_fetch_assoc;
 use function fbird_fetch_row;
 use function fbird_free_result;
 use function fbird_num_fields;
-use function get_resource_type;
 use function is_array;
 use function is_numeric;
 use function is_resource;
@@ -129,10 +128,12 @@ final class Result implements ResultInterface
             return;
         }
 
-        $type = get_resource_type($this->firebirdResultResource);
-        if ($type !== 'interbase result') {
-            return;
-        }
+        // In some environments/versions this might vary, but typically 'Unknown' if closed.
+        // Intentionally ignoring type check to force free if it is a resource.
+        // $type = get_resource_type($this->firebirdResultResource);
+        // if ($type !== 'interbase result') {
+        //    return;
+        // }
 
         fbird_free_result($this->firebirdResultResource);
     }

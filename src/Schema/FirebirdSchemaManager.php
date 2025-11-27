@@ -58,7 +58,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     public const META_FIELD_TYPE_DOUBLE    = 27;
     public const META_FIELD_TYPE_TIMESTAMP = 35;
     public const META_FIELD_TYPE_VARCHAR   = 37;
-    public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
+    public const META_FIELD_TYPE_CSTRING   = 40;
     public const META_FIELD_TYPE_BLOB      = 261;
 
     /**
@@ -157,11 +157,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return $this->doListTableDetails($name);
     }
 
-    /**
-     * @return array<int, string>
-     *
-     * @psalm-suppress
-     */
+    /** @return array<int, string> */
     public static function getFieldTypeIdToColumnTypeMap(): array
     {
         return [

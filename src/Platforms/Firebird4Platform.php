@@ -15,6 +15,41 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * presenting them in formats that are meaningful to the application and its users and handling any exceptions
  * arising from decoding and encoding them.
  */
+use Doctrine\DBAL\Types\Types;
+
 class Firebird4Platform extends Firebird3Platform
 {
+    /**
+     * {@inheritDoc}
+     *
+     * @param array<array-key, mixed> $column
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress PossiblyUnusedParam
+     */
+    public function getDateTimeTzTypeDeclarationSQL(array $column): string
+    {
+        return 'TIMESTAMP WITH TIME ZONE';
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param array<array-key, mixed> $column
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress PossiblyUnusedParam
+     */
+    public function getTimeTzTypeDeclarationSQL(array $column): string
+    {
+        return 'TIME WITH TIME ZONE';
+    }
+
+    protected function initializeDoctrineTypeMappings(): void
+    {
+        parent::initializeDoctrineTypeMappings();
+
+        $this->doctrineTypeMapping['timestamp with time zone'] = Types::DATETIMETZ_MUTABLE;
+        $this->doctrineTypeMapping['time with time zone']      = Types::TIME_MUTABLE;
+    }
 }

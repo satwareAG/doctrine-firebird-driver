@@ -120,6 +120,8 @@ class FirebirdPlatform extends AbstractPlatform
 
     /**
      * Gets the platform configuration
+     *
+     * @psalm-suppress PossiblyUnusedMethod Used in tests and public API
      */
     public function getConfiguration(): FirebirdPlatformConfiguration
     {
@@ -565,7 +567,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getBooleanTypeDeclarationSQL(array $column): string
     {
-        return 'SMALLINT';
+        return $this->hasNativeBooleanType ? 'BOOLEAN' : 'SMALLINT';
     }
 
     /**

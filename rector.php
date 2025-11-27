@@ -22,7 +22,6 @@ return RectorConfig::configure()
         DoctrineSetList::DOCTRINE_DBAL_30,
         DoctrineSetList::DOCTRINE_CODE_QUALITY,
         DoctrineSetList::ANNOTATIONS_TO_ATTRIBUTES,
-        DoctrineSetList::DOCTRINE_CODE_QUALITY,
         PHPUnitSetList::PHPUNIT_100,
         PHPUnitSetList::PHPUNIT_CODE_QUALITY,
         // PSR and Symfony rules if you are using Symfony components
