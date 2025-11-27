@@ -26,7 +26,6 @@
     <var name="PHP_IDE_CONFIG" value="serverName=phpconsole" />
     <ini name="memory_limit" value="4G"/>
   </php>
-
   <testsuites>
     <testsuite name="Unit">
       <directory>Test/Unit</directory>
@@ -37,13 +36,10 @@
       <directory>Test/Integration</directory>
       <directory>Test/Driver</directory>
     </testsuite>
-      <!--
     <testsuite name="Functional">
       <directory>Test/Functional</directory>
     </testsuite>
-    -->
   </testsuites>
-
   <source>
     <include>
       <directory>../src</directory>
