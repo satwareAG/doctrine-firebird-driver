@@ -10,3 +10,5 @@ vendor/bin/phpstan analyse --memory-limit=1G
 vendor/bin/psalm --show-info=true
 vendor/bin/phpunit -c tests/phpunit.xml
 vendor/bin/phpunit -c tests/phpunit-firebird25.xml
+vendor/bin/phpunit -c tests/phpunit-firebird4.xml
+vendor/bin/phpunit -c tests/phpunit-firebird5.xml
