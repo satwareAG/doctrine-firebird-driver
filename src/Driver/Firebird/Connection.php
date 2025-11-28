@@ -30,6 +30,8 @@ use function fbird_errmsg;
 use function fbird_prepare;
 use function fbird_rollback;
 use function fbird_trans;
+use function fbird_trans_start;
+use function function_exists;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -123,8 +125,7 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                // DEBUG: Commented out to test crash
-                // @fbird_commit($this->firebirdActiveTransaction);
+                @fbird_commit($this->firebirdActiveTransaction);
             }
 
             unset($this->firebirdActiveTransaction);
@@ -132,7 +133,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($connectionClosable) {
-            // DEBUG: fbird_close($this->connection);
+            fbird_close($this->connection);
         }
 
         unset($this->connection);
@@ -206,21 +207,6 @@ final class Connection implements ServerInfoAwareConnection
         $this->parser->parse($sql, $visitor);
 
         $sql = $visitor->getSQL();
-
-        if (str_starts_with($sql, 'SET TRANSACTION')) {
-        if (is_resource($this->firebirdActiveTransaction)) {
-            $type = get_resource_type($this->firebirdActiveTransaction);
-            if ($type === 'Firebird/InterBase transaction') {
-                @fbird_commit($this->firebirdActiveTransaction);
-                @fbird_close($this->firebirdActiveTransaction);
-            }
-
-            unset($this->firebirdActiveTransaction);
-        }
-
-        if ($connectionClosable) {
-            fbird_close($this->connection);
-        }
 
         return new Statement(
             $this,
@@ -483,32 +469,62 @@ final class Connection implements ServerInfoAwareConnection
             $this->checkLastApiCall();
         }
 
-        $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
+        if (function_exists('fbird_trans_start')) {
+            $options = ['access_mode' => IBASE_WRITE];
 
-        switch ($this->attrDcTransIsolationLevel) {
-            case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
-                break;
-            case TransactionIsolationLevel::READ_COMMITTED:
-                $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
-                break;
-            case TransactionIsolationLevel::REPEATABLE_READ:
-                $flags = IBASE_WRITE | IBASE_CONCURRENCY;
-                break;
-            case TransactionIsolationLevel::SERIALIZABLE:
-                $flags = IBASE_WRITE | IBASE_CONSISTENCY;
-                break;
-        }
+            switch ($this->attrDcTransIsolationLevel) {
+                case TransactionIsolationLevel::READ_UNCOMMITTED:
+                    $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                    break;
+                case TransactionIsolationLevel::READ_COMMITTED:
+                    $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                    break;
+                case TransactionIsolationLevel::REPEATABLE_READ:
+                    $options['isolation'] = IBASE_CONCURRENCY;
+                    break;
+                case TransactionIsolationLevel::SERIALIZABLE:
+                    $options['isolation'] = IBASE_CONSISTENCY;
+                    break;
+            }
 
-        if ($this->attrDcTransWait === -1) {
-            $flags |= IBASE_WAIT;
-        } elseif ($this->attrDcTransWait === 0) {
-            $flags |= IBASE_NOWAIT;
+            if ($this->attrDcTransWait === -1) {
+                $options['lock_resolution'] = IBASE_WAIT;
+            } elseif ($this->attrDcTransWait === 0) {
+                $options['lock_resolution'] = IBASE_NOWAIT;
+            } else {
+                $options['lock_resolution'] = IBASE_WAIT;
+                $options['lock_timeout']    = $this->attrDcTransWait;
+            }
+
+            $result = fbird_trans_start($this->connection, $options);
         } else {
-            $flags |= IBASE_WAIT;
-        }
+            $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
 
-        $result = fbird_trans($flags, $this->connection);
+            switch ($this->attrDcTransIsolationLevel) {
+                case TransactionIsolationLevel::READ_UNCOMMITTED:
+                    $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
+                    break;
+                case TransactionIsolationLevel::READ_COMMITTED:
+                    $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
+                    break;
+                case TransactionIsolationLevel::REPEATABLE_READ:
+                    $flags = IBASE_WRITE | IBASE_CONCURRENCY;
+                    break;
+                case TransactionIsolationLevel::SERIALIZABLE:
+                    $flags = IBASE_WRITE | IBASE_CONSISTENCY;
+                    break;
+            }
+
+            if ($this->attrDcTransWait === -1) {
+                $flags |= IBASE_WAIT;
+            } elseif ($this->attrDcTransWait === 0) {
+                $flags |= IBASE_NOWAIT;
+            } else {
+                $flags |= IBASE_WAIT;
+            }
+
+            $result = fbird_trans($flags, $this->connection);
+        }
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();
