@@ -1,33 +1,39 @@
-# Implementation Plan - Fix Test Failures (Statement Re-execution & Object In Use)
+# Implementation Plan - Code Quality and Error Handling Improvements
 
 [Overview]
-Fix `Statement` re-execution logic to safely release previous result cursors before creating new ones, and ensure test isolation by preventing connection reuse after `AutoIncrementColumnTest`.
-
-These changes address the `Invalid cursor reference` warnings/failures in `StatementTest` and the `TABLE "AUTO_INCREMENT_TABLE" is in use` error in `BinaryDataAccessTest`.
+Address code quality feedback by removing error suppression (`@`) in `Connection.php` and `Statement.php`, and implementing robust resource safety in `Statement::execute()` using `try-catch-finally`. Also fix identified test failures in `ResultTest` and verifying `StatementTest` fixes.
 
 [Types]
-No public type changes.
+No new types.
 
 [Files]
-- `src/Driver/Firebird/Result.php`: Enhance `free()` to be idempotent (prevent double-free).
-- `src/Driver/Firebird/Statement.php`: Track active `Result` and free it before re-execution.
-- `tests/Test/Functional/AutoIncrementColumnTest.php`: Mark connection not reusable to prevent stale transaction leaks.
+`src/Driver/Firebird/Connection.php`:
+- Remove `@` from `fbird_commit`, `fbird_rollback`, `fbird_close`.
+- Add explicit error checking and logged warnings/exceptions.
+
+`src/Driver/Firebird/Statement.php`:
+- Remove `@` from `fbird_execute`.
+- Wrap resource intensive operations (BLOB binding) in `try-finally` to ensure `fclose` and `fbird_blob_close` are called even on error.
+- Handle `fbird_execute` returning `false` properly with detail error messages.
+
+`tests/Test/Unit/Driver/ResultTest.php`:
+- Fix constructor test constraints/expectations if needed (based on recent findings).
 
 [Functions]
-- `Result::free`: Updated to set `$this->firebirdResultResource = null` after freeing, preventing repeated calls from destructor.
-- `Statement::execute`: Updated to check for `$this->currentResult`, call `free()` if present, and store the new result.
-- `AutoIncrementColumnTest::tearDown`: Updated to call `$this->markConnectionNotReusable()`.
-
-[Classes]
-- `Result`: Modified logic.
-- `Statement`: Added `private ?Result $currentResult = null` property.
-- `AutoIncrementColumnTest`: Modified `tearDown`.
-
-[Dependencies]
-No new dependencies.
+Modified:
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::commit`
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection::rollBack`
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement::execute`
 
 [Implementation Order]
-1. Modify `Result.php` to make `free()` idempotent.
-2. Modify `Statement.php` to manage `Result` lifecycle during re-execution.
-3. Modify `AutoIncrementColumnTest.php` to enforce connection isolation.
-4. Run tests to verify fixes (`StatementTest` and `BinaryDataAccessTest`).
+1. Refactor `Connection.php`.
+2. Refactor `Statement.php`.
+3. Fix `ResultTest.php`.
+4. Verify all changes with test suite.
+
+task_progress Items:
+- [ ] Refactor `Connection.php` to remove `@` and add explicit error handling
+- [ ] Refactor `Statement.php` to use `try-catch-finally` for resource cleanup
+- [ ] Remove `@fbird_execute` suppression in `Statement.php` and improve error reporting
+- [ ] Fix `ResultTest.php` test cases
+- [ ] Run full test suite to ensure no regressions

@@ -15,7 +15,7 @@ class ResultTest extends TestCase
     {
         $connection = $this->_mockConnection();
         $resource = null;
-        $result     = new Result($resource, $connection, 0, 0);
+        $result     = new Result($resource, $connection);
 
         self::assertSame(0, $result->columnCount());
         self::assertSame(0, $result->rowCount());
@@ -26,9 +26,6 @@ class ResultTest extends TestCase
 
     protected function _mockConnection(): Connection
     {
-        return $this
-            ->getMockBuilder(Connection::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return new Connection(null, 'dummy', false, null, []);
     }
 }

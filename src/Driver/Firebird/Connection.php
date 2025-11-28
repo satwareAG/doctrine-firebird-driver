@@ -32,7 +32,6 @@ use function fbird_rollback;
 use function fbird_trans;
 use function fbird_trans_start;
 use function function_exists;
-use function fwrite;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -45,7 +44,6 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
-use function var_export;
 
 use const IBASE_COMMITTED;
 use const IBASE_CONCURRENCY;
@@ -54,7 +52,6 @@ use const IBASE_NOWAIT;
 use const IBASE_REC_VERSION;
 use const IBASE_WAIT;
 use const IBASE_WRITE;
-use const STDERR;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -128,7 +125,7 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                @fbird_commit($this->firebirdActiveTransaction);
+                fbird_commit($this->firebirdActiveTransaction);
             }
 
             unset($this->firebirdActiveTransaction);
@@ -265,12 +262,8 @@ final class Connection implements ServerInfoAwareConnection
             throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
         }
 
-        if ($name === null && $this->connectionInsertId !== null) {
-            return $this->connectionInsertId;
-        }
-
         if ($name === null) {
-            return false;
+            return $this->connectionInsertId !== null ? $this->connectionInsertId : false;
         }
 
         Deprecation::triggerIfCalledFromOutside(
@@ -313,9 +306,9 @@ final class Connection implements ServerInfoAwareConnection
         if ($this->fbirdTransactionLevel === 0) {
             // as Firebird always generates a transaction, we have to commit everything now.
             if (is_resource($this->firebirdActiveTransaction)) {
-                if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                if (! fbird_commit($this->firebirdActiveTransaction)) {
                     // If implicit commit fails, try rollback to clear state before throwing
-                    @fbird_rollback($this->firebirdActiveTransaction);
+                    fbird_rollback($this->firebirdActiveTransaction);
                     $this->checkLastApiCall();
                 }
             }
@@ -340,10 +333,10 @@ final class Connection implements ServerInfoAwareConnection
                 throw new RuntimeException('No active transaction resource.');
             }
 
-            if (! @fbird_commit($this->firebirdActiveTransaction)) {
+            if (! fbird_commit($this->firebirdActiveTransaction)) {
                 // Capture error, attempt rollback cleanup, then throw
                 $lastError = $this->errorInfo();
-                @fbird_rollback($this->firebirdActiveTransaction);
+                fbird_rollback($this->firebirdActiveTransaction);
 
                 if (isset($lastError['code']) && $lastError['code'] !== 0) {
                     throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
@@ -375,9 +368,7 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
-        fwrite(STDERR, "AutoCommitting...\n");
-        $success = @fbird_commit_ret($this->firebirdActiveTransaction);
-        fwrite(STDERR, 'AutoCommit result: ' . var_export($success, true) . "\n");
+        $success = fbird_commit_ret($this->firebirdActiveTransaction);
 
         if ($success !== false) {
             return;
@@ -402,7 +393,7 @@ final class Connection implements ServerInfoAwareConnection
                 throw new RuntimeException('No active transaction resource.');
             }
 
-            $success = @fbird_rollback($this->firebirdActiveTransaction);
+            $success = fbird_rollback($this->firebirdActiveTransaction);
 
             if (! $success) {
                 // Capture error before resetting state

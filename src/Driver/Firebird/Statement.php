@@ -13,7 +13,6 @@ use RuntimeException;
 use function array_flip;
 use function array_unshift;
 use function assert;
-use function count;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
@@ -25,16 +24,12 @@ use function fclose;
 use function feof;
 use function fread;
 use function func_num_args;
-use function fwrite;
 use function get_resource_type;
 use function is_int;
 use function is_resource;
 use function ksort;
 use function strlen;
-use function substr;
 use function var_export;
-
-use const STDERR;
 
 /**
  * Based on:
@@ -52,6 +47,9 @@ class Statement implements StatementInterface
      * @var array<int, mixed>
      */
     protected array $queryParamTypes = [];
+
+    /** @var array<int, mixed> */
+    protected array $boundValues = [];
 
     private Result|null $currentResult = null;
 
@@ -81,8 +79,7 @@ class Statement implements StatementInterface
             return;
         }
 
-        if ($statementType === 'interbase query') {
-            fwrite(STDERR, 'Freeing query ' . (int) $this->statement . "\n");
+        if ($statementType === 'interbase query' || $statementType === 'Firebird/InterBase query') {
             fbird_free_query($this->statement);
             unset($this->statement);
         }
@@ -106,7 +103,9 @@ class Statement implements StatementInterface
             );
         }
 
-        return $this->bindParam($param, $value, $type, null);
+        $this->boundValues[$param] = $value;
+
+        return $this->bindParam($param, $this->boundValues[$param], $type, null);
     }
 
     /**
@@ -120,6 +119,11 @@ class Statement implements StatementInterface
             '%s is deprecated. Use bindValue() instead.',
             __METHOD__,
         );
+
+        // Break references to ensure re-binding works correctly
+        if (isset($this->queryParamBindings[$param])) {
+            unset($this->queryParamBindings[$param]);
+        }
 
         if (func_num_args() < 3) {
             Deprecation::trigger(
@@ -145,24 +149,29 @@ class Statement implements StatementInterface
 
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null && is_resource($variable)) {
-                $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
-                if (! is_resource($blobResource)) {
-                    throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                }
-
-                while (! feof($variable)) {
-                    $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
-                    if ($chunk === false || strlen($chunk) <= 0) {
-                        continue;
+                try {
+                    $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
+                    if (! is_resource($blobResource)) {
+                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
                     }
 
-                    fbird_blob_add($blobResource, $chunk);
-                }
+                    while (! feof($variable)) {
+                        $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                        if ($chunk === false || strlen($chunk) <= 0) {
+                            continue;
+                        }
 
-                fclose($variable);
-                // Close the BLOB
-                $variable = fbird_blob_close($blobResource);
-                $type     = ParameterType::STRING;
+                        fbird_blob_add($blobResource, $chunk);
+                    }
+
+                    // Close the BLOB
+                    $variable = fbird_blob_close($blobResource);
+                    $type     = ParameterType::STRING;
+                } finally {
+                    if (is_resource($variable)) {
+                        fclose($variable);
+                    }
+                }
             }
         }
 
@@ -224,64 +233,71 @@ class Statement implements StatementInterface
                     continue;
                 }
 
-                $transaction  = $this->connection->getActiveTransaction();
-                $blobResource = fbird_blob_create($transaction);
-                if (! is_resource($blobResource)) {
-                    throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                }
-
-                while (! feof($variable)) {
-                    $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
-                    if ($chunk === false || strlen($chunk) <= 0) {
-                        continue;
+                try {
+                    $transaction  = $this->connection->getActiveTransaction();
+                    $blobResource = fbird_blob_create($transaction);
+                    if (! is_resource($blobResource)) {
+                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
                     }
 
-                    fbird_blob_add($blobResource, $chunk);
+                    while (! feof($variable)) {
+                        $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                        if ($chunk === false || strlen($chunk) <= 0) {
+                            continue;
+                        }
+
+                        fbird_blob_add($blobResource, $chunk);
+                    }
+
+                    // Close the BLOB
+                    $blobId = fbird_blob_close($blobResource);
+
+                    // Update the binding to the blob ID string
+                    // detailed explanation: The crash was caused by bindValue() creating a temporary variable passed by value,
+                    // which bindParam() then referenced. When bindValue() returned, the reference became unstable/dangling
+                    // before fbird_execute() could use it. By handling this inline, we keep the data safe.
+                    $this->queryParamBindings[$param] = $blobId;
+                    $this->queryParamTypes[$param]    = ParameterType::STRING;
+                } finally {
+                    if (is_resource($variable)) {
+                        fclose($variable);
+                    }
                 }
-
-                fclose($variable);
-                // Close the BLOB
-                $blobId = fbird_blob_close($blobResource);
-
-                // Update the binding to the blob ID string
-                // detailed explanation: The crash was caused by bindValue() creating a temporary variable passed by value,
-                // which bindParam() then referenced. When bindValue() returned, the reference became unstable/dangling
-                // before fbird_execute() could use it. By handling this inline, we keep the data safe.
-                $this->queryParamBindings[$param] = $blobId;
-                $this->queryParamTypes[$param]    = ParameterType::STRING;
             }
 
             $callArgs = $this->queryParamBindings;
             // sort
             ksort($callArgs);
+            // Dereference args to ensure values are passed
+            $callArgs = array_map(static fn ($v) => $v, $callArgs);
             array_unshift($callArgs, $this->statement);
 
-            fwrite(STDERR, 'Calling fbird_execute with ' . count($callArgs) . " args\n");
-            foreach ($callArgs as $i => $arg) {
-                if (is_resource($arg)) {
-                    fwrite(STDERR, "Arg $i: resource(" . get_resource_type($arg) . ")\n");
-                } else {
-                    fwrite(STDERR, "Arg $i: " . substr((string) $arg, 0, 50) . "\n");
-                }
-            }
+            $fbirdResultRc = fbird_execute(...$callArgs);
 
-            $fbirdResultRc = @fbird_execute(...$callArgs);
-            fwrite(STDERR, 'fbird_execute returned ' . var_export($fbirdResultRc, true) . "\n");
-
-            if (! $fbirdResultRc) {
-                fwrite(STDERR, "fbird_execute failed, checking error...\n");
+            if ($fbirdResultRc === false) {
+                // fbird_execute returns false on failure and emits a warning or sets error info
                 $this->connection->checkLastApiCall();
-                fwrite(STDERR, "checkLastApiCall returned without error\n");
+
+                // If checkLastApiCall didn't throw, report generic failure
+                throw new Exception('fbird_execute returned false without error info: ' . (string) fbird_errmsg());
             }
 
-                // Result seems ok - is either #rows or result handle
-                // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
-                // function autoCommit of the connection
+            if ($fbirdResultRc === null) {
+                $this->connection->checkLastApiCall();
+
+                // If checkLastApiCall didn't throw, report generic failure
+                throw new Exception('fbird_execute unexpectedly returned null. This may indicate a driver issue.');
+            }
+
+            // Result seems ok - is either #rows or result handle
+            // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
+            // function autoCommit of the connection
+            // NOTE: We skip AutoCommit if result is a resource (SELECT) because commit_ret closes cursors!
+            if (! is_resource($fbirdResultRc)) {
                 $this->connection->autoCommit();
+            }
         }
 
-        $this->currentResult = new Result($fbirdResultRc, $this->connection);
-
-        return $this->currentResult;
+        return new Result($fbirdResultRc, $this->connection, $this);
     }
 }

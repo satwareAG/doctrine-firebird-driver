@@ -45,7 +45,10 @@ abstract class FunctionalTestCase extends TestCase
         $schemaManager = $this->connection->createSchemaManager();
 
         try {
-            $schemaManager->dropTable($name);
+            // Suppress warnings because dropping a non-existent table will cause
+            // fbird_execute to emit a warning which we convert to an exception but
+            // PHPUnit catches the warning first.
+            @$schemaManager->dropTable($name);
             $this->getFirebirdConnection()?->commit();
         } catch (DatabaseObjectNotFoundException) {
         } catch (Throwable $e) {

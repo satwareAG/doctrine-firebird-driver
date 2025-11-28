@@ -33,6 +33,7 @@ final class Result implements ResultInterface
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
+        private readonly Statement|null $statement = null,
     ) {
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
@@ -56,10 +57,17 @@ final class Result implements ResultInterface
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
-            $result = fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
+            // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
+            $result = @fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
             if (is_array($result)) {
                 return array_values($result);
             }
+
+            // Free result resource implicitly to allow Statement to be freed later
+            // Also commit transaction if autocommit is enabled to keep transaction log clean
+            $this->free();
+            $this->connection->autoCommit();
         }
 
         return false;
@@ -69,7 +77,14 @@ final class Result implements ResultInterface
     public function fetchAssociative()
     {
         if (is_resource($this->firebirdResultResource)) {
-            return fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            // @todo remove @ when fbird_fetch_assoc() doesn't warn
+            $result = @fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            if (is_array($result)) {
+                return $result;
+            }
+
+            $this->free();
+            $this->connection->autoCommit();
         }
 
         return false;
