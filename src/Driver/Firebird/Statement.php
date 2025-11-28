@@ -9,12 +9,14 @@ use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
 use RuntimeException;
+use Throwable;
 
 use function array_flip;
 use function array_map;
 use function array_unshift;
 use function assert;
 use function fbird_blob_add;
+use function fbird_blob_cancel;
 use function fbird_blob_close;
 use function fbird_blob_create;
 use function fbird_errcode;
@@ -149,6 +151,8 @@ class Statement implements StatementInterface
 
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null && is_resource($variable)) {
+                $blobResource = null;
+
                 try {
                     $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
                     if (! is_resource($blobResource)) {
@@ -161,12 +165,21 @@ class Statement implements StatementInterface
                             continue;
                         }
 
-                        fbird_blob_add($blobResource, $chunk);
+                        if (fbird_blob_add($blobResource, $chunk) === false) {
+                            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+                        }
                     }
 
                     // Close the BLOB
-                    $variable = fbird_blob_close($blobResource);
-                    $type     = ParameterType::STRING;
+                    $variable     = fbird_blob_close($blobResource);
+                    $blobResource = null; // Mark as closed
+                    $type         = ParameterType::STRING;
+                } catch (Throwable $e) {
+                    if (is_resource($blobResource)) {
+                        fbird_blob_cancel($blobResource);
+                    }
+
+                    throw $e;
                 } finally {
                     if (is_resource($variable)) {
                         fclose($variable);
@@ -233,6 +246,8 @@ class Statement implements StatementInterface
                     continue;
                 }
 
+                $blobResource = null;
+
                 try {
                     $transaction  = $this->connection->getActiveTransaction();
                     $blobResource = fbird_blob_create($transaction);
@@ -246,11 +261,14 @@ class Statement implements StatementInterface
                             continue;
                         }
 
-                        fbird_blob_add($blobResource, $chunk);
+                        if (fbird_blob_add($blobResource, $chunk) === false) {
+                            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+                        }
                     }
 
                     // Close the BLOB
-                    $blobId = fbird_blob_close($blobResource);
+                    $blobId       = fbird_blob_close($blobResource);
+                    $blobResource = null; // Mark as closed
 
                     // Update the binding to the blob ID string
                     // detailed explanation: The crash was caused by bindValue() creating a temporary variable passed by value,
@@ -258,6 +276,12 @@ class Statement implements StatementInterface
                     // before fbird_execute() could use it. By handling this inline, we keep the data safe.
                     $this->queryParamBindings[$param] = $blobId;
                     $this->queryParamTypes[$param]    = ParameterType::STRING;
+                } catch (Throwable $e) {
+                    if (is_resource($blobResource)) {
+                        fbird_blob_cancel($blobResource);
+                    }
+
+                    throw $e;
                 } finally {
                     if (is_resource($variable)) {
                         fclose($variable);
