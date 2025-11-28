@@ -11,6 +11,7 @@ use Doctrine\Deprecations\Deprecation;
 use RuntimeException;
 
 use function array_flip;
+use function array_map;
 use function array_unshift;
 use function assert;
 use function fbird_blob_add;
@@ -29,7 +30,6 @@ use function is_int;
 use function is_resource;
 use function ksort;
 use function strlen;
-use function var_export;
 
 /**
  * Based on:

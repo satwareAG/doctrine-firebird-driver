@@ -263,7 +263,7 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($name === null) {
-            return $this->connectionInsertId !== null ? $this->connectionInsertId : false;
+            return $this->connectionInsertId ?? false;
         }
 
         Deprecation::triggerIfCalledFromOutside(
