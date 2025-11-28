@@ -15,6 +15,7 @@
     </projectFiles>
     <stubs>
         <file name="vendor/jetbrains/phpstorm-stubs/interbase/interbase.php" />
+        <file name="stubs/FirebirdStub.php" />
     </stubs>
     <issueHandlers>
         <InvalidReturnType>
@@ -22,16 +23,6 @@
                 <file name="src/Driver/Firebird/Connection.php"/>
             </errorLevel>
         </InvalidReturnType>
-        <TooManyArguments>
-            <errorLevel type="suppress">
-                <referencedFunction name="fbird_prepare"/>
-            </errorLevel>
-        </TooManyArguments>
-        <InvalidArgument>
-            <errorLevel type="suppress">
-                <referencedFunction name="fbird_prepare"/>
-            </errorLevel>
-        </InvalidArgument>
         <DeprecatedMethod>
             <errorLevel type="suppress">
                 <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::getIdentitySequenceName"/>

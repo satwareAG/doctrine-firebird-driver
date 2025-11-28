@@ -12,6 +12,7 @@ use Rector\Symfony\Set\SymfonySetList;
 return RectorConfig::configure()
     ->withAutoloadPaths([
         __DIR__ . '/vendor/autoload.php',
+        __DIR__ . '/stubs/FirebirdStub.php',
     ])->withSets([
         // Upgrade to the latest PHP version; adjust as newer sets are released
         LevelSetList::UP_TO_PHP_81,

@@ -173,10 +173,11 @@ function fbird_name_result($result, $name) {}
 /**
  * Prepare a query for later execution
  * @param resource|null $link_identifier
+ * @param string|resource|null $query_or_trans
  * @param string|null $query
  * @return resource|false
  */
-function fbird_prepare($link_identifier = null, $query = null) {}
+function fbird_prepare($link_identifier = null, $query_or_trans = null, $query = null) {}
 
 /**
  * Execute a prepared query
@@ -281,9 +282,10 @@ function fbird_trans_info($trans_handle) {}
 /**
  * Begin a transaction
  * @param int|null $trans_args
+ * @param resource|null $link_identifier
  * @return resource|bool
  */
-function fbird_trans($trans_args = null) {}
+function fbird_trans($trans_args = null, $link_identifier = null) {}
 
 /**
  * Commit a transaction
@@ -550,7 +552,7 @@ function ibase_fetch_assoc($result, $fetch_flags = null) {}
 function ibase_fetch_object($result, $fetch_flags = null) {}
 function ibase_free_result($result) {}
 function ibase_name_result($result, $name) {}
-function ibase_prepare($link_identifier = null, $query = null) {}
+function ibase_prepare($link_identifier = null, $query_or_trans = null, $query = null) {}
 function ibase_execute($query, $bind_arg = null) {}
 function ibase_free_query($query) {}
 function ibase_gen_id($generator, $increment = null, $link_identifier = null) {}
@@ -559,7 +561,7 @@ function ibase_num_params($query) {}
 function ibase_affected_rows($link_identifier = null) {}
 function ibase_field_info($query_result, $field_number) {}
 function ibase_param_info($query, $field_number) {}
-function ibase_trans($trans_args = null) {}
+function ibase_trans($trans_args = null, $link_identifier = null) {}
 function ibase_commit($link_identifier = null) {}
 function ibase_rollback($link_identifier = null) {}
 function ibase_commit_ret($link_identifier = null) {}
