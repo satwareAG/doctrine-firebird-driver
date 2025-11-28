@@ -50,7 +50,7 @@ class Statement implements StatementInterface
      */
     protected array $queryParamTypes = [];
 
-    /** @var array<int, mixed> */
+    /** @var array<int|string, mixed> */
     protected array $boundValues = [];
 
     private Result|null $currentResult = null;
@@ -152,6 +152,7 @@ class Statement implements StatementInterface
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null && is_resource($variable)) {
                 $blobResource = null;
+                $stream       = $variable;
 
                 try {
                     $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
@@ -159,8 +160,8 @@ class Statement implements StatementInterface
                         throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
                     }
 
-                    while (! feof($variable)) {
-                        $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                    while (! feof($stream)) {
+                        $chunk = fread($stream, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
                         if ($chunk === false || strlen($chunk) <= 0) {
                             continue;
                         }
@@ -171,18 +172,25 @@ class Statement implements StatementInterface
                     }
 
                     // Close the BLOB
-                    $variable     = fbird_blob_close($blobResource);
+                    $blobId       = fbird_blob_close($blobResource);
+
+                    if ($blobId === false) {
+                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+                    }
+
+                    $variable     = $blobId;
                     $blobResource = null; // Mark as closed
                     $type         = ParameterType::STRING;
                 } catch (Throwable $e) {
+                    /** @psalm-suppress NoValue */
                     if (is_resource($blobResource)) {
                         fbird_blob_cancel($blobResource);
                     }
 
                     throw $e;
                 } finally {
-                    if (is_resource($variable)) {
-                        fclose($variable);
+                    if (is_resource($stream)) {
+                        fclose($stream);
                     }
                 }
             }
@@ -268,6 +276,11 @@ class Statement implements StatementInterface
 
                     // Close the BLOB
                     $blobId       = fbird_blob_close($blobResource);
+
+                    if ($blobId === false) {
+                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+                    }
+
                     $blobResource = null; // Mark as closed
 
                     // Update the binding to the blob ID string
@@ -277,12 +290,14 @@ class Statement implements StatementInterface
                     $this->queryParamBindings[$param] = $blobId;
                     $this->queryParamTypes[$param]    = ParameterType::STRING;
                 } catch (Throwable $e) {
+                    /** @psalm-suppress NoValue */
                     if (is_resource($blobResource)) {
                         fbird_blob_cancel($blobResource);
                     }
 
                     throw $e;
                 } finally {
+                    /** @psalm-suppress RedundantCondition */
                     if (is_resource($variable)) {
                         fclose($variable);
                     }
@@ -293,7 +308,7 @@ class Statement implements StatementInterface
             // sort
             ksort($callArgs);
             // Dereference args to ensure values are passed
-            $callArgs = array_map(static fn ($v) => $v, $callArgs);
+            $callArgs = array_map(static fn ($v): mixed => $v, $callArgs);
             array_unshift($callArgs, $this->statement);
 
             $fbirdResultRc = fbird_execute(...$callArgs);
@@ -306,13 +321,6 @@ class Statement implements StatementInterface
                 throw new Exception('fbird_execute returned false without error info: ' . (string) fbird_errmsg());
             }
 
-            if ($fbirdResultRc === null) {
-                $this->connection->checkLastApiCall();
-
-                // If checkLastApiCall didn't throw, report generic failure
-                throw new Exception('fbird_execute unexpectedly returned null. This may indicate a driver issue.');
-            }
-
             // Result seems ok - is either #rows or result handle
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
@@ -322,6 +330,8 @@ class Statement implements StatementInterface
             }
         }
 
-        return new Result($fbirdResultRc, $this->connection, $this);
+        $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
+
+        return $this->currentResult;
     }
 }

@@ -25,14 +25,15 @@ final class Result implements ResultInterface
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
      *
-     * @param bool|int|resource|null $firebirdResultResource;
-     * @psalm-param bool|int|resource|null $firebirdResultResource;
+     * @param bool|int|resource|null $firebirdResultResource
+     * @psalm-param bool|int|resource|null $firebirdResultResource
      *
      * @throws Exception
      */
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
+        /** @phpstan-ignore property.onlyWritten */
         private readonly Statement|null $statement = null,
     ) {
         if ($this->connection->getConnectionInsertColumn() === null) {
@@ -59,7 +60,7 @@ final class Result implements ResultInterface
         if (is_resource($this->firebirdResultResource)) {
             // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
             // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
-            $result = @fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            $result = fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
             if (is_array($result)) {
                 return array_values($result);
             }
@@ -78,7 +79,7 @@ final class Result implements ResultInterface
     {
         if (is_resource($this->firebirdResultResource)) {
             // @todo remove @ when fbird_fetch_assoc() doesn't warn
-            $result = @fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            $result = fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
             if (is_array($result)) {
                 return $result;
             }
