@@ -1,8 +1,18 @@
 ARG PHP_VERSION=8.1
-FROM webdevops/php-dev:${PHP_VERSION}
+FROM php:8.1-cli AS base
 
 RUN apt-get update  \
-    && apt-get install -y firebird-dev firebird3.0-utils \
+    && apt-get install -y firebird-dev firebird3.0-utils git zip unzip \
     && docker-php-source extract \
     && git clone --branch fix/code-coverage --depth 1 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/interbase \
     && docker-php-ext-install interbase
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Set up entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["php", "-a"]

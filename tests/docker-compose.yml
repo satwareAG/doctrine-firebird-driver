@@ -29,11 +29,12 @@ services:
     environment:
       - PHP_IDE_CONFIG="serverName=phpconsole"
       - PHP_DISMOD=ioncube
-    user: application
+    user: "${CURRENT_UID:-1000}:${CURRENT_GID:-1000}"
     working_dir: /app
     container_name: app-doctrine-firebird-driver
     build:
-      dockerfile: app/Dockerfile
+      context: app
+      dockerfile: Dockerfile
     volumes:
       - ./../:/app
     depends_on:
