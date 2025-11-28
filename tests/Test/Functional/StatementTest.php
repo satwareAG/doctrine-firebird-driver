@@ -291,4 +291,9 @@ EOF
         $table->addColumn('name', Types::TEXT, ['notnull' => false]);
         $this->dropAndCreateTable($table);
     }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+    }
 }

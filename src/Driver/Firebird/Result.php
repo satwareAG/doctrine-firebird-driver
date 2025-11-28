@@ -125,6 +125,8 @@ final class Result implements ResultInterface
     public function free(): void
     {
         if (! is_resource($this->firebirdResultResource)) {
+            $this->firebirdResultResource = null;
+
             return;
         }
 
@@ -136,5 +138,6 @@ final class Result implements ResultInterface
         // }
 
         fbird_free_result($this->firebirdResultResource);
+        $this->firebirdResultResource = null;
     }
 }

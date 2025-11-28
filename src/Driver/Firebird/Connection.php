@@ -32,6 +32,7 @@ use function fbird_rollback;
 use function fbird_trans;
 use function fbird_trans_start;
 use function function_exists;
+use function fwrite;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -44,6 +45,7 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
+use function var_export;
 
 use const IBASE_COMMITTED;
 use const IBASE_CONCURRENCY;
@@ -52,6 +54,7 @@ use const IBASE_NOWAIT;
 use const IBASE_REC_VERSION;
 use const IBASE_WAIT;
 use const IBASE_WRITE;
+use const STDERR;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -372,7 +375,10 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
+        fwrite(STDERR, "AutoCommitting...\n");
         $success = @fbird_commit_ret($this->firebirdActiveTransaction);
+        fwrite(STDERR, 'AutoCommit result: ' . var_export($success, true) . "\n");
+
         if ($success !== false) {
             return;
         }

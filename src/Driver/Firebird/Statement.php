@@ -13,6 +13,7 @@ use RuntimeException;
 use function array_flip;
 use function array_unshift;
 use function assert;
+use function count;
 use function fbird_blob_add;
 use function fbird_blob_close;
 use function fbird_blob_create;
@@ -24,11 +25,16 @@ use function fclose;
 use function feof;
 use function fread;
 use function func_num_args;
+use function fwrite;
 use function get_resource_type;
 use function is_int;
 use function is_resource;
 use function ksort;
 use function strlen;
+use function substr;
+use function var_export;
+
+use const STDERR;
 
 /**
  * Based on:
@@ -46,6 +52,8 @@ class Statement implements StatementInterface
      * @var array<int, mixed>
      */
     protected array $queryParamTypes = [];
+
+    private Result|null $currentResult = null;
 
     /**
      * @param resource|false|null $statement
@@ -74,6 +82,7 @@ class Statement implements StatementInterface
         }
 
         if ($statementType === 'interbase query') {
+            fwrite(STDERR, 'Freeing query ' . (int) $this->statement . "\n");
             fbird_free_query($this->statement);
             unset($this->statement);
         }
@@ -173,6 +182,16 @@ class Statement implements StatementInterface
     {
         assert(is_resource($this->statement));
 
+        if ($this->currentResult !== null) {
+            try {
+                $this->currentResult->free();
+            } catch (Exception) {
+                // Ignore if already freed or invalid
+            }
+
+            $this->currentResult = null;
+        }
+
         if (get_resource_type($this->statement) === 'Firebird/InterBase transaction') {
             $fbirdResultRc = 1;
         } else {
@@ -196,12 +215,40 @@ class Statement implements StatementInterface
 
             // Execute statement
             foreach ($this->queryParamTypes as $param => $type) {
-                switch ($type) {
-                    case ParameterType::LARGE_OBJECT:
-                        // recheck with BindParams
-                        $this->bindValue($param, $this->queryParamBindings[$param], ParameterType::LARGE_OBJECT);
-                        break;
+                if ($type !== ParameterType::LARGE_OBJECT) {
+                    continue;
                 }
+
+                $variable = $this->queryParamBindings[$param];
+                if ($variable === null || ! is_resource($variable)) {
+                    continue;
+                }
+
+                $transaction  = $this->connection->getActiveTransaction();
+                $blobResource = fbird_blob_create($transaction);
+                if (! is_resource($blobResource)) {
+                    throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+                }
+
+                while (! feof($variable)) {
+                    $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
+                    if ($chunk === false || strlen($chunk) <= 0) {
+                        continue;
+                    }
+
+                    fbird_blob_add($blobResource, $chunk);
+                }
+
+                fclose($variable);
+                // Close the BLOB
+                $blobId = fbird_blob_close($blobResource);
+
+                // Update the binding to the blob ID string
+                // detailed explanation: The crash was caused by bindValue() creating a temporary variable passed by value,
+                // which bindParam() then referenced. When bindValue() returned, the reference became unstable/dangling
+                // before fbird_execute() could use it. By handling this inline, we keep the data safe.
+                $this->queryParamBindings[$param] = $blobId;
+                $this->queryParamTypes[$param]    = ParameterType::STRING;
             }
 
             $callArgs = $this->queryParamBindings;
@@ -209,9 +256,22 @@ class Statement implements StatementInterface
             ksort($callArgs);
             array_unshift($callArgs, $this->statement);
 
+            fwrite(STDERR, 'Calling fbird_execute with ' . count($callArgs) . " args\n");
+            foreach ($callArgs as $i => $arg) {
+                if (is_resource($arg)) {
+                    fwrite(STDERR, "Arg $i: resource(" . get_resource_type($arg) . ")\n");
+                } else {
+                    fwrite(STDERR, "Arg $i: " . substr((string) $arg, 0, 50) . "\n");
+                }
+            }
+
             $fbirdResultRc = @fbird_execute(...$callArgs);
-            if ($fbirdResultRc === false) {
+            fwrite(STDERR, 'fbird_execute returned ' . var_export($fbirdResultRc, true) . "\n");
+
+            if (! $fbirdResultRc) {
+                fwrite(STDERR, "fbird_execute failed, checking error...\n");
                 $this->connection->checkLastApiCall();
+                fwrite(STDERR, "checkLastApiCall returned without error\n");
             }
 
                 // Result seems ok - is either #rows or result handle
@@ -220,6 +280,8 @@ class Statement implements StatementInterface
                 $this->connection->autoCommit();
         }
 
-        return new Result($fbirdResultRc, $this->connection);
+        $this->currentResult = new Result($fbirdResultRc, $this->connection);
+
+        return $this->currentResult;
     }
 }

@@ -1,41 +1,33 @@
-# Implementation Plan - Optimized Transaction Handling & Firebird 4.0+ Support
+# Implementation Plan - Fix Test Failures (Statement Re-execution & Object In Use)
 
 [Overview]
-Enhance the Doctrine Firebird Driver to support proper nested transaction tracking via counters (ensuring atomicity), implement Firebird 4.0+ platform features (new data types, drop table optimizations), and improve Boolean type handling.
+Fix `Statement` re-execution logic to safely release previous result cursors before creating new ones, and ensure test isolation by preventing connection reuse after `AutoIncrementColumnTest`.
 
-This implementation addresses critical transaction integrity issues where inner commits were breaking outer transaction atomicity, and modernizes the driver for current Firebird versions.
+These changes address the `Invalid cursor reference` warnings/failures in `StatementTest` and the `TABLE "AUTO_INCREMENT_TABLE" is in use` error in `BinaryDataAccessTest`.
 
 [Types]
-No public type changes, but `FirebirdPlatform` will now support `DATETIMETZ` and `TIMETZ` mapping.
+No public type changes.
 
 [Files]
-- `src/Driver/Firebird/Connection.php`: Modify transaction logic to use robust counters and remove `commit_ret` for nested levels.
-- `src/Platforms/FirebirdPlatform.php`: Refactor `getDropTableSQL` for recursive dependency dropping; update Boolean logic; add 4.0+ DDL methods.
-- `src/Platforms/Firebird4Platform.php`: Ensure it inherits/overrides correctly for 4.0 specific types.
-- `tests/Test/Functional/Driver/Firebird/TransactionNestingTest.php`: New test file for transaction validation.
+- `src/Driver/Firebird/Result.php`: Enhance `free()` to be idempotent (prevent double-free).
+- `src/Driver/Firebird/Statement.php`: Track active `Result` and free it before re-execution.
+- `tests/Test/Functional/AutoIncrementColumnTest.php`: Mark connection not reusable to prevent stale transaction leaks.
 
 [Functions]
-- `Connection::beginTransaction`: Updates to increment `fbirdTransactionLevel` unconditionally.
-- `Connection::commit`: Updates to decrement level and commit only at level 0.
-- `Connection::rollBack`: Updates to decrement level and rollback only at level 0.
-- `FirebirdPlatform::getDropTableSQL`: Modified to include view/trigger cleanups.
-- `FirebirdPlatform::getBooleanTypeDeclarationSQL`: Updated for version-aware logic.
-- `FirebirdPlatform::getDateTimeTzTypeDeclarationSQL`: Added.
-- `FirebirdPlatform::getTimeTzTypeDeclarationSQL`: Added.
+- `Result::free`: Updated to set `$this->firebirdResultResource = null` after freeing, preventing repeated calls from destructor.
+- `Statement::execute`: Updated to check for `$this->currentResult`, call `free()` if present, and store the new result.
+- `AutoIncrementColumnTest::tearDown`: Updated to call `$this->markConnectionNotReusable()`.
 
 [Classes]
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection`: Logic update only.
-- `Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform`: Logic update + new methods.
+- `Result`: Modified logic.
+- `Statement`: Added `private ?Result $currentResult = null` property.
+- `AutoIncrementColumnTest`: Modified `tearDown`.
 
 [Dependencies]
-No new external dependencies. Requires `php-firebird` extension (already present).
+No new dependencies.
 
 [Implementation Order]
-1. Modify `Connection.php` to implement the Transaction Counter pattern (preserving atomicity).
-2. Update `FirebirdPlatform.php` with Drop Table optimizations and Boolean handling.
-3. Add Firebird 4.0+ type support to Platform classes.
-4. Create and run `TransactionNestingTest.php` to verify atomicity and nesting behavior.
-5. Verify Drop Table logic with existing schema tests.
-
-[Tracking]
-Progress is tracked dynamically via the `task_progress` tool parameter during execution. Refer to the active session history for live status updates.
+1. Modify `Result.php` to make `free()` idempotent.
+2. Modify `Statement.php` to manage `Result` lifecycle during re-execution.
+3. Modify `AutoIncrementColumnTest.php` to enforce connection isolation.
+4. Run tests to verify fixes (`StatementTest` and `BinaryDataAccessTest`).
