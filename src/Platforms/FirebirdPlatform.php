@@ -296,7 +296,7 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->generateIdentifier([$tableName], 'D2IS', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    public function getIdentitySequenceTriggerName(mixed $tableName): string
+    public function getIdentitySequenceTriggerName(string|AbstractAsset $tableName): string
     {
         return $this->generateIdentifier([$tableName], 'D2IT', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
@@ -1777,10 +1777,10 @@ SQL
         return $this->configuration->getLikeCastLength();
     }
 
-    private function getBooleanDatabaseValue(mixed $value): bool|int|string
+    private function getBooleanDatabaseValue(bool $value): bool|int|string
     {
         if ($this->hasNativeBooleanType) {
-            return (bool) $value;
+            return $value;
         }
 
         return $this->useSmallIntBoolean ? (int) $value : ( $value ? $this->charTrue : $this->charFalse);
