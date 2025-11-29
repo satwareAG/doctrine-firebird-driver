@@ -117,8 +117,18 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
-        $queriesRemove = $schema->toDropSql($this->connection->getDatabasePlatform());
-        $queriesInsert = $schema->toSql($this->connection->getDatabasePlatform());
+        $platform = $this->connection->getDatabasePlatform();
+        $schemaManager = $this->connection->createSchemaManager();
+        $tablesToDrop = [];
+        foreach ($schema->getTables() as $table) {
+            if ($schemaManager->tablesExist([$table->getName()])) {
+                $tablesToDrop[] = $table;
+            }
+        }
+        $schemaToDrop = new Schema($tablesToDrop);
+
+        $queriesRemove = $schemaToDrop->toDropSql($platform);
+        $queriesInsert = $schema->toSql($platform);
 
         $this->connection->beginTransaction();
         foreach ($queriesRemove as $query) {
