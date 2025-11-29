@@ -30,11 +30,14 @@ final class Result implements ResultInterface
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
+        private readonly Statement|null $statement = null,
     ) {
+        // If no insert column is expected (normal query), return early to allow user to fetch results.
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
 
+        // If insert column is expected (INSERT ... RETURNING ...), fetch it immediately for lastInsertId.
         $this->connection->setConnectionInsertColumn(null);
         $lastInsertId = $this->fetchOne();
         if ($lastInsertId === false) {

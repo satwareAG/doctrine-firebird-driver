@@ -325,7 +325,11 @@ class Statement implements StatementInterface
                 $this->connection->checkLastApiCall();
 
                 // If checkLastApiCall didn't throw, report generic failure
-                throw new Exception('fbird_execute returned false without error info: ' . (string) fbird_errmsg());
+                throw new Exception(sprintf(
+                    'fbird_execute returned false without error info. Error code: %s, Message: %s',
+                    (string) fbird_errcode(),
+                    (string) fbird_errmsg(),
+                ));
             }
 
             // Result seems ok - is either #rows or result handle
@@ -337,7 +341,7 @@ class Statement implements StatementInterface
             }
         }
 
-        $this->currentResult = new Result($fbirdResultRc, $this->connection);
+        $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
 
         return $this->currentResult;
     }
