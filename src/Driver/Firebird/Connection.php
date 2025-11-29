@@ -22,6 +22,7 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
 use function addcslashes;
+use function error_log;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -125,7 +126,9 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                fbird_commit($this->firebirdActiveTransaction);
+                if (! fbird_commit($this->firebirdActiveTransaction)) {
+                    error_log('fbird_commit failed in __destruct: ' . fbird_errmsg());
+                }
             }
 
             unset($this->firebirdActiveTransaction);

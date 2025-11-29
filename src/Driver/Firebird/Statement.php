@@ -15,6 +15,7 @@ use function array_flip;
 use function array_map;
 use function array_unshift;
 use function assert;
+use function error_log;
 use function fbird_blob_add;
 use function fbird_blob_cancel;
 use function fbird_blob_close;
@@ -31,6 +32,7 @@ use function get_resource_type;
 use function is_int;
 use function is_resource;
 use function ksort;
+use function sprintf;
 use function strlen;
 
 /**
@@ -138,12 +140,12 @@ class Statement implements StatementInterface
 
         if (is_int($param)) {
             if (! isset($this->parameterMap[$param])) {
-                throw new Exception('Positional Parameter not found');
+                throw new Exception(sprintf('Positional Parameter %d not found in the parameter map', $param));
             }
         } else {
             $params = array_flip($this->parameterMap);
             if (! isset($params[$param])) {
-                    throw new Exception('Named Parameter not found');
+                throw new Exception(sprintf('Named Parameter %s not found in the parameter map', $param));
             }
 
             $param = $params[$param];
@@ -172,7 +174,7 @@ class Statement implements StatementInterface
                     }
 
                     // Close the BLOB
-                    $blobId       = fbird_blob_close($blobResource);
+                    $blobId = fbird_blob_close($blobResource);
 
                     if ($blobId === false) {
                         throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
@@ -182,6 +184,8 @@ class Statement implements StatementInterface
                     $blobResource = null; // Mark as closed
                     $type         = ParameterType::STRING;
                 } catch (Throwable $e) {
+                    error_log('BLOB creation failed during bindParam: ' . $e->getMessage());
+
                     /** @psalm-suppress NoValue */
                     if (is_resource($blobResource)) {
                         fbird_blob_cancel($blobResource);
@@ -189,6 +193,7 @@ class Statement implements StatementInterface
 
                     throw $e;
                 } finally {
+                    /** @psalm-suppress RedundantCondition */
                     if (is_resource($stream)) {
                         fclose($stream);
                     }
@@ -275,7 +280,7 @@ class Statement implements StatementInterface
                     }
 
                     // Close the BLOB
-                    $blobId       = fbird_blob_close($blobResource);
+                    $blobId = fbird_blob_close($blobResource);
 
                     if ($blobId === false) {
                         throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
@@ -290,6 +295,8 @@ class Statement implements StatementInterface
                     $this->queryParamBindings[$param] = $blobId;
                     $this->queryParamTypes[$param]    = ParameterType::STRING;
                 } catch (Throwable $e) {
+                    error_log('BLOB creation failed during execute: ' . $e->getMessage());
+
                     /** @psalm-suppress NoValue */
                     if (is_resource($blobResource)) {
                         fbird_blob_cancel($blobResource);
@@ -330,7 +337,7 @@ class Statement implements StatementInterface
             }
         }
 
-        $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
+        $this->currentResult = new Result($fbirdResultRc, $this->connection);
 
         return $this->currentResult;
     }

@@ -25,23 +25,23 @@ final class Result implements ResultInterface
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
      *
-     * @param bool|int|resource|null $firebirdResultResource
-     * @psalm-param bool|int|resource|null $firebirdResultResource
-     *
      * @throws Exception
      */
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
-        /** @phpstan-ignore property.onlyWritten */
-        private readonly Statement|null $statement = null,
     ) {
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
         }
 
         $this->connection->setConnectionInsertColumn(null);
-        $this->connection->setLastInsertId((int) $this->fetchOne());
+        $lastInsertId = $this->fetchOne();
+        if ($lastInsertId === false) {
+            return;
+        }
+
+        $this->connection->setLastInsertId((int) $lastInsertId);
     }
 
     /** @throws Exception */
@@ -118,6 +118,7 @@ final class Result implements ResultInterface
     public function rowCount(): int
     {
         if (is_numeric($this->firebirdResultResource)) {
+            /** @psalm-suppress RedundantCast */
             return (int) $this->firebirdResultResource;
         }
 
