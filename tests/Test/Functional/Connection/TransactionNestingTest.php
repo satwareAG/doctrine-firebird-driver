@@ -47,7 +47,7 @@ class TransactionNestingTest extends FunctionalTestCase
         self::assertEquals(2, $count);
     }
 
-    public function testNestedRollbackDecrementsOnly(): void
+    public function testNestedRollbackRevertsChanges(): void
     {
         $connection = $this->getFirebirdConnection();
         $connection->beginTransaction(); // 1
@@ -55,12 +55,15 @@ class TransactionNestingTest extends FunctionalTestCase
 
         $connection->beginTransaction(); // 2
         $this->connection->executeStatement('INSERT INTO ' . $this->tableName . " (id, val) VALUES (2, 'inner')");
-        $connection->rollBack(); // 1 - Decrements only, NO DB rollback
+        $connection->rollBack(); // 1 - Rolls back to savepoint
 
-        $connection->commit(); // 0 - Persist ALL (including 'inner' because we didn't use savepoints)
+        $connection->commit(); // 0 - Persist remaining (outer only)
 
         $count = $this->connection->fetchOne('SELECT COUNT(*) FROM ' . $this->tableName);
-        self::assertEquals(2, $count, 'Nested rollback without savepoints acts as counter decrement');
+        self::assertEquals(1, $count, 'Nested rollback with savepoints should revert inner changes');
+
+        $val = $this->connection->fetchOne('SELECT val FROM ' . $this->tableName . ' WHERE id = 1');
+        self::assertEquals('outer', $val);
     }
 
     protected function setUp(): void

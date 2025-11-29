@@ -29,10 +29,11 @@ use function fbird_commit_ret;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_prepare;
+use function fbird_release_savepoint;
 use function fbird_rollback;
-use function fbird_trans;
+use function fbird_rollback_savepoint;
+use function fbird_savepoint;
 use function fbird_trans_start;
-use function function_exists;
 use function get_resource_type;
 use function is_float;
 use function is_int;
@@ -323,6 +324,9 @@ final class Connection implements ServerInfoAwareConnection
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
+        } else {
+            // Nested transaction: create a savepoint
+            $this->createSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
         }
 
         $this->fbirdTransactionLevel++;
@@ -354,6 +358,9 @@ final class Connection implements ServerInfoAwareConnection
 
             $this->firebirdActiveTransaction = $this->createTransaction();
             $this->executionMode->enableAutoCommit();
+        } else {
+            // Nested transaction: release savepoint
+            $this->releaseSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
         }
 
         return true;
@@ -416,9 +423,71 @@ final class Connection implements ServerInfoAwareConnection
             if (! $success && isset($lastError['code']) && $lastError['code'] !== 0) {
                 throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
             }
+        } else {
+            // Nested transaction: rollback to savepoint
+            $this->rollbackSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
         }
 
         return true;
+    }
+
+    /**
+     * Create a new savepoint.
+     *
+     * @throws DriverException
+     */
+    public function createSavepoint(string $savepoint): void
+    {
+        if (! is_resource($this->firebirdActiveTransaction)) {
+            throw new RuntimeException('No active transaction resource.');
+        }
+
+        if (! fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            $this->checkLastApiCall();
+
+            throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
+        }
+    }
+
+    /**
+     * Release a savepoint.
+     *
+     * @throws DriverException
+     */
+    public function releaseSavepoint(string $savepoint): void
+    {
+        if (! is_resource($this->firebirdActiveTransaction)) {
+            throw new RuntimeException('No active transaction resource.');
+        }
+
+        if (! fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            $this->checkLastApiCall();
+
+            throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
+        }
+    }
+
+    /**
+     * Rollback to a savepoint.
+     *
+     * @throws DriverException
+     */
+    public function rollbackSavepoint(string $savepoint): void
+    {
+        if (! is_resource($this->firebirdActiveTransaction)) {
+            throw new RuntimeException('No active transaction resource.');
+        }
+
+        if (! fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            $this->checkLastApiCall();
+
+            throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
+        }
+    }
+
+    private function getSavepointName(int $level): string
+    {
+        return 'TARGET_SP_' . $level;
     }
 
     /**
@@ -475,62 +544,33 @@ final class Connection implements ServerInfoAwareConnection
             $this->checkLastApiCall();
         }
 
-        if (function_exists('fbird_trans_start')) {
-            $options = ['access_mode' => IBASE_WRITE];
+        $options = ['access_mode' => IBASE_WRITE];
 
-            switch ($this->attrDcTransIsolationLevel) {
-                case TransactionIsolationLevel::READ_UNCOMMITTED:
-                    $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
-                    break;
-                case TransactionIsolationLevel::READ_COMMITTED:
-                    $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
-                    break;
-                case TransactionIsolationLevel::REPEATABLE_READ:
-                    $options['isolation'] = IBASE_CONCURRENCY;
-                    break;
-                case TransactionIsolationLevel::SERIALIZABLE:
-                    $options['isolation'] = IBASE_CONSISTENCY;
-                    break;
-            }
-
-            if ($this->attrDcTransWait === -1) {
-                $options['lock_resolution'] = IBASE_WAIT;
-            } elseif ($this->attrDcTransWait === 0) {
-                $options['lock_resolution'] = IBASE_NOWAIT;
-            } else {
-                $options['lock_resolution'] = IBASE_WAIT;
-                $options['lock_timeout']    = $this->attrDcTransWait;
-            }
-
-            $result = fbird_trans_start($this->connection, $options);
-        } else {
-            $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
-
-            switch ($this->attrDcTransIsolationLevel) {
-                case TransactionIsolationLevel::READ_UNCOMMITTED:
-                    $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
-                    break;
-                case TransactionIsolationLevel::READ_COMMITTED:
-                    $flags = IBASE_WRITE | IBASE_COMMITTED | IBASE_REC_VERSION;
-                    break;
-                case TransactionIsolationLevel::REPEATABLE_READ:
-                    $flags = IBASE_WRITE | IBASE_CONCURRENCY;
-                    break;
-                case TransactionIsolationLevel::SERIALIZABLE:
-                    $flags = IBASE_WRITE | IBASE_CONSISTENCY;
-                    break;
-            }
-
-            if ($this->attrDcTransWait === -1) {
-                $flags |= IBASE_WAIT;
-            } elseif ($this->attrDcTransWait === 0) {
-                $flags |= IBASE_NOWAIT;
-            } else {
-                $flags |= IBASE_WAIT;
-            }
-
-            $result = fbird_trans($flags, $this->connection);
+        switch ($this->attrDcTransIsolationLevel) {
+            case TransactionIsolationLevel::READ_UNCOMMITTED:
+                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                break;
+            case TransactionIsolationLevel::READ_COMMITTED:
+                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                break;
+            case TransactionIsolationLevel::REPEATABLE_READ:
+                $options['isolation'] = IBASE_CONCURRENCY;
+                break;
+            case TransactionIsolationLevel::SERIALIZABLE:
+                $options['isolation'] = IBASE_CONSISTENCY;
+                break;
         }
+
+        if ($this->attrDcTransWait === -1) {
+            $options['lock_resolution'] = IBASE_WAIT;
+        } elseif ($this->attrDcTransWait === 0) {
+            $options['lock_resolution'] = IBASE_NOWAIT;
+        } else {
+            $options['lock_resolution'] = IBASE_WAIT;
+            $options['lock_timeout']    = $this->attrDcTransWait;
+        }
+
+        $result = fbird_trans_start($this->connection, $options);
 
         if (! is_resource($result)) {
             $this->checkLastApiCall();
