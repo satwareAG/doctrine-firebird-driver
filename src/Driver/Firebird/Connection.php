@@ -127,7 +127,7 @@ final class Connection implements ServerInfoAwareConnection
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
                 if (! fbird_commit($this->firebirdActiveTransaction)) {
-                    error_log('fbird_commit failed in __destruct: ' . fbird_errmsg());
+                    error_log('fbird_commit failed in __destruct: ' . (string) fbird_errmsg());
                 }
             }
 
