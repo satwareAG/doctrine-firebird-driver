@@ -124,7 +124,7 @@ final class Connection implements ServerInfoAwareConnection
             }
         }
 
-        if (is_resource($this->firebirdActiveTransaction)) {
+        if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
                 if (! fbird_commit($this->firebirdActiveTransaction)) {
