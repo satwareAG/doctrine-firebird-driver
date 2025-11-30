@@ -195,6 +195,51 @@ function fbird_execute($query, ...$bind_arg) {}
 function fbird_free_query($query) {}
 
 /**
+ * Execute a SQL statement with an explicit transaction
+ *
+ * Executes a DML statement (INSERT, UPDATE, DELETE) within the given transaction
+ * and returns the number of affected rows. The transaction must be committed
+ * separately for changes to persist.
+ *
+ * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
+ * @param string $query SQL statement to execute
+ * @param array|null $params Optional array of bind parameters
+ * @return int Number of affected rows
+ * @since php-firebird 6.2.0
+ */
+function fbird_execute_statement($trans_handle, string $query, ?array $params = null): int {}
+
+/**
+ * Execute a SQL query with an explicit transaction
+ *
+ * Executes a SELECT query within the given transaction and returns a result
+ * resource for fetching rows. The transaction must be managed separately.
+ *
+ * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
+ * @param string $query SQL query to execute
+ * @param array|null $params Optional array of bind parameters
+ * @return resource|false Result resource on success, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_execute_query($trans_handle, string $query, ?array $params = null) {}
+
+/**
+ * Execute SQL in an autonomous transaction (auto-commit)
+ *
+ * Executes a SQL statement in a separate autonomous transaction that is
+ * automatically committed on success or rolled back on failure. This is
+ * useful for DDL statements or operations that should not be affected
+ * by the current transaction state.
+ *
+ * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param string $query SQL statement to execute
+ * @param array|null $params Optional array of bind parameters
+ * @return int|resource|false Affected rows for DML, result resource for SELECT, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_execute_auto($link_identifier, string $query, ?array $params = null): int|false {}
+
+/**
  * Increments the named generator and returns its new value
  * @param string $generator
  * @param int|null $increment
@@ -383,6 +428,78 @@ function fbird_blob_echo($link_identifier = null, $blob_id = null) {}
  * @return string|false
  */
 function fbird_blob_import($link_identifier = null, $file = null) {}
+
+/**
+ * Create a blob as a PHP stream for writing
+ *
+ * Creates a new blob and returns it as a PHP stream resource. Data can be
+ * written to the blob using standard PHP stream functions like fwrite().
+ * The stream must be closed with fclose() to finalize the blob.
+ *
+ * @param resource|null $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @return resource|false PHP stream resource on success, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_blob_create_stream($link_identifier = null) {}
+
+/**
+ * Open an existing blob as a PHP stream for reading
+ *
+ * Opens an existing blob by its ID and returns it as a PHP stream resource.
+ * Data can be read using standard PHP stream functions like fread() and fgets().
+ * The stream must be closed with fclose() when done.
+ *
+ * @param resource|null $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param string|null $blob_id The blob ID to open (from a BLOB column)
+ * @return resource|false PHP stream resource on success, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_blob_open_stream($link_identifier = null, $blob_id = null) {}
+
+/**
+ * List attachments that are blocking access to a table
+ *
+ * Queries the MON$TABLE_BLOCKERS system table to find all active attachments
+ * that hold locks on the specified table. Useful for migration and maintenance
+ * scenarios where you need to identify connections blocking DDL operations.
+ *
+ * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param string $table_name Name of the table to check for blockers
+ * @return array|false Array of blocker info (MON$ATTACHMENT_ID, MON$USER, etc.) or false on error
+ * @since php-firebird 6.2.0
+ */
+function fbird_list_table_blockers($link_identifier, string $table_name) {}
+
+/**
+ * Kill a specific database attachment
+ *
+ * Terminates another database connection by attachment ID. Requires SYSDBA
+ * privileges or owner rights. Use with caution as this immediately disconnects
+ * the target session without warning.
+ *
+ * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param int $attachment_id The MON$ATTACHMENT_ID of the attachment to kill
+ * @return bool True on success, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_kill_attachment($link_identifier, int $attachment_id): bool {}
+
+/**
+ * Force drop a table by killing blocking attachments first
+ *
+ * Combines fbird_list_table_blockers() and fbird_kill_attachment() to forcefully
+ * drop a table that may have active connections. All blocking attachments are
+ * terminated before the DROP TABLE is executed. Requires SYSDBA privileges.
+ *
+ * WARNING: This is a destructive operation that will terminate other sessions
+ * and permanently delete the table and its data.
+ *
+ * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param string $table_name Name of the table to drop
+ * @return bool True on success, false on failure
+ * @since php-firebird 6.2.0
+ */
+function fbird_drop_table_force($link_identifier, string $table_name): bool {}
 
 /**
  * Return error messages
@@ -593,3 +710,85 @@ function ibase_free_event_handler($event) {}
 function ibase_get_client_version() {}
 function ibase_get_client_major_version() {}
 function ibase_get_client_minor_version() {}
+
+/**
+ * Alias for fbird_execute_statement
+ * @see fbird_execute_statement()
+ * @param resource $trans_handle
+ * @param string $query
+ * @param array|null $params
+ * @return int
+ * @since php-firebird 6.2.0
+ */
+function ibase_execute_statement($trans_handle, string $query, ?array $params = null): int {}
+
+/**
+ * Alias for fbird_execute_query
+ * @see fbird_execute_query()
+ * @param resource $trans_handle
+ * @param string $query
+ * @param array|null $params
+ * @return resource|false
+ * @since php-firebird 6.2.0
+ */
+function ibase_execute_query($trans_handle, string $query, ?array $params = null) {}
+
+/**
+ * Alias for fbird_execute_auto
+ * @see fbird_execute_auto()
+ * @param resource $link_identifier
+ * @param string $query
+ * @param array|null $params
+ * @return int|resource|false
+ * @since php-firebird 6.2.0
+ */
+function ibase_execute_auto($link_identifier, string $query, ?array $params = null): int|false {}
+
+/**
+ * Alias for fbird_list_table_blockers
+ * @see fbird_list_table_blockers()
+ * @param resource $link_identifier
+ * @param string $table_name
+ * @return array|false
+ * @since php-firebird 6.2.0
+ */
+function ibase_list_table_blockers($link_identifier, string $table_name) {}
+
+/**
+ * Alias for fbird_kill_attachment
+ * @see fbird_kill_attachment()
+ * @param resource $link_identifier
+ * @param int $attachment_id
+ * @return bool
+ * @since php-firebird 6.2.0
+ */
+function ibase_kill_attachment($link_identifier, int $attachment_id): bool {}
+
+/**
+ * Alias for fbird_drop_table_force
+ * @see fbird_drop_table_force()
+ * @param resource $link_identifier
+ * @param string $table_name
+ * @return bool
+ * @since php-firebird 6.2.0
+ */
+function ibase_drop_table_force($link_identifier, string $table_name): bool {}
+
+/**
+ * Alias for fbird_blob_create_stream
+ * @see fbird_blob_create_stream()
+ * @param resource|null $link_identifier
+ * @return resource|false
+ * @since php-firebird 6.2.0
+ */
+function ibase_blob_create_stream($link_identifier = null) {}
+
+/**
+ * Alias for fbird_blob_open_stream
+ * @see fbird_blob_open_stream()
+ * @param resource|null $link_identifier
+ * @param string|null $blob_id
+ * @return resource|false
+ * @since php-firebird 6.2.0
+ */
+function ibase_blob_open_stream($link_identifier = null, $blob_id = null) {}
