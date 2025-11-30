@@ -485,11 +485,6 @@ final class Connection implements ServerInfoAwareConnection
         }
     }
 
-    private function getSavepointName(int $level): string
-    {
-        return 'TARGET_SP_' . $level;
-    }
-
     /**
      * {@inheritDoc}
      *
@@ -530,6 +525,11 @@ final class Connection implements ServerInfoAwareConnection
     public function getNativeConnection()
     {
         return $this->connection;
+    }
+
+    private function getSavepointName(int $level): string
+    {
+        return 'TARGET_SP_' . $level;
     }
 
     /**

@@ -13,7 +13,7 @@ define('IBASE_TEXT', 1);
 define('IBASE_FETCH_BLOBS', 1);
 define('IBASE_FETCH_ARRAYS', 2);
 define('IBASE_UNIXTIME', 4);
-define('IBASE_VER', 61);
+define('IBASE_VER', 62);
 define('IBASE_WRITE', 1);
 define('IBASE_READ', 2);
 define('IBASE_COMMITTED', 8);
