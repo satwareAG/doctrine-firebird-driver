@@ -193,7 +193,9 @@ abstract class FunctionalTestCase extends TestCase
 
     public function getFirebirdConnection(): FirebirdConnection|null
     {
-        while ($connection = $this->connection->getWrappedConnection()) {
+        $connection = $this->connection;
+        while (method_exists($connection, 'getWrappedConnection')) {
+            $connection = $connection->getWrappedConnection();
             if ($connection instanceof FirebirdConnection) {
                 return $connection;
             }
@@ -235,14 +237,19 @@ abstract class FunctionalTestCase extends TestCase
 
         // Only attempt rollback if connection is still valid
         if ($connectionValid) {
-            while ($this->connection->isTransactionActive()) {
-                try {
-                    $this->connection->rollBack();
-                } catch (Throwable) {
-                    // If rollback fails, we can't do much about it.
-                    // Breaking the loop prevents infinite loop if nesting level doesn't decrease.
-                    break;
+            try {
+                // Check if transaction allows rollback
+                while ($this->connection->isTransactionActive()) {
+                    try {
+                        $this->connection->rollBack();
+                    } catch (Throwable) {
+                        // If rollback fails, we can't do much about it.
+                        // Breaking the loop prevents infinite loop if nesting level doesn't decrease.
+                        break;
+                    }
                 }
+            } catch (Throwable) {
+                // Ignore transaction check errors (e.g. if connection closed by test)
             }
 
             // Ensure any implicit driver-level lock is released (e.g. from auto-commit commit_ret)
