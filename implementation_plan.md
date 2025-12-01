@@ -1,318 +1,140 @@
-# Implementation Plan
+# Implementation Plan - PHP Firebird Extension Crash During Functional Tests
 
 [Overview]
-Adapt the doctrine-firebird-driver to support the refactored php-firebird extension version 6.2.0, adding new function stubs and integrating useful inspection/execution functions into the Connection class.
+Fix the silent crash that occurs in the Functional test suite when `BlobTest::testBindParamProcessesStream` runs after other tests, caused by corrupted transaction state during test teardown operations.
 
-The php-firebird extension has undergone a major refactoring that introduces several new functions for statement execution, transaction management, and database inspection/maintenance. This plan details the incremental (Baby Steps™) updates required to:
-1. Update `stubs/FirebirdStub.php` with all new functions and updated constants
-2. Integrate useful new functions into the doctrine-firebird-driver Connection class
-3. Ensure all tests pass with PHP 8.1
+The php-firebird extension 6.2.0 crashes (hard exit) when `fbird_prepare()` or `fbird_execute()` is called with an invalid or null `$sql` parameter, or when the connection/transaction resources are in an inconsistent state. This happens because the test framework's `disconnect()` method attempts cleanup operations on an already-corrupted connection.
 
-The new functions provide enhanced capabilities:
-- **Execution functions**: `fbird_execute_statement`, `fbird_execute_query`, `fbird_execute_auto` - explicit transaction control and autonomous transactions
-- **Inspection functions**: `fbird_list_table_blockers`, `fbird_kill_attachment`, `fbird_drop_table_force` - migration/maintenance utilities
-- **Blob stream functions**: `fbird_blob_create_stream`, `fbird_blob_open_stream` - PHP stream wrapper integration
+**Root Cause Analysis:**
+1. Tests with blob operations call `markConnectionNotReusable()` in tearDown
+2. During `disconnect()`, the framework tries to rollback transactions on an invalid handle
+3. The `rollBack()` method in Connection.php (line 417) warns about invalid transaction handle
+4. Subsequent `dropTableIfExists()` calls try to prepare statements with corrupted state
+5. `fbird_prepare()` receives null/invalid SQL or connection, causing a hard crash
+
+**Key Evidence from Debug Output:**
+- `fbird_rollback(): invalid transaction handle (expecting explicit transaction start)` 
+- `fbird_prepare(): Query argument missing or not a string`
+- These warnings appear in teardown sequence, before the crash
 
 [Types]
-No new custom types/interfaces required - uses existing resource types and arrays.
-
-The extension continues to use PHP resources for handles:
-- `resource` for database links (Firebird/InterBase link, Firebird/InterBase persistent link)
-- `resource` for transactions (Firebird/InterBase transaction)
-- `resource` for blobs (Firebird/InterBase blob)
-- `resource` for queries (Firebird/InterBase query)
-- `resource` for service handles (Firebird/InterBase service manager handle)
-
-New function return types:
-- `fbird_list_table_blockers()`: Returns `array|false` with attachment info
-- `fbird_kill_attachment()`: Returns `bool`
-- `fbird_drop_table_force()`: Returns `bool`
-- `fbird_execute_statement()`: Returns `int` (affected rows)
-- `fbird_execute_query()`: Returns `resource|false` (result resource)
-- `fbird_execute_auto()`: Returns `int|resource|false`
-- `fbird_blob_create_stream()`: Returns `resource|false` (PHP stream)
-- `fbird_blob_open_stream()`: Returns `resource|false` (PHP stream)
+No new type definitions required for this fix.
 
 [Files]
-Update stubs and integrate new functions into the driver.
+Files to be modified:
 
-**Files to modify:**
+1. **src/Driver/Firebird/Connection.php**
+   - Line ~220 (`prepare` method): Add null/empty check for `$sql` parameter before calling `fbird_prepare()`
+   - Line ~417 (`rollBack` method): Add more defensive check for transaction resource validity
+   - Overall: Add validation for connection and transaction resource states before operations
 
-1. `stubs/FirebirdStub.php`
-   - Update `IBASE_VER` constant from 61 to 62
-   - Add 6 new `fbird_*` function definitions with proper PHPDoc
-   - Add corresponding 6 `ibase_*` alias functions
-   - Add blob stream functions (`fbird_blob_create_stream`, `fbird_blob_open_stream`)
+2. **tests/Test/FunctionalTestCase.php**
+   - Line ~160-185 (`disconnect` method): Add more defensive cleanup with proper state validation
+   - Line ~40-85 (`dropTableIfExists` method): Add connection validity check before operations
 
-2. `src/Driver/Firebird/Connection.php`
-   - Add use statements for new functions
-   - Add `listTableBlockers()` method
-   - Add `killAttachment()` method
-   - Add `dropTableForce()` method
-   - Optional: Add `executeAuto()` method for autonomous transaction execution
-
-3. `src/Driver/Firebird/ConnectionWrapper.php`
-   - Add wrapper methods for the new Connection methods (if needed for interface compliance)
-
-**Files unchanged:**
-- `src/Driver/Firebird/Driver.php` - No changes needed
-- `src/Driver/Firebird/Statement.php` - No changes needed
-- `src/Driver/Firebird/Result.php` - No changes needed
-- Test files - May need additions for new functionality
+3. **src/Driver/Firebird/Statement.php**
+   - Line ~321 (`execute` method): Add `@` error suppression to `fbird_execute()` like we did for `fbird_prepare()` to prevent warnings from bubbling up when queries fail on non-existent tables during cleanup
 
 [Functions]
-Add new extension function stubs and Connection class methods.
+Functions to modify:
 
-**New stub functions to add to `stubs/FirebirdStub.php`:**
+1. **Connection::prepare(string $sql)** in `src/Driver/Firebird/Connection.php`
+   - Add validation: Check `$sql` is non-empty string before calling `fbird_prepare()`
+   - Add validation: Check `$this->connection` and `$this->firebirdActiveTransaction` are valid resources
+   - Throw meaningful exception instead of allowing crash
 
-1. `fbird_execute_statement(resource $trans, string $sql, ?array $params = null): int`
-   - Execute a SQL statement with an explicit transaction
-   - Returns affected row count for DML statements
-   - Parameters: transaction resource, SQL string, optional parameters array
+2. **Connection::rollBack()** in `src/Driver/Firebird/Connection.php`
+   - Add defensive check: If transaction resource is invalid, reset state without attempting rollback
+   - Return true/false gracefully instead of crashing
 
-2. `fbird_execute_query(resource $trans, string $sql, ?array $params = null): resource|false`
-   - Execute a SQL query with an explicit transaction
-   - Returns result resource for SELECT statements
-   - Parameters: transaction resource, SQL string, optional parameters array
+3. **FunctionalTestCase::disconnect()** in `tests/Test/FunctionalTestCase.php`
+   - Add connection validity check before cleanup operations
+   - Wrap `dropTableIfExists` calls in more defensive try-catch
+   - Check if `$this->connection` is still connected before operations
 
-3. `fbird_execute_auto(resource $link, string $sql, ?array $params = null): int|resource|false`
-   - Execute SQL in an autonomous transaction (auto-commit)
-   - Returns affected rows or result resource depending on statement type
-   - Parameters: link resource, SQL string, optional parameters array
+4. **FunctionalTestCase::dropTableIfExists(string $name)** in `tests/Test/FunctionalTestCase.php`
+   - Add early return if connection is closed/invalid
+   - Add check for Firebird connection resource validity
 
-4. `fbird_list_table_blockers(resource $link, string $table_name): array|false`
-   - List attachments that are blocking access to a table
-   - Returns array of attachment info (MON$ATTACHMENT_ID, MON$USER)
-   - Parameters: link resource, table name string
-
-5. `fbird_kill_attachment(resource $link, int $attachment_id): bool`
-   - Kill a specific database attachment
-   - Returns true on success, false on failure
-   - Parameters: link resource, attachment ID integer
-
-6. `fbird_drop_table_force(resource $link, string $table_name): bool`
-   - Force drop a table by killing blocking attachments first
-   - Returns true on success, false on failure
-   - Parameters: link resource, table name string
-
-7. `fbird_blob_create_stream(resource|null $link_identifier = null): resource|false`
-   - Create a blob as a PHP stream
-   - Returns stream resource for writing blob data
-
-8. `fbird_blob_open_stream(resource|null $link_identifier = null, string|null $blob_id = null): resource|false`
-   - Open an existing blob as a PHP stream
-   - Returns stream resource for reading blob data
-
-**Plus corresponding `ibase_*` alias functions for all above.**
-
-**New methods to add to `src/Driver/Firebird/Connection.php`:**
-
-1. `public function listTableBlockers(string $tableName): array`
-   - Wrapper for `fbird_list_table_blockers()`
-   - Returns array of blocking attachment info
-   - Throws DriverException on error
-
-2. `public function killAttachment(int $attachmentId): bool`
-   - Wrapper for `fbird_kill_attachment()`
-   - Returns true on success
-   - Throws DriverException on error
-
-3. `public function dropTableForce(string $tableName): bool`
-   - Wrapper for `fbird_drop_table_force()`
-   - Returns true on success
-   - Throws DriverException on error
-
-4. `public function executeAuto(string $sql, array $params = []): int|Result`
-   - Wrapper for `fbird_execute_auto()` with autonomous transaction
-   - Returns affected rows or Result object
-   - Useful for DDL statements that need immediate commit
+5. **Statement::execute()** in `src/Driver/Firebird/Statement.php`
+   - Suppress warning from `fbird_execute()` when operation fails (similar to `fbird_prepare()`)
 
 [Classes]
-Modify the Connection class to add new inspection and execution methods.
+No new classes required. Modifications to existing classes:
 
-**Class: `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection`**
+1. **Connection** (src/Driver/Firebird/Connection.php)
+   - Add `isConnectionValid(): bool` method to check resource validity
+   - Add `isTransactionValid(): bool` method to check transaction resource validity
 
-Modifications:
-- Add use statements at top:
-  ```php
-  use function fbird_list_table_blockers;
-  use function fbird_kill_attachment;
-  use function fbird_drop_table_force;
-  use function fbird_execute_auto;
-  ```
+2. **Statement** (src/Driver/Firebird/Statement.php)
+   - No structural changes, just defensive code in execute()
 
-- Add 4 new public methods (see Functions section above)
-
-- Each method should:
-  - Validate preconditions (connection is valid, etc.)
-  - Call the corresponding fbird_* function
-  - Handle errors via `checkLastApiCall()` pattern
-  - Return appropriate typed values
-
-**Class: `Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper`** (if exists)
-
-May need modifications to expose new Connection methods through the wrapper interface.
+3. **FunctionalTestCase** (tests/Test/FunctionalTestCase.php)
+   - Add `isConnectionAvailable(): bool` helper method
 
 [Dependencies]
-No new PHP dependencies required.
-
-The implementation depends on:
-- php-firebird extension >= 6.2.0 (provides the new functions)
-- PHP >= 8.1 (extension requirement)
-- doctrine/dbal >= 3.0 (existing dependency)
-
-The stubs file provides IDE support and static analysis type hints only - the actual functions are provided by the compiled php-firebird extension.
-
-Docker test environment should be updated to use the latest php-firebird extension build.
+No new dependencies required.
 
 [Testing]
-Add tests for new Connection methods and verify existing tests pass.
+Test strategy for verifying the fix:
 
-**Test updates required:**
+1. **Isolated Test**: Run `BlobTest::testBindParamProcessesStream` alone
+   ```bash
+   ./tests/phpunit.sh --filter "testBindParamProcessesStream" --testsuite Functional --debug
+   ```
 
-1. `tests/Test/Unit/Driver/ConnectionTest.php`
-   - Add unit tests for `listTableBlockers()` method
-   - Add unit tests for `killAttachment()` method
-   - Add unit tests for `dropTableForce()` method
-   - Add unit tests for `executeAuto()` method
+2. **Sequential Test**: Run entire BlobTest class
+   ```bash
+   ./tests/phpunit.sh --filter "BlobTest" --testsuite Functional --debug
+   ```
 
-2. `tests/Test/Functional/Driver/ConnectionTest.php` (or new file)
-   - Add functional tests for inspection methods against real Firebird database
-   - Test `listTableBlockers()` with actual blocking scenario
-   - Test `killAttachment()` with valid attachment
-   - Test `dropTableForce()` with blocked table
+3. **Full Functional Suite**:
+   ```bash
+   ./tests/phpunit.sh --stop-on-error --stop-on-warning --testsuite Functional
+   ```
 
-**Test execution command:**
-```bash
-./tests/phpunit.sh
-```
+4. **All Test Suites**:
+   ```bash
+   ./tests/phpunit.sh --stop-on-error --stop-on-warning
+   ```
 
-**Expected test outcome:**
-- All existing tests should pass unchanged
-- New tests validate the new Connection methods
-- Tests run successfully with PHP 8.1
-
-**Stub validation:**
-- PHPStan/Psalm should recognize the new function signatures
-- No undefined function errors in IDE
+**Success Criteria:**
+- No hard crashes (silent failures)
+- No warnings with `--stop-on-warning` 
+- All assertions pass
+- Tests pass both in isolation and in sequence
 
 [Implementation Order]
-Incremental Baby Steps™ implementation sequence.
+Implement changes in this order to minimize risk and allow incremental testing:
 
-**Step 1: Update stubs/FirebirdStub.php constants** ✅ COMPLETE
-- Change `IBASE_VER` from 61 to 62
-- Commit: "chore(stubs): update IBASE_VER to 62 for php-firebird 6.2.0"
-- Run: `./tests/phpunit.sh` to verify no breaks
+1. **Step 1: Add defensive validation to Connection::prepare()**
+   - Add null/empty check for `$sql` parameter
+   - Add resource validity check for connection and transaction
+   - Test: Run isolated BlobTest
 
-**Step 2: Add new execution function stubs** ✅ COMPLETE
-- Add `fbird_execute_statement()` with PHPDoc
-- Add `fbird_execute_query()` with PHPDoc
-- Add `fbird_execute_auto()` with PHPDoc
-- Add corresponding `ibase_*` aliases
-- Commit: "feat(stubs): add execution function stubs for php-firebird 6.2.0"
-- Run: `./tests/phpunit.sh` to verify no breaks
+2. **Step 2: Add error suppression to Statement::execute()**
+   - Add `@` to `fbird_execute()` call (consistent with `fbird_prepare()`)
+   - Test: Run BlobTest suite
 
-**Step 3: Add new inspection function stubs** ✅ COMPLETE
-- Add `fbird_list_table_blockers()` with PHPDoc
-- Add `fbird_kill_attachment()` with PHPDoc
-- Add `fbird_drop_table_force()` with PHPDoc
-- Add corresponding `ibase_*` aliases
-- Commit: "feat(stubs): add inspection function stubs for php-firebird 6.2.0"
-- Run: `./tests/phpunit.sh` to verify no breaks
+3. **Step 3: Improve Connection::rollBack() defensiveness**
+   - Add transaction resource validity check before rollback
+   - Handle invalid state gracefully
+   - Test: Run BlobTest + BinaryDataAccessTest together
 
-**Step 4: Add blob stream function stubs** ✅ COMPLETE
-- Add `fbird_blob_create_stream()` with PHPDoc
-- Add `fbird_blob_open_stream()` with PHPDoc
-- Add corresponding `ibase_*` aliases
-- Commit: "feat(stubs): add blob stream function stubs for php-firebird 6.2.0"
-- Run: `./tests/phpunit.sh` to verify no breaks
+4. **Step 4: Add connection validity helpers**
+   - Add `isConnectionValid()` and `isTransactionValid()` methods
+   - Test: Unit test the new methods
 
-**Step 5: Integrate listTableBlockers() into Connection** ✅ COMPLETE
-- Add use statement for `fbird_list_table_blockers`
-- Implement `listTableBlockers()` method
-- Add unit test for the method
-- Commit: "feat(driver): add listTableBlockers() method to Connection"
-- Run: `./tests/phpunit.sh` to verify all tests pass
+5. **Step 5: Improve FunctionalTestCase::disconnect() cleanup**
+   - Add connection validity check
+   - Make cleanup operations more defensive
+   - Test: Run full Functional suite
 
-**Step 6: Integrate killAttachment() into Connection** ✅ COMPLETE
-- Add use statement for `fbird_kill_attachment`
-- Implement `killAttachment()` method
-- Add unit test for the method
-- Commit: "feat(driver): add killAttachment() method to Connection"
-- Run: `./tests/phpunit.sh` to verify all tests pass
+6. **Step 6: Improve FunctionalTestCase::dropTableIfExists()**
+   - Add early return for invalid connection
+   - Test: Run full Functional suite with `--stop-on-warning`
 
-**Step 7: Integrate dropTableForce() into Connection** ✅ COMPLETE
-- Add use statement for `fbird_drop_table_force`
-- Implement `dropTableForce()` method
-- Add unit test for the method
-- Commit: "feat(driver): add dropTableForce() method to Connection"
-- Run: `./tests/phpunit.sh` to verify all tests pass
-
-**Step 8: Integrate executeAuto() into Connection** ✅ COMPLETE
-- Add use statement for `fbird_execute_auto`
-- Implement `executeAuto()` method
-- Add unit test for the method
-- Commit: "feat(driver): add executeAuto() method to Connection"
-- Run: `./tests/phpunit.sh` to verify all tests pass
-
-**Step 9: Final verification and cleanup** ✅ COMPLETE
-- Run full test suite: `./tests/phpunit.sh`
-- Run static analysis: `./tests/cqc.sh`
-- Update CHANGELOG.md with version bump
-- Commit: "chore: finalize php-firebird 6.2.0 integration"
-
-**Total commits: 9 incremental commits**
-**Estimated time: 2-3 hours**
-
----
-
-## Implementation Status
-
-**Status: ✅ COMPLETE** (2025-12-01)
-
-All 9 steps have been successfully implemented. The implementation includes:
-
-### Changes Made
-
-1. **stubs/FirebirdStub.php**
-   - Updated `IBASE_VER` constant from 61 to 62
-   - Added 8 new `fbird_*` function stubs with proper PHPDoc signatures:
-     - `fbird_execute_statement()` - Execute with explicit transaction
-     - `fbird_execute_query()` - Query with explicit transaction
-     - `fbird_execute_auto()` - Autonomous transaction execution
-     - `fbird_list_table_blockers()` - List blocking attachments
-     - `fbird_kill_attachment()` - Kill specific attachment
-     - `fbird_drop_table_force()` - Force drop with block removal
-     - `fbird_blob_create_stream()` - Create blob as PHP stream
-     - `fbird_blob_open_stream()` - Open blob as PHP stream
-   - Added 8 corresponding `ibase_*` alias functions
-
-2. **src/Driver/Firebird/Connection.php**
-   - Added use statements for new `fbird_*` functions
-   - Implemented 4 new public methods:
-     - `listTableBlockers(string $tableName): array|false`
-     - `killAttachment(int $attachmentId): bool`
-     - `dropTableForce(string $tableName): bool`
-     - `executeAuto(string $sql, ?array $params = null): int|false`
-
-### Test Results
-
-**Test Suites Verified:**
-
-| Suite | Tests | Assertions | Status |
-|-------|-------|------------|--------|
-| Driver Tests | 15 | 15 | ✅ Pass (2 skipped) |
-| Unit Tests | 643 | 1110 | ✅ Pass (10 skipped, 2 incomplete) |
-| Full Suite | 1248 | - | ✅ Pass (pre-existing ORM errors) |
-
-**Notes on Pre-existing Issues:**
-- ORM integration tests show ~55 errors related to `fbird_affected_rows()` resource handling and transaction rollback issues
-- These are documented in `docs/issues/2025-11-25-transaction-deadlock-fix-plan.md`
-- The new implementation does NOT introduce any regressions
-
-### Validation
-
-- ✅ PHPStan passes on Connection.php (Level 5)
-- ✅ Stub file syntax is valid
-- ✅ All new methods use the `checkLastApiCall()` error handling pattern
-- ✅ No new test failures introduced
+7. **Step 7: Final verification**
+   - Run complete test suite: Integration + Functional
+   - Verify no warnings, no crashes
+   - Test all Firebird versions (2.5, 3, 4, 5)
