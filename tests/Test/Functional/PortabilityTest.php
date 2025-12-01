@@ -101,6 +101,12 @@ class PortabilityTest extends FunctionalTestCase
         self::assertNotNull($this->connection->getDatabase());
     }
 
+    public function testTimeout(): void
+    {
+        sleep(11); // Should trigger timeout
+        self::assertTrue(true);
+    }
+
     /** @return iterable<string, array{(ColumnCase::LOWER|ColumnCase::UPPER), list<string>}> */
     public static function caseProvider(): iterable
     {

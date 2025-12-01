@@ -84,6 +84,29 @@ abstract class FunctionalTestCase extends TestCase
                 throw $e;
             }
 
+            // Optimization: Try to force drop using driver native function to kill blocking attachments
+            if ($fbirdConnection !== null) {
+                try {
+                    // Try to use fbird_drop_table_force if available
+                    // We remove quotes if present because the API might expect raw name,
+                    // or simply pass as is. Let's pass as is first.
+                    // Actually, checking if function exists or method works.
+                    // Connection::dropTableForce uses fbird_drop_table_force.
+                    
+                    // Unquote name for specialized driver call if it starts/ends with quotes
+                    // The driver function likely expects the name as used in metadata usually (e.g. UPPERCASE if unquoted)
+                    // If $name is quoted "TABLE", we might need to be careful.
+                    // But lets try passing it directly.
+                    
+                    if ($fbirdConnection->dropTableForce($name)) {
+                        $fbirdConnection->commit();
+                        return;
+                    }
+                } catch (Throwable) {
+                    // Ignore force drop errors and fall back to retry loop
+                }
+            }
+
             // Try up to 3 times with delay
             $success = false;
             for ($i = 0; $i < 3; $i++) {

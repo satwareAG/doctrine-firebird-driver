@@ -13,6 +13,8 @@
          displayDetailsOnTestsThatTriggerErrors="true"
          displayDetailsOnTestsThatTriggerNotices="true"
          displayDetailsOnTestsThatTriggerWarnings="true"
+         enforceTimeLimit="true"
+         defaultTimeLimit="1"
 >
   <php>
     <ini name="error_reporting" value="-1"/>
