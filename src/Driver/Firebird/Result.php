@@ -126,7 +126,7 @@ final class Result implements ResultInterface
         }
 
         if (is_resource($this->firebirdResultResource)) {
-            return fbird_affected_rows($this->connection->getActiveTransaction());
+            return fbird_affected_rows($this->connection->getNativeConnection());
         }
 
         return 0;
