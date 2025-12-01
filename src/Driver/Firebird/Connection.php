@@ -22,7 +22,6 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
 use function addcslashes;
-use function error_log;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -627,6 +626,113 @@ final class Connection implements ServerInfoAwareConnection
         return get_resource_type($this->firebirdActiveTransaction) === self::RESOURCE_TYPE_TRANSACTION;
     }
 
+    /**
+     * List attachments blocking access to a table.
+     *
+     * Queries the monitoring tables to find active attachments that hold
+     * locks on the specified table. Useful for identifying connections
+     * blocking DDL operations.
+     *
+     * @param string $tableName Name of the table to check for blockers
+     *
+     * @return array<int, array<string, mixed>>|false Array of blocker info or false on error
+     */
+    public function listTableBlockers(string $tableName): array|false
+    {
+        if (! is_resource($this->connection)) {
+            return false;
+        }
+
+        $result = fbird_list_table_blockers($this->connection, $tableName);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Kill a specific database attachment.
+     *
+     * Terminates another database connection by attachment ID. Requires SYSDBA
+     * privileges or owner rights.
+     *
+     * @param int $attachmentId The MON$ATTACHMENT_ID of the attachment to kill
+     *
+     * @throws DriverException
+     */
+    public function killAttachment(int $attachmentId): bool
+    {
+        if (! is_resource($this->connection)) {
+            throw new DriverException('No active connection.');
+        }
+
+        $result = fbird_kill_attachment($this->connection, $attachmentId);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Force drop a table by killing blocking attachments first.
+     *
+     * Terminates all blocking attachments and then drops the table.
+     * Requires SYSDBA privileges.
+     *
+     * WARNING: This is a destructive operation that will terminate other
+     * sessions and permanently delete the table.
+     *
+     * @param string $tableName Name of the table to drop
+     *
+     * @throws DriverException
+     */
+    public function dropTableForce(string $tableName): bool
+    {
+        if (! is_resource($this->connection)) {
+            throw new DriverException('No active connection.');
+        }
+
+        $result = fbird_drop_table_force($this->connection, $tableName);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Execute SQL in an autonomous transaction (auto-commit).
+     *
+     * Executes a SQL statement in a separate autonomous transaction that is
+     * automatically committed on success or rolled back on failure.
+     *
+     * @param string            $sql    SQL statement to execute
+     * @param array<mixed>|null $params Optional array of bind parameters
+     *
+     * @return int|false Number of affected rows for DML, or false on failure
+     *
+     * @throws DriverException
+     */
+    public function executeAuto(string $sql, array|null $params = null): int|false
+    {
+        if (! is_resource($this->connection)) {
+            throw new DriverException('No active connection.');
+        }
+
+        $result = fbird_execute_auto($this->connection, $sql, $params);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
     private function getSavepointName(int $level): string
     {
         return 'TARGET_SP_' . $level;
@@ -677,121 +783,6 @@ final class Connection implements ServerInfoAwareConnection
 
             // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
             throw new DriverException('Failed to create transaction');
-        }
-
-        return $result;
-    }
-
-    /**
-     * List attachments blocking access to a table.
-     *
-     * Queries the monitoring tables to find active attachments that hold
-     * locks on the specified table. Useful for identifying connections
-     * blocking DDL operations.
-     *
-     * @param string $tableName Name of the table to check for blockers
-     *
-     * @return array<int, array<string, mixed>>|false Array of blocker info or false on error
-     *
-     * @since php-firebird 6.2.0
-     */
-    public function listTableBlockers(string $tableName): array|false
-    {
-        if (! is_resource($this->connection)) {
-            return false;
-        }
-
-        $result = fbird_list_table_blockers($this->connection, $tableName);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
-    }
-
-    /**
-     * Kill a specific database attachment.
-     *
-     * Terminates another database connection by attachment ID. Requires SYSDBA
-     * privileges or owner rights.
-     *
-     * @param int $attachmentId The MON$ATTACHMENT_ID of the attachment to kill
-     *
-     * @throws DriverException
-     *
-     * @since php-firebird 6.2.0
-     */
-    public function killAttachment(int $attachmentId): bool
-    {
-        if (! is_resource($this->connection)) {
-            throw new DriverException('No active connection.');
-        }
-
-        $result = fbird_kill_attachment($this->connection, $attachmentId);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
-    }
-
-    /**
-     * Force drop a table by killing blocking attachments first.
-     *
-     * Terminates all blocking attachments and then drops the table.
-     * Requires SYSDBA privileges.
-     *
-     * WARNING: This is a destructive operation that will terminate other
-     * sessions and permanently delete the table.
-     *
-     * @param string $tableName Name of the table to drop
-     *
-     * @throws DriverException
-     *
-     * @since php-firebird 6.2.0
-     */
-    public function dropTableForce(string $tableName): bool
-    {
-        if (! is_resource($this->connection)) {
-            throw new DriverException('No active connection.');
-        }
-
-        $result = fbird_drop_table_force($this->connection, $tableName);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
-    }
-
-    /**
-     * Execute SQL in an autonomous transaction (auto-commit).
-     *
-     * Executes a SQL statement in a separate autonomous transaction that is
-     * automatically committed on success or rolled back on failure.
-     *
-     * @param string             $sql    SQL statement to execute
-     * @param array<mixed>|null $params Optional array of bind parameters
-     *
-     * @return int|false Number of affected rows for DML, or false on failure
-     *
-     * @throws DriverException
-     *
-     * @since php-firebird 6.2.0
-     */
-    public function executeAuto(string $sql, ?array $params = null): int|false
-    {
-        if (! is_resource($this->connection)) {
-            throw new DriverException('No active connection.');
-        }
-
-        $result = fbird_execute_auto($this->connection, $sql, $params);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
         }
 
         return $result;

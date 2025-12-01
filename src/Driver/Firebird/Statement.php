@@ -9,30 +9,32 @@ use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
 use RuntimeException;
-use Throwable;
 
 use function array_flip;
 use function array_map;
 use function array_unshift;
 use function assert;
+use function count;
 use function fbird_affected_rows;
-use function fbird_blob_create;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
+use function fbird_fetch_assoc;
 use function fbird_free_query;
 use function fclose;
-use function feof;
-use function fread;
 use function func_num_args;
 use function get_resource_type;
+use function in_array;
+use function is_array;
 use function is_int;
+use function is_numeric;
 use function is_resource;
 use function ksort;
-use function fbird_fetch_assoc;
 use function preg_match;
 use function sprintf;
-use function strlen;
+use function str_starts_with;
+use function strcasecmp;
+use function stream_get_contents;
 use function strtoupper;
 use function trim;
 
@@ -57,13 +59,13 @@ class Statement implements StatementInterface
     protected array $boundValues = [];
 
     private Result|null $currentResult = null;
-    
+
     /** @var bool True if this statement is a DML operation (INSERT/UPDATE/DELETE/MERGE) */
     private bool $isDml = false;
-    
+
     /** @var bool True if this is specifically an INSERT statement */
     private bool $isInsert = false;
-    
+
     /** @var bool True if this statement has a RETURNING clause */
     private bool $hasReturning = false;
 
@@ -83,57 +85,11 @@ class Statement implements StatementInterface
             $this->isInsert = $this->detectInsertStatement($sql);
             // Check if this statement has a RETURNING clause
             $this->hasReturning = $this->detectReturningClause($sql);
+
             return;
         }
 
         $this->connection->checkLastApiCall();
-    }
-
-    /**
-     * Detect if the given SQL is a DML statement (INSERT/UPDATE/DELETE/MERGE).
-     * SELECT statements and DDL are not considered DML.
-     */
-    private function detectDmlStatement(string $sql): bool
-    {
-        // Normalize: trim whitespace, handle common prefixes
-        $sql = trim($sql);
-        
-        // Skip common statement prefixes (comments, WITH clause)
-        // Extract the first significant keyword
-        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(SELECT|INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is', $sql, $matches)) {
-            $keyword = strtoupper($matches[1]);
-            return in_array($keyword, ['INSERT', 'UPDATE', 'DELETE', 'MERGE', 'EXECUTE'], true);
-        }
-        
-        // Fallback: check if starts with DML keywords
-        if (preg_match('/^\s*(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/i', $sql)) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Detect if the SQL is specifically an INSERT statement.
-     */
-    private function detectInsertStatement(string $sql): bool
-    {
-        $sql = trim($sql);
-        
-        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is', $sql)) {
-            return true;
-        }
-        
-        return preg_match('/^\s*INSERT\b/i', $sql) === 1;
-    }
-    
-    /**
-     * Detect if the SQL statement has a RETURNING clause.
-     */
-    private function detectReturningClause(string $sql): bool
-    {
-        // Check for RETURNING keyword (case-insensitive)
-        return preg_match('/\bRETURNING\b/i', $sql) === 1;
     }
 
     public function __destruct()
@@ -224,6 +180,7 @@ class Statement implements StatementInterface
                 if (is_resource($variable)) {
                     fclose($variable);
                 }
+
                 $variable = $content;
                 $type     = ParameterType::STRING;
             }
@@ -342,56 +299,60 @@ class Statement implements StatementInterface
                         $fbirdResultRc = 0;
                     }
                 }
+
                 $this->connection->autoCommit();
             } else {
                 // fbird_execute() returned resource - this happens for prepared statements
                 // For prepared DML with bound parameters, affected_rows is unreliable (returns 0)
                 // We use SQL-based detection (isDml flag) because fbird_num_fields is unreliable
                 // (it can return non-zero even for DML statements in some Firebird versions)
-                
 
                 if ($this->isDml) {
                     // This is a DML statement (INSERT/UPDATE/DELETE/MERGE/EXECUTE)
-                    
+
                     if ($this->hasReturning) {
                         // DML with RETURNING clause - fetch the returned values
                         // This is used by ConnectionWrapper to get identity column values
                         $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
-                        
+
                         if ($returnedRow !== false && is_array($returnedRow)) {
                             // Look for identity column value in returned row
                             // ConnectionWrapper sets connectionInsertColumn when RETURNING is added
                             $identityColumn = $this->connection->getConnectionInsertColumn();
-                            
+
                             // Try to find the identity value in the returned row
                             foreach ($returnedRow as $key => $value) {
                                 // ConnectionWrapper uses alias format: ID<hash>.<hash>
                                 // Also check for the actual column name
-                                if ($identityColumn !== null && (
+                                if (
+                                    $identityColumn !== null && (
                                     strcasecmp($key, $identityColumn) === 0 ||
                                     str_starts_with(strtoupper($key), 'ID')
-                                )) {
+                                    )
+                                ) {
                                     if (is_numeric($value)) {
                                         $this->connection->setLastInsertId((int) $value);
                                         break;
                                     }
                                 }
-                                
+
                                 // Fallback: if only one numeric value returned, assume it's the ID
-                                if (is_numeric($value) && count($returnedRow) === 1) {
-                                    $this->connection->setLastInsertId((int) $value);
+                                if (! is_numeric($value) || count($returnedRow) !== 1) {
+                                    continue;
                                 }
+
+                                $this->connection->setLastInsertId((int) $value);
                             }
                         }
                     }
-                    
+
                     // Get affected rows BEFORE commit - fbird_affected_rows returns count
                     // for the last DML operation in the current transaction
                     $preCommitAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
-                    
+
                     // Commit the transaction
                     $this->connection->autoCommit();
-                    
+
                     // Use the pre-commit value as our result
                     // fbird_affected_rows() returns the count for the most recent DML operation
                     if ($preCommitAffectedRows > 0) {
@@ -405,6 +366,7 @@ class Statement implements StatementInterface
                         $fbirdResultRc = 0;
                     }
                 }
+
                 // else: This is a SELECT query - keep the resource for fetching
                 // No auto-commit needed for SELECT (doesn't make changes)
             }
@@ -413,5 +375,53 @@ class Statement implements StatementInterface
         $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
 
         return $this->currentResult;
+    }
+
+    /**
+     * Detect if the given SQL is a DML statement (INSERT/UPDATE/DELETE/MERGE).
+     * SELECT statements and DDL are not considered DML.
+     */
+    private function detectDmlStatement(string $sql): bool
+    {
+        // Normalize: trim whitespace, handle common prefixes
+        $sql = trim($sql);
+
+        // Skip common statement prefixes (comments, WITH clause)
+        // Extract the first significant keyword
+        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(SELECT|INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is', $sql, $matches)) {
+            $keyword = strtoupper($matches[1]);
+
+            return in_array($keyword, ['INSERT', 'UPDATE', 'DELETE', 'MERGE', 'EXECUTE'], true);
+        }
+
+        // Fallback: check if starts with DML keywords
+        if (preg_match('/^\s*(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/i', $sql)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect if the SQL is specifically an INSERT statement.
+     */
+    private function detectInsertStatement(string $sql): bool
+    {
+        $sql = trim($sql);
+
+        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is', $sql)) {
+            return true;
+        }
+
+        return preg_match('/^\s*INSERT\b/i', $sql) === 1;
+    }
+
+    /**
+     * Detect if the SQL statement has a RETURNING clause.
+     */
+    private function detectReturningClause(string $sql): bool
+    {
+        // Check for RETURNING keyword (case-insensitive)
+        return preg_match('/\bRETURNING\b/i', $sql) === 1;
     }
 }

@@ -123,14 +123,13 @@ final class Result implements ResultInterface
     {
         if (is_numeric($this->firebirdResultResource)) {
             /** @psalm-suppress RedundantCast */
-            $result = (int) $this->firebirdResultResource;
-            return $result;
+            return (int) $this->firebirdResultResource;
         }
 
         if (is_resource($this->firebirdResultResource)) {
-            $result = fbird_affected_rows($this->connection->getNativeConnection());
-            return $result;
+            return fbird_affected_rows($this->connection->getNativeConnection());
         }
+
         return 0;
     }
 

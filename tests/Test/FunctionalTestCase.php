@@ -15,6 +15,7 @@ use Throwable;
 
 use function array_merge;
 use function gc_collect_cycles;
+use function method_exists;
 use function str_contains;
 use function usleep;
 
@@ -92,14 +93,15 @@ abstract class FunctionalTestCase extends TestCase
                     // or simply pass as is. Let's pass as is first.
                     // Actually, checking if function exists or method works.
                     // Connection::dropTableForce uses fbird_drop_table_force.
-                    
+
                     // Unquote name for specialized driver call if it starts/ends with quotes
                     // The driver function likely expects the name as used in metadata usually (e.g. UPPERCASE if unquoted)
                     // If $name is quoted "TABLE", we might need to be careful.
                     // But lets try passing it directly.
-                    
+
                     if ($fbirdConnection->dropTableForce($name)) {
                         $fbirdConnection->commit();
+
                         return;
                     }
                 } catch (Throwable) {

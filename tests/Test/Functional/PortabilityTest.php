@@ -16,6 +16,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 use function array_merge;
+use function sleep;
 use function strlen;
 
 class PortabilityTest extends FunctionalTestCase
