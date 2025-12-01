@@ -258,6 +258,7 @@ final class Connection implements ServerInfoAwareConnection
             $this,
             $stmt,
             $visitor->getParameterMap(),
+            $sql,
         );
     }
 

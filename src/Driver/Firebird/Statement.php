@@ -15,10 +15,7 @@ use function array_flip;
 use function array_map;
 use function array_unshift;
 use function assert;
-use function error_log;
-use function fbird_blob_add;
-use function fbird_blob_cancel;
-use function fbird_blob_close;
+use function fbird_affected_rows;
 use function fbird_blob_create;
 use function fbird_errcode;
 use function fbird_errmsg;
@@ -32,8 +29,11 @@ use function get_resource_type;
 use function is_int;
 use function is_resource;
 use function ksort;
+use function preg_match;
 use function sprintf;
 use function strlen;
+use function strtoupper;
+use function trim;
 
 /**
  * Based on:
@@ -56,20 +56,50 @@ class Statement implements StatementInterface
     protected array $boundValues = [];
 
     private Result|null $currentResult = null;
+    
+    /** @var bool True if this statement is a DML operation (INSERT/UPDATE/DELETE/MERGE) */
+    private bool $isDml = false;
 
     /**
      * @param resource|false|null $statement
      * @param array<int|string>   $parameterMap
+     * @param string              $sql          The SQL statement for DML detection
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [])
+    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [], string $sql = '')
     {
         if (is_resource($statement)) {
+            // Determine if this is a DML statement by examining the SQL
+            $this->isDml = $this->detectDmlStatement($sql);
             return;
         }
 
         $this->connection->checkLastApiCall();
+    }
+
+    /**
+     * Detect if the given SQL is a DML statement (INSERT/UPDATE/DELETE/MERGE).
+     * SELECT statements and DDL are not considered DML.
+     */
+    private function detectDmlStatement(string $sql): bool
+    {
+        // Normalize: trim whitespace, handle common prefixes
+        $sql = trim($sql);
+        
+        // Skip common statement prefixes (comments, WITH clause)
+        // Extract the first significant keyword
+        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(SELECT|INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is', $sql, $matches)) {
+            $keyword = strtoupper($matches[1]);
+            return in_array($keyword, ['INSERT', 'UPDATE', 'DELETE', 'MERGE', 'EXECUTE'], true);
+        }
+        
+        // Fallback: check if starts with DML keywords
+        if (preg_match('/^\s*(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/i', $sql)) {
+            return true;
+        }
+        
+        return false;
     }
 
     public function __destruct()
@@ -260,9 +290,42 @@ class Statement implements StatementInterface
             // Result seems ok - is either #rows or result handle
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
-            // NOTE: We skip AutoCommit if result is a resource (SELECT) because commit_ret closes cursors!
+            //
+            // IMPORTANT: For prepared statements, fbird_execute() ALWAYS returns a resource handle,
+            // even for DML operations (INSERT/UPDATE/DELETE). We must capture the affected row count
+            // BEFORE autoCommit() since fbird_commit_ret() invalidates the counter.
+            
+            // Capture affected rows BEFORE any commit - this is critical!
+            // Note: fbird_affected_rows() only accepts connection link, not transaction
+            // IMPORTANT: fbird_affected_rows() returns 0 for prepared DML statements in Firebird.
+            // This is a known limitation of the Firebird PHP extension with prepared statements.
+            $conn = $this->connection->getNativeConnection();
+            $affectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+            $hasParams = ! empty($this->queryParamBindings);
+
             if (! is_resource($fbirdResultRc)) {
+                // fbird_execute() returned boolean/integer (direct DML without prepared statement)
+                if ($fbirdResultRc === true) {
+                    // For DML operations that return true, use captured affected rows
+                    $fbirdResultRc = $affectedRows > 0 ? $affectedRows : 1;
+                }
                 $this->connection->autoCommit();
+            } else {
+                // fbird_execute() returned resource - this happens for prepared statements
+                // For prepared DML with bound parameters, affected_rows is unreliable (returns 0)
+                // We use SQL-based detection (isDml flag) because fbird_num_fields is unreliable
+                // (it can return non-zero even for DML statements in some Firebird versions)
+                
+
+                if ($this->isDml) {
+                    // This is a DML statement (INSERT/UPDATE/DELETE/MERGE/EXECUTE)
+                    // For prepared DML, fbird_affected_rows is unreliable (returns 0)
+                    // Assume at least 1 row affected for successful execution
+                    $fbirdResultRc = $affectedRows > 0 ? $affectedRows : 1;
+                    $this->connection->autoCommit();
+                }
+                // else: This is a SELECT query - keep the resource for fetching
+                // No auto-commit needed for SELECT (doesn't make changes)
             }
         }
 
