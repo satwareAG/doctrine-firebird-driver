@@ -153,51 +153,15 @@ class Statement implements StatementInterface
 
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null && is_resource($variable)) {
-                $blobResource = null;
-                $stream       = $variable;
-
-                try {
-                    $blobResource = fbird_blob_create($this->connection->getActiveTransaction());
-                    if (! is_resource($blobResource)) {
-                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                    }
-
-                    while (! feof($stream)) {
-                        $chunk = fread($stream, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
-                        if ($chunk === false || strlen($chunk) <= 0) {
-                            continue;
-                        }
-
-                        if (fbird_blob_add($blobResource, $chunk) === false) {
-                            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                        }
-                    }
-
-                    // Close the BLOB
-                    $blobId = fbird_blob_close($blobResource);
-
-                    if ($blobId === false) {
-                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                    }
-
-                    $variable     = $blobId;
-                    $blobResource = null; // Mark as closed
-                    $type         = ParameterType::STRING;
-                } catch (Throwable $e) {
-                    error_log('BLOB creation failed during bindParam: ' . $e->getMessage());
-
-                    /** @psalm-suppress NoValue */
-                    if (is_resource($blobResource)) {
-                        fbird_blob_cancel($blobResource);
-                    }
-
-                    throw $e;
-                } finally {
-                    /** @psalm-suppress RedundantCondition */
-                    if (is_resource($stream)) {
-                        fclose($stream);
-                    }
+                // Workaround for php-firebird 6.2.0+ segfault:
+                // Read stream into memory and pass as string.
+                // This avoids fbird_blob_create/add/close which seem to cause instability.
+                $content = stream_get_contents($variable);
+                if (is_resource($variable)) {
+                    fclose($variable);
                 }
+                $variable = $content;
+                $type     = ParameterType::STRING;
             }
         }
 
@@ -259,56 +223,15 @@ class Statement implements StatementInterface
                     continue;
                 }
 
-                $blobResource = null;
-
-                try {
-                    $transaction  = $this->connection->getActiveTransaction();
-                    $blobResource = fbird_blob_create($transaction);
-                    if (! is_resource($blobResource)) {
-                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                    }
-
-                    while (! feof($variable)) {
-                        $chunk = fread($variable, 8192); // Read in chunks of 8KB (or a size appropriate for your needs)
-                        if ($chunk === false || strlen($chunk) <= 0) {
-                            continue;
-                        }
-
-                        if (fbird_blob_add($blobResource, $chunk) === false) {
-                            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                        }
-                    }
-
-                    // Close the BLOB
-                    $blobId = fbird_blob_close($blobResource);
-
-                    if ($blobId === false) {
-                        throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-                    }
-
-                    $blobResource = null; // Mark as closed
-
-                    // Update the binding to the blob ID string
-                    // detailed explanation: The crash was caused by bindValue() creating a temporary variable passed by value,
-                    // which bindParam() then referenced. When bindValue() returned, the reference became unstable/dangling
-                    // before fbird_execute() could use it. By handling this inline, we keep the data safe.
-                    $this->queryParamBindings[$param] = $blobId;
-                    $this->queryParamTypes[$param]    = ParameterType::STRING;
-                } catch (Throwable $e) {
-                    error_log('BLOB creation failed during execute: ' . $e->getMessage());
-
-                    /** @psalm-suppress NoValue */
-                    if (is_resource($blobResource)) {
-                        fbird_blob_cancel($blobResource);
-                    }
-
-                    throw $e;
-                } finally {
-                    /** @psalm-suppress RedundantCondition */
-                    if (is_resource($variable)) {
-                        fclose($variable);
-                    }
+                // Workaround for php-firebird 6.2.0+ segfault:
+                // Read stream into memory and pass as string.
+                $content = stream_get_contents($variable);
+                if (is_resource($variable)) {
+                    fclose($variable);
                 }
+
+                $this->queryParamBindings[$param] = $content;
+                $this->queryParamTypes[$param]    = ParameterType::STRING;
             }
 
             $callArgs = $this->queryParamBindings;

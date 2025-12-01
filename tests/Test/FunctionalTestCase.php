@@ -50,14 +50,35 @@ abstract class FunctionalTestCase extends TestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
+        // Check if table exists before attempting to drop to avoid Firebird warnings
+        // Firebird doesn't support DROP TABLE IF EXISTS, so we must check first
+        $existenceUnknown = false;
         try {
-            // Suppress warnings because dropping a non-existent table will cause
-            // fbird_execute to emit a warning which we convert to an exception but
-            // PHPUnit catches the warning first.
-            @$schemaManager->dropTable($name);
+            if (! $schemaManager->tablesExist([$name])) {
+                return;
+            }
+        } catch (Throwable) {
+            // If we can't check existence, proceed with drop attempt but suppress warnings
+            $existenceUnknown = true;
+        }
+
+        try {
+            if ($existenceUnknown) {
+                // Suppress warnings when we couldn't verify existence - table may not exist
+                @$schemaManager->dropTable($name);
+            } else {
+                $schemaManager->dropTable($name);
+            }
+
             $fbirdConnection?->commit();
         } catch (DatabaseObjectNotFoundException) {
+            // Table doesn't exist, which is fine for dropTableIfExists
         } catch (Throwable $e) {
+            // Ignore "does not exist" errors when existence was unknown
+            if ($existenceUnknown && str_contains($e->getMessage(), 'does not exist')) {
+                return;
+            }
+
             // If table is in use, try to force rollback/commit to release locks and retry
             if (! str_contains($e->getMessage(), 'in use')) {
                 throw $e;
@@ -83,7 +104,12 @@ abstract class FunctionalTestCase extends TestCase
                         usleep(50000); // 50ms wait
                     }
 
-                    $schemaManager->dropTable($name);
+                    if ($existenceUnknown) {
+                        @$schemaManager->dropTable($name);
+                    } else {
+                        $schemaManager->dropTable($name);
+                    }
+
                     $fbirdConnection?->commit();
                     $success = true;
                     break;
@@ -92,6 +118,12 @@ abstract class FunctionalTestCase extends TestCase
                     break;
                 } catch (Throwable $e2) {
                     if (! str_contains($e2->getMessage(), 'in use') && ! str_contains($e2->getMessage(), 'deadlock')) {
+                        // Allow "does not exist" errors when existence was unknown
+                        if ($existenceUnknown && str_contains($e2->getMessage(), 'does not exist')) {
+                            $success = true;
+                            break;
+                        }
+
                         throw $e2;
                     }
                     // Continue loop if lock error
