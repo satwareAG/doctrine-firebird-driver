@@ -29,6 +29,7 @@ use function get_resource_type;
 use function is_int;
 use function is_resource;
 use function ksort;
+use function fbird_fetch_assoc;
 use function preg_match;
 use function sprintf;
 use function strlen;
@@ -59,6 +60,12 @@ class Statement implements StatementInterface
     
     /** @var bool True if this statement is a DML operation (INSERT/UPDATE/DELETE/MERGE) */
     private bool $isDml = false;
+    
+    /** @var bool True if this is specifically an INSERT statement */
+    private bool $isInsert = false;
+    
+    /** @var bool True if this statement has a RETURNING clause */
+    private bool $hasReturning = false;
 
     /**
      * @param resource|false|null $statement
@@ -72,6 +79,10 @@ class Statement implements StatementInterface
         if (is_resource($statement)) {
             // Determine if this is a DML statement by examining the SQL
             $this->isDml = $this->detectDmlStatement($sql);
+            // Specifically check if it's an INSERT
+            $this->isInsert = $this->detectInsertStatement($sql);
+            // Check if this statement has a RETURNING clause
+            $this->hasReturning = $this->detectReturningClause($sql);
             return;
         }
 
@@ -100,6 +111,29 @@ class Statement implements StatementInterface
         }
         
         return false;
+    }
+    
+    /**
+     * Detect if the SQL is specifically an INSERT statement.
+     */
+    private function detectInsertStatement(string $sql): bool
+    {
+        $sql = trim($sql);
+        
+        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is', $sql)) {
+            return true;
+        }
+        
+        return preg_match('/^\s*INSERT\b/i', $sql) === 1;
+    }
+    
+    /**
+     * Detect if the SQL statement has a RETURNING clause.
+     */
+    private function detectReturningClause(string $sql): bool
+    {
+        // Check for RETURNING keyword (case-insensitive)
+        return preg_match('/\bRETURNING\b/i', $sql) === 1;
     }
 
     public function __destruct()
@@ -271,6 +305,8 @@ class Statement implements StatementInterface
             $callArgs = array_map(static fn ($v): mixed => $v, $callArgs);
             array_unshift($callArgs, $this->statement);
 
+            $conn = $this->connection->getNativeConnection();
+
             // Suppress warning since we properly check return value and throw exception
             // PHP Firebird extension 6.2.0 may emit warnings during cleanup operations
             $fbirdResultRc = @fbird_execute(...$callArgs);
@@ -290,24 +326,21 @@ class Statement implements StatementInterface
             // Result seems ok - is either #rows or result handle
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
-            //
-            // IMPORTANT: For prepared statements, fbird_execute() ALWAYS returns a resource handle,
-            // even for DML operations (INSERT/UPDATE/DELETE). We must capture the affected row count
-            // BEFORE autoCommit() since fbird_commit_ret() invalidates the counter.
-            
-            // Capture affected rows BEFORE any commit - this is critical!
-            // Note: fbird_affected_rows() only accepts connection link, not transaction
-            // IMPORTANT: fbird_affected_rows() returns 0 for prepared DML statements in Firebird.
-            // This is a known limitation of the Firebird PHP extension with prepared statements.
-            $conn = $this->connection->getNativeConnection();
-            $affectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
-            $hasParams = ! empty($this->queryParamBindings);
 
             if (! is_resource($fbirdResultRc)) {
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
-                    // For DML operations that return true, use captured affected rows
-                    $fbirdResultRc = $affectedRows > 0 ? $affectedRows : 1;
+                    // For DML operations that return true, get affected rows count
+                    $postExecAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    if ($postExecAffectedRows > 0) {
+                        $fbirdResultRc = $postExecAffectedRows;
+                    } elseif ($this->isInsert) {
+                        // INSERT operations that succeed should return 1 even if affected_rows says 0
+                        $fbirdResultRc = 1;
+                    } else {
+                        // UPDATE/DELETE that matched 0 rows
+                        $fbirdResultRc = 0;
+                    }
                 }
                 $this->connection->autoCommit();
             } else {
@@ -319,10 +352,58 @@ class Statement implements StatementInterface
 
                 if ($this->isDml) {
                     // This is a DML statement (INSERT/UPDATE/DELETE/MERGE/EXECUTE)
-                    // For prepared DML, fbird_affected_rows is unreliable (returns 0)
-                    // Assume at least 1 row affected for successful execution
-                    $fbirdResultRc = $affectedRows > 0 ? $affectedRows : 1;
+                    
+                    if ($this->hasReturning) {
+                        // DML with RETURNING clause - fetch the returned values
+                        // This is used by ConnectionWrapper to get identity column values
+                        $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
+                        
+                        if ($returnedRow !== false && is_array($returnedRow)) {
+                            // Look for identity column value in returned row
+                            // ConnectionWrapper sets connectionInsertColumn when RETURNING is added
+                            $identityColumn = $this->connection->getConnectionInsertColumn();
+                            
+                            // Try to find the identity value in the returned row
+                            foreach ($returnedRow as $key => $value) {
+                                // ConnectionWrapper uses alias format: ID<hash>.<hash>
+                                // Also check for the actual column name
+                                if ($identityColumn !== null && (
+                                    strcasecmp($key, $identityColumn) === 0 ||
+                                    str_starts_with(strtoupper($key), 'ID')
+                                )) {
+                                    if (is_numeric($value)) {
+                                        $this->connection->setLastInsertId((int) $value);
+                                        break;
+                                    }
+                                }
+                                
+                                // Fallback: if only one numeric value returned, assume it's the ID
+                                if (is_numeric($value) && count($returnedRow) === 1) {
+                                    $this->connection->setLastInsertId((int) $value);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Get affected rows BEFORE commit - fbird_affected_rows returns count
+                    // for the last DML operation in the current transaction
+                    $preCommitAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    
+                    // Commit the transaction
                     $this->connection->autoCommit();
+                    
+                    // Use the pre-commit value as our result
+                    // fbird_affected_rows() returns the count for the most recent DML operation
+                    if ($preCommitAffectedRows > 0) {
+                        // Got a positive count = actual affected row count
+                        $fbirdResultRc = $preCommitAffectedRows;
+                    } elseif ($this->isInsert) {
+                        // INSERT succeeded but extension returned 0 - default to 1
+                        $fbirdResultRc = 1;
+                    } else {
+                        // UPDATE/DELETE with 0 or negative value - assume 0 rows matched
+                        $fbirdResultRc = 0;
+                    }
                 }
                 // else: This is a SELECT query - keep the resource for fetching
                 // No auto-commit needed for SELECT (doesn't make changes)
