@@ -42,6 +42,12 @@ abstract class FunctionalTestCase extends TestCase
      */
     public function dropTableIfExists(string $name): void
     {
+        // Early return if connection is not available or closed
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && ! $fbirdConnection->isConnectionValid()) {
+            return;
+        }
+
         $schemaManager = $this->connection->createSchemaManager();
 
         try {
@@ -49,7 +55,7 @@ abstract class FunctionalTestCase extends TestCase
             // fbird_execute to emit a warning which we convert to an exception but
             // PHPUnit catches the warning first.
             @$schemaManager->dropTable($name);
-            $this->getFirebirdConnection()?->commit();
+            $fbirdConnection?->commit();
         } catch (DatabaseObjectNotFoundException) {
         } catch (Throwable $e) {
             // If table is in use, try to force rollback/commit to release locks and retry
@@ -63,9 +69,13 @@ abstract class FunctionalTestCase extends TestCase
                 try {
                     // Try rollback first to clear pending failed transaction
                     try {
-                        $this->getFirebirdConnection()?->rollBack();
+                        $fbirdConnection?->rollBack();
                     } catch (Throwable) {
-                        @$this->getFirebirdConnection()?->commit();
+                        try {
+                            @$fbirdConnection?->commit();
+                        } catch (Throwable) {
+                            // Ignore commit errors during cleanup
+                        }
                     }
 
                     // Wait for server to release locks
@@ -74,7 +84,7 @@ abstract class FunctionalTestCase extends TestCase
                     }
 
                     $schemaManager->dropTable($name);
-                    $this->getFirebirdConnection()?->commit();
+                    $fbirdConnection?->commit();
                     $success = true;
                     break;
                 } catch (DatabaseObjectNotFoundException) {
@@ -164,29 +174,36 @@ abstract class FunctionalTestCase extends TestCase
         // Attempt to free any lingering statement resources via GC
         gc_collect_cycles();
 
-        while ($this->connection->isTransactionActive()) {
-            try {
-                $this->connection->rollBack();
-            } catch (Throwable) {
-                // If rollback fails, we can't do much about it.
-                // Breaking the loop prevents infinite loop if nesting level doesn't decrease.
-                break;
+        // Get Firebird connection early to check validity
+        $fbirdConnection = $this->getFirebirdConnection();
+        $connectionValid = $fbirdConnection === null || $fbirdConnection->isConnectionValid();
+
+        // Only attempt rollback if connection is still valid
+        if ($connectionValid) {
+            while ($this->connection->isTransactionActive()) {
+                try {
+                    $this->connection->rollBack();
+                } catch (Throwable) {
+                    // If rollback fails, we can't do much about it.
+                    // Breaking the loop prevents infinite loop if nesting level doesn't decrease.
+                    break;
+                }
             }
-        }
 
-        // Ensure any implicit driver-level lock is released (e.g. from auto-commit commit_ret)
-        // Use rollBack instead of commit to ensure locks are released even if commit fails
-        try {
-            @$this->getFirebirdConnection()?->rollBack();
-        } catch (Throwable) {
-            // Ignore rollback errors during cleanup
-        }
-
-        foreach ($this->createdTables as $tableName) {
+            // Ensure any implicit driver-level lock is released (e.g. from auto-commit commit_ret)
+            // Use rollBack instead of commit to ensure locks are released even if commit fails
             try {
-                $this->dropTableIfExists($tableName);
+                @$fbirdConnection?->rollBack();
             } catch (Throwable) {
-                // Ignore errors during cleanup
+                // Ignore rollback errors during cleanup
+            }
+
+            foreach ($this->createdTables as $tableName) {
+                try {
+                    $this->dropTableIfExists($tableName);
+                } catch (Throwable) {
+                    // Ignore errors during cleanup
+                }
             }
         }
 
@@ -198,12 +215,21 @@ abstract class FunctionalTestCase extends TestCase
 
         // Close the current connection (which might be different from shared if test replaced it)
         if (isset($this->connection)) {
-            $this->connection->close();
+            try {
+                $this->connection->close();
+            } catch (Throwable) {
+                // Ignore close errors - connection might already be closed
+            }
         }
 
         // Also close and reset the shared connection reference
         if (self::$sharedConnection instanceof Connection) {
-            self::$sharedConnection->close();
+            try {
+                self::$sharedConnection->close();
+            } catch (Throwable) {
+                // Ignore close errors
+            }
+
             self::$sharedConnection = null;
         }
 

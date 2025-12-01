@@ -318,7 +318,9 @@ class Statement implements StatementInterface
             $callArgs = array_map(static fn ($v): mixed => $v, $callArgs);
             array_unshift($callArgs, $this->statement);
 
-            $fbirdResultRc = fbird_execute(...$callArgs);
+            // Suppress warning since we properly check return value and throw exception
+            // PHP Firebird extension 6.2.0 may emit warnings during cleanup operations
+            $fbirdResultRc = @fbird_execute(...$callArgs);
 
             if ($fbirdResultRc === false) {
                 // fbird_execute returns false on failure and emits a warning or sets error info

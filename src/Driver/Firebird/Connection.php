@@ -65,6 +65,21 @@ use const IBASE_WRITE;
  */
 final class Connection implements ServerInfoAwareConnection
 {
+    /**
+     * Resource type for valid Firebird connection.
+     */
+    private const RESOURCE_TYPE_CONNECTION = 'Firebird/InterBase link';
+
+    /**
+     * Resource type for valid Firebird persistent connection.
+     */
+    private const RESOURCE_TYPE_PERSISTENT_CONNECTION = 'Firebird/InterBase persistent link';
+
+    /**
+     * Resource type for valid Firebird transaction.
+     */
+    private const RESOURCE_TYPE_TRANSACTION = 'Firebird/InterBase transaction';
+
     private readonly ExecutionMode $executionMode;
 
     /**
@@ -210,11 +225,27 @@ final class Connection implements ServerInfoAwareConnection
             throw $this->databaseNotFoundException;
         }
 
+        // Defensive check: validate connection and transaction are still valid
+        // PHP Firebird extension 6.2.0 crashes if called with invalid resources
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        if (! $this->isTransactionValid()) {
+            throw new DriverException('Transaction is not valid.');
+        }
+
         $visitor = new ConvertParameters();
 
         $this->parser->parse($sql, $visitor);
 
         $sql = $visitor->getSQL();
+
+        // Defensive check: ensure SQL is not empty after parameter conversion
+        // PHP Firebird extension 6.2.0 crashes with empty/null SQL
+        if ($sql === '') {
+            throw new DriverException('SQL statement is empty.');
+        }
 
         // Suppress warning since we properly check return value and throw exception
         $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
@@ -410,11 +441,28 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         if ($this->fbirdTransactionLevel === 0) {
-            if (! is_resource($this->firebirdActiveTransaction)) {
-                throw new RuntimeException('No active transaction resource.');
+            // Defensive check: if transaction resource is invalid, reset state without attempting rollback
+            // This prevents crashes when called on corrupted resources during cleanup
+            if (! $this->isTransactionValid()) {
+                // If connection is still valid, create a new transaction; otherwise reset to null
+                if ($this->isConnectionValid()) {
+                    try {
+                        $this->firebirdActiveTransaction = $this->createTransaction();
+                    } catch (DriverException) {
+                        // If we can't create transaction, set to null - connection might be closed
+                        $this->firebirdActiveTransaction = null;
+                    }
+                } else {
+                    $this->firebirdActiveTransaction = null;
+                }
+
+                $this->executionMode->enableAutoCommit();
+
+                return true;
             }
 
-            $success = fbird_rollback($this->firebirdActiveTransaction);
+            // Suppress warning since we handle error gracefully below
+            $success = @fbird_rollback($this->firebirdActiveTransaction);
 
             if (! $success) {
                 // Capture error before resetting state
@@ -422,7 +470,17 @@ final class Connection implements ServerInfoAwareConnection
             }
 
             // Always attempt to restore valid state for next operation
-            $this->firebirdActiveTransaction = $this->createTransaction();
+            if ($this->isConnectionValid()) {
+                try {
+                    $this->firebirdActiveTransaction = $this->createTransaction();
+                } catch (DriverException) {
+                    // If we can't create transaction, set to null - connection might be closed
+                    $this->firebirdActiveTransaction = null;
+                }
+            } else {
+                $this->firebirdActiveTransaction = null;
+            }
+
             $this->executionMode->enableAutoCommit();
 
             if (! $success && isset($lastError['code']) && $lastError['code'] !== 0) {
@@ -530,6 +588,37 @@ final class Connection implements ServerInfoAwareConnection
     public function getNativeConnection()
     {
         return $this->connection;
+    }
+
+    /**
+     * Check if the connection resource is valid.
+     *
+     * @return bool True if connection is a valid Firebird resource
+     */
+    public function isConnectionValid(): bool
+    {
+        if (! is_resource($this->connection)) {
+            return false;
+        }
+
+        $type = get_resource_type($this->connection);
+
+        return $type === self::RESOURCE_TYPE_CONNECTION
+            || $type === self::RESOURCE_TYPE_PERSISTENT_CONNECTION;
+    }
+
+    /**
+     * Check if the active transaction resource is valid.
+     *
+     * @return bool True if transaction is a valid Firebird resource
+     */
+    public function isTransactionValid(): bool
+    {
+        if (! is_resource($this->firebirdActiveTransaction)) {
+            return false;
+        }
+
+        return get_resource_type($this->firebirdActiveTransaction) === self::RESOURCE_TYPE_TRANSACTION;
     }
 
     private function getSavepointName(int $level): string
