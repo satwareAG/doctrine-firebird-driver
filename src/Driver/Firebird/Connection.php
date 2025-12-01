@@ -216,7 +216,8 @@ final class Connection implements ServerInfoAwareConnection
 
         $sql = $visitor->getSQL();
 
-        $stmt = fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
+        // Suppress warning since we properly check return value and throw exception
+        $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
 
         if ($stmt === false) {
             $this->checkLastApiCall();
