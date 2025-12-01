@@ -24,7 +24,6 @@ use function fbird_free_query;
 use function fclose;
 use function func_num_args;
 use function get_resource_type;
-use function in_array;
 use function is_array;
 use function is_int;
 use function is_numeric;
@@ -383,23 +382,11 @@ class Statement implements StatementInterface
      */
     private function detectDmlStatement(string $sql): bool
     {
-        // Normalize: trim whitespace, handle common prefixes
-        $sql = trim($sql);
-
-        // Skip common statement prefixes (comments, WITH clause)
-        // Extract the first significant keyword
-        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(SELECT|INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is', $sql, $matches)) {
-            $keyword = strtoupper($matches[1]);
-
-            return in_array($keyword, ['INSERT', 'UPDATE', 'DELETE', 'MERGE', 'EXECUTE'], true);
-        }
-
-        // Fallback: check if starts with DML keywords
-        if (preg_match('/^\s*(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/i', $sql)) {
-            return true;
-        }
-
-        return false;
+        // Match DML keywords directly, skipping optional block comments and WITH clauses
+        return (bool) preg_match(
+            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is',
+            trim($sql),
+        );
     }
 
     /**
@@ -407,13 +394,11 @@ class Statement implements StatementInterface
      */
     private function detectInsertStatement(string $sql): bool
     {
-        $sql = trim($sql);
-
-        if (preg_match('/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is', $sql)) {
-            return true;
-        }
-
-        return preg_match('/^\s*INSERT\b/i', $sql) === 1;
+        // Match INSERT keyword, skipping optional block comments and WITH clauses
+        return (bool) preg_match(
+            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is',
+            trim($sql),
+        );
     }
 
     /**

@@ -1,2 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0"/>
+<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="src/Driver/Firebird/Connection.php">
+    <InvalidReturnStatement>
+      <code><![CDATA[$result]]></code>
+    </InvalidReturnStatement>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[dropTableForce]]></code>
+      <code><![CDATA[executeAuto]]></code>
+      <code><![CDATA[getActiveTransaction]]></code>
+      <code><![CDATA[killAttachment]]></code>
+      <code><![CDATA[listTableBlockers]]></code>
+    </PossiblyUnusedMethod>
+  </file>
+  <file src="src/Driver/Firebird/Statement.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[$callArgs]]></code>
+    </PossiblyFalseArgument>
+    <RedundantCondition>
+      <code><![CDATA[$fbirdResultRc === true]]></code>
+      <code><![CDATA[is_resource($variable)]]></code>
+      <code><![CDATA[is_resource($variable)]]></code>
+    </RedundantCondition>
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[$returnedRow !== false && is_array($returnedRow)]]></code>
+      <code><![CDATA[is_array($returnedRow)]]></code>
+    </RedundantConditionGivenDocblockType>
+  </file>
+</files>
