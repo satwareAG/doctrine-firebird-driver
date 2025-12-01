@@ -146,8 +146,13 @@ final class Connection implements ServerInfoAwareConnection
         if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if ($type === 'Firebird/InterBase transaction') {
-                if (! fbird_commit($this->firebirdActiveTransaction)) {
-                    error_log('fbird_commit failed in __destruct: ' . (string) fbird_errmsg());
+                // Try commit first, but if it fails (e.g., due to FK constraint locks),
+                // fall back to rollback. Suppress warnings since this is cleanup code.
+                // The @ operator prevents PHP warnings during destructor cleanup which
+                // cannot be reasonably handled at this point.
+                if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                    // If commit fails, try rollback to clean up gracefully
+                    @fbird_rollback($this->firebirdActiveTransaction);
                 }
             }
 

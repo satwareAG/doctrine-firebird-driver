@@ -404,16 +404,28 @@ class ExceptionTest extends FunctionalTestCase
 
     private function tearDownForeignKeyConstraintViolationExceptionTest(): void
     {
+        // CRITICAL: First rollback the main test connection to release locks on the FK tables.
+        // The main connection still holds locks from the FK violation exception, which would
+        // cause "table is in use" warnings when the teardown connection tries to drop tables.
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null) {
+            try {
+                $fbirdConnection->rollBack();
+            } catch (Throwable) {
+                // Ignore rollback errors - may already be rolled back
+            }
+        }
+
         $teardownConnection = TestUtil::getConnection();
         $schemaManager      = $teardownConnection->createSchemaManager();
 
         try {
-            $schemaManager->dropTable($this->tableOwning);
+            @$schemaManager->dropTable($this->tableOwning);
         } catch (Throwable) {
         }
 
         try {
-            $schemaManager->dropTable($this->tableConstraint);
+            @$schemaManager->dropTable($this->tableConstraint);
         } catch (Throwable) {
         }
 

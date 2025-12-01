@@ -74,7 +74,8 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        $connection = fbird_connect($dbname, $params['user'], $params['password']);
+        // Suppress warning since we handle the error explicitly below
+        $connection = @fbird_connect($dbname, $params['user'], $params['password']);
         if (! is_resource($connection)) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
