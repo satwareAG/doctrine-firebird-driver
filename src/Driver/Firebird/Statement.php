@@ -128,11 +128,13 @@ class Statement implements StatementInterface
 
         $this->boundValues[$param] = $value;
 
-        return $this->bindParam($param, $this->boundValues[$param], $type, null);
+        return $this->bindValueInternal($param, $this->boundValues[$param], $type);
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @deprecated Use bindValue() instead.
      */
     public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
@@ -143,11 +145,6 @@ class Statement implements StatementInterface
             __METHOD__,
         );
 
-        // Break references to ensure re-binding works correctly
-        if (isset($this->queryParamBindings[$param])) {
-            unset($this->queryParamBindings[$param]);
-        }
-
         if (func_num_args() < 3) {
             Deprecation::trigger(
                 'doctrine/dbal',
@@ -155,6 +152,26 @@ class Statement implements StatementInterface
                 'Not passing $type to Statement::bindParam() is deprecated.'
                 . ' Pass the type corresponding to the parameter being bound.',
             );
+        }
+
+        $this->boundValues[$param] = &$variable;
+
+        return $this->bindValueInternal($param, $variable, $type);
+    }
+
+    /**
+     * Internal method to bind a value to a parameter.
+     * This contains the core binding logic used by both bindValue() and bindParam().
+     *
+     * @param int|string              $param
+     * @param mixed                   $variable
+     * @param ParameterType|int|mixed $type
+     */
+    private function bindValueInternal(int|string $param, mixed &$variable, mixed $type): bool
+    {
+        // Break references to ensure re-binding works correctly
+        if (isset($this->queryParamBindings[$param])) {
+            unset($this->queryParamBindings[$param]);
         }
 
         if (is_int($param)) {
