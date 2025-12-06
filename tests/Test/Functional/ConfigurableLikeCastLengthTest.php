@@ -8,11 +8,15 @@ use Doctrine\DBAL\DriverManager;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 /**
- * Tests configurable LIKE CAST length functionality.
+ * Tests configurable LIKE CAST length functionality using the LEGACY approach.
  *
- * Verifies that the firebird.like_cast_length configuration parameter
- * allows users to customize the VARCHAR length used in CAST operations
- * for LIKE expressions.
+ * This test verifies that the firebird.like_cast_length configuration parameter
+ * works via the deprecated VersionAwarePlatformDriver interface. This approach
+ * is deprecated in DBAL 3.x and REMOVED in DBAL 4.x.
+ *
+ * @deprecated Use FirebirdConnection wrapper instead.
+ * @see FirebirdConnectionTest for the recommended DBAL 4.x-compatible approach.
+ * @see \Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection
  */
 final class ConfigurableLikeCastLengthTest extends FunctionalTestCase
 {

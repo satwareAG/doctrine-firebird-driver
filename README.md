@@ -50,6 +50,64 @@ Firebird has a known issue where `LIKE` parameters longer than a column’s `VAR
 
 ## Configuration
 
+### Recommended: Using FirebirdConnection Wrapper (DBAL 4.x Compatible)
+
+For forward compatibility with Doctrine DBAL 4.x, we recommend using the `FirebirdConnection` wrapper class. This approach properly handles Firebird-specific configuration options and is the **recommended way** to configure Firebird-specific settings.
+
+**Why use FirebirdConnection?**
+- Forward-compatible with DBAL 4.x (which removes `VersionAwarePlatformDriver`)
+- Cleanly separates Firebird configuration from driver logic
+- Proper access to both connection parameters and platform instance
+
+#### PHP Configuration (Recommended)
+
+```php
+use Doctrine\DBAL\DriverManager;
+use Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection;
+
+$params = [
+    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'host'         => 'localhost',
+    'dbname'       => '/path/to/database.fdb',
+    'user'         => 'SYSDBA',
+    'password'     => 'masterkey',
+    'charset'      => 'UTF8',
+    
+    // Use the FirebirdConnection wrapper (DBAL 4.x compatible)
+    'wrapperClass' => FirebirdConnection::class,
+    
+    // Firebird-specific configuration options
+    'firebird'     => [
+        'like_cast_length' => 500,  // Configure LIKE CAST length (default: 255)
+    ],
+];
+
+$connection = DriverManager::getConnection($params);
+```
+
+#### Symfony Configuration (YAML)
+
+```yaml
+doctrine:
+    dbal:
+        default_connection: default
+        connections:
+            default:
+                driver_class:   Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver
+                wrapper_class:  Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection
+                host:           "%database_host%"
+                port:           "%database_port%"
+                dbname:         "%database_name%"
+                user:           "%database_user%"
+                password:       "%database_password%"
+                charset:        "UTF-8"
+                
+                # Firebird-specific options (passed through wrapper)
+                options:
+                    firebird:
+                        like_cast_length: 500  # Default: 255
+```
+
 ### Configurable LIKE CAST Length
 
 The driver wraps LIKE column operands in `CAST(column AS VARCHAR(length))` to prevent silent query failures when parameters exceed column lengths. The CAST length is configurable:
@@ -58,7 +116,11 @@ The driver wraps LIKE column operands in `CAST(column AS VARCHAR(length))` to pr
 **Range:** `1` to `8191` (Firebird VARCHAR limit)  
 **Parameter:** `firebird.like_cast_length`
 
-#### Manual Configuration
+### Legacy Configuration (Deprecated in DBAL 3.x, Removed in DBAL 4.x)
+
+> ⚠️ **Deprecation Warning:** The following configuration approach works in DBAL 3.x but relies on the deprecated `VersionAwarePlatformDriver` interface, which is **removed in DBAL 4.x**. Use the [FirebirdConnection wrapper](#recommended-using-firebirdconnection-wrapper-dbal-4x-compatible) above for forward compatibility.
+
+#### Manual Configuration (Legacy)
 
 ```php
 use Doctrine\DBAL\DriverManager;
