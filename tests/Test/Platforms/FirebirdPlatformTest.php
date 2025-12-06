@@ -294,8 +294,8 @@ SQL
         $expectedSql = [
             0 => 'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
             1 => 'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
-            2 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = 1 WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
-            3 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'metar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
+            2 => 'ALTER TABLE mytable ALTER COLUMN bar SET NOT NULL',
+            3 => 'ALTER TABLE mytable ALTER COLUMN metar DROP NOT NULL',
         ];
 
         self::assertSame($expectedSql, $this->platform->getAlterTableSQL($tableDiff));
