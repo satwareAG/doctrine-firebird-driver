@@ -291,11 +291,13 @@ SQL
             ['notnull'],
         );
 
+        // Firebird 2.5 uses UPDATE RDB$RELATION_FIELDS for NOT NULL changes
+        // Firebird 3.0+ uses ALTER COLUMN ... SET/DROP NOT NULL (see Firebird3PlatformTest)
         $expectedSql = [
             0 => 'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
             1 => 'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
-            2 => 'ALTER TABLE mytable ALTER COLUMN bar SET NOT NULL',
-            3 => 'ALTER TABLE mytable ALTER COLUMN metar DROP NOT NULL',
+            2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
+            3 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
         ];
 
         self::assertSame($expectedSql, $this->platform->getAlterTableSQL($tableDiff));
