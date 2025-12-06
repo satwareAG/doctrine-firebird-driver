@@ -506,8 +506,10 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function createSavepoint(string $savepoint): void
     {
-        if (! is_resource($this->firebirdActiveTransaction)) {
-            throw new RuntimeException('No active transaction resource.');
+        // Use isTransactionValid() to check resource type, not just existence
+        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
+        if (! $this->isTransactionValid()) {
+            throw new RuntimeException('No valid transaction resource.');
         }
 
         if (! fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
@@ -524,8 +526,10 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function releaseSavepoint(string $savepoint): void
     {
-        if (! is_resource($this->firebirdActiveTransaction)) {
-            throw new RuntimeException('No active transaction resource.');
+        // Use isTransactionValid() to check resource type, not just existence
+        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
+        if (! $this->isTransactionValid()) {
+            throw new RuntimeException('No valid transaction resource.');
         }
 
         if (! fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
@@ -542,8 +546,10 @@ final class Connection implements ServerInfoAwareConnection
      */
     public function rollbackSavepoint(string $savepoint): void
     {
-        if (! is_resource($this->firebirdActiveTransaction)) {
-            throw new RuntimeException('No active transaction resource.');
+        // Use isTransactionValid() to check resource type, not just existence
+        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
+        if (! $this->isTransactionValid()) {
+            throw new RuntimeException('No valid transaction resource.');
         }
 
         if (! fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
