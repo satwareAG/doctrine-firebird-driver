@@ -1,135 +1,254 @@
-# Implementation Plan: Fix Firebird Driver Test Failures
+# Implementation Plan: Fix GitHub Actions CI Matrix
 
 [Overview]
-Fix 10 WriteTest failures (rowCount returning 0), 1 risky PortabilityTest (timeout test with no assertions), and 9 PHP warnings (table locking during FK constraint tests).
+Implement a working PHP × Firebird test matrix for the doctrine-firebird-driver CI pipeline by adapting the proven IBSurgeon-based approach from the php-firebird repository.
 
-The test failures fall into three distinct categories that should be addressed in a specific order:
+The current GitHub Actions workflows fail because they use `shivammathur/setup-php` with `extensions: interbase`, but the interbase extension is not available in the standard PHP extension registry. The working solution from satwareAG/php-firebird uses container-based execution with IBSurgeon scripts to install Firebird natively and build the PHP extension from source.
 
-1. **WriteTest Failures (10 tests)**: All tests fail with `assertSame(1, 0)` - the `rowCount()` method returns 0 instead of the expected affected row count. The root cause is that `fbird_execute()` returns an integer for DML operations, but calling `autoCommit()` with `fbird_commit_ret()` afterward may reset or invalidate this count before the Result object can return it.
+**Matrix Configuration:**
+- PHP Versions: 8.1, 8.2, 8.3, 8.4, 8.5 (5 versions)
+- Firebird Versions: 2.5, 3.0, 4.0, 5.0 (4 versions)
+- Total Combinations: 5 × 4 = 20 parallel jobs
+- Coverage Collection: PHP 8.1 / Firebird 3.0 (production baseline)
 
-2. **PHP Warnings (9 warnings)**: "unsuccessful metadata update object TABLE is in use" errors occur during FK constraint exception tests. These happen because tables cannot be dropped during cleanup while Firebird still holds metadata locks from failed constraint operations.
-
-3. **Risky Test (1 test)**: `PortabilityTest::testTimeout` sleeps for 11 seconds and has no meaningful assertion - it should be properly implemented or marked as incomplete.
+**Key Differences from Current Approach:**
+1. Use `php:X.Y-cli-bookworm` container images (not `shivammathur/setup-php`)
+2. Install Firebird via IBSurgeon scripts (not Docker service containers)
+3. Build interbase extension from source (not extension registry)
+4. Run tests directly in container (not Docker-in-Docker)
 
 [Types]
-No new types are required for this fix.
+No new types or interfaces need to be created. This is purely a CI/CD workflow change.
 
-The existing types remain unchanged:
-- `Result::$firebirdResultResource` - already accepts `mixed` (int for affected rows, resource for result sets)
-- `Statement::$currentResult` - Result|null
+The workflow will use GitHub Actions matrix variables mapped to configuration values:
+- `matrix.php-version`: String ('8.1', '8.2', '8.3', '8.4', '8.5')
+- `matrix.firebird-version`: String ('2.5', '3.0', '4.0', '5.0')
+- `matrix.firebird-script-suffix`: String ('25', '30', '40', '50')
+- `matrix.phpunit-config`: String (phpunit XML filename)
 
 [Files]
-Modifications required in 3 source files and 1 test file.
+Single sentence: Create one new workflow file and optionally remove obsolete ones.
 
-**Files to modify:**
+**New Files:**
+1. `.github/workflows/ci.yml` - Main CI workflow with PHP × Firebird matrix
+   - Replaces all existing broken workflows
+   - Uses IBSurgeon-based Firebird installation
+   - Builds interbase extension from source
+   - Runs PHPUnit tests per matrix combination
+   - Collects coverage for PHP 8.1 / Firebird 3.0
 
-1. `src/Driver/Firebird/Statement.php`
-   - Store affected row count before calling autoCommit() to prevent loss after commit_ret
-   - Pass stored count to Result constructor instead of potentially invalidated fbird_execute return
+**Files to Delete (optional, per user preference):**
+- `.github/workflows/ci-multi-version.yml` - Broken (uses unavailable interbase extension)
+- `.github/workflows/ci-multi-version-test.yml` - Broken (same issue)
+- `.github/workflows/ci.yml` (old) - Broken (service container networking issues)
 
-2. `src/Driver/Firebird/Result.php`
-   - Ensure rowCount() properly returns stored affected row count for DML operations
-   - No structural changes needed if Statement properly stores count
-
-3. `src/Driver/Firebird/Connection.php`
-   - No changes required for the core fix
-   - The autoCommit() method is working correctly
-
-4. `tests/Test/Functional/PortabilityTest.php`
-   - Fix testTimeout() to either perform meaningful assertions or mark as incomplete
-   - Current implementation just sleeps and returns true - invalid test
-
-5. `tests/Test/FunctionalTestCase.php` (potential)
-   - May need to improve table cleanup to handle FK constraint locked tables
-   - Add retry logic or use fbird_drop_table_force() for cleanup
+**Files to Keep:**
+- `.github/dependabot.yml` - Dependency updates (unrelated)
+- `.github/workflows/ci-matrix-design.md` - Design documentation (reference)
 
 [Functions]
-Modifications required to Statement::execute() and potential cleanup in test base class.
+Single sentence: No application code changes required; this is a CI workflow update only.
 
-**Functions to modify:**
+The workflow implements the following logical steps (as shell scripts within GitHub Actions):
 
-1. `Statement::execute()` in `src/Driver/Firebird/Statement.php`
-   - Current: Passes `$fbirdResultRc` directly to Result constructor after autoCommit()
-   - Issue: If `fbird_commit_ret()` invalidates the affected row count, we lose it
-   - Fix: Store integer result from `fbird_execute()` before calling `autoCommit()`, then pass to Result
-   - Lines: ~200-220
+1. **System Dependencies Installation** (`Install system dependencies`)
+   - apt-get packages: autoconf, build-essential, libicu-dev, netcat-openbsd, wget, curl, etc.
+   - Required for building PHP extension and Firebird client libraries
 
-2. `Result::rowCount()` in `src/Driver/Firebird/Result.php`
-   - Current: Checks `is_numeric($this->firebirdResultResource)` then casts to int
-   - This should work IF the integer is preserved correctly from Statement
-   - May need debugging to verify the value being passed
-   - Lines: 112-122
+2. **Firebird Server Installation** (`Install Firebird server via IBSurgeon script`)
+   - Downloads IBSurgeon firebirdlinuxinstall script based on matrix.firebird-version
+   - Script URL pattern: `https://raw.githubusercontent.com/IBSurgeon/firebirdlinuxinstall/refs/heads/main/fb_vanilla-${SUFFIX}.sh`
+   - Runs installer non-interactively
+   - Starts Firebird server via init script or direct binary execution
+   - Verifies server listening on localhost:3050
 
-3. `PortabilityTest::testTimeout()` in `tests/Test/Functional/PortabilityTest.php`
-   - Current: `sleep(11); self::assertTrue(true);`
-   - Fix: Mark as incomplete with explanation, or implement actual timeout testing
-   - Lines: 104-108
+3. **Firebird Configuration** (`Configure Firebird for CI`)
+   - Sets `DatabaseAccess = Full` in firebird.conf (required for /tmp test databases)
+   - Restarts Firebird server
+   - Creates test database directory with proper permissions
+   - Verifies database creation works via isql
 
-4. `FunctionalTestCase::dropAndCreateTable()` in `tests/Test/FunctionalTestCase.php` (if exists)
-   - May need to add retry or force-drop logic for tables with FK constraints
-   - Handle "object TABLE is in use" errors during cleanup
+4. **PHP Extension Build** (`Build PHP interbase extension`)
+   - Clones satwareAG/php-firebird repository (v6.2.0 tag)
+   - Runs phpize, configure with --with-interbase=/opt/firebird
+   - Compiles extension with make
+   - Installs to PHP extension directory
+   - Enables extension in php.ini
+
+5. **Composer Dependencies** (`Install Composer dependencies`)
+   - Installs Composer via official installer script
+   - Runs `composer install --prefer-dist --no-progress`
+
+6. **PHPUnit Test Execution** (`Run PHPUnit tests`)
+   - Executes vendor/bin/phpunit with matrix-specific configuration
+   - Configuration file determined by matrix.phpunit-config
+   - Database host set to localhost (Firebird in same container)
+   - Coverage generation for designated combination only
 
 [Classes]
-No new classes required. Minor modifications to existing classes.
-
-**Classes to modify:**
-
-1. `Statement` class (`src/Driver/Firebird/Statement.php`)
-   - Purpose: Fix affected row count preservation during execute()
-   - Change: Store DML result count before autoCommit() call
-
-2. `PortabilityTest` class (`tests/Test/Functional/PortabilityTest.php`)
-   - Purpose: Fix risky test
-   - Change: Proper implementation or mark incomplete
+Single sentence: No class modifications required; this is infrastructure-only.
 
 [Dependencies]
-No new dependencies required.
+Single sentence: No new application dependencies; CI uses IBSurgeon scripts and php-firebird extension source.
 
-All functionality uses existing Firebird extension functions:
-- `fbird_execute()` - returns int for DML, resource for SELECT
-- `fbird_commit_ret()` - commit retaining transaction
-- `fbird_affected_rows()` - get affected rows from connection
+**CI Infrastructure Dependencies:**
+1. **IBSurgeon firebirdlinuxinstall** - Shell scripts for Firebird installation
+   - Repository: https://github.com/IBSurgeon/firebirdlinuxinstall
+   - License: BSD (permissive)
+   - Versions: fb_vanilla-25.sh, fb_vanilla-30.sh, fb_vanilla-40.sh, fb_vanilla-50.sh
+
+2. **satwareAG/php-firebird** - PHP interbase extension source
+   - Repository: https://github.com/satwareAG/php-firebird
+   - Tag: v6.2.0 (stable release)
+   - Required because PECL interbase is abandoned
+
+3. **Container Images:**
+   - `php:8.1-cli-bookworm`
+   - `php:8.2-cli-bookworm`
+   - `php:8.3-cli-bookworm`
+   - `php:8.4-cli-bookworm`
+   - `php:8.5-cli-bookworm` (RC/nightly)
+
+**Why Bookworm (Debian 12):**
+- IBSurgeon scripts explicitly fail on Debian 13 (trixie)
+- Bookworm is current stable Debian
+- All PHP versions have official `-cli-bookworm` images
 
 [Testing]
-Run specific test suite to verify fixes.
+Single sentence: Existing PHPUnit test suite runs unchanged; CI validates all PHP × Firebird combinations.
 
-**Test command:**
-```bash
-tests/phpunit.sh --testsuite=Functional
-```
+**Test Execution Strategy:**
+- Unit tests: Run on all 20 combinations
+- Integration tests: Run on all 20 combinations (database required)
+- Functional tests: Run on all 20 combinations (database required)
 
-**Expected outcomes after fix:**
-1. WriteTest: All 10 tests should pass (rowCount returns 1)
-2. PortabilityTest::testTimeout: Should not be risky (either passes or is skipped)
-3. ExceptionTest: Should have no PHP warnings about "table in use"
+**PHPUnit Configuration Mapping:**
+| Firebird Version | PHPUnit Config | Database Host |
+|------------------|----------------|---------------|
+| 2.5 | phpunit-firebird25.xml | localhost/3050 |
+| 3.0 | phpunit.xml | localhost/3050 |
+| 4.0 | phpunit-firebird4.xml | localhost/3050 |
+| 5.0 | phpunit-firebird5.xml | localhost/3050 |
 
-**Verification steps:**
-1. Run WriteTest alone: `tests/phpunit.sh --filter WriteTest`
-2. Run PortabilityTest alone: `tests/phpunit.sh --filter PortabilityTest`
-3. Run ExceptionTest alone: `tests/phpunit.sh --filter ExceptionTest`
-4. Run full Functional suite to verify no regressions
+**Coverage Configuration:**
+- Coverage collected for: PHP 8.1 / Firebird 3.0 (production baseline)
+- Coverage format: Clover XML (coverage.xml)
+- Upload to: Codecov (using codecov-action@v4)
+- JUnit results: junit.xml (also uploaded to Codecov)
+
+**Test Matrix Validation:**
+- `fail-fast: false` ensures all 20 combinations run independently
+- Each combination reports success/failure separately
+- Overall CI succeeds only if ALL combinations pass
+- Summary job aggregates results for clear dashboard view
 
 [Implementation Order]
-Execute fixes in logical order: core functionality first, then test cleanup.
+Single sentence: Single workflow file creation with staged validation approach.
 
-**Phase 1: Fix Core rowCount Issue (WriteTest failures)**
-1. Add debug logging to Statement::execute() to trace fbird_execute return value
-2. Verify whether integer is being passed correctly to Result constructor
-3. If autoCommit() affects the value, store it in a local variable first
-4. Modify Statement::execute() to preserve affected row count before autoCommit()
-5. Run WriteTest to verify 10 failures are fixed
+**Step 1: Create New Workflow File** (Primary Deliverable)
+- Create `.github/workflows/ci.yml` with complete matrix implementation
+- Include all 5 PHP versions × 4 Firebird versions
+- Include coverage collection for PHP 8.1 / Firebird 3.0
+- Include summary job for aggregated status
 
-**Phase 2: Fix Risky Test (PortabilityTest::testTimeout)**
-6. Analyze intent of testTimeout() - what was it supposed to test?
-7. Either implement proper timeout testing or mark test as incomplete/skipped
-8. Run PortabilityTest to verify risky test is resolved
+**Step 2: Verify PHPUnit Configuration Compatibility**
+- Review `tests/phpunit.xml` and variant files
+- Ensure `db_host` can be overridden or update hardcoded values
+- Database path `/firebird/data/` → `/tmp/fb_tests/` for CI
 
-**Phase 3: Fix Table Locking Warnings (ExceptionTest warnings)**
-9. Investigate FunctionalTestCase cleanup mechanisms
-10. Add retry or force-drop logic for FK-constrained tables
-11. Consider using rollback instead of commit before cleanup
-12. Run ExceptionTest to verify warnings are eliminated
+**Step 3: Test Workflow (Manual Trigger)**
+- Push to branch, verify GitHub Actions runs
+- Check one combination succeeds (e.g., PHP 8.4 / Firebird 5.0)
+- Debug any extension build or connection issues
 
-**Phase 4: Final Verification**
-13. Run full Functional test suite
-14. Verify: Tests: 489, Failures: 0, Warnings: 0, Skipped: 108, Risky: 0
+**Step 4: Validate Full Matrix**
+- Confirm all 20 combinations execute
+- Review job timings (target: < 15 minutes total)
+- Verify coverage upload succeeds
+
+**Step 5: Cleanup Old Workflows**
+- Once validated, delete or archive broken workflow files
+- Update README.md with new CI status badge
+
+---
+
+## Detailed Workflow Implementation
+
+```yaml
+name: CI (PHP × Firebird Matrix)
+
+on:
+  push:
+    branches: ['3.0.*', '3.10-dev', 'main']
+  pull_request:
+    branches: ['3.0.*', '3.10-dev', 'main']
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly Monday 2 AM
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird-version }}
+    runs-on: ubuntu-latest
+    container:
+      image: php:${{ matrix.php-version }}-cli-bookworm
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
+        firebird-version: ['2.5', '3.0', '4.0', '5.0']
+        include:
+          - firebird-version: '2.5'
+            firebird-script-suffix: '25'
+            phpunit-config: 'phpunit-firebird25.xml'
+          - firebird-version: '3.0'
+            firebird-script-suffix: '30'
+            phpunit-config: 'phpunit.xml'
+          - firebird-version: '4.0'
+            firebird-script-suffix: '40'
+            phpunit-config: 'phpunit-firebird4.xml'
+          - firebird-version: '5.0'
+            firebird-script-suffix: '50'
+            phpunit-config: 'phpunit-firebird5.xml'
+
+    env:
+      ISC_USER: SYSDBA
+      ISC_PASSWORD: masterkey
+
+    steps:
+      # ... (implementation steps as documented in [Functions] section)
+```
+
+## PHPUnit Configuration Updates Required
+
+The current PHPUnit configs use Docker service hostnames (firebird3, firebird4, etc.) with path `/firebird/data/`. For the container-based approach:
+
+**Change Required:**
+- `db_host`: `firebird3/3050` → `localhost/3050`
+- `db_dbname`: `/firebird/data/...` → `/tmp/fb_tests/...` (or create symlink)
+
+**Options:**
+1. **Modify configs inline** - sed replacement in workflow
+2. **Environment variable override** - PHPUnit can read from env
+3. **Create CI-specific configs** - Duplicate configs with CI paths
+
+**Recommended:** Use sed to modify configs at runtime:
+```bash
+sed -i 's|firebird[0-9]*/3050|localhost/3050|g' tests/phpunit*.xml
+sed -i 's|/firebird/data/|/tmp/fb_tests/|g' tests/phpunit*.xml
+```
+
+## Risk Assessment
+
+**Low Risk:**
+- IBSurgeon scripts are actively maintained and tested
+- php-firebird extension is owned by satwareAG (full control)
+- Bookworm containers are stable LTS
+
+**Medium Risk:**
+- PHP 8.5 is pre-release (may have compatibility issues)
+- Firebird 2.5 is legacy (may have fewer testers)
+
+**Mitigations:**
+- `fail-fast: false` isolates failures
+- Can quickly exclude problematic combinations via matrix exclude
