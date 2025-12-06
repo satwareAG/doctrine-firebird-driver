@@ -79,7 +79,7 @@ final class Result implements ResultInterface
     }
 
     /** @inheritDoc */
-    public function fetchAssociative()
+    public function fetchAssociative(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
             // @todo remove @ when fbird_fetch_assoc() doesn't warn
@@ -96,7 +96,7 @@ final class Result implements ResultInterface
     }
 
     /** @inheritDoc */
-    public function fetchOne()
+    public function fetchOne(): mixed
     {
         return FetchUtils::fetchOne($this);
     }

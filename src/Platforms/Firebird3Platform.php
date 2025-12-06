@@ -191,7 +191,7 @@ class Firebird3Platform extends FirebirdPlatform
     }
 
     /** @inheritDoc */
-    public function prefersIdentityColumns()
+    public function prefersIdentityColumns(): bool
     {
         return true;
     }
@@ -263,7 +263,7 @@ ___query___;
     }
 
     /** @inheritDoc */
-    public function usesSequenceEmulatedIdentityColumns()
+    public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return false;
     }

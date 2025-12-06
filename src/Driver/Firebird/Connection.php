@@ -279,7 +279,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritDoc}
      */
-    public function quote($value, $type = ParameterType::STRING)
+    public function quote($value, $type = ParameterType::STRING): string|int|float
     {
         if (is_int($value) || is_float($value)) {
             return $value;
@@ -307,7 +307,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @psalm-suppress DocblockTypeContradiction
      */
-    public function lastInsertId($name = null)
+    public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
             throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
