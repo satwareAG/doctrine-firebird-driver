@@ -131,21 +131,13 @@ class CreateTest extends AbstractIntegrationTestCase
         self::assertNotEmpty($match, "Invalid match against \$statements[1]: {$statements[1]}");
         $indexName = $match[1];
 
+        $platform = $connection->getDatabasePlatform();
+
         /**
-         * Firebird 2.5
+         * Firebird 2.5 uses NULL for non-unique, Firebird 3.0+ uses 0
+         * Use instanceof to check platform class instead of deprecated getName()
          */
-        if ($connection->getDatabasePlatform()->getName() === 'Firebird') {
-            $sql = (
-            "SELECT 1
-            FROM RDB\$INDICES IX
-            LEFT JOIN RDB\$INDEX_SEGMENTS SG ON IX.RDB\$INDEX_NAME = SG.RDB\$INDEX_NAME
-            LEFT JOIN RDB\$RELATION_CONSTRAINTS RC ON RC.RDB\$INDEX_NAME = IX.RDB\$INDEX_NAME
-            WHERE IX.RDB\$UNIQUE_FLAG IS NULL
-            AND IX.RDB\$INDEX_NAME = '{$indexName}'
-            AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
-            AND SG.RDB\$FIELD_NAME = 'FOO'"
-            );
-        } else {
+        if ($platform instanceof Firebird3Platform) {
             /**
              * Firebird 3.0+
              */
@@ -155,6 +147,20 @@ class CreateTest extends AbstractIntegrationTestCase
             LEFT JOIN RDB\$INDEX_SEGMENTS SG ON IX.RDB\$INDEX_NAME = SG.RDB\$INDEX_NAME
             LEFT JOIN RDB\$RELATION_CONSTRAINTS RC ON RC.RDB\$INDEX_NAME = IX.RDB\$INDEX_NAME
             WHERE IX.RDB\$UNIQUE_FLAG = 0
+            AND IX.RDB\$INDEX_NAME = '{$indexName}'
+            AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
+            AND SG.RDB\$FIELD_NAME = 'FOO'"
+            );
+        } else {
+            /**
+             * Firebird 2.5
+             */
+            $sql = (
+            "SELECT 1
+            FROM RDB\$INDICES IX
+            LEFT JOIN RDB\$INDEX_SEGMENTS SG ON IX.RDB\$INDEX_NAME = SG.RDB\$INDEX_NAME
+            LEFT JOIN RDB\$RELATION_CONSTRAINTS RC ON RC.RDB\$INDEX_NAME = IX.RDB\$INDEX_NAME
+            WHERE IX.RDB\$UNIQUE_FLAG IS NULL
             AND IX.RDB\$INDEX_NAME = '{$indexName}'
             AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
             AND SG.RDB\$FIELD_NAME = 'FOO'"
