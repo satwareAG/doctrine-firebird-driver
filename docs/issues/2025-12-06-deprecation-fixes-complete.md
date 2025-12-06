@@ -11,6 +11,7 @@ All identified deprecations in doctrine-firebird-driver have been addressed and 
 | `dd9a199` | Remove deprecated VersionAwarePlatformDriver and internal AbstractException |
 | `d0c1a56` | Improve transaction validation to prevent crashes (savepoint methods) |
 | `485baf1` | PHP 8.4 deprecation fixes (Statement::bindParam nullable type) |
+| `f635cb4` | Re-add VersionAwarePlatformDriver for proper configuration propagation |
 
 ## Issues Resolved
 
@@ -34,11 +35,12 @@ All identified deprecations in doctrine-firebird-driver have been addressed and 
 - **After**: `extends Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception`
 - Now uses our custom exception base class
 
-### 3. FirebirdDriver.php (dd9a199)
+### 3. FirebirdDriver.php (dd9a199, f635cb4)
 - **Before**: `implements VersionAwarePlatformDriver` (deprecated)
-- **After**: `implements Driver` (direct implementation)
-- Added native return type: `createDatabasePlatformForVersion(string $version): AbstractPlatform`
-- Method still available - all drivers will require this in DBAL 4.x
+- **Middle**: `implements Driver` (removed VersionAwarePlatformDriver in dd9a199)
+- **After**: `implements Driver, VersionAwarePlatformDriver` (re-added in f635cb4)
+- Re-added `VersionAwarePlatformDriver` interface to ensure DBAL calls `connect()` before `getDatabasePlatform()`, enabling proper configuration propagation (e.g., `like_cast_length`)
+- Removed `string` type hint from `createDatabasePlatformForVersion($version)` to match DBAL 3.x interface
 
 ### 4. Statement.php (485baf1)
 - `bindParam()` marked `@deprecated` with `Deprecation::trigger()`
@@ -61,6 +63,7 @@ OK (all tests pass)
 
 - **tests/reproduce_blob_crash.php**: Untracked test file (can be deleted or gitignored)
 - **RetryOnLockTest**: Feature not implemented (skipped, low priority)
+- **All previously failing tests now pass**: ConfigurableLikeCastLengthTest, CreateTest, WriteTest
 
 ## Next Steps
 
