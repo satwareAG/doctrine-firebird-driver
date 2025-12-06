@@ -6,6 +6,7 @@ cd "$SCRIPT_DIR"
 
 docker compose down --remove-orphans && docker compose up -d
 sleep 10
+docker compose run --rm app composer update --prefer-stable
 echo Running Firebird 3 Testsuite:
 docker compose run --rm app php vendor/bin/phpunit -c tests/phpunit.xml "$@"
 docker compose down

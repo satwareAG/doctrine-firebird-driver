@@ -15,4 +15,4 @@ vendor-bin/**/composer.lock
 /tests/var/
 /tests/phpunit.local.xml
 /tests/.phpunit.cache
-composer.locktests/reproduce_blob_crash.php
+/composer.lock

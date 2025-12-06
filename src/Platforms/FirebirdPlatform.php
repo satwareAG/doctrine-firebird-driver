@@ -729,12 +729,13 @@ class FirebirdPlatform extends AbstractPlatform
             }
 
             if ($columnDiff->hasNotNullChanged()) {
-                // Use proper ALTER COLUMN syntax instead of updating system tables
-                // Firebird does not allow direct UPDATE on RDB$RELATION_FIELDS
-                // Firebird 3.0+ uses: ALTER COLUMN ... SET NOT NULL / DROP NOT NULL
-                $nullClause = $newColumn->getNotnull() ? 'SET NOT NULL' : 'DROP NOT NULL';
-                $sql[]      = 'ALTER TABLE ' . $tableNameSQL . ' ALTER COLUMN ' .
-                        $oldColumnName . ' ' . $nullClause;
+                // Firebird 2.5 requires direct manipulation of system tables for NOT NULL changes
+                // See: https://www.firebirdsql.org/file/documentation/chunk/en/refdocs/fblangref25/fblangref25-ddl-tbl.html
+                // Note: Firebird 3.0+ overrides this method to use ALTER COLUMN ... SET/DROP NOT NULL
+                $newNullFlag = $newColumn->getNotnull() ? '1' : 'NULL';
+                $sql[]       = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' . $newNullFlag .
+                        " WHERE UPPER(RDB\$FIELD_NAME) = UPPER('" . $this->unquotedIdentifierName($oldColumnName) . "')" .
+                        " AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $this->unquotedIdentifierName($diff->getName($this)) . "')";
             }
 
             if ($columnDiff->hasAutoIncrementChanged()) {
