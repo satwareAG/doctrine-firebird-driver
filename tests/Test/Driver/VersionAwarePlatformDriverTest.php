@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
+use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
@@ -43,8 +43,17 @@ class VersionAwarePlatformDriverTest extends TestCase
         yield ['LI-V6.1.2.34567', Firebird5Platform::class];
     }
 
+    /**
+     * Assert that a driver creates the expected platform for a given version.
+     *
+     * @param FirebirdDriver        $driver        The driver to test
+     * @param string                $version       The version string to test
+     * @param class-string<AbstractPlatform> $expectedClass The expected platform class
+     * @param string|null           $deprecation   Optional deprecation identifier to expect
+     * @param bool|null             $expectDeprecation Whether to expect the deprecation
+     */
     private function assertDriverInstantiatesDatabasePlatform(
-        VersionAwarePlatformDriver $driver,
+        FirebirdDriver $driver,
         string $version,
         string $expectedClass,
         string|null $deprecation = null,

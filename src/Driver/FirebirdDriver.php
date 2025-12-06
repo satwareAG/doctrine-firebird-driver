@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
@@ -23,8 +23,11 @@ use function version_compare;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
+ *
+ * This driver is version-aware and provides platform instances appropriate
+ * for the connected Firebird server version.
  */
-abstract class FirebirdDriver implements VersionAwarePlatformDriver
+abstract class FirebirdDriver implements Driver
 {
     public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
@@ -44,10 +47,14 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
      */
     protected array $firebirdOptions = [];
 
-     /**
-      * {@inheritDoc}
-      */
-    public function createDatabasePlatformForVersion($version)
+    /**
+     * Factory method for creating the appropriate platform instance for the given version.
+     *
+     * @param string $version The platform/server version string to evaluate.
+     *
+     * @throws Exception If the given version string could not be evaluated.
+     */
+    public function createDatabasePlatformForVersion(string $version): AbstractPlatform
     {
         $versionParts = [];
         if (
