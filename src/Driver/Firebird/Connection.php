@@ -214,6 +214,7 @@ final class Connection implements ServerInfoAwareConnection
         return $this->connectionInsertColumn;
     }
 
+    #[\Override]
     public function getServerVersion(): string
     {
         return $this->serverVersion;
@@ -224,6 +225,7 @@ final class Connection implements ServerInfoAwareConnection
      * @throws Exception
      * @throws Parser\Exception
      */
+    #[\Override]
     public function prepare(string $sql): DriverStatement
     {
         if ($this->connection === null && is_object($this->databaseNotFoundException)) {
@@ -272,6 +274,7 @@ final class Connection implements ServerInfoAwareConnection
         $this->connectionInsertColumn = $column;
     }
 
+    #[\Override]
     public function query(string $sql): ResultInterface
     {
         return $this->prepare($sql)->execute();
@@ -280,6 +283,7 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * {@inheritDoc}
      */
+    #[\Override]
     public function quote($value, $type = ParameterType::STRING): string|int|float
     {
         if (is_int($value) || is_float($value)) {
@@ -295,6 +299,7 @@ final class Connection implements ServerInfoAwareConnection
         return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
     }
 
+    #[\Override]
     public function exec(string $sql): int
     {
         return $this->prepare($sql)->execute()->rowCount();
@@ -308,6 +313,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @psalm-suppress DocblockTypeContradiction
      */
+    #[\Override]
     public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
@@ -353,6 +359,7 @@ final class Connection implements ServerInfoAwareConnection
         $this->connectionInsertId = $id;
     }
 
+    #[\Override]
     public function beginTransaction(): bool
     {
         if ($this->fbirdTransactionLevel === 0) {
@@ -377,6 +384,7 @@ final class Connection implements ServerInfoAwareConnection
         return true;
     }
 
+    #[\Override]
     public function commit(): bool
     {
         if ($this->fbirdTransactionLevel > 0) {
@@ -440,6 +448,7 @@ final class Connection implements ServerInfoAwareConnection
      *
      * @throws RuntimeException
      */
+    #[\Override]
     public function rollBack(): bool
     {
         if ($this->fbirdTransactionLevel > 0) {

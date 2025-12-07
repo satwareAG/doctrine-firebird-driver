@@ -34,6 +34,7 @@ final class Driver extends FirebirdDriver
      *
      * @return Connection
      */
+    #[\Override]
     public function connect(
         #[SensitiveParameter]
         array $params,
@@ -88,6 +89,7 @@ final class Driver extends FirebirdDriver
         return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
     }
 
+    #[\Override]
     public function getExceptionConverter(): ExceptionConverter
     {
         return new ExceptionConverter();
