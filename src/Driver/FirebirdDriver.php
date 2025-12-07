@@ -95,7 +95,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
      *
      * @return FirebirdPlatform
      */
-    public function getDatabasePlatform()
+    public function getDatabasePlatform(): FirebirdPlatform
     {
         $platform = new FirebirdPlatform();
         $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
@@ -115,7 +115,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
      *
      * @return FirebirdSchemaManager
      */
-    public function getSchemaManager(Connection $conn, AbstractPlatform $platform)
+    public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
