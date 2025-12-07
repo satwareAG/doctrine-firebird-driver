@@ -124,7 +124,7 @@ fi
 print_header "Installing Dependencies"
 print_step "Running composer install..."
 
-docker compose run --rm app composer install --prefer-stable
+docker compose run --rm app composer install --no-interaction --no-progress
 
 print_success "Dependencies installed"
 
