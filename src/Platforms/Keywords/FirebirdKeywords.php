@@ -8,10 +8,7 @@ use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 
 class FirebirdKeywords extends KeywordList
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getName()
+    public function getName(): string
     {
         return 'Firebird';
     }
@@ -21,7 +18,7 @@ class FirebirdKeywords extends KeywordList
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */
-    protected function getKeywords()
+    protected function getKeywords(): array
     {
         return [
             'ADD',
