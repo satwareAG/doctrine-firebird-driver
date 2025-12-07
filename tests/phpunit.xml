@@ -46,5 +46,24 @@
     <include>
       <directory>../src</directory>
     </include>
+    <exclude>
+      <directory>../src/Compat</directory>
+    </exclude>
   </source>
+  <coverage
+    includeUncoveredFiles="true"
+    ignoreDeprecatedCodeUnits="true"
+    pathCoverage="false"
+  >
+    <report>
+      <clover outputFile="var/coverage/clover.xml"/>
+      <html outputDirectory="var/coverage/html" lowUpperBound="50" highLowerBound="80"/>
+      <text outputFile="var/coverage/coverage.txt" showUncoveredFiles="true"/>
+    </report>
+  </coverage>
+  <logging>
+    <junit outputFile="var/logs/junit.xml"/>
+    <testdoxHtml outputFile="var/logs/testdox.html"/>
+    <testdoxText outputFile="var/logs/testdox.txt"/>
+  </logging>
 </phpunit>

@@ -5,14 +5,15 @@ Comprehensive testing guide for the Doctrine Firebird Driver project.
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Project Test Structure](#project-test-structure)
-3. [PHPUnit Configuration Files](#phpunit-configuration-files)
-4. [Test Execution](#test-execution)
-5. [Writing Tests](#writing-tests)
-6. [Environment Setup](#environment-setup)
-7. [Troubleshooting](#troubleshooting)
-8. [Multi-Version Testing](#multi-version-testing)
-9. [CI/CD Integration](#cicd-integration)
+2. [Code Coverage](#code-coverage)
+3. [Project Test Structure](#project-test-structure)
+4. [PHPUnit Configuration Files](#phpunit-configuration-files)
+5. [Test Execution](#test-execution)
+6. [Writing Tests](#writing-tests)
+7. [Environment Setup](#environment-setup)
+8. [Troubleshooting](#troubleshooting)
+9. [Multi-Version Testing](#multi-version-testing)
+10. [CI/CD Integration](#cicd-integration)
 
 ## Quick Start
 
@@ -24,22 +25,139 @@ Comprehensive testing guide for the Doctrine Firebird Driver project.
 
 ### Running Tests
 
-```bash
-# Run all tests for all Firebird versions (2.5, 3, 4, 5)
-cd tests && ./phpunit-all.sh
+The project includes optimized test runner scripts with multiple modes:
 
-# Run tests for Firebird 2.5 only
+```bash
+# Basic test run (Firebird 3 default)
 cd tests && ./phpunit.sh
 
-# Run specific test suite
-cd tests && docker compose up -d
-docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
-    php ../vendor/bin/phpunit -c phpunit.xml
+# Run with code coverage (PCOV - fast)
+cd tests && ./phpunit.sh -c
 
-# Run specific test file
-cd tests && docker compose up -d
-docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
-    php ../vendor/bin/phpunit Test/Unit/Platforms/FirebirdPlatformConfigurationTest.php
+# Run with HTML coverage report
+cd tests && ./phpunit.sh -c -f html
+
+# Run all Firebird versions (2.5, 3, 4, 5)
+cd tests && ./phpunit.sh -v all
+
+# Run specific version
+cd tests && ./phpunit.sh -v 4
+
+# Run specific test suite
+cd tests && ./phpunit.sh -s unit
+
+# Show help for all options
+cd tests && ./phpunit.sh --help
+```
+
+### Code Quality Checks
+
+```bash
+# Full code quality pipeline (static analysis + tests + coverage)
+cd tests && ./docker-cqc.sh
+
+# Quick mode: static analysis only (no tests)
+cd tests && ./docker-cqc.sh --quick
+
+# Coverage mode: tests with coverage only
+cd tests && ./docker-cqc.sh --coverage
+
+# Rebuild containers (after Dockerfile changes)
+cd tests && ./docker-cqc.sh --rebuild
+```
+
+## Code Coverage
+
+### Overview
+
+Code coverage is measured using **PCOV** (2-5x faster than Xdebug) to track test effectiveness.
+
+**Target: ≥80% code coverage** (First Citizen Excellence Project goal)
+
+### Coverage Tools
+
+| Tool | Purpose | Speed | Use Case |
+|------|---------|-------|----------|
+| **PCOV** | Line coverage (recommended) | Fast (2-5x faster) | CI/CD, daily development |
+| **Xdebug** | Line + path coverage | Slow | Debugging, detailed analysis |
+
+### Running Coverage
+
+```bash
+# Quick coverage (text output)
+cd tests && ./phpunit.sh -c
+
+# HTML report (browse tests/var/coverage/html/index.html)
+cd tests && ./phpunit.sh -c -f html
+
+# Clover format (for CI/CD integration)
+cd tests && ./phpunit.sh -c -f clover
+
+# All formats (text + HTML + Clover)
+cd tests && ./phpunit.sh -c -f all
+```
+
+### Coverage Reports Location
+
+| Format | Location | Purpose |
+|--------|----------|---------|
+| HTML | `tests/var/coverage/html/index.html` | Interactive browser viewing |
+| Clover | `tests/var/coverage/clover.xml` | CI/CD integration, badges |
+| Text | `tests/var/coverage/coverage.txt` | Terminal viewing, logs |
+| JUnit | `tests/var/logs/junit.xml` | CI/CD test results |
+
+### PHPUnit Coverage Configuration
+
+The `tests/phpunit.xml` includes comprehensive coverage configuration:
+
+```xml
+<coverage
+  includeUncoveredFiles="true"
+  ignoreDeprecatedCodeUnits="true"
+  pathCoverage="false"
+>
+  <report>
+    <clover outputFile="var/coverage/clover.xml"/>
+    <html outputDirectory="var/coverage/html" lowUpperBound="50" highLowerBound="80"/>
+    <text outputFile="var/coverage/coverage.txt" showUncoveredFiles="true"/>
+  </report>
+</coverage>
+```
+
+### Docker Container Setup
+
+The Docker test container includes PCOV pre-installed and configured:
+
+```dockerfile
+# Install PCOV for fast code coverage
+RUN pecl install pcov && docker-php-ext-enable pcov
+
+# Configure PCOV
+RUN echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini \
+    && echo "pcov.directory=/app/src" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+```
+
+### Coverage Thresholds
+
+| Metric | Threshold | Description |
+|--------|-----------|-------------|
+| Line coverage | ≥80% | Overall code coverage target |
+| Class coverage | ≥75% | Minimum for critical classes |
+| Method coverage | ≥70% | Methods with test coverage |
+
+### Viewing Coverage Reports
+
+After running tests with coverage, open the HTML report:
+
+```bash
+# Linux
+xdg-open tests/var/coverage/html/index.html
+
+# macOS
+open tests/var/coverage/html/index.html
+
+# Windows
+start tests/var/coverage/html/index.html
 ```
 
 ## Project Test Structure
