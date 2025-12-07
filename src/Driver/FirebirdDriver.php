@@ -19,6 +19,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
 use function assert;
+use function is_string;
 use function preg_match;
 use function version_compare;
 
@@ -51,12 +52,19 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
     /**
      * Factory method for creating the appropriate platform instance for the given version.
      *
-     * @param string $version The platform/server version string to evaluate.
+     * @param mixed $version The platform/server version string to evaluate.
      *
      * @throws Exception If the given version string could not be evaluated.
      */
-    public function createDatabasePlatformForVersion(string $version): AbstractPlatform
+    public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {
+        if (! is_string($version)) {
+            throw Exception::invalidPlatformVersionSpecified(
+                (string) $version,
+                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
+            );
+        }
+
         $versionParts = [];
         if (
             preg_match(

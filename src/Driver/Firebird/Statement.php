@@ -347,7 +347,7 @@ class Statement implements StatementInterface
      * Internal method to bind a value to a parameter.
      * This contains the core binding logic used by both bindValue() and bindParam().
      */
-    private function bindValueInternal(int|string $param, mixed &$variable, mixed $type): bool
+    private function bindValueInternal(int|string $param, mixed &$variable, int $type): bool
     {
         // Break references to ensure re-binding works correctly
         if (isset($this->queryParamBindings[$param])) {

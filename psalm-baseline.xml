@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="src/DBAL/FirebirdConnection.php">
+    <InternalMethod>
+      <code><![CDATA[getParams]]></code>
+    </InternalMethod>
+    <InvalidArrayOffset>
+      <code><![CDATA[$params['firebird']]]></code>
+    </InvalidArrayOffset>
+    <UnusedClass>
+      <code><![CDATA[FirebirdConnection]]></code>
+    </UnusedClass>
+  </file>
   <file src="src/Driver/Firebird/Connection.php">
     <InvalidReturnStatement>
       <code><![CDATA[$result]]></code>
