@@ -10,7 +10,6 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 class FirebirdBooleanType extends BooleanType
 {
-    /** @inheritDoc */
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool
     {
         return $platform::class === FirebirdPlatform::class;

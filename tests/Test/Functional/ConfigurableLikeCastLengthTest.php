@@ -15,6 +15,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  * is deprecated in DBAL 3.x and REMOVED in DBAL 4.x.
  *
  * @deprecated Use FirebirdConnection wrapper instead.
+ *
  * @see FirebirdConnectionTest for the recommended DBAL 4.x-compatible approach.
  * @see \Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection
  */

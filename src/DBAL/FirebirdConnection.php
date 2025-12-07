@@ -45,7 +45,7 @@ class FirebirdConnection extends Connection
 
         // Configure platform with firebird options from connection params (once)
         if (! $this->platformConfigured && $platform instanceof FirebirdPlatform) {
-            $params = $this->getParams();
+            $params          = $this->getParams();
             $firebirdOptions = $params['firebird'] ?? [];
             if ($firebirdOptions !== []) {
                 $platform->setConfiguration(new FirebirdPlatformConfiguration($firebirdOptions));

@@ -78,7 +78,6 @@ final class Result implements ResultInterface
         return false;
     }
 
-    /** @inheritDoc */
     public function fetchAssociative(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -95,7 +94,6 @@ final class Result implements ResultInterface
         return false;
     }
 
-    /** @inheritDoc */
     public function fetchOne(): mixed
     {
         return FetchUtils::fetchOne($this);

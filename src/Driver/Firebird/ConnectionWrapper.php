@@ -110,10 +110,7 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId($name);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDatabase(): ?string
+    public function getDatabase(): string|null
     {
         static $database = null;
         if ($database === null) {

@@ -190,7 +190,6 @@ class Firebird3Platform extends FirebirdPlatform
         return true;
     }
 
-    /** @inheritDoc */
     public function prefersIdentityColumns(): bool
     {
         return true;
@@ -262,7 +261,6 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    /** @inheritDoc */
     public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return false;

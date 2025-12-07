@@ -160,56 +160,6 @@ class Statement implements StatementInterface
     }
 
     /**
-     * Internal method to bind a value to a parameter.
-     * This contains the core binding logic used by both bindValue() and bindParam().
-     *
-     * @param int|string              $param
-     * @param mixed                   $variable
-     * @param ParameterType|int|mixed $type
-     */
-    private function bindValueInternal(int|string $param, mixed &$variable, mixed $type): bool
-    {
-        // Break references to ensure re-binding works correctly
-        if (isset($this->queryParamBindings[$param])) {
-            unset($this->queryParamBindings[$param]);
-        }
-
-        if (is_int($param)) {
-            if (! isset($this->parameterMap[$param])) {
-                throw new Exception(sprintf('Positional Parameter %d not found in the parameter map', $param));
-            }
-        } else {
-            $params = array_flip($this->parameterMap);
-            if (! isset($params[$param])) {
-                throw new Exception(sprintf('Named Parameter %s not found in the parameter map', $param));
-            }
-
-            $param = $params[$param];
-        }
-
-        if ($type === ParameterType::LARGE_OBJECT) {
-            if ($variable !== null && is_resource($variable)) {
-                // Workaround for php-firebird 6.2.0+ segfault:
-                // Read stream into memory and pass as string.
-                // This avoids fbird_blob_create/add/close which seem to cause instability.
-                $content = stream_get_contents($variable);
-                if (is_resource($variable)) {
-                    fclose($variable);
-                }
-
-                $variable = $content;
-                $type     = ParameterType::STRING;
-            }
-        }
-
-        assert(is_int($param));
-        $this->queryParamBindings[$param] = &$variable;
-        $this->queryParamTypes[$param]    = $type;
-
-        return true;
-    }
-
-    /**
      * {@inheritDoc}
      *
      * @throws RuntimeException
@@ -391,6 +341,52 @@ class Statement implements StatementInterface
         $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
 
         return $this->currentResult;
+    }
+
+    /**
+     * Internal method to bind a value to a parameter.
+     * This contains the core binding logic used by both bindValue() and bindParam().
+     */
+    private function bindValueInternal(int|string $param, mixed &$variable, mixed $type): bool
+    {
+        // Break references to ensure re-binding works correctly
+        if (isset($this->queryParamBindings[$param])) {
+            unset($this->queryParamBindings[$param]);
+        }
+
+        if (is_int($param)) {
+            if (! isset($this->parameterMap[$param])) {
+                throw new Exception(sprintf('Positional Parameter %d not found in the parameter map', $param));
+            }
+        } else {
+            $params = array_flip($this->parameterMap);
+            if (! isset($params[$param])) {
+                throw new Exception(sprintf('Named Parameter %s not found in the parameter map', $param));
+            }
+
+            $param = $params[$param];
+        }
+
+        if ($type === ParameterType::LARGE_OBJECT) {
+            if ($variable !== null && is_resource($variable)) {
+                // Workaround for php-firebird 6.2.0+ segfault:
+                // Read stream into memory and pass as string.
+                // This avoids fbird_blob_create/add/close which seem to cause instability.
+                $content = stream_get_contents($variable);
+                if (is_resource($variable)) {
+                    fclose($variable);
+                }
+
+                $variable = $content;
+                $type     = ParameterType::STRING;
+            }
+        }
+
+        assert(is_int($param));
+        $this->queryParamBindings[$param] = &$variable;
+        $this->queryParamTypes[$param]    = $type;
+
+        return true;
     }
 
     /**

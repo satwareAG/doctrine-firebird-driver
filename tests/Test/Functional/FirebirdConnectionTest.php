@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection;
@@ -21,11 +22,9 @@ class FirebirdConnectionTest extends TestCase
 {
     public function testFirebirdConnectionConfiguresPlatformWithCustomLikeCastLength(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                 = TestUtil::getConnectionParams();
         $params['wrapperClass'] = FirebirdConnection::class;
-        $params['firebird'] = [
-            'like_cast_length' => 5000,
-        ];
+        $params['firebird']     = ['like_cast_length' => 5000];
 
         $connection = DriverManager::getConnection($params);
 
@@ -37,7 +36,7 @@ class FirebirdConnectionTest extends TestCase
 
     public function testFirebirdConnectionWithDefaultConfiguration(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                 = TestUtil::getConnectionParams();
         $params['wrapperClass'] = FirebirdConnection::class;
         // No 'firebird' options - should use default
 
@@ -52,22 +51,20 @@ class FirebirdConnectionTest extends TestCase
 
     public function testFirebirdConnectionIsInstanceOfDbalConnection(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                 = TestUtil::getConnectionParams();
         $params['wrapperClass'] = FirebirdConnection::class;
 
         $connection = DriverManager::getConnection($params);
 
         self::assertInstanceOf(FirebirdConnection::class, $connection);
-        self::assertInstanceOf(\Doctrine\DBAL\Connection::class, $connection);
+        self::assertInstanceOf(Connection::class, $connection);
     }
 
     public function testGetDatabasePlatformCalledMultipleTimesReturnsSamePlatform(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                 = TestUtil::getConnectionParams();
         $params['wrapperClass'] = FirebirdConnection::class;
-        $params['firebird'] = [
-            'like_cast_length' => 3000,
-        ];
+        $params['firebird']     = ['like_cast_length' => 3000];
 
         $connection = DriverManager::getConnection($params);
 

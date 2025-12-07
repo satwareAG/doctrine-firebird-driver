@@ -46,11 +46,11 @@ class VersionAwarePlatformDriverTest extends TestCase
     /**
      * Assert that a driver creates the expected platform for a given version.
      *
-     * @param FirebirdDriver        $driver        The driver to test
-     * @param string                $version       The version string to test
-     * @param class-string<AbstractPlatform> $expectedClass The expected platform class
-     * @param string|null           $deprecation   Optional deprecation identifier to expect
-     * @param bool|null             $expectDeprecation Whether to expect the deprecation
+     * @param FirebirdDriver                 $driver            The driver to test
+     * @param string                         $version           The version string to test
+     * @param class-string<AbstractPlatform> $expectedClass     The expected platform class
+     * @param string|null                    $deprecation       Optional deprecation identifier to expect
+     * @param bool|null                      $expectDeprecation Whether to expect the deprecation
      */
     private function assertDriverInstantiatesDatabasePlatform(
         FirebirdDriver $driver,

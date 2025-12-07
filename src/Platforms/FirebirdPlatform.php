@@ -190,9 +190,6 @@ class FirebirdPlatform extends AbstractPlatform
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getRegexpExpression(): string
     {
         return 'SIMILAR TO';
@@ -266,23 +263,16 @@ class FirebirdPlatform extends AbstractPlatform
         return 'DATEDIFF(day, ' . $date2 . ',' . $date1 . ')';
     }
 
-    /** @inheritDoc */
     public function supportsForeignKeyConstraints(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsSequences(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return true;
@@ -301,49 +291,31 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->generateIdentifier([$tableName], 'D2IT', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsViews(): bool
     {
         return true;
     }
 
-     /**
-      * {@inheritDoc}
-      */
     public function supportsIdentityColumns(): bool
     {
         return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsInlineColumnComments(): bool
     {
         return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsCommentOnStatement(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsCreateDropDatabase(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function supportsSavepoints(): bool
     {
         return true;
@@ -359,7 +331,6 @@ class FirebirdPlatform extends AbstractPlatform
         return true;
     }
 
-    /** @inheritDoc */
     public function prefersIdentityColumns(): bool
     {
         return false;
@@ -903,9 +874,6 @@ class FirebirdPlatform extends AbstractPlatform
         return 'CREATE GLOBAL TEMPORARY TABLE';
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getTemporaryTableSQL(): string
     {
         return 'GLOBAL TEMPORARY';

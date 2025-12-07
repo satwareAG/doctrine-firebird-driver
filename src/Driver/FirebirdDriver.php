@@ -8,8 +8,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
@@ -55,7 +55,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
      *
      * @throws Exception If the given version string could not be evaluated.
      */
-    public function createDatabasePlatformForVersion($version): AbstractPlatform
+    public function createDatabasePlatformForVersion(string $version): AbstractPlatform
     {
         $versionParts = [];
         if (
