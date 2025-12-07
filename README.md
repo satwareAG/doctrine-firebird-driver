@@ -12,7 +12,7 @@ To utilize this library in your application code, the following is required:
 - Firebird Client for Server version 2.5, 3, 4 or 5
 - PHP >= 8.1
 - [fbird/ibase interbase](http://php.net/manual/en/book.ibase.php) firebird driver 
-- [doctrine/dbal ^3.8](https://packagist.org/packages/doctrine/dbal#3.8.0)
+- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
 
 # License & Disclaimer
 
@@ -197,9 +197,9 @@ php vendor/bin/phpunit tests/Test/Functional/
 
 ## Test Coverage
 
-- **36 tests total** (24 unit, 12 functional)
-- **100% pass rate** across all Firebird versions
-- Multi-version compatibility validation
+- **1255+ tests** (unit, functional, integration)
+- **100% pass rate** across all Firebird versions (2.5, 3.0, 4.0, 5.0)
+- PHPUnit 10.5, PHPStan Level 8, Psalm static analysis
 
 ## Documentation
 
@@ -269,7 +269,7 @@ The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension i
 You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branches  
-  - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.0.x supports DBAL ^3.8
+  - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.0.x supports DBAL ^3.10
   - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.0.x supports DBAL ^4.1
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
 - Reference manuals of Firebird’s implementation of the SQL relational database language for  

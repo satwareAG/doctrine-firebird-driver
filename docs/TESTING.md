@@ -753,6 +753,7 @@ jobs:
 
 ---
 
-**Last Updated:** 2025-11-13  
-**PHPUnit Version:** 9.6.20  
+**Last Updated:** 2025-12-07  
+**PHPUnit Version:** 10.5  
+**Doctrine DBAL:** ^3.10  
 **Supported Firebird Versions:** 2.5, 3.0, 4.0, 5.0
