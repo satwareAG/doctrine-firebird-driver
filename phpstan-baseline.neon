@@ -1,6 +1,11 @@
 parameters:
 	ignoreErrors:
 		-
+			message: "#^Property Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:\\$statement is never read, only written\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
 			message: "#^Function fbird_prepare invoked with 3 parameters, 1 required\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php

@@ -26,7 +26,14 @@ final class Result implements ResultInterface
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
      *
+     * The $statement parameter is intentionally held but never read directly.
+     * It prevents premature garbage collection of the Statement object while
+     * the Result is being iterated. Without this reference, PHP may GC the
+     * Statement, invalidating the underlying Firebird result resource.
+     *
      * @throws Exception
+     *
+     * @phpstan-ignore property.onlyWritten (Required for GC: keeps Statement alive during Result iteration)
      */
     public function __construct(
         private mixed $firebirdResultResource,
