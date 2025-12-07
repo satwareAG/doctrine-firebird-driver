@@ -29,7 +29,7 @@ class RetryOnLockTest extends FunctionalTestCase
         // We fetch one row. The statement uses commit_ret, retaining transaction locks.
         // We intentionally free the statement to verify that the Transaction lock causes the issue,
         // not the active statement handle (which covers SchemaManager usage patterns).
-        $stmt   = $conn->prepare("SELECT * FROM {$this->tableName}");
+        $stmt   = $conn->prepare('SELECT * FROM ' . $this->tableName);
         $result = $stmt->execute();
         $row    = $result->fetchNumeric();
 
@@ -39,7 +39,7 @@ class RetryOnLockTest extends FunctionalTestCase
 
         // 3. Try Drop - Should Fail with "object in use" because active transaction holds lock
         try {
-            $conn->executeStatement("DROP TABLE {$this->tableName}");
+            $conn->executeStatement('DROP TABLE ' . $this->tableName);
             self::fail('Expected exception due to lock conflict');
         } catch (Throwable $e) {
             self::assertStringContainsString('is in use', $e->getMessage());
@@ -59,7 +59,7 @@ class RetryOnLockTest extends FunctionalTestCase
         $conn = $this->reConnect($params);
 
         // 2. Select to hold lock
-        $stmt   = $conn->prepare("SELECT * FROM {$this->tableName}");
+        $stmt   = $conn->prepare('SELECT * FROM ' . $this->tableName);
         $result = $stmt->execute();
         $row    = $result->fetchNumeric();
 
@@ -72,7 +72,7 @@ class RetryOnLockTest extends FunctionalTestCase
             // Debug: If manual commit works here, then forceCommit logic works in principle
             // $conn->commit();
 
-            $conn->executeStatement("DROP TABLE {$this->tableName}");
+            $conn->executeStatement('DROP TABLE ' . $this->tableName);
             self::assertTrue(true, 'Drop succeeded with retry');
         } catch (Throwable $e) {
             self::fail('Drop failed despite retry: ' . $e->getMessage() . ' Code: ' . $e->getCode());
