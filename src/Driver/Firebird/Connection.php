@@ -22,6 +22,7 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
 use function addcslashes;
+use function assert;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -512,6 +513,8 @@ final class Connection implements ServerInfoAwareConnection
             throw new RuntimeException('No valid transaction resource.');
         }
 
+        assert(is_resource($this->firebirdActiveTransaction));
+
         if (! fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
             $this->checkLastApiCall();
 
@@ -532,6 +535,8 @@ final class Connection implements ServerInfoAwareConnection
             throw new RuntimeException('No valid transaction resource.');
         }
 
+        assert(is_resource($this->firebirdActiveTransaction));
+
         if (! fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
             $this->checkLastApiCall();
 
@@ -551,6 +556,8 @@ final class Connection implements ServerInfoAwareConnection
         if (! $this->isTransactionValid()) {
             throw new RuntimeException('No valid transaction resource.');
         }
+
+        assert(is_resource($this->firebirdActiveTransaction));
 
         if (! fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
             $this->checkLastApiCall();
