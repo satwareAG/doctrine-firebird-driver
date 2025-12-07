@@ -82,7 +82,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
-    public function executeStatement($sql, array $params = [], array $types = [])
+    public function executeStatement($sql, array $params = [], array $types = []): int|string
     {
         $sql = $this->extractIdentityColumn($sql);
 
@@ -93,7 +93,7 @@ final class ConnectionWrapper extends Connection
      * @inheritDoc
      * @psalm-suppress DocblockTypeContradiction
      * */
-    public function lastInsertId($name = null)
+    public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
             throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
@@ -113,7 +113,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
-    public function getDatabase()
+    public function getDatabase(): ?string
     {
         static $database = null;
         if ($database === null) {
