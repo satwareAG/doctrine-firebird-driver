@@ -180,9 +180,9 @@ The doctrine-firebird-driver project **exceeds the 80% coverage target** with **
 
 | Commit | Tests Added | Target Class |
 |--------|-------------|--------------|
-| TBD | +69 tests | Compat (unit tests) |
-| TBD | +19 tests | ConvertParameters (unit tests) |
-| TBD | +21 tests | FirebirdConnectString (unit tests) |
+| `8c3c5ad` | +69 tests | Compat (unit tests) |
+| `8c3c5ad` | +19 tests | ConvertParameters (unit tests) |
+| `8c3c5ad` | +21 tests | FirebirdConnectString (unit tests) |
 | **Total** | **+109 tests** | **Phase 3 COMPLETE** |
 
 **Phase 3 Summary:**
