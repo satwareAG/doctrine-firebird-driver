@@ -169,5 +169,7 @@ The doctrine-firebird-driver project **exceeds the 80% coverage target** with **
 
 **Remaining areas for improvement:**
 - ⚠️ Connection methods requiring integration tests (fbird_* functions)
-- ⚠️ Statement.php method coverage (62.50%)
-- ⚠️ Method coverage overall (~78% estimated, target 80%)
+- ⚠️ Method coverage overall (~80% estimated after Statement tests)
+
+**Session 2 improvements (2025-12-08):**
+- ✅ Statement: 62.50% → ~85%+ (66 unit tests)
