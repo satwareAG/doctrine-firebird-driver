@@ -19,6 +19,8 @@ jobs:
   test:
     name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird-version }}
     runs-on: ubuntu-latest
+    # Allow experimental PHP versions (e.g., PHP 8.5 dev) to fail without blocking CI
+    continue-on-error: ${{ matrix.experimental }}
 
     # Single container per job: one PHP CLI image which will also host
     # the Firebird server installed via IBSurgeon firebirdlinuxinstall.
@@ -34,7 +36,12 @@ jobs:
       matrix:
         php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
         firebird-version: ['2.5', '3.0', '4.0', '5.0']
+        # PHP 8.5 is in development - allow failures for experimental PHP versions
+        experimental: [false]
         include:
+          # PHP 8.5 is experimental (not yet released)
+          - php-version: '8.5'
+            experimental: true
           # Map Firebird versions to script suffixes and PHPUnit configs
           - firebird-version: '2.5'
             firebird-script-suffix: '25'
