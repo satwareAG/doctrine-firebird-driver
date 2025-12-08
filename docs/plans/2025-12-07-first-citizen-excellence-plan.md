@@ -556,11 +556,11 @@ try {
 
 | Task | Effort | Priority | Status |
 |------|--------|----------|--------|
-| Add polyfill dependencies | 1h | HIGH | 🔜 |
-| Add `#[\Override]` attributes | 2h | HIGH | 🔜 |
+| Add polyfill dependencies | 1h | HIGH | ✅ |
+| Add `#[\Override]` attributes | 2h | HIGH | ✅ |
 | Typed class constants (PHP 8.3) | 2h | MEDIUM | 🔜 |
-| Simplify Connection.php | 1d | HIGH | 🔜 |
-| Add Compat utility class | 4h | MEDIUM | 🔜 |
+| Simplify Connection.php | 1d | HIGH | ✅ |
+| Add Compat utility class | 4h | MEDIUM | ✅ |
 | Update PHPStan baseline | 2h | MEDIUM | 🔜 |
 | CI matrix: PHP 8.1-8.4 | 4h | HIGH | 🔜 |
 

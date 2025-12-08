@@ -20,6 +20,7 @@ use function is_numeric;
 use function is_resource;
 
 use const IBASE_FETCH_BLOBS;
+use Override;
 
 final class Result implements ResultInterface
 {
@@ -66,6 +67,7 @@ final class Result implements ResultInterface
      *
      * @return false|list<mixed>
      */
+    #[Override]
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -85,6 +87,7 @@ final class Result implements ResultInterface
         return false;
     }
 
+    #[Override]
     public function fetchAssociative(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -101,29 +104,34 @@ final class Result implements ResultInterface
         return false;
     }
 
+    #[Override]
     public function fetchOne(): mixed
     {
         return FetchUtils::fetchOne($this);
     }
 
     /** @inheritDoc */
+    #[Override]
     public function fetchAllNumeric(): array
     {
         return FetchUtils::fetchAllNumeric($this);
     }
 
     /** @inheritDoc */
+    #[Override]
     public function fetchAllAssociative(): array
     {
         return FetchUtils::fetchAllAssociative($this);
     }
 
     /** @inheritDoc */
+    #[Override]
     public function fetchFirstColumn(): array
     {
         return FetchUtils::fetchFirstColumn($this);
     }
 
+    #[Override]
     public function rowCount(): int
     {
         if (is_numeric($this->firebirdResultResource)) {
@@ -138,6 +146,7 @@ final class Result implements ResultInterface
         return 0;
     }
 
+    #[Override]
     public function columnCount(): int
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -148,6 +157,7 @@ final class Result implements ResultInterface
     }
 
     /** @throws Exception */
+    #[Override]
     public function free(): void
     {
         if (! is_resource($this->firebirdResultResource)) {
