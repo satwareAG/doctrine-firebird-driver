@@ -1,5 +1,5 @@
 ARG PHP_VERSION=8.1
-FROM php:8.1-cli AS base
+FROM php:${PHP_VERSION}-cli AS base
 
 # Install system dependencies and PHP extensions
 RUN apt-get update  \

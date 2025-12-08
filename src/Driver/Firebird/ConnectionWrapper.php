@@ -39,12 +39,12 @@ final class ConnectionWrapper extends Connection
             if ($identityColumnTables[$table] === null) {
                 $this->addSequenceNameForTable($table);
             }
-        }
 
-        if (isset($identityColumnTables[$table]['id'])) {
-            $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
-            if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
-                $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
+            if (isset($identityColumnTables[$table]['id'])) {
+                $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
+                if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                    $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
+                }
             }
         }
 

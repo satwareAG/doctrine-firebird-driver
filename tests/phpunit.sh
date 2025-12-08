@@ -26,6 +26,7 @@ cd "$SCRIPT_DIR"
 # Default Configuration
 # =============================================================================
 
+PHP_VERSION="8.1"
 FIREBIRD_VERSION="3"
 WITH_COVERAGE=false
 COVERAGE_FORMAT="text"
@@ -43,6 +44,7 @@ show_help() {
     echo "Usage: $0 [options] [-- <phpunit-args>]"
     echo ""
     echo "Options:"
+    echo "  -p, --php <8.1|8.2|8.3|8.4|8.5>  PHP version (default: 8.1)"
     echo "  -v, --version <2.5|3|4|5|all>  Firebird version (default: 3)"
     echo "  -c, --coverage                 Enable PCOV code coverage"
     echo "  -f, --format <text|html|clover|all>  Coverage format (default: text)"
@@ -53,8 +55,9 @@ show_help() {
     echo "  -h, --help                     Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                             # Run Firebird 3 tests"
-    echo "  $0 -c                          # Run with coverage"
+    echo "  $0                             # Run Firebird 3 tests (PHP 8.1)"
+    echo "  $0 -p 8.5                      # Run with PHP 8.5"
+    echo "  $0 -p 8.5 -c                   # PHP 8.5 with coverage"
     echo "  $0 -v all                      # Run all Firebird versions"
     echo "  $0 -s unit                     # Run only unit tests"
     echo "  $0 -c -f html                  # Coverage as HTML report"
@@ -64,6 +67,7 @@ show_help() {
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        -p|--php) PHP_VERSION="$2"; shift ;;
         -v|--version) FIREBIRD_VERSION="$2"; shift ;;
         -c|--coverage) WITH_COVERAGE=true ;;
         -f|--format) COVERAGE_FORMAT="$2"; shift ;;
@@ -122,15 +126,19 @@ TOTAL_START=$(date +%s)
 # Docker Environment Setup
 # =============================================================================
 
-print_header "Docker Test Environment Setup"
+print_header "Docker Test Environment Setup (PHP $PHP_VERSION)"
+
+# Export PHP_VERSION for docker-compose build args
+export PHP_VERSION
 
 if [ "$REBUILD_CONTAINER" = true ]; then
     print_step "Rebuilding Docker containers (--rebuild specified)..."
     docker compose down --remove-orphans --volumes 2>/dev/null || true
-    docker compose build --no-cache
+    docker compose build --no-cache --build-arg PHP_VERSION="$PHP_VERSION"
 else
-    print_step "Starting Docker containers..."
+    print_step "Starting Docker containers with PHP $PHP_VERSION..."
     docker compose down --remove-orphans 2>/dev/null || true
+    docker compose build --build-arg PHP_VERSION="$PHP_VERSION"
 fi
 
 docker compose up -d
