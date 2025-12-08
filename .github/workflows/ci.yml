@@ -209,6 +209,17 @@ jobs:
           echo "CREATE DATABASE '/tmp/fb_tests/ci_test.fdb';" | "${ISQL_CMD}" -u SYSDBA -p masterkey || echo "Database creation test skipped"
           rm -f /tmp/fb_tests/ci_test.fdb
 
+      - name: Install pcntl extension for PHPUnit time limits
+        run: |
+          set -eu
+          
+          # pcntl is a bundled extension, install via docker-php-ext-install
+          docker-php-ext-install pcntl
+          
+          # Verify extension is loaded
+          php -m | grep -i pcntl
+          echo "pcntl extension installed successfully"
+
       - name: Build PHP interbase extension from source
         run: |
           set -eu
