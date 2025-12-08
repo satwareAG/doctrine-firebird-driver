@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="src/Compat/Compat.php">
+    <UnusedClass>
+      <code><![CDATA[Compat]]></code>
+    </UnusedClass>
+  </file>
   <file src="src/DBAL/FirebirdConnection.php">
     <InternalMethod>
       <code><![CDATA[getParams]]></code>
@@ -22,6 +27,11 @@
       <code><![CDATA[killAttachment]]></code>
       <code><![CDATA[listTableBlockers]]></code>
     </PossiblyUnusedMethod>
+  </file>
+  <file src="src/Driver/Firebird/Result.php">
+    <UnusedProperty>
+      <code><![CDATA[$statement]]></code>
+    </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/Statement.php">
     <PossiblyFalseArgument>

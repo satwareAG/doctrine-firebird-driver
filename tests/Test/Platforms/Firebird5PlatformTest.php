@@ -18,11 +18,6 @@ class Firebird5PlatformTest extends TestCase
 {
     private Firebird5Platform $platform;
 
-    protected function setUp(): void
-    {
-        $this->platform = new Firebird5Platform();
-    }
-
     public function testGetName(): void
     {
         // This triggers a deprecation warning which is expected
@@ -83,5 +78,10 @@ class Firebird5PlatformTest extends TestCase
         self::assertTrue($this->platform->supportsIdentityColumns());
         self::assertTrue($this->platform->supportsSavepoints());
         self::assertTrue($this->platform->supportsCommentOnStatement());
+    }
+
+    protected function setUp(): void
+    {
+        $this->platform = new Firebird5Platform();
     }
 }

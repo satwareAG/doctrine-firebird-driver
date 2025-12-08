@@ -4,6 +4,20 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Compat;
 
+use function array_all;
+use function array_any;
+use function array_find;
+use function array_find_key;
+use function array_is_list;
+use function assert;
+use function json_validate;
+use function mb_str_pad;
+use function str_contains;
+use function str_ends_with;
+use function str_starts_with;
+
+use const STR_PAD_RIGHT;
+
 /**
  * Compatibility utilities for cross-version PHP support.
  *
@@ -21,7 +35,7 @@ final class Compat
      * Uses native json_validate() when available, falls back to
      * json_decode() for PHP < 8.3 (polyfill handles this).
      *
-     * @param string $json  The JSON string to validate
+     * @param string       $json  The JSON string to validate
      * @param positive-int $depth Maximum nesting depth (default: 512)
      *
      * @return bool True if valid JSON, false otherwise
@@ -38,12 +52,12 @@ final class Compat
     /**
      * Find the first element matching a callback (PHP 8.4+).
      *
-     * @template T
-     *
-     * @param array<T>         $array    The array to search
+     * @param array<T>          $array    The array to search
      * @param callable(T): bool $callback The callback returning true for match
      *
      * @return T|null The first matching element or null
+     *
+     * @template T
      */
     public static function arrayFind(array $array, callable $callback): mixed
     {
@@ -54,13 +68,13 @@ final class Compat
     /**
      * Find the key of the first element matching a callback (PHP 8.4+).
      *
-     * @template TKey of array-key
-     * @template TValue
-     *
      * @param array<TKey, TValue>    $array    The array to search
      * @param callable(TValue): bool $callback The callback returning true for match
      *
      * @return TKey|null The key of the first matching element or null
+     *
+     * @template TKey of array-key
+     * @template TValue
      */
     public static function arrayFindKey(array $array, callable $callback): int|string|null
     {
@@ -71,12 +85,12 @@ final class Compat
     /**
      * Check if any array element matches a callback (PHP 8.4+).
      *
-     * @template T
-     *
-     * @param array<T>         $array    The array to check
+     * @param array<T>          $array    The array to check
      * @param callable(T): bool $callback The callback returning true for match
      *
      * @return bool True if any element matches, false otherwise
+     *
+     * @template T
      */
     public static function arrayAny(array $array, callable $callback): bool
     {
@@ -87,12 +101,12 @@ final class Compat
     /**
      * Check if all array elements match a callback (PHP 8.4+).
      *
-     * @template T
-     *
-     * @param array<T>         $array    The array to check
+     * @param array<T>          $array    The array to check
      * @param callable(T): bool $callback The callback returning true for match
      *
      * @return bool True if all elements match, false otherwise
+     *
+     * @template T
      */
     public static function arrayAll(array $array, callable $callback): bool
     {
@@ -103,11 +117,11 @@ final class Compat
     /**
      * Multibyte-safe string padding (PHP 8.3+).
      *
-     * @param string $string     The input string
-     * @param int    $length     The desired length
-     * @param string $padString  The string to pad with (default: ' ')
-     * @param int    $padType    Padding type: STR_PAD_RIGHT, STR_PAD_LEFT, or STR_PAD_BOTH
-     * @param string $encoding   Character encoding (default: 'UTF-8')
+     * @param string $string    The input string
+     * @param int    $length    The desired length
+     * @param string $padString The string to pad with (default: ' ')
+     * @param int    $padType   Padding type: STR_PAD_RIGHT, STR_PAD_LEFT, or STR_PAD_BOTH
+     * @param string $encoding  Character encoding (default: 'UTF-8')
      *
      * @return string The padded string
      */
@@ -116,7 +130,7 @@ final class Compat
         int $length,
         string $padString = ' ',
         int $padType = STR_PAD_RIGHT,
-        ?string $encoding = null,
+        string|null $encoding = null,
     ): string {
         // Polyfill provides mb_str_pad() on PHP < 8.3
         return mb_str_pad($string, $length, $padString, $padType, $encoding ?? 'UTF-8');

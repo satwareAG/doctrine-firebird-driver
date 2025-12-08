@@ -18,11 +18,6 @@ class Firebird4PlatformTest extends TestCase
 {
     private Firebird4Platform $platform;
 
-    protected function setUp(): void
-    {
-        $this->platform = new Firebird4Platform();
-    }
-
     public function testGetDateTimeTzTypeDeclarationSQL(): void
     {
         $sql = $this->platform->getDateTimeTzTypeDeclarationSQL([]);
@@ -83,5 +78,10 @@ class Firebird4PlatformTest extends TestCase
         self::assertTrue($this->platform->hasDoctrineTypeMappingFor('varchar'));
         self::assertTrue($this->platform->hasDoctrineTypeMappingFor('timestamp'));
         self::assertTrue($this->platform->hasDoctrineTypeMappingFor('boolean'));
+    }
+
+    protected function setUp(): void
+    {
+        $this->platform = new Firebird4Platform();
     }
 }
