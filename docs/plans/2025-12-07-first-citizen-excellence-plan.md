@@ -38,12 +38,23 @@ Transform the Doctrine Firebird Driver from a "mature third-party driver" to a "
 
 | Metric | Current | Target | Gap |
 |--------|---------|--------|-----|
-| Tests | 1255 | 1500+ | +245 |
-| Coverage | ~85% | 95%+ | +10% |
+| Tests | **1415+** | 1500+ | +85 remaining |
+| Coverage | **~88%** | 95%+ | +7% |
 | PHPStan Level | 8 | 8 (strict-rules) | ✅ |
 | PHP Version | 8.1 baseline | 8.1 with polyfills | Needs polyfills |
 | DBAL Version | ^3.10 | 3.10.x full features | Audit needed |
 | ORM Version | ^3.5 | Compatible with ORM 2.x/3.x | ✅ |
+
+### Phase 2 Test Improvements (2025-12-08) - COMPLETE ✅
+
+| Class | Tests Added | Coverage Impact |
+|-------|-------------|-----------------|
+| Statement | +66 tests | 62.50% → ~85%+ |
+| Connection | +44 tests | 63.89% → ~75%+ |
+| ExceptionConverter | +36 tests | 66.67% → ~100% |
+| Firebird4Platform | +9 tests | 0% → ~100% |
+| Firebird5Platform | +7 tests | 0% → ~100% |
+| **Total** | **+162 tests** | **Phase 2 Complete** |
 
 ---
 

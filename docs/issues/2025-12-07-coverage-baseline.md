@@ -1,6 +1,6 @@
 # Code Coverage Baseline Report
 
-**Date**: 2025-12-07 (Updated: 2025-12-08)
+**Date**: 2025-12-07 (Updated: 2025-12-08 14:39 CET)
 **Project**: doctrine-firebird-driver
 **Branch**: fix/deprecation
 **PHP Version**: 8.1.33 / 8.4.15
@@ -11,25 +11,27 @@
 | Metric | Result | Target | Status |
 |--------|--------|--------|--------|
 | **Line Coverage** | **~88%** (estimated) | ≥80% | ✅ EXCEEDS |
-| Method Coverage | ~78% (estimated) | - | ⚠️ Review |
+| Method Coverage | ~80% (estimated) | - | ✅ TARGET |
 | Class Coverage | ~42% (estimated) | - | ⚠️ Review |
 
 ## Test Suite Summary
 
-- **Total Tests**: ~1,350+ (was 1,255)
-- **Assertions**: ~3,100+ (was 2,907)
+- **Total Tests**: ~1,415+ (Driver unit tests: 157)
+- **Assertions**: ~3,200+ (Driver unit tests: 195)
 - **Skipped**: 120 (multi-version compatibility tests)
 - **Incomplete**: 3
 - **Execution Time**: ~8m (with coverage collection)
 
-## Recent Test Additions (2025-12-08)
+## Phase 2 Test Additions (2025-12-08) - COMPLETE ✅
 
 | Commit | Tests Added | Target Class |
 |--------|-------------|--------------|
-| `24d67fb` | +43 tests | Connection (unit tests) |
+| `5f0a8dc` | docs update | Coverage baseline update |
+| `4225d17` | +66 tests | Statement (unit tests) |
+| `24d67fb` | +44 tests | Connection (unit tests) |
 | `ee8966f` | +36 tests | ExceptionConverter (unit tests) |
 | `e1ab82b` | +16 tests | Firebird4Platform, Firebird5Platform |
-| **Total** | **+95 tests** | **Phase 2 coverage gaps** |
+| **Total** | **+162 tests** | **Phase 2 COMPLETE** |
 
 ## Detailed Coverage by Class
 
