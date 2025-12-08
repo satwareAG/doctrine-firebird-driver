@@ -83,7 +83,6 @@ class TransactionNestingTest extends FunctionalTestCase
         if ($conn) {
             $ref  = new ReflectionClass($conn);
             $prop = $ref->getProperty('fbirdTransactionLevel');
-            $prop->setAccessible(true);
             $level = $prop->getValue($conn);
 
             while ($level > 0) {

@@ -82,7 +82,6 @@ class FirebirdPlatformSQLTest extends TestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getDateArithmeticIntervalExpression');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, '2018-01-01', $operator, $interval, $unit);
         self::assertIsString($found);
         self::assertSame($expected, $found);

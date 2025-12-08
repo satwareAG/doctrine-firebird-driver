@@ -52,7 +52,6 @@ abstract class AbstractDriverTestCase extends TestCase
         self::assertEquals($this->createSchemaManager($connection), $schemaManager);
 
         $re = new ReflectionProperty($schemaManager, '_conn');
-        $re->setAccessible(true);
 
         self::assertSame($connection, $re->getValue($schemaManager));
     }

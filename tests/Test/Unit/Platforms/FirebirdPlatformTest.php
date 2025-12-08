@@ -76,7 +76,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('quoteSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
         self::assertIsString($found);
         self::assertSame("'foo'", $found);
@@ -146,7 +145,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('generatePrimaryKeyConstraintName');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'id');
         self::assertIsString($found);
         self::assertSame('ID_PK', $found);
@@ -271,7 +269,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('doModifyLimitQuery');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $query, $limit, $offset);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -302,7 +299,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('makeSimpleMetadataSelectExpression');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $expressions);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -326,7 +322,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getExecuteBlockSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $params);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -346,7 +341,6 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getExecuteBlockWithExecuteStatementsSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $params);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -416,7 +410,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getExecuteStatementPSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
         self::assertIsString($found);
         self::assertSame("EXECUTE STATEMENT 'foo'", $found);
@@ -426,7 +419,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getDropTriggerSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
         self::assertIsString($found);
         self::assertSame('DROP TRIGGER foo', $found);
@@ -441,7 +433,6 @@ END
     ): void {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getDropTriggerIfExistsPSql');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $aTrigger, $inBlock);
         self::assertIsString($found);
         self::assertStringStartsWith($expectedStartsWith, $found);
@@ -709,7 +700,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getReservedKeywordsClass');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform);
         self::assertIsString($found);
         self::assertTrue(class_exists($found));
@@ -727,7 +717,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('_getCommonIntegerTypeDeclarationSQL');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, []);
         self::assertIsString($found);
         self::assertSame('', $found);
@@ -780,7 +769,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getVarcharTypeDeclarationSQLSnippet');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $length, $fixed);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -819,7 +807,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getBinaryTypeDeclarationSQLSnippet');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, $length, $fixed);
         self::assertIsString($found);
         self::assertSame($expected, $found);
@@ -881,7 +868,6 @@ END
         ];
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('_getCreateTableSQL');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo', $columns, $options);
         self::assertIsArray($found);
         self::assertSame($expected, $found);
@@ -946,7 +932,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('unquotedIdentifierName');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
         self::assertIsString($found);
         self::assertSame('foo', $found);
@@ -956,7 +941,6 @@ END
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getQuotedNameOf');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, 'foo');
         self::assertIsString($found);
         self::assertSame('foo', $found);

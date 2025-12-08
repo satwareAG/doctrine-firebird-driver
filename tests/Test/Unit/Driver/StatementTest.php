@@ -69,7 +69,6 @@ class StatementTest extends TestCase
         // Verify the statement was stored (even though it's false)
         $reflection = new ReflectionClass($statement);
         $statementProp = $reflection->getProperty('statement');
-        $statementProp->setAccessible(true);
         $this->assertFalse($statementProp->getValue($statement));
     }
 
@@ -84,7 +83,6 @@ class StatementTest extends TestCase
         // Verify the statement was stored (as null)
         $reflection = new ReflectionClass($statement);
         $statementProp = $reflection->getProperty('statement');
-        $statementProp->setAccessible(true);
         $this->assertNull($statementProp->getValue($statement));
     }
 
@@ -104,15 +102,12 @@ class StatementTest extends TestCase
         $reflection = new ReflectionClass($statement);
         
         $isDmlProp = $reflection->getProperty('isDml');
-        $isDmlProp->setAccessible(true);
         $this->assertTrue($isDmlProp->getValue($statement));
 
         $isInsertProp = $reflection->getProperty('isInsert');
-        $isInsertProp->setAccessible(true);
         $this->assertTrue($isInsertProp->getValue($statement));
 
         $hasReturningProp = $reflection->getProperty('hasReturning');
-        $hasReturningProp->setAccessible(true);
         $this->assertTrue($hasReturningProp->getValue($statement));
 
         fclose($resource);
@@ -204,7 +199,6 @@ class StatementTest extends TestCase
         // Verify via reflection that the new value is stored
         $reflection = new ReflectionClass($statement);
         $boundValuesProp = $reflection->getProperty('boundValues');
-        $boundValuesProp->setAccessible(true);
         $boundValues = $boundValuesProp->getValue($statement);
         
         $this->assertSame('second_value', $boundValues[1]);
@@ -226,7 +220,6 @@ class StatementTest extends TestCase
         // Verify the stream was converted to string
         $reflection = new ReflectionClass($statement);
         $bindingsProp = $reflection->getProperty('queryParamBindings');
-        $bindingsProp->setAccessible(true);
         $bindings = $bindingsProp->getValue($statement);
         
         // The binding should now be a string
@@ -272,7 +265,6 @@ class StatementTest extends TestCase
         // Verify the bound value reflects the change (by reference)
         $reflection = new ReflectionClass($statement);
         $boundValuesProp = $reflection->getProperty('boundValues');
-        $boundValuesProp->setAccessible(true);
         $boundValues = $boundValuesProp->getValue($statement);
         
         $this->assertSame('changed_value', $boundValues[1]);
@@ -416,7 +408,6 @@ class StatementTest extends TestCase
         // Set statement property to null via reflection
         $reflection = new ReflectionClass($statement);
         $statementProp = $reflection->getProperty('statement');
-        $statementProp->setAccessible(true);
         $statementProp->setValue($statement, null);
         
         // Destructor should handle null gracefully
@@ -547,7 +538,6 @@ class StatementTest extends TestCase
     private function getPrivateMethod(string $methodName): ReflectionMethod
     {
         $method = new ReflectionMethod(Statement::class, $methodName);
-        $method->setAccessible(true);
 
         return $method;
     }
