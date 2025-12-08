@@ -293,8 +293,8 @@ jobs:
           
           cd tests
           
-          # Run tests without coverage by default
-          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}"
+          # Run tests without coverage (--no-coverage prevents "No coverage driver" warning)
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage
 
       - name: Run PHPUnit tests with coverage
         if: matrix.php-version == '8.1' && matrix.firebird-version == '3.0'
