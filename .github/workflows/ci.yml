@@ -230,7 +230,7 @@ jobs:
           export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
           
           # Clone php-firebird extension source (v7.0.0+ uses ext-firebird API)
-          git clone --depth 1 --branch main https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          git clone --depth 1 --branch v7.0.0-rc.1 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           
           # Build extension
