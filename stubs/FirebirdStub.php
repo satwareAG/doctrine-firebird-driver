@@ -792,3 +792,50 @@ function ibase_blob_create_stream($link_identifier = null) {}
  * @since php-firebird 6.2.0
  */
 function ibase_blob_open_stream($link_identifier = null, $blob_id = null) {}
+
+/**
+ * Execute a query in a specific transaction context
+ *
+ * UNIQUE TO php-firebird: Executes a SQL query within a specific transaction context.
+ * This allows multiple concurrent transactions on a single connection with explicit
+ * control over which transaction each query uses.
+ *
+ * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
+ * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
+ * @param string $query SQL query to execute
+ * @param array $params Optional array of bind parameters
+ * @return resource|int|false Result resource for SELECT, affected rows for DML, false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_query_params_tx($link_identifier, $trans_handle, string $query, array $params = []) {}
+
+/**
+ * Execute a query with bind parameters
+ *
+ * @param resource $link_identifier Connection resource
+ * @param string $query SQL query to execute
+ * @param array $params Optional array of bind parameters
+ * @return resource|int|false Result resource for SELECT, affected rows for DML, false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_query_params($link_identifier, string $query, array $params = []) {}
+
+/**
+ * Execute a prepared statement with bind parameters
+ *
+ * @param resource $statement Prepared statement resource
+ * @param array $params Array of bind parameters
+ * @return resource|int|false Result resource or affected rows
+ * @since php-firebird 7.0.0
+ */
+function fbird_execute_params($statement, array $params = []) {}
+
+/**
+ * Begin a transaction with options
+ *
+ * @param resource $link_identifier Connection resource
+ * @param int $trans_args Transaction arguments/flags
+ * @return resource|false Transaction resource or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_trans_begin($link_identifier, int $trans_args = IBASE_DEFAULT) {}

@@ -3,8 +3,9 @@ parameters:
     phpVersion: 80300
     paths:
         - src
-    scanFiles:
+    stubFiles:
         - stubs/FirebirdStub.php
+        - stubs/FirebirdOO.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false

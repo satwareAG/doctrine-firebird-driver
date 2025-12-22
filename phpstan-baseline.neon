@@ -1,5 +1,25 @@
 parameters:
 	ignoreErrors:
+		# php-firebird extension functions (ext-firebird not available during static analysis)
+		-
+			message: "#^Function fbird_.* not found\\.$#"
+			path: src/Driver/Firebird/Connection.php
+		-
+			message: "#^Used function fbird_.* not found\\.$#"
+			path: src/Driver/Firebird/Connection.php
+		-
+			message: "#^Class Firebird\\\\.*not found\\.$#"
+			path: src/Driver/Firebird/Connection.php
+		-
+			message: "#^Call to .* on an unknown class Firebird\\\\.*$#"
+			path: src/Driver/Firebird/Connection.php
+		-
+			message: "#^.*has invalid.*type Firebird\\\\.*$#"
+			path: src/Driver/Firebird/Connection.php
+		-
+			message: "#^Parameter.*has invalid type Firebird\\\\.*$#"
+			path: src/Driver/Firebird/Connection.php
+
 		-
 			message: "#^Property Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:\\$statement is never read, only written\\.$#"
 			count: 1

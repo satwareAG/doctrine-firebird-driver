@@ -22,6 +22,10 @@ use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
+use Firebird\Database;
+use Firebird\TBuilder;
+use Firebird\Transaction;
+
 use function addcslashes;
 use function assert;
 use function fbird_close;
@@ -34,6 +38,7 @@ use function fbird_execute_auto;
 use function fbird_kill_attachment;
 use function fbird_list_table_blockers;
 use function fbird_prepare;
+use function fbird_query_params_tx;
 use function fbird_release_savepoint;
 use function fbird_rollback;
 use function fbird_rollback_savepoint;
@@ -754,6 +759,98 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         return $result;
+    }
+
+    /**
+     * Execute a query within a specific transaction context.
+     *
+     * UNIQUE TO php-firebird: This method uses fbird_query_params_tx() to execute
+     * queries within a specific transaction. No other PHP Firebird driver has this
+     * capability.
+     *
+     * Use cases:
+     * - Audit logging that persists regardless of main transaction outcome
+     * - CQRS patterns with different isolation levels for reads/writes
+     * - Multi-transaction workflows (e.g., long-running batch with progress tracking)
+     *
+     * @param resource|Transaction    $transaction Transaction resource or OO wrapper
+     * @param string                  $sql         SQL statement to execute
+     * @param array<int|string,mixed> $params      Optional bind parameters
+     *
+     * @return mixed Query result resource or affected row count
+     *
+     * @throws DriverException
+     */
+    public function queryInTransaction(mixed $transaction, string $sql, array $params = []): mixed
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // Support both raw resource and OO Transaction wrapper
+        $transResource = $transaction instanceof Transaction
+            ? $transaction->getResource()
+            : $transaction;
+
+        if (! is_resource($transResource)) {
+            throw new DriverException('Invalid transaction resource.');
+        }
+
+        $result = fbird_query_params_tx($this->connection, $transResource, $sql, $params);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Create a new independent transaction using the TBuilder fluent API.
+     *
+     * This allows creating transactions with specific isolation levels and
+     * parameters, independent of the DBAL-managed transaction.
+     *
+     * Example:
+     *   $auditTx = $conn->createIndependentTransaction()
+     *       ->readCommitted()
+     *       ->wait(10)
+     *       ->start();
+     *   $conn->queryInTransaction($auditTx, 'INSERT INTO audit_log...');
+     *   $auditTx->commit();
+     *
+     * @return TBuilder Transaction builder for fluent configuration
+     *
+     * @throws DriverException
+     */
+    public function createIndependentTransaction(): TBuilder
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        return TBuilder::create()->connection($this->connection);
+    }
+
+    /**
+     * Wrap the native connection in an OO Database wrapper.
+     *
+     * This provides access to the full php-firebird OO API including:
+     * - Transaction builder pattern
+     * - BLOB streaming
+     * - Database info queries
+     *
+     * @return Database OO wrapper for the native connection
+     *
+     * @throws DriverException
+     */
+    public function getOOWrapper(): Database
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        return Database::fromResource($this->connection);
     }
 
     private function getSavepointName(int $level): string
