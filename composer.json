@@ -61,7 +61,7 @@
     },
     "require": {
         "php": "^8.1",
-        "ext-interbase": "*",
+        "ext-firebird": "*",
         "ext-pdo": "*",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^3.10",

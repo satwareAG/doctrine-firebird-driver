@@ -1,8 +1,27 @@
 # php-firebird v7.0.0 Integration Plan
 
 **Date**: 2025-12-22  
-**Status**: Planning Phase  
+**Status**: CI Updated - Testing v7.0.0-rc.2  
 **Objective**: Integrate all advanced php-firebird v7 features into doctrine-firebird-driver
+
+---
+
+## v7.0.0-rc.2 Release Status ✅
+
+**Released**: 2025-12-22 11:19:32 UTC (satwareAG/php-firebird)
+
+### Key Fixes in v7.0.0-rc.2
+
+1. **Firebird 3.0 compilation compatibility** (Issue #19): Added `fb_blr_compat.h` header with fallback BLR constant definitions for systems without `firebird/impl/blr.h`
+2. **Firebird 3.0 runtime connection failure**: Fixed `CheckStatusWrapper::isDirty()` behavior difference between FB3 and FB4+. Changed all error checks to use `hasData()` which correctly checks for actual errors.
+3. **CI Matrix tested**: 20 combinations - PHP 8.1-8.5 × Firebird 2.5, 3.0, 4.0, 5.0
+
+### doctrine-firebird-driver Updates (2025-12-22)
+
+| File | Change |
+|------|--------|
+| `.github/workflows/ci.yml` | Updated to use `v7.0.0-rc.2`, `--with-firebird`, `ext-firebird` |
+| `composer.json` | Changed `ext-interbase` → `ext-firebird` |
 
 ---
 
