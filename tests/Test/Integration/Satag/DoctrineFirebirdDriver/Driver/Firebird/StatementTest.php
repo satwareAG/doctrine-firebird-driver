@@ -118,7 +118,8 @@ class StatementTest extends AbstractIntegrationTestCase
             self::assertSame('An exception occurred while executing a query: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ', $t->getMessage());
 
             self::assertSame(-104, $t->getCode());
-            self::assertNull($t->getSQLState());
+            // php-firebird v7.0.0+ now correctly returns SQLSTATE '42000' for syntax errors
+            self::assertSame('42000', $t->getSQLState());
 
             return;
         }
@@ -139,7 +140,8 @@ class StatementTest extends AbstractIntegrationTestCase
             self::assertSame(-104, $t->getCode());
             self::assertSame('An exception occurred while executing a query: Dynamic SQL Error SQL error code = -104 Unexpected end of command - line 1, column 8 ', $t->getMessage());
             self::assertSame(-104, $t->getCode());
-            self::assertNull($t->getSQLState());
+            // php-firebird v7.0.0+ now correctly returns SQLSTATE '42000' for syntax errors
+            self::assertSame('42000', $t->getSQLState());
 
             return;
         }

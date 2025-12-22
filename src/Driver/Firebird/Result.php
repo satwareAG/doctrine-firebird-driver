@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
+use Override;
 
 use function array_values;
 use function defined;
@@ -22,8 +23,7 @@ use function is_numeric;
 use function is_resource;
 
 use const FBIRD_FETCH_BLOBS;
-
-use Override;
+use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
@@ -191,8 +191,8 @@ final class Result implements ResultInterface
             return $this->fetchNumeric();
         }
 
-        $fetchFlags = FBIRD_FETCH_BLOBS | \FBIRD_FETCH_DATE_OBJ;
-        $result = fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
+        $fetchFlags = FBIRD_FETCH_BLOBS | FBIRD_FETCH_DATE_OBJ;
+        $result     = fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
 
         if (is_array($result)) {
             return array_values($result);
@@ -230,8 +230,8 @@ final class Result implements ResultInterface
             return $this->fetchAssociative();
         }
 
-        $fetchFlags = FBIRD_FETCH_BLOBS | \FBIRD_FETCH_DATE_OBJ;
-        $result = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
+        $fetchFlags = FBIRD_FETCH_BLOBS | FBIRD_FETCH_DATE_OBJ;
+        $result     = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
 
         if (is_array($result)) {
             return $result;
@@ -258,17 +258,6 @@ final class Result implements ResultInterface
         return $rows;
     }
 
-    /**
-     * Check if DateTimeImmutable fetch is available.
-     *
-     * Returns true if php-firebird v7.0.0+ with FBIRD_FETCH_DATE_OBJ support
-     * is available, false otherwise.
-     */
-    public static function isDateObjectFetchAvailable(): bool
-    {
-        return defined('FBIRD_FETCH_DATE_OBJ');
-    }
-
     /** @throws Exception */
     #[Override]
     public function free(): void
@@ -284,7 +273,7 @@ final class Result implements ResultInterface
         // - v6.x: 'interbase result' or 'Firebird/InterBase result'
         // - v7.x: 'firebird result' (removed legacy interbase naming)
         // Other types like 'Firebird/InterBase transaction', 'firebird transaction' or 'Unknown' should not be passed
-        $type = get_resource_type($this->firebirdResultResource);
+        $type             = get_resource_type($this->firebirdResultResource);
         $validResultTypes = ['interbase result', 'Firebird/InterBase result', 'firebird result'];
         if (! in_array($type, $validResultTypes, true)) {
             // echo "Debug: Skipping fbird_free_result for resource type: $type\n";
@@ -295,5 +284,16 @@ final class Result implements ResultInterface
 
         fbird_free_result($this->firebirdResultResource);
         $this->firebirdResultResource = null;
+    }
+
+    /**
+     * Check if DateTimeImmutable fetch is available.
+     *
+     * Returns true if php-firebird v7.0.0+ with FBIRD_FETCH_DATE_OBJ support
+     * is available, false otherwise.
+     */
+    public static function isDateObjectFetchAvailable(): bool
+    {
+        return defined('FBIRD_FETCH_DATE_OBJ');
     }
 }

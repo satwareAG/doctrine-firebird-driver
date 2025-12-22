@@ -12,6 +12,12 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
+use Firebird\Batch;
+use Firebird\BatchResult;
+use Firebird\Database;
+use Firebird\DbInfo;
+use Firebird\TBuilder;
+use Firebird\Transaction;
 use InvalidArgumentException;
 use Override;
 use PDO;
@@ -22,30 +28,29 @@ use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
-use Firebird\Batch;
-use Firebird\Database;
-use Firebird\DbInfo;
-use Firebird\TBuilder;
-use Firebird\Transaction;
-
 use function addcslashes;
 use function assert;
+use function class_exists;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
+use function fbird_connection_info;
 use function fbird_drop_table_force;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute_auto;
+use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
 use function fbird_list_table_blockers;
 use function fbird_prepare;
 use function fbird_query_params_tx;
+use function fbird_reconnect_transaction;
 use function fbird_release_savepoint;
 use function fbird_rollback;
 use function fbird_rollback_savepoint;
 use function fbird_savepoint;
 use function fbird_trans_start;
+use function function_exists;
 use function get_resource_type;
 use function in_array;
 use function is_float;
@@ -59,6 +64,7 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
+use function version_compare;
 
 use const FBIRD_COMMITTED;
 use const FBIRD_CONCURRENCY;
@@ -77,8 +83,6 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Valid resource types for Firebird connection.
      * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
-     *
-     * @var array<int, string>
      */
     private const RESOURCE_TYPES_CONNECTION = [
         'Firebird/InterBase link',    // php-interbase and older php-firebird
@@ -88,8 +92,6 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Valid resource types for Firebird persistent connection.
      * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
-     *
-     * @var array<int, string>
      */
     private const RESOURCE_TYPES_PERSISTENT_CONNECTION = [
         'Firebird/InterBase persistent link',  // php-interbase and older php-firebird
@@ -99,8 +101,6 @@ final class Connection implements ServerInfoAwareConnection
     /**
      * Valid resource types for Firebird transaction.
      * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
-     *
-     * @var array<int, string>
      */
     private const RESOURCE_TYPES_TRANSACTION = [
         'Firebird/InterBase transaction',  // php-interbase and older php-firebird
@@ -893,12 +893,12 @@ final class Connection implements ServerInfoAwareConnection
      *   $result = $batch->execute();
      *   echo "Inserted: " . $result->count() . " rows";
      *
-     * @param string                  $sql         INSERT statement with placeholders
+     * @param string                    $sql         INSERT statement with placeholders
      * @param Transaction|resource|null $transaction Optional transaction (uses active if null)
      *
      * @return Batch Batch object for adding rows and executing
      *
-     * @throws DriverException If Firebird version < 4.0 or connection invalid
+     * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
     public function createBatch(string $sql, Transaction|null $transaction = null): Batch
     {
@@ -947,15 +947,15 @@ final class Connection implements ServerInfoAwareConnection
      *       echo "Row " . $error->getRow() . " failed: " . $error->getMessage();
      *   }
      *
-     * @param string                       $sql  INSERT statement with placeholders
-     * @param array<int, array<int|string, mixed>> $rows Array of row data arrays
-     * @param Transaction|null             $transaction Optional transaction
+     * @param string                               $sql         INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
+     * @param Transaction|null                     $transaction Optional transaction
      *
-     * @return \Firebird\BatchResult Result with row counts and any errors
+     * @return BatchResult Result with row counts and any errors
      *
-     * @throws DriverException If Firebird version < 4.0 or connection invalid
+     * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): \Firebird\BatchResult
+    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): BatchResult
     {
         $batch = $this->createBatch($sql, $transaction);
 
@@ -1070,6 +1070,8 @@ final class Connection implements ServerInfoAwareConnection
                 'fbird_reconnect_transaction() requires php-firebird v7.0.0+',
             );
         }
+
+        assert(is_resource($this->connection));
 
         $result = fbird_reconnect_transaction($this->connection, $transactionId);
 

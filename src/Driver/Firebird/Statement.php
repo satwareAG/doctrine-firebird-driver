@@ -17,7 +17,6 @@ use function array_unshift;
 use function assert;
 use function count;
 use function fbird_affected_rows;
-use function in_array;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
@@ -26,6 +25,7 @@ use function fbird_free_query;
 use function fclose;
 use function func_num_args;
 use function get_resource_type;
+use function in_array;
 use function is_array;
 use function is_int;
 use function is_numeric;
@@ -199,7 +199,7 @@ class Statement implements StatementInterface
         // Valid transaction types depend on php-firebird version:
         // - php-interbase and older php-firebird: 'Firebird/InterBase transaction'
         // - php-firebird v7.0.0+: 'Firebird transaction'
-        $resourceType = get_resource_type($this->statement);
+        $resourceType     = get_resource_type($this->statement);
         $transactionTypes = ['Firebird/InterBase transaction', 'Firebird transaction'];
         if (in_array($resourceType, $transactionTypes, true)) {
             $fbirdResultRc = 1;

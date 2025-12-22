@@ -106,8 +106,6 @@ services:
     working_dir: /app
     volumes:
       - ./../:/app:cached
-      # Anonymous volume for vendor to improve performance
-      - /app/vendor
     depends_on:
       firebird25:
         condition: service_started
