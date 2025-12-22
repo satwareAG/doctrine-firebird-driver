@@ -745,3 +745,168 @@ function fbird_execute_params($statement, array $params = []) {}
  * @since php-firebird 7.0.0
  */
 function fbird_trans_begin($link_identifier, int $trans_args = FBIRD_DEFAULT) {}
+
+// ============================================================================
+// php-firebird v7.0.0 NEW FEATURES
+// ============================================================================
+
+/**
+ * Returns the 5-character SQLSTATE code for the last error
+ *
+ * SQLSTATE codes provide standardized database error codes:
+ * - "00000" = Success
+ * - "23000" = Integrity constraint violation
+ * - "42000" = Syntax error or access rule violation
+ * - "40001" = Serialization failure (deadlock)
+ * - etc.
+ *
+ * @return string|false SQLSTATE code (e.g., "23000") or false if no error
+ * @since php-firebird 7.0.0
+ */
+function fbird_sqlstate(): string|false {}
+
+/**
+ * Get connection information and statistics
+ *
+ * Returns an associative array containing:
+ * - 'database_name' => string
+ * - 'user_name' => string
+ * - 'protocol' => string (TCP, Local, etc.)
+ * - 'page_size' => int
+ * - 'ods_version' => int
+ * - 'dialect' => int
+ * - And more statistics...
+ *
+ * @param resource|null $link_identifier Connection resource
+ * @return array<string, mixed>|false Connection statistics or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_connection_info($link_identifier = null): array|false {}
+
+/**
+ * Seek within a stream BLOB
+ *
+ * Allows random access within stream BLOBs (as opposed to segmented BLOBs).
+ * Similar to fseek() for files.
+ *
+ * @param resource $blob_handle BLOB stream handle from fbird_blob_open()
+ * @param int $offset Position offset
+ * @param int $whence FBIRD_BLOB_SEEK_SET (from start), FBIRD_BLOB_SEEK_CUR (from current), or FBIRD_BLOB_SEEK_END (from end)
+ * @return int|false New position or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_blob_seek($blob_handle, int $offset, int $whence = FBIRD_BLOB_SEEK_SET): int|false {}
+
+// ============================================================================
+// IBatch API (Firebird 4.0+ - High Performance Bulk Operations)
+// ============================================================================
+
+/**
+ * Create a batch operation from a prepared statement (Firebird 4.0+)
+ *
+ * IBatch provides 10-12x performance improvement for bulk INSERT operations
+ * by reducing network round-trips and Firebird API overhead.
+ *
+ * @param resource $query Prepared statement from fbird_prepare()
+ * @param resource|null $trans Optional transaction resource (uses default if null)
+ * @return resource|false Batch resource or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_create($query, $trans = null) {}
+
+/**
+ * Add a row to the batch with automatic type conversion
+ *
+ * Parameters are automatically converted to match the prepared statement's
+ * parameter types. NULL values are supported.
+ *
+ * @param resource $batch Batch resource from fbird_batch_create()
+ * @param mixed ...$params Parameter values for the row
+ * @return bool True on success, false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_add($batch, mixed ...$params): bool {}
+
+/**
+ * Create an inline BLOB for batch operations
+ *
+ * Creates a BLOB and returns its ID for use in the current batch row.
+ * More efficient than creating separate BLOBs when doing bulk inserts.
+ *
+ * @param resource $batch Batch resource
+ * @param string $data BLOB data
+ * @param int $type BLOB sub_type (default: FBIRD_TEXT for text)
+ * @return string|false BLOB ID string in "HHHHHHHH:LLLL" format, or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_add_blob($batch, string $data, int $type = FBIRD_TEXT): string|false {}
+
+/**
+ * Register an existing BLOB ID for batch operations
+ *
+ * Registers a pre-existing BLOB (created with fbird_blob_create/close) to be
+ * used in a subsequent batch row.
+ *
+ * @param resource $batch Batch resource
+ * @param string $blob_id Existing BLOB ID in "HHHHHHHH:LLLL" format
+ * @return bool True on success, false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_register_blob($batch, string $blob_id): bool {}
+
+/**
+ * Execute the batch operation
+ *
+ * Executes all accumulated rows in a single optimized operation.
+ * Returns statistics about the operation.
+ *
+ * @param resource $batch Batch resource
+ * @return array{total_processed: int, success_count: int, error_count: int}|false Result statistics or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_execute($batch): array|false {}
+
+/**
+ * Cancel the batch without executing
+ *
+ * Releases batch resources without executing any of the accumulated rows.
+ * Use when you need to abort a batch operation.
+ *
+ * @param resource $batch Batch resource
+ * @return bool True on success, false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_batch_cancel($batch): bool {}
+
+// ============================================================================
+// Limbo Transaction Recovery (DBA/Administration)
+// ============================================================================
+
+/**
+ * Retrieve in-doubt (limbo) transaction IDs
+ *
+ * Limbo transactions occur when a two-phase commit fails midway. This function
+ * retrieves the IDs of all such transactions for manual recovery.
+ *
+ * Requires SYSDBA privileges or database owner rights.
+ *
+ * @param resource $link_identifier Connection resource
+ * @return array<int>|false Array of transaction IDs or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_get_limbo_transactions($link_identifier): array|false {}
+
+/**
+ * Reconnect to a limbo transaction for recovery
+ *
+ * Reconnects to an in-doubt transaction to allow committing or rolling it back.
+ * Use with fbird_commit() or fbird_rollback() to resolve the limbo state.
+ *
+ * Requires SYSDBA privileges or database owner rights.
+ *
+ * @param resource $link_identifier Connection resource
+ * @param int $transaction_id Limbo transaction ID from fbird_get_limbo_transactions()
+ * @return resource|false Transaction resource or false on failure
+ * @since php-firebird 7.0.0
+ */
+function fbird_reconnect_transaction($link_identifier, int $transaction_id) {}

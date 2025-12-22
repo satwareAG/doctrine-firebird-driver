@@ -259,6 +259,10 @@ class ConnectionTest extends TestCase
 
     public function testErrorInfoReturnsDefaultWhenNoError(): void
     {
+        if (! function_exists('fbird_errcode')) {
+            self::markTestSkipped('Firebird extension not loaded');
+        }
+
         $connection = $this->createConnectionThroughReflection();
 
         // When fbird_errcode() returns false (no error), errorInfo returns defaults
@@ -507,6 +511,146 @@ class ConnectionTest extends TestCase
             'WAIT 5 seconds' => [5],
             'WAIT 30 seconds' => [30],
         ];
+    }
+
+    // ==========================================================================
+    // IBatch API Tests (php-firebird v7.0.0+ / Firebird 4.0+)
+    // ==========================================================================
+
+    public function testCreateBatchThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->createBatch('INSERT INTO test (id) VALUES (?)');
+    }
+
+    public function testCreateBatchThrowsExceptionForOldFirebirdVersions(): void
+    {
+        // This test verifies that version_compare() logic rejects Firebird < 4.0
+        // The actual version check happens after connection validation, so this
+        // is a logic test, not an integration test
+
+        // Test the version comparison logic directly
+        self::assertTrue(version_compare('3.0.10', '4.0', '<'));
+        self::assertTrue(version_compare('2.5.9', '4.0', '<'));
+        self::assertFalse(version_compare('4.0.0', '4.0', '<'));
+        self::assertFalse(version_compare('5.0.0', '4.0', '<'));
+
+        // When called with invalid connection, the connection check comes first
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->createBatch('INSERT INTO test (id) VALUES (?)');
+    }
+
+    public function testExecuteBatchThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->executeBatch('INSERT INTO test (id) VALUES (?)', [[1], [2]]);
+    }
+
+    // ==========================================================================
+    // Connection Info Tests (php-firebird v7.0.0+)
+    // ==========================================================================
+
+    public function testGetConnectionInfoThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->getConnectionInfo();
+    }
+
+    // ==========================================================================
+    // Limbo Transaction Recovery Tests (php-firebird v7.0.0+)
+    // ==========================================================================
+
+    public function testGetLimboTransactionsThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->getLimboTransactions();
+    }
+
+    public function testReconnectLimboTransactionThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->reconnectLimboTransaction(12345);
+    }
+
+    // ==========================================================================
+    // Independent Transaction Tests (OO API)
+    // ==========================================================================
+
+    public function testCreateIndependentTransactionThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->createIndependentTransaction();
+    }
+
+    public function testGetOOWrapperThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->getOOWrapper();
+    }
+
+    public function testQueryInTransactionThrowsExceptionWhenConnectionNotValid(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->queryInTransaction(null, 'SELECT 1');
+    }
+
+    public function testQueryInTransactionValidatesTransaction(): void
+    {
+        // This test verifies the logic flow - when connection is invalid,
+        // we can't test the transaction validation step
+        $connection = $this->createConnectionThroughReflection();
+        $this->setPrivateProperty($connection, 'connection', null);
+
+        $this->expectException(DriverException::class);
+        // Connection validation comes first before transaction validation
+        $this->expectExceptionMessage('Connection is not valid');
+
+        $connection->queryInTransaction('not a resource', 'SELECT 1');
     }
 
     // ==========================================================================

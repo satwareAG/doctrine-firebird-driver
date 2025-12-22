@@ -9,6 +9,7 @@ use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 
 use function array_values;
+use function defined;
 use function fbird_affected_rows;
 use function fbird_fetch_assoc;
 use function fbird_fetch_row;
@@ -21,6 +22,7 @@ use function is_numeric;
 use function is_resource;
 
 use const FBIRD_FETCH_BLOBS;
+
 use Override;
 
 final class Result implements ResultInterface
@@ -155,6 +157,116 @@ final class Result implements ResultInterface
         }
 
         return 0;
+    }
+
+    // =========================================================================
+    // php-firebird v7.0.0+ DateTimeImmutable fetch support
+    // Uses FBIRD_FETCH_DATE_OBJ constant for native DateTimeImmutable returns
+    // =========================================================================
+
+    /**
+     * Fetch a row as a numeric array with DATE/TIME/TIMESTAMP as DateTimeImmutable.
+     *
+     * php-firebird v7.0.0+ feature: When FBIRD_FETCH_DATE_OBJ is used,
+     * DATE, TIME, and TIMESTAMP columns are returned as DateTimeImmutable
+     * objects instead of string representations.
+     *
+     * Benefits:
+     * - Type-safe date handling
+     * - Timezone-aware operations
+     * - No manual string parsing required
+     * - Compatible with Doctrine's DateTimeImmutable type mappings
+     *
+     * @return false|list<mixed> Numeric array with DateTimeImmutable for date columns, or false
+     */
+    public function fetchNumericWithDateObjects(): array|false
+    {
+        if (! is_resource($this->firebirdResultResource)) {
+            return false;
+        }
+
+        // FBIRD_FETCH_DATE_OBJ is available in php-firebird v7.0.0+
+        if (! defined('FBIRD_FETCH_DATE_OBJ')) {
+            // Fall back to standard fetch if constant not available
+            return $this->fetchNumeric();
+        }
+
+        $fetchFlags = FBIRD_FETCH_BLOBS | \FBIRD_FETCH_DATE_OBJ;
+        $result = fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
+
+        if (is_array($result)) {
+            return array_values($result);
+        }
+
+        $this->free();
+        $this->connection->autoCommit();
+
+        return false;
+    }
+
+    /**
+     * Fetch a row as an associative array with DATE/TIME/TIMESTAMP as DateTimeImmutable.
+     *
+     * php-firebird v7.0.0+ feature: When FBIRD_FETCH_DATE_OBJ is used,
+     * DATE, TIME, and TIMESTAMP columns are returned as DateTimeImmutable
+     * objects instead of string representations.
+     *
+     * Example:
+     *   $row = $result->fetchAssociativeWithDateObjects();
+     *   // $row['CREATED_AT'] is DateTimeImmutable, not string "2025-12-22 09:00:00"
+     *   echo $row['CREATED_AT']->format('Y-m-d'); // "2025-12-22"
+     *
+     * @return array<string, mixed>|false Associative array with DateTimeImmutable for date columns, or false
+     */
+    public function fetchAssociativeWithDateObjects(): array|false
+    {
+        if (! is_resource($this->firebirdResultResource)) {
+            return false;
+        }
+
+        // FBIRD_FETCH_DATE_OBJ is available in php-firebird v7.0.0+
+        if (! defined('FBIRD_FETCH_DATE_OBJ')) {
+            // Fall back to standard fetch if constant not available
+            return $this->fetchAssociative();
+        }
+
+        $fetchFlags = FBIRD_FETCH_BLOBS | \FBIRD_FETCH_DATE_OBJ;
+        $result = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
+
+        if (is_array($result)) {
+            return $result;
+        }
+
+        $this->free();
+        $this->connection->autoCommit();
+
+        return false;
+    }
+
+    /**
+     * Fetch all rows with DATE/TIME/TIMESTAMP as DateTimeImmutable objects.
+     *
+     * @return array<int, array<string, mixed>> All rows with DateTimeImmutable for date columns
+     */
+    public function fetchAllAssociativeWithDateObjects(): array
+    {
+        $rows = [];
+        while (($row = $this->fetchAssociativeWithDateObjects()) !== false) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Check if DateTimeImmutable fetch is available.
+     *
+     * Returns true if php-firebird v7.0.0+ with FBIRD_FETCH_DATE_OBJ support
+     * is available, false otherwise.
+     */
+    public static function isDateObjectFetchAvailable(): bool
+    {
+        return defined('FBIRD_FETCH_DATE_OBJ');
     }
 
     /** @throws Exception */

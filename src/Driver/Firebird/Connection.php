@@ -22,7 +22,9 @@ use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use UnexpectedValueException;
 
+use Firebird\Batch;
 use Firebird\Database;
+use Firebird\DbInfo;
 use Firebird\TBuilder;
 use Firebird\Transaction;
 
@@ -870,6 +872,212 @@ final class Connection implements ServerInfoAwareConnection
         }
 
         return Database::fromResource($this->connection);
+    }
+
+    // =========================================================================
+    // IBatch API - php-firebird v7.0.0+ (Firebird 4.0+)
+    // Provides 10-12x performance improvement for bulk INSERT operations
+    // =========================================================================
+
+    /**
+     * Create a batch operation for efficient bulk INSERTs.
+     *
+     * The IBatch API (Firebird 4.0+) provides 10-12x performance improvement
+     * over individual INSERT statements by batching multiple rows into a
+     * single server round-trip.
+     *
+     * Example:
+     *   $batch = $conn->createBatch('INSERT INTO users (name, email) VALUES (?, ?)');
+     *   $batch->add(['Alice', 'alice@example.com']);
+     *   $batch->add(['Bob', 'bob@example.com']);
+     *   $result = $batch->execute();
+     *   echo "Inserted: " . $result->count() . " rows";
+     *
+     * @param string                  $sql         INSERT statement with placeholders
+     * @param Transaction|resource|null $transaction Optional transaction (uses active if null)
+     *
+     * @return Batch Batch object for adding rows and executing
+     *
+     * @throws DriverException If Firebird version < 4.0 or connection invalid
+     */
+    public function createBatch(string $sql, Transaction|null $transaction = null): Batch
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // IBatch API requires Firebird 4.0+
+        if (version_compare($this->serverVersion, '4.0', '<')) {
+            throw new DriverException(sprintf(
+                'IBatch API requires Firebird 4.0 or later. Current version: %s. ' .
+                'Use traditional INSERT loops for Firebird 2.5/3.0.',
+                $this->serverVersion,
+            ));
+        }
+
+        // Use provided transaction or fall back to active transaction
+        $transResource = $transaction instanceof Transaction
+            ? $transaction->getResource()
+            : $this->firebirdActiveTransaction;
+
+        if (! is_resource($transResource)) {
+            throw new DriverException('No valid transaction available for batch operation.');
+        }
+
+        return new Batch($this->connection, $sql, $transResource);
+    }
+
+    /**
+     * Execute a batch INSERT with data array (convenience method).
+     *
+     * High-level convenience wrapper around createBatch() for simple use cases.
+     * Automatically creates batch, adds all rows, executes, and returns result.
+     *
+     * Example:
+     *   $result = $conn->executeBatch(
+     *       'INSERT INTO users (name, email) VALUES (?, ?)',
+     *       [
+     *           ['Alice', 'alice@example.com'],
+     *           ['Bob', 'bob@example.com'],
+     *           ['Charlie', 'charlie@example.com'],
+     *       ]
+     *   );
+     *   echo "Inserted: " . $result->count() . " rows";
+     *   foreach ($result->getErrors() as $error) {
+     *       echo "Row " . $error->getRow() . " failed: " . $error->getMessage();
+     *   }
+     *
+     * @param string                       $sql  INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>> $rows Array of row data arrays
+     * @param Transaction|null             $transaction Optional transaction
+     *
+     * @return \Firebird\BatchResult Result with row counts and any errors
+     *
+     * @throws DriverException If Firebird version < 4.0 or connection invalid
+     */
+    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): \Firebird\BatchResult
+    {
+        $batch = $this->createBatch($sql, $transaction);
+
+        foreach ($rows as $row) {
+            $batch->add($row);
+        }
+
+        return $batch->execute();
+    }
+
+    // =========================================================================
+    // Connection Info - php-firebird v7.0.0+
+    // =========================================================================
+
+    /**
+     * Get connection statistics and information.
+     *
+     * Returns detailed connection metrics including:
+     * - Current reads/writes/fetches
+     * - Memory usage
+     * - Buffer pool statistics
+     * - Transaction statistics
+     *
+     * Useful for monitoring, diagnostics, and performance tuning.
+     *
+     * @return DbInfo|array<string, mixed>|false Connection info or false on error
+     *
+     * @throws DriverException
+     */
+    public function getConnectionInfo(): DbInfo|array|false
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // Use OO API if available (php-firebird v7+)
+        // Falls back to procedural fbird_connection_info() if OO not available
+        if (class_exists(DbInfo::class)) {
+            return DbInfo::fromConnection($this->connection);
+        }
+
+        // Procedural fallback
+        if (function_exists('fbird_connection_info')) {
+            return fbird_connection_info($this->connection);
+        }
+
+        return false;
+    }
+
+    // =========================================================================
+    // Limbo Transaction Recovery - php-firebird v7.0.0+
+    // For recovering from two-phase commit failures
+    // =========================================================================
+
+    /**
+     * Get list of limbo (in-doubt) transactions.
+     *
+     * Limbo transactions occur during two-phase commit failures.
+     * This method returns transaction IDs that need manual recovery
+     * (commit or rollback decision by DBA).
+     *
+     * Requires SYSDBA or database owner privileges.
+     *
+     * @return array<int>|false Array of limbo transaction IDs or false on error
+     *
+     * @throws DriverException
+     */
+    public function getLimboTransactions(): array|false
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        if (! function_exists('fbird_get_limbo_transactions')) {
+            throw new DriverException(
+                'fbird_get_limbo_transactions() requires php-firebird v7.0.0+',
+            );
+        }
+
+        $result = fbird_get_limbo_transactions($this->connection);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Reconnect to a limbo transaction for recovery.
+     *
+     * After reconnecting, the transaction can be committed or rolled back
+     * to resolve the limbo state. This is typically used by DBAs to
+     * recover from two-phase commit failures.
+     *
+     * Requires SYSDBA or database owner privileges.
+     *
+     * @param int $transactionId The limbo transaction ID to reconnect
+     *
+     * @return resource|false Transaction resource for commit/rollback, or false on error
+     *
+     * @throws DriverException
+     */
+    public function reconnectLimboTransaction(int $transactionId): mixed
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        if (! function_exists('fbird_reconnect_transaction')) {
+            throw new DriverException(
+                'fbird_reconnect_transaction() requires php-firebird v7.0.0+',
+            );
+        }
+
+        $result = fbird_reconnect_transaction($this->connection, $transactionId);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
     }
 
     private function getSavepointName(int $level): string

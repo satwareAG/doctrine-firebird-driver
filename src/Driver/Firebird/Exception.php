@@ -8,11 +8,18 @@ use Doctrine\DBAL\Driver\Exception as DriverException;
 use Exception as BaseException;
 use Throwable;
 
+use function fbird_sqlstate;
+use function function_exists;
+
 /**
  * Firebird driver exception.
  *
  * Implements Doctrine\DBAL\Driver\Exception directly instead of extending
  * the internal AbstractException class (which is deprecated for external use).
+ *
+ * Enhanced in php-firebird v7.0.0+ with native SQLSTATE support via fbird_sqlstate().
+ * SQLSTATE codes provide standardized (SQL:2003) error classification for better
+ * error handling across different database systems.
  *
  * @psalm-immutable
  */
@@ -20,6 +27,14 @@ class Exception extends BaseException implements DriverException
 {
     /**
      * The SQLSTATE of the driver.
+     *
+     * SQLSTATE is a 5-character code defined by SQL:2003 standard.
+     * Format: Class (2 chars) + Subclass (3 chars)
+     * Examples:
+     *   - '23000' = Integrity constraint violation
+     *   - '42000' = Syntax error or access violation
+     *   - '08006' = Connection failure
+     *   - 'HY000' = General error (when no specific code applies)
      */
     private string|null $sqlState = null;
 
@@ -36,13 +51,58 @@ class Exception extends BaseException implements DriverException
         $this->sqlState = $sqlState;
     }
 
+    /**
+     * Create exception from Firebird error information.
+     *
+     * Enhanced in php-firebird v7.0.0+ to automatically fetch SQLSTATE code
+     * via fbird_sqlstate() for standardized error classification.
+     *
+     * @param string $message The error message from fbird_errmsg()
+     * @param int    $code    The error code from fbird_errcode()
+     */
     public static function fromErrorInfo(string $message, int $code): Exception
     {
-        return new self($message, null, $code);
+        $sqlState = self::fetchSqlState();
+
+        return new self($message, $sqlState, $code);
     }
 
+    /**
+     * Get the SQLSTATE error code.
+     *
+     * Returns a 5-character SQLSTATE code if available, or null if:
+     * - No error occurred
+     * - php-firebird version < 7.0.0 (fbird_sqlstate not available)
+     * - Firebird version doesn't support SQLSTATE for this error
+     */
     public function getSQLState(): string|null
     {
         return $this->sqlState;
+    }
+
+    /**
+     * Fetch the current SQLSTATE from the Firebird extension.
+     *
+     * Uses fbird_sqlstate() (php-firebird v7.0.0+) to get the 5-character
+     * SQLSTATE code for the last error. Returns null if the function is
+     * not available or no error occurred.
+     *
+     * @return string|null The 5-character SQLSTATE code or null
+     */
+    private static function fetchSqlState(): string|null
+    {
+        // fbird_sqlstate() is available in php-firebird v7.0.0+
+        if (! function_exists('fbird_sqlstate')) {
+            return null;
+        }
+
+        $state = fbird_sqlstate();
+
+        // fbird_sqlstate() returns false if no error or empty string
+        if ($state === false || $state === '') {
+            return null;
+        }
+
+        return $state;
     }
 }
