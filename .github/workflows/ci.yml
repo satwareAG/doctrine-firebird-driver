@@ -220,7 +220,7 @@ jobs:
           php -m | grep -i pcntl
           echo "pcntl extension installed successfully"
 
-      - name: Build PHP firebird extension from source (v7.0.0+)
+      - name: Build PHP interbase extension from source
         run: |
           set -eu
           
@@ -229,13 +229,13 @@ jobs:
           export CFLAGS="-I/opt/firebird/include ${CFLAGS:-}"
           export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
           
-          # Clone php-firebird extension source (v7.0.0+ uses ext-firebird API)
-          git clone --depth 1 --branch v7.0.0-rc.1 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          # Clone php-firebird extension source (v6.2.0 registers as ext-interbase)
+          git clone --depth 1 --branch v6.2.0 https://github.com/nickygerritsen/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           
           # Build extension
           phpize
-          ./configure --with-firebird=/opt/firebird
+          ./configure --with-interbase=/opt/firebird
           make -j"$(nproc)"
           make install
           
@@ -245,11 +245,11 @@ jobs:
             PHP_INI_DIR="/usr/local/etc/php/conf.d"
           fi
           mkdir -p "${PHP_INI_DIR}"
-          echo "extension=firebird.so" > "${PHP_INI_DIR}/docker-php-ext-firebird.ini"
+          echo "extension=interbase.so" > "${PHP_INI_DIR}/docker-php-ext-interbase.ini"
           
           # Verify extension is loaded
-          php -m | grep -i firebird
-          php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
+          php -m | grep -i interbase
+          php -r "echo 'Interbase extension version: ' . phpversion('interbase') . PHP_EOL;"
 
       - name: Install Composer dependencies
         run: |
