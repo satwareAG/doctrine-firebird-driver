@@ -45,6 +45,7 @@ use function fbird_rollback_savepoint;
 use function fbird_savepoint;
 use function fbird_trans_start;
 use function get_resource_type;
+use function in_array;
 use function is_float;
 use function is_int;
 use function is_object;
@@ -57,13 +58,13 @@ use function str_contains;
 use function str_replace;
 use function str_starts_with;
 
-use const IBASE_COMMITTED;
-use const IBASE_CONCURRENCY;
-use const IBASE_CONSISTENCY;
-use const IBASE_NOWAIT;
-use const IBASE_REC_VERSION;
-use const IBASE_WAIT;
-use const IBASE_WRITE;
+use const FBIRD_COMMITTED;
+use const FBIRD_CONCURRENCY;
+use const FBIRD_CONSISTENCY;
+use const FBIRD_NOWAIT;
+use const FBIRD_REC_VERSION;
+use const FBIRD_WAIT;
+use const FBIRD_WRITE;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -72,19 +73,37 @@ use const IBASE_WRITE;
 final class Connection implements ServerInfoAwareConnection
 {
     /**
-     * Resource type for valid Firebird connection.
+     * Valid resource types for Firebird connection.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     *
+     * @var array<int, string>
      */
-    private const RESOURCE_TYPE_CONNECTION = 'Firebird/InterBase link';
+    private const RESOURCE_TYPES_CONNECTION = [
+        'Firebird/InterBase link',    // php-interbase and older php-firebird
+        'Firebird link',              // php-firebird v7.0.0+
+    ];
 
     /**
-     * Resource type for valid Firebird persistent connection.
+     * Valid resource types for Firebird persistent connection.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     *
+     * @var array<int, string>
      */
-    private const RESOURCE_TYPE_PERSISTENT_CONNECTION = 'Firebird/InterBase persistent link';
+    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = [
+        'Firebird/InterBase persistent link',  // php-interbase and older php-firebird
+        'Firebird persistent link',            // php-firebird v7.0.0+
+    ];
 
     /**
-     * Resource type for valid Firebird transaction.
+     * Valid resource types for Firebird transaction.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     *
+     * @var array<int, string>
      */
-    private const RESOURCE_TYPE_TRANSACTION = 'Firebird/InterBase transaction';
+    private const RESOURCE_TYPES_TRANSACTION = [
+        'Firebird/InterBase transaction',  // php-interbase and older php-firebird
+        'Firebird transaction',            // php-firebird v7.0.0+
+    ];
 
     private readonly ExecutionMode $executionMode;
 
@@ -140,9 +159,9 @@ final class Connection implements ServerInfoAwareConnection
         $connectionClosable = false;
         if (is_resource($this->connection)) {
             $type = get_resource_type($this->connection);
-            if ($type === 'Firebird/InterBase link') {
+            if (in_array($type, self::RESOURCE_TYPES_CONNECTION, true)) {
                 $connectionClosable = true;
-            } elseif ($type === 'Firebird/InterBase persistent link') {
+            } elseif (in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true)) {
                 $connectionClosable = false;
             } elseif ($type === 'Unknown') {
                 $this->connection = null;
@@ -151,7 +170,7 @@ final class Connection implements ServerInfoAwareConnection
 
         if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
-            if ($type === 'Firebird/InterBase transaction') {
+            if (in_array($type, self::RESOURCE_TYPES_TRANSACTION, true)) {
                 // Try commit first, but if it fails (e.g., due to FK constraint locks),
                 // fall back to rollback. Suppress warnings since this is cleanup code.
                 // The @ operator prevents PHP warnings during destructor cleanup which
@@ -636,8 +655,8 @@ final class Connection implements ServerInfoAwareConnection
 
         $type = get_resource_type($this->connection);
 
-        return $type === self::RESOURCE_TYPE_CONNECTION
-            || $type === self::RESOURCE_TYPE_PERSISTENT_CONNECTION;
+        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
+            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
     }
 
     /**
@@ -651,7 +670,7 @@ final class Connection implements ServerInfoAwareConnection
             return false;
         }
 
-        return get_resource_type($this->firebirdActiveTransaction) === self::RESOURCE_TYPE_TRANSACTION;
+        return in_array(get_resource_type($this->firebirdActiveTransaction), self::RESOURCE_TYPES_TRANSACTION, true);
     }
 
     /**
@@ -870,29 +889,29 @@ final class Connection implements ServerInfoAwareConnection
             $this->checkLastApiCall();
         }
 
-        $options = ['access_mode' => IBASE_WRITE];
+        $options = ['access_mode' => FBIRD_WRITE];
 
         switch ($this->attrDcTransIsolationLevel) {
             case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
                 break;
             case TransactionIsolationLevel::READ_COMMITTED:
-                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
                 break;
             case TransactionIsolationLevel::REPEATABLE_READ:
-                $options['isolation'] = IBASE_CONCURRENCY;
+                $options['isolation'] = FBIRD_CONCURRENCY;
                 break;
             case TransactionIsolationLevel::SERIALIZABLE:
-                $options['isolation'] = IBASE_CONSISTENCY;
+                $options['isolation'] = FBIRD_CONSISTENCY;
                 break;
         }
 
         if ($this->attrDcTransWait === -1) {
-            $options['lock_resolution'] = IBASE_WAIT;
+            $options['lock_resolution'] = FBIRD_WAIT;
         } elseif ($this->attrDcTransWait === 0) {
-            $options['lock_resolution'] = IBASE_NOWAIT;
+            $options['lock_resolution'] = FBIRD_NOWAIT;
         } else {
-            $options['lock_resolution'] = IBASE_WAIT;
+            $options['lock_resolution'] = FBIRD_WAIT;
             $options['lock_timeout']    = $this->attrDcTransWait;
         }
 

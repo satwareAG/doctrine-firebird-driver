@@ -21,7 +21,7 @@ use function fbird_service_detach;
 use function is_resource;
 use function stristr;
 
-use const IBASE_SVC_SERVER_VERSION;
+use const FBIRD_SVC_SERVER_VERSION;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
@@ -61,7 +61,7 @@ final class Driver extends FirebirdDriver
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 
-        $serverVersion = fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
+        $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
         if (! fbird_service_detach($firebirdService)) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }

@@ -39,7 +39,7 @@ use function trim;
 
 use const CASE_LOWER;
 use const CASE_UPPER;
-use const IBASE_CREATE;
+use const FBIRD_CREATE;
 
 /**
  * Firebird Schema Manager.
@@ -120,7 +120,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         /** @psalm-suppress InvalidArgument */
         $result = fbird_query(
-            IBASE_CREATE,
+            FBIRD_CREATE,
             sprintf(
                 "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
                 $dbname,

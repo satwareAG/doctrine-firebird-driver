@@ -65,7 +65,6 @@
         "ext-pdo": "*",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^3.10",
-        "satwareag/php-firebird": "^7.0",
         "symfony/polyfill-php82": "^1.31",
         "symfony/polyfill-php83": "^1.31",
         "symfony/polyfill-php84": "^1.31",

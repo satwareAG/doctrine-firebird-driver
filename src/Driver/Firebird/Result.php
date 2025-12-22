@@ -15,11 +15,12 @@ use function fbird_fetch_row;
 use function fbird_free_result;
 use function fbird_num_fields;
 use function get_resource_type;
+use function in_array;
 use function is_array;
 use function is_numeric;
 use function is_resource;
 
-use const IBASE_FETCH_BLOBS;
+use const FBIRD_FETCH_BLOBS;
 use Override;
 
 final class Result implements ResultInterface
@@ -73,7 +74,7 @@ final class Result implements ResultInterface
         if (is_resource($this->firebirdResultResource)) {
             // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
             // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
-            $result = fbird_fetch_row($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            $result = fbird_fetch_row($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
                 return array_values($result);
             }
@@ -92,7 +93,7 @@ final class Result implements ResultInterface
     {
         if (is_resource($this->firebirdResultResource)) {
             // @todo remove @ when fbird_fetch_assoc() doesn't warn
-            $result = fbird_fetch_assoc($this->firebirdResultResource, IBASE_FETCH_BLOBS);
+            $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
                 return $result;
             }
@@ -167,10 +168,13 @@ final class Result implements ResultInterface
         }
 
         // Check if resource is valid for fbird_free_result
-        // Valid types are typically 'interbase result' or 'Firebird/InterBase result'
-        // Other types like 'Firebird/InterBase transaction' or 'Unknown' should not be passed
+        // Valid types depend on php-firebird version:
+        // - v6.x: 'interbase result' or 'Firebird/InterBase result'
+        // - v7.x: 'firebird result' (removed legacy interbase naming)
+        // Other types like 'Firebird/InterBase transaction', 'firebird transaction' or 'Unknown' should not be passed
         $type = get_resource_type($this->firebirdResultResource);
-        if ($type !== 'interbase result' && $type !== 'Firebird/InterBase result') {
+        $validResultTypes = ['interbase result', 'Firebird/InterBase result', 'firebird result'];
+        if (! in_array($type, $validResultTypes, true)) {
             // echo "Debug: Skipping fbird_free_result for resource type: $type\n";
             $this->firebirdResultResource = null;
 

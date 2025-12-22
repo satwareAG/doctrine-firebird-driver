@@ -2,11 +2,12 @@ ARG PHP_VERSION=8.1
 FROM php:${PHP_VERSION}-cli AS base
 
 # Install system dependencies and PHP extensions
+# Using php-firebird v7.0.0-rc.1 which removes all legacy interbase/ibase references
 RUN apt-get update  \
     && apt-get install -y firebird-dev firebird3.0-utils git zip unzip \
     && docker-php-source extract \
-    && git clone --branch v6.2.0 --depth 1 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/interbase \
-    && docker-php-ext-install interbase pcntl
+    && git clone --branch v7.0.0-rc.1 --depth 1 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
+    && docker-php-ext-install firebird pcntl
 
 # Install PCOV for fast code coverage (2-5x faster than Xdebug)
 # Reference: https://github.com/krakjoe/pcov
