@@ -3,8 +3,13 @@ parameters:
     phpVersion: 80300
     paths:
         - src
-    scanFiles:
+    # Disable parallel processing to avoid segmentation faults with php-firebird extension
+    # The extension may not be thread-safe when used with PHPStan's parallel workers
+    parallel:
+        maximumNumberOfProcesses: 1
+    stubFiles:
         - stubs/FirebirdStub.php
+        - stubs/FirebirdOO.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false

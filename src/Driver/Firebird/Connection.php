@@ -12,6 +12,12 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\Deprecations\Deprecation;
+use Firebird\Batch;
+use Firebird\BatchResult;
+use Firebird\Database;
+use Firebird\DbInfo;
+use Firebird\TBuilder;
+use Firebird\Transaction;
 use InvalidArgumentException;
 use Override;
 use PDO;
@@ -24,22 +30,29 @@ use UnexpectedValueException;
 
 use function addcslashes;
 use function assert;
+use function class_exists;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
+use function fbird_connection_info;
 use function fbird_drop_table_force;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute_auto;
+use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
 use function fbird_list_table_blockers;
 use function fbird_prepare;
+use function fbird_query_params_tx;
+use function fbird_reconnect_transaction;
 use function fbird_release_savepoint;
 use function fbird_rollback;
 use function fbird_rollback_savepoint;
 use function fbird_savepoint;
 use function fbird_trans_start;
+use function function_exists;
 use function get_resource_type;
+use function in_array;
 use function is_float;
 use function is_int;
 use function is_object;
@@ -51,14 +64,15 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
+use function version_compare;
 
-use const IBASE_COMMITTED;
-use const IBASE_CONCURRENCY;
-use const IBASE_CONSISTENCY;
-use const IBASE_NOWAIT;
-use const IBASE_REC_VERSION;
-use const IBASE_WAIT;
-use const IBASE_WRITE;
+use const FBIRD_COMMITTED;
+use const FBIRD_CONCURRENCY;
+use const FBIRD_CONSISTENCY;
+use const FBIRD_NOWAIT;
+use const FBIRD_REC_VERSION;
+use const FBIRD_WAIT;
+use const FBIRD_WRITE;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
@@ -67,19 +81,31 @@ use const IBASE_WRITE;
 final class Connection implements ServerInfoAwareConnection
 {
     /**
-     * Resource type for valid Firebird connection.
+     * Valid resource types for Firebird connection.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
      */
-    private const RESOURCE_TYPE_CONNECTION = 'Firebird/InterBase link';
+    private const RESOURCE_TYPES_CONNECTION = [
+        'Firebird/InterBase link',    // php-interbase and older php-firebird
+        'Firebird link',              // php-firebird v7.0.0+
+    ];
 
     /**
-     * Resource type for valid Firebird persistent connection.
+     * Valid resource types for Firebird persistent connection.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
      */
-    private const RESOURCE_TYPE_PERSISTENT_CONNECTION = 'Firebird/InterBase persistent link';
+    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = [
+        'Firebird/InterBase persistent link',  // php-interbase and older php-firebird
+        'Firebird persistent link',            // php-firebird v7.0.0+
+    ];
 
     /**
-     * Resource type for valid Firebird transaction.
+     * Valid resource types for Firebird transaction.
+     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
      */
-    private const RESOURCE_TYPE_TRANSACTION = 'Firebird/InterBase transaction';
+    private const RESOURCE_TYPES_TRANSACTION = [
+        'Firebird/InterBase transaction',  // php-interbase and older php-firebird
+        'Firebird transaction',            // php-firebird v7.0.0+
+    ];
 
     private readonly ExecutionMode $executionMode;
 
@@ -135,9 +161,9 @@ final class Connection implements ServerInfoAwareConnection
         $connectionClosable = false;
         if (is_resource($this->connection)) {
             $type = get_resource_type($this->connection);
-            if ($type === 'Firebird/InterBase link') {
+            if (in_array($type, self::RESOURCE_TYPES_CONNECTION, true)) {
                 $connectionClosable = true;
-            } elseif ($type === 'Firebird/InterBase persistent link') {
+            } elseif (in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true)) {
                 $connectionClosable = false;
             } elseif ($type === 'Unknown') {
                 $this->connection = null;
@@ -146,7 +172,7 @@ final class Connection implements ServerInfoAwareConnection
 
         if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
             $type = get_resource_type($this->firebirdActiveTransaction);
-            if ($type === 'Firebird/InterBase transaction') {
+            if (in_array($type, self::RESOURCE_TYPES_TRANSACTION, true)) {
                 // Try commit first, but if it fails (e.g., due to FK constraint locks),
                 // fall back to rollback. Suppress warnings since this is cleanup code.
                 // The @ operator prevents PHP warnings during destructor cleanup which
@@ -631,8 +657,8 @@ final class Connection implements ServerInfoAwareConnection
 
         $type = get_resource_type($this->connection);
 
-        return $type === self::RESOURCE_TYPE_CONNECTION
-            || $type === self::RESOURCE_TYPE_PERSISTENT_CONNECTION;
+        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
+            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
     }
 
     /**
@@ -646,7 +672,7 @@ final class Connection implements ServerInfoAwareConnection
             return false;
         }
 
-        return get_resource_type($this->firebirdActiveTransaction) === self::RESOURCE_TYPE_TRANSACTION;
+        return in_array(get_resource_type($this->firebirdActiveTransaction), self::RESOURCE_TYPES_TRANSACTION, true);
     }
 
     /**
@@ -756,6 +782,306 @@ final class Connection implements ServerInfoAwareConnection
         return $result;
     }
 
+    /**
+     * Execute a query within a specific transaction context.
+     *
+     * UNIQUE TO php-firebird: This method uses fbird_query_params_tx() to execute
+     * queries within a specific transaction. No other PHP Firebird driver has this
+     * capability.
+     *
+     * Use cases:
+     * - Audit logging that persists regardless of main transaction outcome
+     * - CQRS patterns with different isolation levels for reads/writes
+     * - Multi-transaction workflows (e.g., long-running batch with progress tracking)
+     *
+     * @param resource|Transaction    $transaction Transaction resource or OO wrapper
+     * @param string                  $sql         SQL statement to execute
+     * @param array<int|string,mixed> $params      Optional bind parameters
+     *
+     * @return mixed Query result resource or affected row count
+     *
+     * @throws DriverException
+     */
+    public function queryInTransaction(mixed $transaction, string $sql, array $params = []): mixed
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // Support both raw resource and OO Transaction wrapper
+        $transResource = $transaction instanceof Transaction
+            ? $transaction->getResource()
+            : $transaction;
+
+        if (! is_resource($transResource)) {
+            throw new DriverException('Invalid transaction resource.');
+        }
+
+        $result = fbird_query_params_tx($this->connection, $transResource, $sql, $params);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Create a new independent transaction using the TBuilder fluent API.
+     *
+     * This allows creating transactions with specific isolation levels and
+     * parameters, independent of the DBAL-managed transaction.
+     *
+     * Example:
+     *   $auditTx = $conn->createIndependentTransaction()
+     *       ->readCommitted()
+     *       ->wait(10)
+     *       ->start();
+     *   $conn->queryInTransaction($auditTx, 'INSERT INTO audit_log...');
+     *   $auditTx->commit();
+     *
+     * @return TBuilder Transaction builder for fluent configuration
+     *
+     * @throws DriverException
+     */
+    public function createIndependentTransaction(): TBuilder
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        return TBuilder::create()->connection($this->connection);
+    }
+
+    /**
+     * Wrap the native connection in an OO Database wrapper.
+     *
+     * This provides access to the full php-firebird OO API including:
+     * - Transaction builder pattern
+     * - BLOB streaming
+     * - Database info queries
+     *
+     * @return Database OO wrapper for the native connection
+     *
+     * @throws DriverException
+     */
+    public function getOOWrapper(): Database
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        return Database::fromResource($this->connection);
+    }
+
+    // =========================================================================
+    // IBatch API - php-firebird v7.0.0+ (Firebird 4.0+)
+    // Provides 10-12x performance improvement for bulk INSERT operations
+    // =========================================================================
+
+    /**
+     * Create a batch operation for efficient bulk INSERTs.
+     *
+     * The IBatch API (Firebird 4.0+) provides 10-12x performance improvement
+     * over individual INSERT statements by batching multiple rows into a
+     * single server round-trip.
+     *
+     * Example:
+     *   $batch = $conn->createBatch('INSERT INTO users (name, email) VALUES (?, ?)');
+     *   $batch->add(['Alice', 'alice@example.com']);
+     *   $batch->add(['Bob', 'bob@example.com']);
+     *   $result = $batch->execute();
+     *   echo "Inserted: " . $result->count() . " rows";
+     *
+     * @param string                    $sql         INSERT statement with placeholders
+     * @param Transaction|resource|null $transaction Optional transaction (uses active if null)
+     *
+     * @return Batch Batch object for adding rows and executing
+     *
+     * @throws DriverException If Firebird version < 4.0 or connection invalid.
+     */
+    public function createBatch(string $sql, Transaction|null $transaction = null): Batch
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // IBatch API requires Firebird 4.0+
+        if (version_compare($this->serverVersion, '4.0', '<')) {
+            throw new DriverException(sprintf(
+                'IBatch API requires Firebird 4.0 or later. Current version: %s. ' .
+                'Use traditional INSERT loops for Firebird 2.5/3.0.',
+                $this->serverVersion,
+            ));
+        }
+
+        // Use provided transaction or fall back to active transaction
+        $transResource = $transaction instanceof Transaction
+            ? $transaction->getResource()
+            : $this->firebirdActiveTransaction;
+
+        if (! is_resource($transResource)) {
+            throw new DriverException('No valid transaction available for batch operation.');
+        }
+
+        return new Batch($this->connection, $sql, $transResource);
+    }
+
+    /**
+     * Execute a batch INSERT with data array (convenience method).
+     *
+     * High-level convenience wrapper around createBatch() for simple use cases.
+     * Automatically creates batch, adds all rows, executes, and returns result.
+     *
+     * Example:
+     *   $result = $conn->executeBatch(
+     *       'INSERT INTO users (name, email) VALUES (?, ?)',
+     *       [
+     *           ['Alice', 'alice@example.com'],
+     *           ['Bob', 'bob@example.com'],
+     *           ['Charlie', 'charlie@example.com'],
+     *       ]
+     *   );
+     *   echo "Inserted: " . $result->count() . " rows";
+     *   foreach ($result->getErrors() as $error) {
+     *       echo "Row " . $error->getRow() . " failed: " . $error->getMessage();
+     *   }
+     *
+     * @param string                               $sql         INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
+     * @param Transaction|null                     $transaction Optional transaction
+     *
+     * @return BatchResult Result with row counts and any errors
+     *
+     * @throws DriverException If Firebird version < 4.0 or connection invalid.
+     */
+    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): BatchResult
+    {
+        $batch = $this->createBatch($sql, $transaction);
+
+        foreach ($rows as $row) {
+            $batch->add($row);
+        }
+
+        return $batch->execute();
+    }
+
+    // =========================================================================
+    // Connection Info - php-firebird v7.0.0+
+    // =========================================================================
+
+    /**
+     * Get connection statistics and information.
+     *
+     * Returns detailed connection metrics including:
+     * - Current reads/writes/fetches
+     * - Memory usage
+     * - Buffer pool statistics
+     * - Transaction statistics
+     *
+     * Useful for monitoring, diagnostics, and performance tuning.
+     *
+     * @return DbInfo|array<string, mixed>|false Connection info or false on error
+     *
+     * @throws DriverException
+     */
+    public function getConnectionInfo(): DbInfo|array|false
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        // Use OO API if available (php-firebird v7+)
+        // Falls back to procedural fbird_connection_info() if OO not available
+        if (class_exists(DbInfo::class)) {
+            return DbInfo::fromConnection($this->connection);
+        }
+
+        // Procedural fallback
+        if (function_exists('fbird_connection_info')) {
+            return fbird_connection_info($this->connection);
+        }
+
+        return false;
+    }
+
+    // =========================================================================
+    // Limbo Transaction Recovery - php-firebird v7.0.0+
+    // For recovering from two-phase commit failures
+    // =========================================================================
+
+    /**
+     * Get list of limbo (in-doubt) transactions.
+     *
+     * Limbo transactions occur during two-phase commit failures.
+     * This method returns transaction IDs that need manual recovery
+     * (commit or rollback decision by DBA).
+     *
+     * Requires SYSDBA or database owner privileges.
+     *
+     * @return array<int>|false Array of limbo transaction IDs or false on error
+     *
+     * @throws DriverException
+     */
+    public function getLimboTransactions(): array|false
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        if (! function_exists('fbird_get_limbo_transactions')) {
+            throw new DriverException(
+                'fbird_get_limbo_transactions() requires php-firebird v7.0.0+',
+            );
+        }
+
+        $result = fbird_get_limbo_transactions($this->connection);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Reconnect to a limbo transaction for recovery.
+     *
+     * After reconnecting, the transaction can be committed or rolled back
+     * to resolve the limbo state. This is typically used by DBAs to
+     * recover from two-phase commit failures.
+     *
+     * Requires SYSDBA or database owner privileges.
+     *
+     * @param int $transactionId The limbo transaction ID to reconnect
+     *
+     * @return resource|false Transaction resource for commit/rollback, or false on error
+     *
+     * @throws DriverException
+     */
+    public function reconnectLimboTransaction(int $transactionId): mixed
+    {
+        if (! $this->isConnectionValid()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
+        if (! function_exists('fbird_reconnect_transaction')) {
+            throw new DriverException(
+                'fbird_reconnect_transaction() requires php-firebird v7.0.0+',
+            );
+        }
+
+        assert(is_resource($this->connection));
+
+        $result = fbird_reconnect_transaction($this->connection, $transactionId);
+
+        if ($result === false) {
+            $this->checkLastApiCall();
+        }
+
+        return $result;
+    }
+
     private function getSavepointName(int $level): string
     {
         return 'TARGET_SP_' . $level;
@@ -773,29 +1099,29 @@ final class Connection implements ServerInfoAwareConnection
             $this->checkLastApiCall();
         }
 
-        $options = ['access_mode' => IBASE_WRITE];
+        $options = ['access_mode' => FBIRD_WRITE];
 
         switch ($this->attrDcTransIsolationLevel) {
             case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
                 break;
             case TransactionIsolationLevel::READ_COMMITTED:
-                $options['isolation'] = IBASE_COMMITTED | IBASE_REC_VERSION;
+                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
                 break;
             case TransactionIsolationLevel::REPEATABLE_READ:
-                $options['isolation'] = IBASE_CONCURRENCY;
+                $options['isolation'] = FBIRD_CONCURRENCY;
                 break;
             case TransactionIsolationLevel::SERIALIZABLE:
-                $options['isolation'] = IBASE_CONSISTENCY;
+                $options['isolation'] = FBIRD_CONSISTENCY;
                 break;
         }
 
         if ($this->attrDcTransWait === -1) {
-            $options['lock_resolution'] = IBASE_WAIT;
+            $options['lock_resolution'] = FBIRD_WAIT;
         } elseif ($this->attrDcTransWait === 0) {
-            $options['lock_resolution'] = IBASE_NOWAIT;
+            $options['lock_resolution'] = FBIRD_NOWAIT;
         } else {
-            $options['lock_resolution'] = IBASE_WAIT;
+            $options['lock_resolution'] = FBIRD_WAIT;
             $options['lock_timeout']    = $this->attrDcTransWait;
         }
 

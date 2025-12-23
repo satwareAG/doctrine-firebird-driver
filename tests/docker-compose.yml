@@ -1,48 +1,126 @@
+# =============================================================================
+# Docker Compose - Doctrine Firebird Driver Test Environment
+# =============================================================================
+# Usage: DOCKER_BUILDKIT=1 docker compose up -d
+# Supports: Firebird 2.5, 3.0, 4.0, 5.0 with PHP 8.1-8.5
+# =============================================================================
+
 services:
+  # ---------------------------------------------------------------------------
+  # Firebird 5.0 Database Server
+  # ---------------------------------------------------------------------------
   firebird5:
     container_name: firebird5-doctrine-firebird-driver
     image: "jacobalberty/firebird:v5"
     environment:
-      - ISC_PASSWORD=masterkey
-      - TZ=Europe/Berlin
+      ISC_PASSWORD: masterkey
+      TZ: Europe/Berlin
+      FIREBIRD_DATABASE: test.fdb
+    healthcheck:
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Firebird 4.0 Database Server
+  # ---------------------------------------------------------------------------
   firebird4:
     container_name: firebird4-doctrine-firebird-driver
     image: "jacobalberty/firebird:v4"
     environment:
-      - ISC_PASSWORD=masterkey
-      - TZ=Europe/Berlin
+      ISC_PASSWORD: masterkey
+      TZ: Europe/Berlin
+      FIREBIRD_DATABASE: test.fdb
+    healthcheck:
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Firebird 2.5 SuperClassic Database Server
+  # ---------------------------------------------------------------------------
   firebird25:
     container_name: firebird25-doctrine-firebird-driver
     image: "jacobalberty/firebird:2.5-sc"
     environment:
-      - ISC_PASSWORD=masterkey
-      - TZ=Europe/Berlin
+      ISC_PASSWORD: masterkey
+      TZ: Europe/Berlin
+    healthcheck:
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:/firebird/data/test.fdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Firebird 3.0 Database Server (Primary/Default)
+  # ---------------------------------------------------------------------------
   firebird3:
     container_name: firebird3-doctrine-firebird-driver
     image: "jacobalberty/firebird:v3"
     environment:
-      - ISC_PASSWORD=masterkey
-      - TZ=Europe/Berlin
+      ISC_PASSWORD: masterkey
+      TZ: Europe/Berlin
+      FIREBIRD_DATABASE: test.fdb
     ports:
       - "3050:3050"
+    healthcheck:
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # PHP Application Container (Test Runner)
+  # ---------------------------------------------------------------------------
   app:
-    environment:
-      - PHP_IDE_CONFIG="serverName=phpconsole"
-      - PHP_DISMOD=ioncube
-    user: "${CURRENT_UID:-1000}:${CURRENT_GID:-1000}"
-    working_dir: /app
     container_name: app-doctrine-firebird-driver
     build:
       context: app
       dockerfile: Dockerfile
+      args:
+        PHP_VERSION: "${PHP_VERSION:-8.1}"
+    environment:
+      PHP_IDE_CONFIG: "serverName=phpconsole"
+      PHP_DISMOD: ioncube
+      WAIT_FOR_FIREBIRD: "false"
+      # Firebird connection settings for tests
+      DB_HOST_FB3: firebird3
+      DB_HOST_FB4: firebird4
+      DB_HOST_FB5: firebird5
+      DB_HOST_FB25: firebird25
+      DB_PORT: 3050
+      DB_USER: SYSDBA
+      DB_PASSWORD: masterkey
+    # Run as host user for volume permissions (override Dockerfile USER)
+    user: "${CURRENT_UID:-1000}:${CURRENT_GID:-1000}"
+    working_dir: /app
     volumes:
-      - ./../:/app
+      - ./../:/app:cached
     depends_on:
-      - firebird25
-      - firebird3
-      - firebird4
-      - firebird5
+      firebird25:
+        condition: service_started
+      firebird3:
+        condition: service_started
+      firebird4:
+        condition: service_started
+      firebird5:
+        condition: service_started
     tmpfs:
       - /tmp:mode=1777
-
-
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true

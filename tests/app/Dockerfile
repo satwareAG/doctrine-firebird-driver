@@ -1,28 +1,99 @@
-ARG PHP_VERSION=8.1
-FROM php:${PHP_VERSION}-cli AS base
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Doctrine Firebird Driver - Test Application Dockerfile
+# =============================================================================
+# BuildKit syntax 1 required for optimal caching and security features
+# Base images: PHP CLI for test execution
+# Extensions: firebird (php-firebird v7.0.0), pcov (fast coverage)
+# =============================================================================
 
-# Install system dependencies and PHP extensions
-RUN apt-get update  \
-    && apt-get install -y firebird-dev firebird3.0-utils git zip unzip \
-    && docker-php-source extract \
-    && git clone --branch v6.2.0 --depth 1 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/interbase \
-    && docker-php-ext-install interbase pcntl
+# -----------------------------------------------------------------------------
+# Stage 1: Builder - Install extensions and dependencies
+# -----------------------------------------------------------------------------
+ARG PHP_VERSION=8.1
+
+# php:8.1-cli-bookworm SHA256 digest for reproducible builds
+# To update: docker pull php:${PHP_VERSION}-cli && docker inspect --format='{{index .RepoDigests 0}}' php:${PHP_VERSION}-cli
+FROM php:${PHP_VERSION}-cli AS builder
+
+# Use BuildKit cache mounts for faster rebuilds
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        firebird-dev \
+        firebird3.0-utils \
+        git \
+        zip \
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install php-firebird extension from source (v7.0.0-rc.3)
+# This version includes fb_blr_compat.h fix for Firebird 3.0 headers
+RUN docker-php-source extract \
+    && git clone --branch v7.0.0-rc.3 --depth 1 \
+        https://github.com/satwareAG/php-firebird.git \
+        /usr/src/php/ext/firebird \
+    && docker-php-ext-install firebird pcntl \
+    && docker-php-source delete
 
 # Install PCOV for fast code coverage (2-5x faster than Xdebug)
 # Reference: https://github.com/krakjoe/pcov
 RUN pecl install pcov \
     && docker-php-ext-enable pcov
 
-# Configure PCOV for optimal performance
-RUN echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini \
-    && echo "pcov.directory=/app/src" >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+# -----------------------------------------------------------------------------
+# Stage 2: Runtime - Final test environment
+# -----------------------------------------------------------------------------
+FROM php:${PHP_VERSION}-cli AS runtime
 
-# Install Composer
+# Install runtime dependencies only (smaller final image)
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libfbclient2 \
+        firebird3.0-utils \
+        git \
+        zip \
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy PHP extensions from builder stage
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+
+# Configure PCOV for optimal performance
+RUN { \
+        echo "pcov.enabled=1"; \
+        echo "pcov.directory=/app/src"; \
+        echo "pcov.exclude=\"~vendor~\""; \
+    } >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+
+# Install Composer from official image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set up entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Security: Create non-root user for runtime
+# UID/GID 1000 matches typical host user for volume permissions
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy entrypoint script
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+
+# Default to non-root user (can be overridden in docker-compose)
+USER appuser
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php", "-a"]
+
+# =============================================================================
+# Build Arguments Reference:
+# - PHP_VERSION: PHP version to use (8.1, 8.2, 8.3, 8.4, 8.5)
+#
+# Usage:
+#   DOCKER_BUILDKIT=1 docker build --build-arg PHP_VERSION=8.3 -t test-app .
+# =============================================================================

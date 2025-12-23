@@ -20,15 +20,57 @@
     <InvalidReturnStatement>
       <code><![CDATA[$result]]></code>
     </InvalidReturnStatement>
+    <MismatchingDocblockParamType>
+      <code><![CDATA[Transaction|resource|null]]></code>
+    </MismatchingDocblockParamType>
+    <PossiblyNullArgument>
+      <code><![CDATA[$this->connection]]></code>
+    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
+      <code><![CDATA[createBatch]]></code>
+      <code><![CDATA[createIndependentTransaction]]></code>
       <code><![CDATA[dropTableForce]]></code>
       <code><![CDATA[executeAuto]]></code>
+      <code><![CDATA[executeBatch]]></code>
       <code><![CDATA[getActiveTransaction]]></code>
+      <code><![CDATA[getConnectionInfo]]></code>
+      <code><![CDATA[getLimboTransactions]]></code>
+      <code><![CDATA[getOOWrapper]]></code>
       <code><![CDATA[killAttachment]]></code>
       <code><![CDATA[listTableBlockers]]></code>
+      <code><![CDATA[queryInTransaction]]></code>
+      <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
+    <UndefinedClass>
+      <code><![CDATA[Batch]]></code>
+      <code><![CDATA[BatchResult]]></code>
+      <code><![CDATA[Database]]></code>
+      <code><![CDATA[DbInfo|array|false]]></code>
+      <code><![CDATA[TBuilder]]></code>
+      <code><![CDATA[Transaction|null]]></code>
+      <code><![CDATA[Transaction|resource|null]]></code>
+    </UndefinedClass>
+    <UndefinedDocblockClass>
+      <code><![CDATA[Transaction|resource|null]]></code>
+      <code><![CDATA[resource|Transaction]]></code>
+    </UndefinedDocblockClass>
+    <UnusedParam>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$rows]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+    </UnusedParam>
   </file>
   <file src="src/Driver/Firebird/Result.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[fetchAllAssociativeWithDateObjects]]></code>
+      <code><![CDATA[fetchNumericWithDateObjects]]></code>
+      <code><![CDATA[isDateObjectFetchAvailable]]></code>
+    </PossiblyUnusedMethod>
     <UnusedProperty>
       <code><![CDATA[$statement]]></code>
     </UnusedProperty>

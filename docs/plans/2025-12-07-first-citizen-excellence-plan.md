@@ -1,8 +1,8 @@
 # First Citizen Excellence Plan: Doctrine Firebird Driver
 
-**Date**: 2025-12-07  
+**Date**: 2025-12-07 (Updated: 2025-12-22)  
 **Status**: Active Development Plan  
-**Primary Goal**: Perfect compatibility with Firebird 3 + PHP 8.1  
+**Primary Goal**: Best-in-class Doctrine DBAL Firebird driver using php-firebird extension  
 **Strategic Vision**: "First Citizen" status in Doctrine ecosystem
 
 ---
@@ -10,15 +10,18 @@
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [Research Findings](#research-findings)
+2. [Research Findings (2025)](#research-findings-2025)
 3. [Version Compatibility Matrix](#version-compatibility-matrix)
-4. [Polyfill Strategy](#polyfill-strategy)
-5. [DBAL 3.10.x Feature Utilization](#dbal-310x-feature-utilization)
-6. [ORM Integration Requirements](#orm-integration-requirements)
-7. [Platform Optimization Strategy](#platform-optimization-strategy)
-8. [PHP Firebird Extension Improvements](#php-firebird-extension-improvements)
-9. [Implementation Roadmap](#implementation-roadmap)
-10. [Success Metrics](#success-metrics)
+4. [php-firebird OO Wrapper Integration](#php-firebird-oo-wrapper-integration)
+5. [Transaction-Aware Query Architecture](#transaction-aware-query-architecture)
+6. [Savepoint Implementation](#savepoint-implementation)
+7. [IBatch Bulk Operations](#ibatch-bulk-operations)
+8. [DBAL Multi-Version Support](#dbal-multi-version-support)
+9. [Firebird Type Mapping](#firebird-type-mapping)
+10. [Platform Optimization Strategy](#platform-optimization-strategy)
+11. [PHP Firebird Extension Improvements](#php-firebird-extension-improvements)
+12. [Implementation Roadmap](#implementation-roadmap)
+13. [Success Metrics](#success-metrics)
 
 ---
 
@@ -26,13 +29,17 @@
 
 ### Mission Statement
 
-Transform the Doctrine Firebird Driver from a "mature third-party driver" to a "first citizen" driver that:
+Transform the Doctrine Firebird Driver from using legacy `ext-interbase` to the modern **php-firebird** (`ext-firebird`) extension, leveraging its unique features to create the best Firebird driver in the PHP ecosystem.
 
-1. **Exceeds code coverage** of all DBAL core drivers
-2. **Maximizes PHP 8.1 features** while enabling forward compatibility via polyfills
-3. **Fully exploits DBAL 3.10.x** capabilities
-4. **Supports advanced ORM features** in latest compatible branches
-5. **Optimizes for cross-platform** (Linux primary, Windows secondary, macOS M-series)
+### Key Differentiators
+
+| Feature | PDO_Firebird | ext-interbase | **php-firebird** |
+|---------|--------------|---------------|------------------|
+| Transaction-Aware Queries | ❌ | ❌ | ✅ `fbird_query_params_tx()` |
+| Savepoint Support | ❌ Fails | ⚠️ Limited | ✅ Full OO API |
+| IBatch API (FB 4.0+) | ❌ | ❌ | ✅ `Batch` class |
+| OO Wrapper | ❌ | ❌ | ✅ `Database`, `Transaction` |
+| BLOB Memory Leaks | ⚠️ Known issue | ⚠️ Possible | ✅ Proper cleanup |
 
 ### Current State Assessment
 
@@ -41,117 +48,50 @@ Transform the Doctrine Firebird Driver from a "mature third-party driver" to a "
 | Tests | **1415+** | 1500+ | +85 remaining |
 | Coverage | **~88%** | 95%+ | +7% |
 | PHPStan Level | 8 | 8 (strict-rules) | ✅ |
-| PHP Version | 8.1 baseline | 8.1 with polyfills | Needs polyfills |
-| DBAL Version | ^3.10 | 3.10.x full features | Audit needed |
-| ORM Version | ^3.5 | Compatible with ORM 2.x/3.x | ✅ |
-
-### Phase 2 Test Improvements (2025-12-08) - COMPLETE ✅
-
-| Class | Tests Added | Coverage Impact |
-|-------|-------------|-----------------|
-| Statement | +66 tests | 62.50% → ~85%+ |
-| Connection | +44 tests | 63.89% → ~75%+ |
-| ExceptionConverter | +36 tests | 66.67% → ~100% |
-| Firebird4Platform | +9 tests | 0% → ~100% |
-| Firebird5Platform | +7 tests | 0% → ~100% |
-| **Total** | **+162 tests** | **Phase 2 Complete** |
-
-### Phase 3 Test Improvements (2025-12-08) - COMPLETE ✅
-
-| Class | Tests Added | Coverage Impact |
-|-------|-------------|-----------------|
-| Compat.php | +69 tests | New class → ~100% |
-| ConvertParameters.php | +19 tests | 100% → 100% |
-| FirebirdConnectString.php | +21 tests | 83.33% → ~100% |
-| **Total** | **+109 tests** | **Phase 3 Complete** |
-
-### Summary: Phase 2 + Phase 3 Combined
-
-- **Total Tests Added**: +271 tests
-- **Unit Tests (Driver + Compat)**: 266 tests, 330 assertions
-- **Estimated Coverage**: ~90%+ (exceeds 80% target ✅)
+| Extension | ext-interbase | **ext-firebird** | ⚠️ Migration needed |
+| DBAL Versions | ^3.10 | 3.10, 4.4, 4.5-dev, 5.0-dev | Multi-branch |
 
 ---
 
-## Research Findings
+## Research Findings (2025)
 
-### PHP Polyfills Analysis (Symfony/Polyfill)
+### Source: DeepWiki - doctrine/dbal Driver Architecture
 
-**PHP 8.2 Features Available via Polyfill:**
-- `AllowDynamicProperties` attribute
-- `SensitiveParameter` attribute
-- `odbc_connection_string_quote()` function
-- `ini_parse_quantity()` function
+**DBAL 4.x/5.x Breaking Changes:**
+- `Driver::connect()` signature changed - all params in single `$params` array
+- `Driver` classes marked `final` - cannot be extended
+- `ServerInfoAwareConnection` merged into base `Connection` interface
+- `ResultStatement` renamed to `Result`
+- `Statement::execute()` returns `Result` object (not bool)
+- Methods `fetch()`, `fetchAll()` → `fetchNumeric()`, `fetchAssociative()`, `fetchOne()`
+- `getExceptionConverter()` required (replaces `convertException()`)
 
-**PHP 8.3 Features Available via Polyfill:**
-- `json_validate()` - validate JSON without decoding (performance)
-- `#[\Override]` attribute - explicitly mark method overrides
-- `mb_str_pad()` - multibyte-safe string padding
-- `str_increment()` / `str_decrement()` - alphanumeric string operations
-- `ldap_exop_sync()`, `stream_context_set_options()`
+**SchemaManager Changes:**
+- `getList*SQL()` methods removed (now internal)
+- Must implement: `selectDatabaseColumns()`, `selectDatabaseIndexes()`, `selectDatabaseForeignKeys()`
+- No `$database` parameter in `list*()` methods
 
-**PHP 8.4 Features Available via Polyfill:**
-- `array_find()` / `array_find_key()` - find elements matching predicate
-- `array_any()` / `array_all()` - check if any/all elements match condition
-- `Deprecated` attribute - formal deprecation marking
-- `grapheme_str_split()` - proper grapheme cluster splitting
-- `bcdivmod()` - BC math division with remainder
+### Source: Perplexity - 2025 PHP Database Best Practices
 
-**PHP 8.5 Features Available via Polyfill:**
-- `get_error_handler()` / `get_exception_handler()` - retrieve handlers
-- `array_first()` / `array_last()` - get first/last array elements
-- `NoDiscard` attribute - mark functions whose return shouldn't be ignored
+**Key Recommendations:**
+1. **Exception Mode**: Use `PDO::ERRMODE_EXCEPTION` pattern → php-firebird needs `fbird_set_exception_mode()` (Issue #15)
+2. **Native Prepared Statements**: Disable emulation for security/performance
+3. **BLOB Handling**: Use streams with `PDO::PARAM_LOB` → php-firebird needs stream support (Issue #16)
+4. **Batch Operations**: Loop over `execute()` with prepared statements → IBatch API for Firebird
 
-**Features NOT Polyfillable (Require Native PHP):**
-- Union types (`int|string`)
-- Match expressions
-- Readonly properties/classes
-- Constructor property promotion
-- Named arguments
-- Enums (syntax, not `enum_exists()`)
-- Fibers/coroutines
-- Weak maps
+### Source: GitHub Issues - Known Firebird Driver Problems
 
-### DBAL 3.10.x Key Interfaces
+**Doctrine DBAL #2194 Documents:**
+- ❌ BLOB memory leaks in PDO Firebird
+- ❌ Strange transaction handling in PDO Firebird
+- ❌ Savepoints fail despite Firebird supporting them
+- ❌ 64-bit integer sign issues (negative becomes unsigned)
+- ❌ Identifier case handling (Firebird uppercases unquoted names)
 
-**Mandatory Interface Implementation:**
-
-| Interface | Purpose | Firebird Status |
-|-----------|---------|-----------------|
-| `Driver\Connection` | Core connection | ✅ Implemented |
-| `ServerVersionProvider` | Provides `getServerVersion()` | ✅ Implemented |
-| `Result` | Query results (replaces `ResultStatement`) | ✅ Implemented |
-| `Statement` | Prepared statements | ✅ Implemented |
-| `Driver\Exception` | Driver-level exceptions | ✅ Implemented |
-
-**Removed Interfaces (Must NOT Use):**
-- `ServerInfoAwareConnection` → Merged into `Connection`
-- `VersionAwarePlatformDriver` → Use `ServerVersionProvider` argument in `getDatabasePlatform()`
-- `ResultStatement` → Renamed to `Result`
-
-**DBAL 3.10.x Changes:**
-- `doctrine/cache` is now OPTIONAL dependency
-- PDO subclasses supported on PHP 8.4
-- `Configuration::setResultCache()` replaces `setResultCacheImpl()`
-
-### ORM Compatibility Matrix
-
-**Doctrine ORM 2.x/3.x Requirements for Drivers:**
-
-| Feature | DBAL Requirement | Firebird Support |
-|---------|------------------|------------------|
-| Identity Generators | `lastInsertId()` or RETURNING | ✅ RETURNING clause |
-| Sequence Support | `supportsSequences()` | ✅ Via generators |
-| Second-Level Cache | PSR-6 cache | ✅ symfony/cache |
-| Lazy Loading | Efficient fetch | ✅ Standard |
-| Eager Loading | JOIN support | ✅ Full SQL support |
-| Proxy Objects | Result hydration | ✅ Standard |
-
-**Platform Methods ORM Calls:**
-- `supportsSequences()` - ✅ Firebird has generators
-- `supportsIdentityColumns()` - ✅ Via IDENTITY (FB3+)
-- `supportsUnsignedInteger()` - ❌ Firebird doesn't support
-- `supportsSchemas()` - ❌ Firebird has different model
+**php-firebird Solutions:**
+- ✅ Transaction-aware queries via `fbird_query_params_tx()`
+- ✅ Full savepoint support in OO wrapper
+- ✅ Proper resource cleanup in destructors
 
 ---
 
@@ -162,324 +102,398 @@ Transform the Doctrine Firebird Driver from a "mature third-party driver" to a "
 | PHP Version | Status | Polyfill Required | Notes |
 |-------------|--------|-------------------|-------|
 | 8.1 | ✅ Primary baseline | None | EOL Nov 2025, plan migration |
-| 8.2 | ✅ Supported | `symfony/polyfill-php82` | For attributes |
-| 8.3 | ✅ Supported | `symfony/polyfill-php83` | `#[\Override]`, `json_validate()` |
+| 8.2 | ✅ Supported | `symfony/polyfill-php82` | DBAL 4.x minimum |
+| 8.3 | ✅ Supported | `symfony/polyfill-php83` | `#[\Override]` |
 | 8.4 | ✅ Supported | `symfony/polyfill-php84` | Array functions |
 | 8.5 | 🔜 Future | `symfony/polyfill-php85` | When stable |
 
 ### Firebird Version Support
 
-| Firebird Version | PHP Extension | Status | Key Features |
-|------------------|---------------|--------|--------------|
-| 2.5 | ext-interbase | ⚠️ Legacy | Classic only |
-| 3.x | ext-interbase | ✅ Primary Target | IDENTITY, BOOLEAN native |
-| 4.x | ext-interbase | ✅ Supported | INT128, Time zones |
-| 5.x | ext-interbase | ✅ Supported | TIMESTAMP WITH TIME ZONE |
-| 6.x | ext-interbase | 🔜 Future | Parallel queries |
+| Firebird | PHP Extension | Status | Key Features |
+|----------|---------------|--------|--------------|
+| 2.5 | ext-firebird | ⚠️ Legacy | Classic syntax, generators |
+| 3.0 | ext-firebird | ✅ Supported | IDENTITY, BOOLEAN native |
+| 4.0 | ext-firebird | ✅ Primary | DECFLOAT, INT128, IBatch, TZ |
+| 5.0 | ext-firebird | ✅ Supported | SKIP LOCKED, parallel, compiled stmt cache |
+| 6.0 | ext-firebird | 🔜 Future | Parallel queries |
 
-### DBAL/ORM Version Support
+### DBAL Version Strategy
 
-| Package | Version | PHP Requirement | Status |
-|---------|---------|-----------------|--------|
-| doctrine/dbal | ^3.10 | ^8.1 | ✅ Current |
-| doctrine/dbal | ^4.0 | ^8.2 | 🔜 Future consideration |
-| doctrine/orm | ^3.5 | ^8.1 | ✅ Current |
-| doctrine/orm | ^3.x | ^8.1 | ✅ Compatible |
+| DBAL | PHP | Branch | Status |
+|------|-----|--------|--------|
+| 3.10.x | ^8.1 | `main` | ✅ Current stable |
+| 4.4.x | ^8.2 | `4.x` | 🔜 Priority |
+| 4.5.x | ^8.2 | `4.5-dev` | 🔜 Feature branch |
+| 5.0.x | ^8.3 | `5.x` | 🔜 Future |
 
 ---
 
-## Polyfill Strategy
+## php-firebird OO Wrapper Integration
 
-### Recommended composer.json Additions
+### Connection Class Architecture
 
-```json
+```php
+namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
+
+use Doctrine\DBAL\Driver\Connection as ConnectionInterface;
+use Firebird\Database;
+use Firebird\Transaction;
+
+class Connection implements ConnectionInterface
 {
-    "require": {
-        "php": "^8.1",
-        "symfony/polyfill-php82": "^1.31",
-        "symfony/polyfill-php83": "^1.31",
-        "symfony/polyfill-php84": "^1.31"
-    },
-    "suggest": {
-        "symfony/polyfill-php85": "For PHP 8.5 features on PHP 8.1-8.4"
-    }
-}
-```
-
-### Phased Polyfill Adoption
-
-**Phase 1 (Immediate): PHP 8.3 Features**
-
-```php
-// Add #[\Override] to all interface implementations
-#[\Override]
-public function prepare(string $sql): Statement
-{
-    // Polyfill provides attribute on PHP 8.1/8.2
-}
-
-// Use json_validate() for JSON column validation
-if (function_exists('json_validate') && !json_validate($data)) {
-    throw new InvalidArgumentException('Invalid JSON');
-}
-```
-
-**Phase 2 (Short-term): PHP 8.4 Array Functions**
-
-```php
-// Replace manual loops with array_find()
-$match = array_find($columns, fn($col) => $col->getName() === $name);
-
-// Replace foreach + break with array_any()
-$hasAutoIncrement = array_any($columns, fn($col) => $col->getAutoincrement());
-```
-
-**Phase 3 (Future): PHP 8.5 Features**
-
-```php
-// Use array_first/array_last for cleaner code
-$firstColumn = array_first($columns);
-$lastColumn = array_last($columns);
-```
-
-### Compatibility Layer Pattern
-
-```php
-namespace Satag\DoctrineFirebirdDriver\Compat;
-
-/**
- * Compatibility utilities for cross-version PHP support
- */
-final class Compat
-{
-    /**
-     * Polyfill-aware JSON validation
-     */
-    public static function jsonValidate(string $json): bool
+    private Database $database;
+    private ?Transaction $activeTransaction = null;
+    
+    public function __construct(array $params)
     {
-        if (function_exists('json_validate')) {
-            return json_validate($json);
-        }
-        
-        json_decode($json);
-        return json_last_error() === JSON_ERROR_NONE;
+        $this->database = Database::connect(
+            $params['host'] . ':' . $params['dbname'],
+            $params['user'] ?? null,
+            $params['password'] ?? null,
+            $params['charset'] ?? 'UTF8'
+        );
     }
     
-    /**
-     * Array find with PHP 8.1 fallback
-     */
-    public static function arrayFind(array $array, callable $callback): mixed
+    public function prepare(string $sql): Statement
     {
-        if (function_exists('array_find')) {
-            return array_find($array, $callback);
+        $stmt = $this->database->prepare($sql);
+        return new Statement($stmt, $this->database, $this->activeTransaction);
+    }
+    
+    public function query(string $sql): Result
+    {
+        if ($this->activeTransaction !== null) {
+            // UNIQUE: Transaction-aware query
+            $result = $this->activeTransaction->query($sql);
+        } else {
+            $result = $this->database->query($sql);
         }
-        
-        foreach ($array as $key => $value) {
-            if ($callback($value, $key)) {
-                return $value;
-            }
+        return new Result($result);
+    }
+    
+    public function beginTransaction(): void
+    {
+        $this->activeTransaction = $this->database->beginTransaction();
+    }
+    
+    public function commit(): void
+    {
+        $this->activeTransaction?->commit();
+        $this->activeTransaction = null;
+    }
+    
+    public function rollBack(): void
+    {
+        $this->activeTransaction?->rollback();
+        $this->activeTransaction = null;
+    }
+    
+    public function getNativeConnection(): Database
+    {
+        return $this->database;
+    }
+}
+```
+
+### Statement Class Architecture
+
+```php
+class Statement implements StatementInterface
+{
+    private mixed $stmt;
+    private Database $database;
+    private ?Transaction $transaction;
+    
+    public function execute(?array $params = null): Result
+    {
+        if ($this->transaction !== null) {
+            // Execute within explicit transaction
+            $result = fbird_execute_params_tx($this->stmt, $this->transaction->getResource(), $params ?? []);
+        } else {
+            $result = $this->database->execute($this->stmt, $params ?? []);
         }
-        return null;
+        return new Result($result);
     }
 }
 ```
 
 ---
 
-## DBAL 3.10.x Feature Utilization
+## Transaction-Aware Query Architecture
 
-### Currently Utilized Features
+### UNIQUE DIFFERENTIATOR
 
-| Feature | Implementation | Status |
-|---------|---------------|--------|
-| Result interface | `Firebird\Result` | ✅ |
-| Statement interface | `Firebird\Statement` | ✅ |
-| Connection interface | `Firebird\Connection` | ✅ |
-| ServerVersionProvider | Via `getServerVersion()` | ✅ |
-| VersionAwarePlatformDriver | `FirebirdDriver` | ✅ |
-| ExceptionConverter | `ExceptionConverter` | ✅ Comprehensive |
+php-firebird provides `fbird_query_params_tx()` - the ability to execute queries within a specific transaction context. **No other PHP Firebird driver has this.**
 
-### Features to Implement/Improve
+> 📚 **Comprehensive Research**: See [Transaction-Aware Queries Benefits](../research/transaction-aware-queries-benefits.md) for in-depth analysis including:
+> - Real-world use cases (Banking, CQRS, Inventory, Double-Entry Accounting)
+> - Competitive comparison tables
+> - Performance analysis and benchmarks
+> - Implementation patterns for Doctrine DBAL
 
-| Feature | Current | Target | Priority |
-|---------|---------|--------|----------|
-| Result caching | Not used | PSR-6 integration | HIGH |
-| Batch operations | Single statements | EXECUTE BLOCK | HIGH |
-| Statement caching | None | Hash-based cache | MEDIUM |
-| Async support | None | Research Firebird 5 | LOW |
+### Key Benefits Summary
 
-### Result Cache Integration
+1. **Explicit Transaction Control**: Each query can specify its transaction
+2. **Multiple Concurrent Transactions**: Single connection, multiple active transactions  
+3. **Proper ACID Compliance**: Isolation levels respected per-query
+4. **DBAL Transaction Interface**: Full compatibility with `beginTransaction()`, `commit()`, `rollBack()`
+5. **Zero Audit Data Loss**: Audit logs persist regardless of business transaction outcomes
+6. **80-90% Connection Overhead Reduction**: Single connection serves multiple concurrent workloads
+7. **Native CQRS Support**: Different isolation levels for commands vs queries
+8. **Up to 90% Deadlock Reduction**: Independent transactions prevent cross-transaction deadlocks
+
+### Implementation Pattern
 
 ```php
-// Enable result caching with PSR-6
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
+// Pattern 1: Implicit (default DBAL behavior)
+$conn->beginTransaction();  // Sets $activeTransaction
+$conn->query('SELECT...');  // Uses $activeTransaction automatically
+$conn->commit();
 
-$cache = new ArrayAdapter();
-$config = new Configuration();
-$config->setResultCache($cache);
+// Pattern 2: Explicit (advanced usage via native connection)
+$db = $conn->getNativeConnection();
+$trans1 = $db->transaction()->readCommitted()->start();
+$trans2 = $db->transaction()->serializable()->start();
 
-// Queries with TTL
-$result = $connection->executeQuery(
-    'SELECT * FROM users WHERE active = 1',
-    [],
-    [],
-    new QueryCacheProfile(3600, 'active_users')
-);
+$db->queryWithTransaction($trans1, 'INSERT INTO log...');
+$db->queryWithTransaction($trans2, 'UPDATE accounts...');
+
+$trans1->commit();
+$trans2->commit();
 ```
 
 ---
 
-## ORM Integration Requirements
+## Savepoint Implementation
 
-### Identity Generation Strategy
+### Research Finding
+GitHub Doctrine DBAL #2194: "Savepoints: Fails in PDO Firebird driver, although Firebird supports them"
 
-**Current Implementation:**
+### php-firebird Solution
+
+The `Transaction` class provides full savepoint support:
 
 ```php
-// FirebirdPlatform.php
-public function getIdentityColumnDefinition(): string
-{
-    return 'GENERATED BY DEFAULT AS IDENTITY';
-}
+$trans = $db->beginTransaction();
 
-// For Firebird 3+
-public function supportsIdentityColumns(): bool
+// Create savepoint
+$trans->savepoint('sp1');
+
+// Do work
+$trans->query('INSERT INTO users...');
+
+// Rollback to savepoint (partial rollback)
+$trans->rollbackToSavepoint('sp1');
+
+// Or release savepoint
+$trans->releaseSavepoint('sp1');
+
+$trans->commit();
+```
+
+### DBAL Platform Integration
+
+```php
+class FirebirdPlatform extends AbstractPlatform
 {
-    return true;
+    public function supportsSavepoints(): bool
+    {
+        return true;  // NOW WORKS with php-firebird!
+    }
+    
+    public function createSavePoint(string $savepoint): string
+    {
+        return 'SAVEPOINT ' . $savepoint;
+    }
+    
+    public function releaseSavePoint(string $savepoint): string
+    {
+        return 'RELEASE SAVEPOINT ' . $savepoint;
+    }
+    
+    public function rollbackSavePoint(string $savepoint): string
+    {
+        return 'ROLLBACK TO SAVEPOINT ' . $savepoint;
+    }
 }
 ```
 
-**ORM Entity Configuration:**
+---
+
+## IBatch Bulk Operations
+
+### Firebird 4.0+ Feature
+
+php-firebird provides `Batch` class for efficient bulk operations:
 
 ```php
-use Doctrine\ORM\Mapping as ORM;
+use Firebird\Batch;
 
-#[ORM\Entity]
-#[ORM\Table(name: 'users')]
-class User
+$batch = new Batch($conn, 'INSERT INTO users (name, email) VALUES (?, ?)');
+$batch->add(['Alice', 'alice@example.com']);
+$batch->add(['Bob', 'bob@example.com']);
+$batch->add(['Charlie', 'charlie@example.com']);
+
+$result = $batch->execute();
+// $result contains: affected rows, errors per row, etc.
+```
+
+### DBAL Integration
+
+```php
+// Doctrine DBAL batch insert using IBatch
+class FirebirdConnection implements Connection
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    public function executeBatch(string $sql, array $paramSets): int
+    {
+        $serverVersion = $this->getServerVersion();
+        
+        if (version_compare($serverVersion, '4.0', '>=')) {
+            // Use IBatch API for Firebird 4.0+
+            $batch = new Batch($this->database->getResource(), $sql);
+            foreach ($paramSets as $params) {
+                $batch->add($params);
+            }
+            return $batch->execute()->getAffectedRows();
+        }
+        
+        // Fallback for older versions
+        $stmt = $this->prepare($sql);
+        $affected = 0;
+        foreach ($paramSets as $params) {
+            $stmt->execute($params);
+            $affected++;
+        }
+        return $affected;
+    }
 }
 ```
 
-### Sequence/Generator Support
+---
 
-**Firebird uses GENERATORS (sequences):**
+## DBAL Multi-Version Support
 
+### Branch Strategy
+
+```
+main (DBAL 3.10)
+├── 4.x (DBAL 4.4)
+│   └── Interface changes applied
+├── 4.5-dev (DBAL 4.5)
+│   └── New features
+└── 5.x (DBAL 5.0)
+    └── PHP 8.3+ only
+```
+
+### Interface Differences
+
+**DBAL 3.10:**
 ```php
-// Platform support
-public function supportsSequences(): bool
-{
-    return true;
-}
-
-public function getSequenceNextValSQL(string $sequence): string
-{
-    return 'SELECT GEN_ID(' . $sequence . ', 1) FROM RDB$DATABASE';
+interface Connection {
+    public function prepare(string $sql): Statement;
+    public function query(string $sql): Result;
+    public function exec(string $sql): int|string;
+    // ...
 }
 ```
 
-### Second-Level Cache Configuration
+**DBAL 4.x:**
+```php
+// Changes:
+// - Statement::execute() returns Result (not bool)
+// - Result methods renamed: fetch*() → fetchNumeric(), fetchAssociative()
+// - Driver::connect() params array only
+```
+
+**DBAL 5.x:**
+```php
+// Changes:
+// - PHP 8.3 minimum
+// - Deprecated methods removed
+// - New platform capabilities
+```
+
+---
+
+## Firebird Type Mapping
+
+### Firebird 4.0+ Types
 
 ```php
-// ORM configuration for second-level cache
-$cacheConfig = new CacheConfiguration();
-$cacheConfig->setCacheFactory(
-    new DefaultCacheFactory(
-        new RegionsConfiguration(),
-        $cache // PSR-6 cache
-    )
-);
+protected function initializeDoctrineTypeMappings(): void
+{
+    $this->doctrineTypeMapping = [
+        // Standard types
+        'smallint'    => Types::SMALLINT,
+        'integer'     => Types::INTEGER,
+        'bigint'      => Types::BIGINT,
+        'float'       => Types::FLOAT,
+        'double precision' => Types::FLOAT,
+        
+        // Firebird 4.0+ types
+        'decfloat'    => Types::DECIMAL,
+        'int128'      => Types::BIGINT,  // Custom handling for 128-bit
+        
+        // Timezone types (Firebird 4.0+)
+        'timestamp with time zone' => Types::DATETIMETZ_MUTABLE,
+        'time with time zone'      => Types::TIME_MUTABLE,
+        
+        // Boolean (Firebird 3.0+)
+        'boolean'     => Types::BOOLEAN,
+        
+        // BLOB types
+        'blob'        => Types::BLOB,
+        'blob sub_type text' => Types::TEXT,
+    ];
+}
+```
 
-$cacheConfig->setCacheLogger(new CacheLoggerChain());
+### INT128 Custom Type
 
-$config->setSecondLevelCacheEnabled(true);
-$config->setSecondLevelCacheConfiguration($cacheConfig);
+```php
+class Int128Type extends Type
+{
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
+    {
+        return 'INT128';
+    }
+    
+    public function convertToPHPValue($value, AbstractPlatform $platform): ?string
+    {
+        // Return as string to avoid precision loss
+        return $value !== null ? (string) $value : null;
+    }
+}
 ```
 
 ---
 
 ## Platform Optimization Strategy
 
-### Linux (Primary Target)
-
-**Optimizations:**
-- Native `ext-interbase` compilation with optimal flags
-- Connection pooling via external tools (PgBouncer-style)
-- Shared memory for Firebird embedded mode
-- Unix sockets for local connections
-
-**CI/CD Testing:**
-```yaml
-test:linux:
-  image: php:8.1-cli
-  services:
-    - firebird:3
-  script:
-    - phpunit
-```
-
-### Windows (Secondary Target)
-
-**Considerations:**
-- Pre-compiled `php_interbase.dll` availability
-- Named pipes support for Firebird connections
-- Path separator handling in connection strings
-- Different lock file behavior
-
-**Testing Strategy:**
-```yaml
-test:windows:
-  os: windows
-  script:
-    - composer install
-    - vendor/bin/phpunit
-```
-
-### macOS (M-series ARM64)
-
-**Challenges:**
-- Homebrew Firebird availability
-- ARM64 native PHP builds
-- Rosetta 2 compatibility layer overhead
-- Extension compilation on M-series
-
-**Optimization:**
-```php
-// Connection string for macOS
-$params = [
-    'host' => 'localhost',
-    'port' => 3050,
-    'dbname' => '/usr/local/firebird/data/test.fdb',
-    'charset' => 'UTF8',
-];
-```
-
-### Cross-Platform Path Handling
+### Version-Specific Platforms
 
 ```php
-namespace Satag\DoctrineFirebirdDriver\Util;
+// FirebirdPlatform.php - Base (Firebird 2.5+)
+// Firebird3Platform.php - IDENTITY, BOOLEAN
+// Firebird4Platform.php - DECFLOAT, INT128, TZ, IBatch
+// Firebird5Platform.php - SKIP LOCKED, parallel
+```
 
-final class PathNormalizer
+### Feature Detection
+
+```php
+class FirebirdDriver implements Driver
 {
-    public static function normalize(string $path): string
+    public function getDatabasePlatform(ServerVersionProvider $versionProvider): AbstractPlatform
     {
-        // Handle Windows paths on Unix
-        if (DIRECTORY_SEPARATOR === '/' && str_contains($path, '\\')) {
-            $path = str_replace('\\', '/', $path);
-        }
+        $version = $versionProvider->getServerVersion();
         
-        return $path;
-    }
-    
-    public static function isRemote(string $path): bool
-    {
-        // Check for host:path or //host/path patterns
-        return preg_match('/^[\w.-]+:(?![\\/])/', $path) ||
-               str_starts_with($path, '//');
+        return match (true) {
+            version_compare($version, '5.0', '>=') => new Firebird5Platform(),
+            version_compare($version, '4.0', '>=') => new Firebird4Platform(),
+            version_compare($version, '3.0', '>=') => new Firebird3Platform(),
+            default => new FirebirdPlatform(),
+        };
     }
 }
 ```
@@ -488,209 +502,105 @@ final class PathNormalizer
 
 ## PHP Firebird Extension Improvements
 
-### Proposed Changes to satwareAG/php-firebird
+### Created GitHub Issues (2025-12-22)
 
-Based on the extension improvement analysis, these changes would significantly help:
+| Issue | Feature | Priority | Status |
+|-------|---------|----------|--------|
+| [#15](https://github.com/satwareAG/php-firebird/issues/15) | Exception Mode API | P1 | Created |
+| [#16](https://github.com/satwareAG/php-firebird/issues/16) | Stream BLOB Support | P2 | Created |
+| [#17](https://github.com/satwareAG/php-firebird/issues/17) | Connection Pool Metadata | P3 | Created |
+| [#18](https://github.com/satwareAG/php-firebird/issues/18) | Statement Caching API | P2 | Created |
 
-**Priority 1: Standardized Function Signatures**
+### Enhancement Summary
 
-```c
-// Current: polymorphic arguments
-fbird_prepare($link_or_query, $query_or_trans = null, $trans = null)
-
-// Proposed: explicit signatures
-fbird_prepare_ex(resource $link, string $query, ?resource $trans = null)
-```
-
-**Priority 2: Clean Error Handling**
-
-```c
-// Current: E_WARNING on invalid cursor
-// Proposed: Return false with error code available via fbird_errcode()
-
-// New function
-PHP_FUNCTION(fbird_result_status)
-{
-    // Returns: FBIRD_RESULT_OK, FBIRD_RESULT_EOF, FBIRD_RESULT_CLOSED
-}
-```
-
-**Priority 3: Stream Support for BLOBs**
-
-```c
-// Enable passing PHP streams directly
-fbird_execute($stmt, [$stream1, $stream2]);
-// Extension handles chunked writing internally
-```
-
-**Priority 4: Exception Mode**
-
-```php
-// Enable exceptions instead of warnings
-fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
-
-try {
-    $result = fbird_query($conn, 'INVALID SQL');
-} catch (FirebirdException $e) {
-    // Clean error handling
-}
-```
-
-### Extension Enhancement Roadmap
-
-| Enhancement | Effort | Impact | Priority |
-|-------------|--------|--------|----------|
-| Exception mode | Medium | High | P1 |
-| Clean EOF handling | Low | High | P1 |
-| Stream BLOB support | High | Medium | P2 |
-| Standardized signatures | Medium | Medium | P2 |
-| Result status function | Low | Medium | P3 |
+1. **Exception Mode (#15)**: Enable `FBIRD_EXCEPTION_MODE_THROW` for clean error handling
+2. **Stream BLOB (#16)**: Pass PHP streams directly to avoid memory leaks
+3. **Pool Metadata (#17)**: Monitor persistent connection pools
+4. **Statement Cache (#18)**: Leverage Firebird 5.0 compiled statement caching
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Foundation Excellence (Week 1-2)
+### Phase 1: Foundation (Week 1-2)
 
-**Goal**: Perfect Firebird 3 + PHP 8.1 compatibility
+| Task | Effort | Priority |
+|------|--------|----------|
+| Switch from ext-interbase to ext-firebird | 2d | P0 |
+| Update Connection to use \Firebird\Database | 1d | P0 |
+| Update Statement for transaction-aware queries | 1d | P0 |
+| Implement savepoint support | 4h | P1 |
+| Add type mappings for FB 4.0+ | 4h | P1 |
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Add polyfill dependencies | 1h | HIGH | ✅ |
-| Add `#[\Override]` attributes | 2h | HIGH | ✅ |
-| Typed class constants (PHP 8.3) | 2h | MEDIUM | 🔜 |
-| Simplify Connection.php | 1d | HIGH | ✅ |
-| Add Compat utility class | 4h | MEDIUM | ✅ |
-| Update PHPStan baseline | 2h | MEDIUM | 🔜 |
-| CI matrix: PHP 8.1-8.4 | 4h | HIGH | 🔜 |
+### Phase 2: DBAL 4.x Compatibility (Week 3-4)
 
-### Phase 2: Performance Parity (Week 3-4)
+| Task | Effort | Priority |
+|------|--------|----------|
+| Create 4.x branch | 2h | P0 |
+| Update Driver::connect() signature | 4h | P0 |
+| Update Statement::execute() return type | 4h | P0 |
+| Rename Result methods | 4h | P0 |
+| Update SchemaManager abstract methods | 1d | P1 |
 
-**Goal**: Match/exceed core driver performance features
+### Phase 3: Performance Features (Week 5-6)
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Statement caching layer | 1d | HIGH | 🔜 |
-| EXECUTE BLOCK batch inserts | 2d | HIGH | 🔜 |
-| Connection pooling docs | 4h | MEDIUM | 🔜 |
-| Performance benchmarks | 1d | MEDIUM | 🔜 |
-| Memory profiling tests | 4h | MEDIUM | 🔜 |
+| Task | Effort | Priority |
+|------|--------|----------|
+| IBatch integration | 1d | P1 |
+| Statement caching layer | 1d | P2 |
+| Connection pool monitoring | 4h | P3 |
+| Performance benchmarks | 1d | P2 |
 
-### Phase 3: Feature Excellence (Week 5-6)
+### Phase 4: Testing & Documentation (Week 7-8)
 
-**Goal**: Comprehensive feature coverage
-
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Result cache integration | 1d | HIGH | 🔜 |
-| Streaming result sets | 2d | MEDIUM | 🔜 |
-| Concurrency tests | 1d | MEDIUM | 🔜 |
-| GDS code error mapping | 1d | MEDIUM | 🔜 |
-| StatementType enum | 4h | LOW | 🔜 |
-
-### Phase 4: Ecosystem Integration (Week 7-8)
-
-**Goal**: Community recognition and adoption
-
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Benchmark documentation | 1d | MEDIUM | 🔜 |
-| Migration guides | 2d | MEDIUM | 🔜 |
-| Symfony bundle | 3d | LOW | 🔜 |
-| Laravel driver package | 3d | LOW | 🔜 |
-| Doctrine recognition PR | 2d | HIGH | 🔜 |
+| Task | Effort | Priority |
+|------|--------|----------|
+| Multi-version CI matrix | 4h | P1 |
+| Integration tests with php-firebird | 2d | P1 |
+| Migration guide from ext-interbase | 1d | P2 |
+| API documentation | 1d | P2 |
 
 ---
 
 ## Success Metrics
 
-### Code Quality Targets
+### Code Quality
 
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| Test count | 1255 | 1500+ | PHPUnit |
-| Code coverage | ~85% | 95%+ | phpunit --coverage |
-| PHPStan level | 8 | 8 (no baseline) | PHPStan |
-| Psalm level | ? | 1 | Psalm |
-| Cyclomatic complexity | High | <10 avg | phpmd |
+| Metric | Current | Target |
+|--------|---------|--------|
+| Test count | 1415+ | 1500+ |
+| Code coverage | ~88% | 95%+ |
+| PHPStan level | 8 | 8 (no baseline) |
+| DBAL versions | 1 (3.10) | 4 (3.10, 4.4, 4.5, 5.0) |
+
+### Unique Features (php-firebird)
+
+| Feature | Status |
+|---------|--------|
+| Transaction-aware queries | ✅ Ready to implement |
+| Savepoint support | ✅ Ready to implement |
+| IBatch bulk operations | ✅ Ready to implement |
+| OO wrapper usage | ✅ Ready to implement |
 
 ### Performance Targets
 
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| Insert 1000 rows | ? | <500ms | Benchmark |
-| Select 10000 rows | ? | <200ms | Benchmark |
-| Memory per connection | ? | <1MB | memory_get_usage |
-| Statement cache hit rate | N/A | >80% | Custom metric |
-
-### Compatibility Targets
-
-| Platform | Current | Target | Testing |
-|----------|---------|--------|---------|
-| Linux x64 | ✅ | ✅ | CI primary |
-| Windows x64 | ⚠️ | ✅ | AppVeyor |
-| macOS x64 | ❓ | ✅ | GitHub Actions |
-| macOS ARM64 | ❓ | ✅ | GitHub Actions |
-
-### Community Targets
-
-| Metric | Current | Target | Timeline |
-|--------|---------|--------|----------|
-| GitHub stars | ? | 500+ | 2026 |
-| Packagist downloads | ? | 50k/month | 2026 |
-| Contributors | 3 | 10+ | 2026 |
-| Doctrine recognition | No | Yes | 2026 Q2 |
+| Metric | Target |
+|--------|--------|
+| Bulk insert 1000 rows (IBatch) | <200ms |
+| Select 10000 rows | <200ms |
+| Transaction-aware query overhead | <5% |
 
 ---
 
-## Appendices
+## References
 
-### A. Polyfill Package Quick Reference
-
-```bash
-# Install all recommended polyfills
-composer require symfony/polyfill-php82 \
-                 symfony/polyfill-php83 \
-                 symfony/polyfill-php84
-```
-
-### B. PHPStan Configuration for Polyfills
-
-```neon
-# phpstan.neon.dist
-parameters:
-    phpVersion: 80100  # PHP 8.1 baseline
-    
-includes:
-    - vendor/phpstan/phpstan-strict-rules/rules.neon
-```
-
-### C. CI Matrix Configuration
-
-```yaml
-# .github/workflows/ci.yml
-jobs:
-  test:
-    strategy:
-      matrix:
-        php: ['8.1', '8.2', '8.3', '8.4']
-        firebird: ['3', '4', '5']
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        exclude:
-          - os: macos-latest
-            firebird: '5'  # Not available on Homebrew
-```
-
-### D. References
-
-- [Symfony Polyfills](https://github.com/symfony/polyfill)
-- [PHP 8.3 Release Notes](https://www.php.net/releases/8.3/en.php)
-- [PHP 8.4 Release Notes](https://www.php.net/releases/8.4/en.php)
+- [php-firebird Repository](https://github.com/satwareAG/php-firebird)
 - [Doctrine DBAL Documentation](https://www.doctrine-project.org/projects/doctrine-dbal/en/latest/)
-- [Firebird SQL Reference](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/)
-- [satwareAG/php-firebird Extension](https://github.com/satwareAG/php-firebird)
+- [Doctrine DBAL #2194 - Firebird Support](https://github.com/doctrine/dbal/issues/2194)
+- [Firebird 5.0 Release Notes](https://firebirdsql.org/file/documentation/release_notes/html/en/5_0/rlsnotes50.html)
+- [2025 PHP Database Best Practices](https://phpdelusions.net/pdo)
 
 ---
 
 *Plan created by Jane Alesi - satware® AI Platform*  
-*Last updated: 2025-12-07*
+*Last updated: 2025-12-22*
