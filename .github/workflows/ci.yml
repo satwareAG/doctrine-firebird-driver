@@ -33,12 +33,10 @@ jobs:
       fail-fast: false
       matrix:
         php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
-        firebird-version: ['2.5', '3.0', '4.0', '5.0']
+        # Note: Firebird 2.5 removed - php-firebird v7.0.0+ requires Firebird 3.0+
+        firebird-version: ['3.0', '4.0', '5.0']
         include:
           # Map Firebird versions to script suffixes and PHPUnit configs
-          - firebird-version: '2.5'
-            firebird-script-suffix: '25'
-            phpunit-config: 'phpunit-firebird25.xml'
           - firebird-version: '3.0'
             firebird-script-suffix: '30'
             phpunit-config: 'phpunit.xml'
@@ -102,8 +100,8 @@ jobs:
         run: |
           set -eu
           
+          # Note: Firebird 2.5 case removed - php-firebird v7.0.0+ requires Firebird 3.0+
           case "${MATRIX_FIREBIRD_VERSION}" in
-            '2.5') FB_SCRIPT_SUFFIX='25' ;;
             '3.0') FB_SCRIPT_SUFFIX='30' ;;
             '4.0') FB_SCRIPT_SUFFIX='40' ;;
             '5.0') FB_SCRIPT_SUFFIX='50' ;;

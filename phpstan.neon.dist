@@ -3,8 +3,12 @@ parameters:
     phpVersion: 80300
     paths:
         - src
-    # Disable parallel processing to avoid segmentation faults with php-firebird extension
-    # The extension may not be thread-safe when used with PHPStan's parallel workers
+    # WORKAROUND: Disable parallel processing to avoid segmentation faults with php-firebird extension
+    # The extension is not fork-safe - child processes inherit the parent's Firebird client library state,
+    # but when they exit, destructors run and corrupt shared memory causing SIGSEGV in remaining workers.
+    # This affects PHPStan, Psalm, and any tool using pcntl_fork() when ext-firebird is loaded.
+    # See: https://github.com/satwareAG/php-firebird/issues/22
+    # See: docs/issues/2025-12-23-phpstan-parallel-segfault-investigation.md
     parallel:
         maximumNumberOfProcesses: 1
     stubFiles:
