@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 use function array_key_exists;
@@ -29,6 +30,12 @@ final class ConnectionWrapper extends Connection
 
     public function extractIdentityColumn(string $sql): string
     {
+        $platform = $this->getDatabasePlatform();
+
+        if (! $platform->supportsIdentityColumns() && ! $platform instanceof FirebirdPlatform) {
+            return $sql;
+        }
+
         static $identityColumnTables = [];
         $table                       = $this->getTableNameFromInsert($sql);
         if ($table !== null) {

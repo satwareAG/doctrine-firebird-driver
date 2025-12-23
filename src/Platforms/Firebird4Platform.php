@@ -20,6 +20,15 @@ use Doctrine\DBAL\Types\Types;
 class Firebird4Platform extends Firebird3Platform
 {
     /**
+     * Firebird 4 returns TIMESTAMP WITH TIME ZONE values as
+     * "Y-m-d H:i:s <TimezoneIdentifier>" (example: "2010-04-05 10:10:10 Europe/Berlin").
+     */
+    public function getDateTimeTzFormatString(): string
+    {
+        return 'Y-m-d H:i:s e';
+    }
+
+    /**
      * {@inheritDoc}
      *
      * @param array<array-key, mixed> $column

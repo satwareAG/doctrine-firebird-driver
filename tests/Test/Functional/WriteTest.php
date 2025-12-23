@@ -176,9 +176,12 @@ class WriteTest extends FunctionalTestCase
 
     public function testLastInsertIdNoSequenceGiven(): void
     {
+        $platform = $this->connection->getDatabasePlatform();
+
         if (
-            ! $this->connection->getDatabasePlatform()->supportsSequences()
-            || $this->connection->getDatabasePlatform()->supportsIdentityColumns()
+            ! $platform->supportsSequences()
+            || $platform->supportsIdentityColumns()
+            || $platform->usesSequenceEmulatedIdentityColumns()
         ) {
             self::markTestSkipped(
                 "Test only works consistently on platforms that support sequences and don't support identity columns.",
