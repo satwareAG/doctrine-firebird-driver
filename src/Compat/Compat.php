@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Compat;
 
-use function array_all;
-use function array_any;
-use function array_find;
-use function array_find_key;
 use function array_is_list;
 use function assert;
 use function json_validate;
@@ -61,8 +57,13 @@ final class Compat
      */
     public static function arrayFind(array $array, callable $callback): mixed
     {
-        // Polyfill provides array_find() on PHP < 8.4
-        return array_find($array, $callback);
+        foreach ($array as $value) {
+            if ($callback($value)) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -78,8 +79,13 @@ final class Compat
      */
     public static function arrayFindKey(array $array, callable $callback): int|string|null
     {
-        // Polyfill provides array_find_key() on PHP < 8.4
-        return array_find_key($array, $callback);
+        foreach ($array as $key => $value) {
+            if ($callback($value)) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -94,8 +100,13 @@ final class Compat
      */
     public static function arrayAny(array $array, callable $callback): bool
     {
-        // Polyfill provides array_any() on PHP < 8.4
-        return array_any($array, $callback);
+        foreach ($array as $value) {
+            if ($callback($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -110,8 +121,13 @@ final class Compat
      */
     public static function arrayAll(array $array, callable $callback): bool
     {
-        // Polyfill provides array_all() on PHP < 8.4
-        return array_all($array, $callback);
+        foreach ($array as $value) {
+            if (! $callback($value)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
