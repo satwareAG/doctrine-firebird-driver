@@ -17,7 +17,8 @@ services:
       TZ: Europe/Berlin
       FIREBIRD_DATABASE: test.fdb
     healthcheck:
-      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +36,8 @@ services:
       TZ: Europe/Berlin
       FIREBIRD_DATABASE: test.fdb
     healthcheck:
-      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,7 +54,8 @@ services:
       ISC_PASSWORD: masterkey
       TZ: Europe/Berlin
     healthcheck:
-      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:/firebird/data/test.fdb || exit 1"]
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:/firebird/data/test.fdb || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -72,7 +75,8 @@ services:
     ports:
       - "3050:3050"
     healthcheck:
-      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
+      # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

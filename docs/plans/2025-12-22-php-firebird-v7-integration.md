@@ -1,7 +1,7 @@
 # php-firebird v7.0.0 Integration Plan
 
 **Date**: 2025-12-22  
-**Status**: CI Updated - Testing v7.0.0-rc.2  
+**Status**: CI Updated - Testing v7.0.0-rc.3 ✅  
 **Objective**: Integrate all advanced php-firebird v7 features into doctrine-firebird-driver
 
 ---
@@ -22,6 +22,36 @@
 |------|--------|
 | `.github/workflows/ci.yml` | Updated to use `v7.0.0-rc.2`, `--with-firebird`, `ext-firebird` |
 | `composer.json` | Changed `ext-interbase` → `ext-firebird` |
+
+---
+
+## v7.0.0-rc.3 Docker Infrastructure (2025-12-23) ✅
+
+**Updated**: 2025-12-23 06:59 UTC
+
+### Dockerfile Update
+- Updated `tests/app/Dockerfile` to use `v7.0.0-rc.3` branch
+
+### CQC (Code Quality Check) Fixes
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **PHPStan segfault** | `Child process error (exit code 139): Segmentation fault (core dumped) while running parallel worker` | Disabled parallel processing in `phpstan.neon.dist` with `parallel: maximumNumberOfProcesses: 1` |
+| **DATABASE variable warning** | `WARN[0000] The "DATABASE" variable is not set. Defaulting to a blank string.` | Escaped `$DATABASE` as `$$DATABASE` in all 4 Firebird healthcheck commands in `tests/docker-compose.yml` |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `phpstan.neon.dist` | Added `parallel: maximumNumberOfProcesses: 1` to prevent segfault in Docker container |
+| `tests/docker-compose.yml` | Escaped `RDB$DATABASE` as `RDB$$DATABASE` in healthcheck commands for firebird5, firebird4, firebird3, and firebird25 services |
+
+### Verification Results
+- **PHPUnit tests**: 1585 tests, 3354 assertions ✅
+- **PHPCS**: PASSED ✅
+- **PHPStan**: PASSED (no parallel worker crash) ✅
+- **Psalm**: PASSED ✅
+- **docker-cqc.sh --quick**: Completed in 29s ✅
 
 ---
 
