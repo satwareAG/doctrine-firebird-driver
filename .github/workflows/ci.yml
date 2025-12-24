@@ -174,14 +174,12 @@ jobs:
         run: |
           set -eu
           
-          # Install dependencies - ext-firebird should now be loaded
-          if php -m | grep -q -i firebird; then
-            echo "✅ ext-firebird detected, installing normally..."
-            composer install --prefer-dist --no-progress
-          else
-            echo "⚠️ ext-firebird NOT detected, ignoring platform req..."
-            composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
-          fi
+          # Always ignore ext-firebird platform req in CI because:
+          # 1. We build php-firebird from source (reports version 1.0.0)
+          # 2. composer.json requires ^7.0.0-rc.x (version mismatch)
+          # The extension IS loaded, just version differs from git tag
+          php -m | grep -i firebird && echo "✅ ext-firebird loaded"
+          composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
 
       - name: Prepare PHPUnit configuration for CI
         env:
