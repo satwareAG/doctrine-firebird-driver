@@ -286,7 +286,7 @@ run_psalm() {
     run_in_docker "vendor/bin/psalm --set-baseline=psalm-baseline.xml --no-cache 2>&1 | tee tests/var/reports/psalm-report.txt" || true
     
     # Final analysis
-    if run_in_docker "vendor/bin/psalm --no-cache --output-format=text"; then
+    if run_in_docker "vendor/bin/psalm --no-cache --show-info=false --output-format=text"; then
         print_success "Psalm: PASSED"
     else
         print_info "Psalm: Completed with baseline (check psalm-baseline.xml for known issues)"
