@@ -147,6 +147,14 @@ final class Connection implements ServerInfoAwareConnection
     {
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
+        
+        // Enable Exception Mode API if available (php-firebird v7.0.0-rc.6+)
+        // This provides PDO::ERRMODE_EXCEPTION-like behavior where Firebird API
+        // functions throw Firebird\Exception instead of returning false on errors
+        if (function_exists('fbird_set_exception_mode') && defined('FBIRD_EXCEPTION_MODE_THROW')) {
+            fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
+        }
+        
         if ($connection !== null) {
             $this->firebirdActiveTransaction = $this->createTransaction();
         }

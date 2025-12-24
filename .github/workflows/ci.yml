@@ -281,8 +281,8 @@ jobs:
           export CFLAGS="-I/opt/firebird/include ${CFLAGS:-}"
           export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
           
-          echo "Building php-firebird v7.0.0-rc.5 (modern firebird) for Firebird ${MATRIX_FIREBIRD_VERSION}"
-          git clone --depth 1 --branch v7.0.0-rc.5 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v7.0.0-rc.6 (modern firebird) for Firebird ${MATRIX_FIREBIRD_VERSION}"
+          git clone --depth 1 --branch v7.0.0-rc.6 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           ./configure --with-firebird=/opt/firebird

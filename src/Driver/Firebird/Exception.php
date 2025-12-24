@@ -68,6 +68,39 @@ class Exception extends BaseException implements DriverException
     }
 
     /**
+     * Create exception from Firebird\Exception (Exception Mode API).
+     *
+     * When Exception Mode is enabled (php-firebird v7.0.0-rc.6+), Firebird API
+     * functions throw Firebird\Exception instead of returning false. This factory
+     * method converts these native exceptions to Doctrine DriverException.
+     *
+     * The Firebird\Exception class provides getSqlState() method directly,
+     * making error classification more reliable than fetching via fbird_sqlstate().
+     *
+     * @param \Firebird\Exception $exception The native Firebird exception
+     * @phpstan-param \Throwable $exception
+     * @phpstan-ignore parameter.notFound
+     */
+    public static function fromFirebirdException(\Firebird\Exception $exception): Exception
+    {
+        // Use getSqlState() from Firebird\Exception if available (more reliable)
+        /** @phpstan-ignore method.nonObject */
+        $sqlState = method_exists($exception, 'getSqlState')
+            /** @phpstan-ignore method.nonObject */
+            ? $exception->getSqlState()
+            : self::fetchSqlState();
+
+        return new self(
+            /** @phpstan-ignore method.nonObject */
+            $exception->getMessage(),
+            $sqlState,
+            /** @phpstan-ignore method.nonObject */
+            $exception->getCode(),
+            $exception,
+        );
+    }
+
+    /**
      * Get the SQLSTATE error code.
      *
      * Returns a 5-character SQLSTATE code if available, or null if:
