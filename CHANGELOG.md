@@ -38,6 +38,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Mitigation**: For performance-critical queries, filter by indexed columns first or validate parameters at application level
 
 ### Added
+- **php-firebird v7.0.0-rc.6 Adoption** (Issues #28, #29, #34, #35)
+  - Upgraded CI pipeline from php-firebird v7.0.0-rc.5 to v7.0.0-rc.6
+  - **Exception Mode API**: Firebird functions now throw `Firebird\Exception` instead of returning false (similar to PDO::ERRMODE_EXCEPTION)
+  - **SQLSTATE-based Error Classification**: Enhanced exception converter with SQL:2003 standard 5-character SQLSTATE codes
+    - Class 08: Connection exceptions
+    - Class 23: Constraint violations (unique, foreign key, not null, check constraints)
+    - Class 28: Authorization/authentication failures
+    - Class 40: Deadlock/serialization failures
+    - Class 42: Syntax errors
+  - Added `Exception::fromFirebirdException()` factory method to convert native exceptions to Doctrine exceptions
+  - All changes maintain backward compatibility with earlier php-firebird versions using feature detection
+  - Fork-safety improvements: rc.6 fixes segmentation faults in PHPStan/PHPUnit parallel mode
+  - See: `docs/issues/2025-12-24-php-firebird-v7-rc6-adoption.md` for complete technical details
 - **Configurable LIKE CAST Length** (`firebird.like_cast_length` parameter)
   - Allows customization of VARCHAR length used in LIKE column CAST operations
   - Default: 255 (backward compatible, zero breaking changes)
