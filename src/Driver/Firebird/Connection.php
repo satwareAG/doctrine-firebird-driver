@@ -185,12 +185,22 @@ final class Connection implements ServerInfoAwareConnection
             $type = get_resource_type($this->firebirdActiveTransaction);
             if (in_array($type, self::RESOURCE_TYPES_TRANSACTION, true)) {
                 // Try commit first, but if it fails (e.g., due to FK constraint locks),
-                // fall back to rollback. Suppress warnings since this is cleanup code.
-                // The @ operator prevents PHP warnings during destructor cleanup which
-                // cannot be reasonably handled at this point.
-                if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                    // If commit fails, try rollback to clean up gracefully
-                    @fbird_rollback($this->firebirdActiveTransaction);
+                // fall back to rollback. Wrap in try-catch because Exception Mode (php-firebird
+                // v7.0.0+) throws Firebird\Exception even with @ suppression. Destructors must
+                // not throw exceptions, so we silently catch any errors during cleanup.
+                try {
+                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                        // If commit fails, try rollback to clean up gracefully
+                        @fbird_rollback($this->firebirdActiveTransaction);
+                    }
+                } catch (\Throwable) {
+                    // Silently ignore exceptions during destructor cleanup.
+                    // Destructors cannot throw; best effort cleanup only.
+                    try {
+                        @fbird_rollback($this->firebirdActiveTransaction);
+                    } catch (\Throwable) {
+                        // Ignore - nothing more we can do during destruction
+                    }
                 }
             }
 
