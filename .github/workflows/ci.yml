@@ -15,6 +15,26 @@ on:
   schedule:
     - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
 
+# ==============================================================================
+# PHP VERSION MANAGEMENT - READ BEFORE MODIFYING MATRIX
+# ==============================================================================
+# Before adding a PHP version to the matrix, VERIFY availability:
+#
+# 1. Check php.net/supported-versions.php for release status
+# 2. Verify Docker image exists: docker manifest inspect php:X.Y-cli-bookworm
+# 3. Test locally with: docker pull php:X.Y-cli-bookworm
+#
+# PHP Release Schedule (annual, November):
+# - PHP 8.1: Nov 2021 - Security until Dec 2025 (EOL imminent)
+# - PHP 8.2: Dec 2022 - Security until Dec 2026
+# - PHP 8.3: Nov 2023 - Active until Dec 2025, Security until Dec 2027
+# - PHP 8.4: Nov 2024 - Active until Dec 2026, Security until Dec 2028
+# - PHP 8.5: Nov 2025 - Active until Dec 2027, Security until Dec 2029
+# - PHP 8.6: Expected Nov 2026 (DO NOT ADD until Docker image available)
+#
+# Docker Hub PHP images are published AFTER GA release, not for alpha/beta/RC.
+# ==============================================================================
+
 jobs:
   test:
     name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird-version }}
@@ -32,8 +52,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Note: PHP 8.5 excluded until officially released
-        php-version: ['8.1', '8.2', '8.3', '8.4']
+        # PHP versions - must be released GA with Docker Hub image available
+        # See header comment for verification steps before adding new versions
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
         # Note: Firebird 2.5 removed - php-firebird v7.0.0+ requires Firebird 3.0+
         firebird-version: ['3.0', '4.0', '5.0']
         include:
