@@ -107,10 +107,23 @@ final class Result implements ResultInterface
                 // See https://github.com/satwareAG/php-firebird/issues/23
                 $normalized = [];
                 foreach ($result as $key => $value) {
+                    $keyString = (string) $key;
+                    // Debug keys for system tables
+                    if (str_starts_with($keyString, 'RDB$')) {
+                        // echo "DEBUG: Original Key: '" . $keyString . "'\n";
+                    }
+
                     // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
-                    $key = preg_replace('/\s+(?=_\d+$)/', '', (string) $key);
+                    // Note: Adding 'u' modifier for unicode support just in case, though usually ASCII
+                    $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString);
                     // 2. Trim surrounding spaces
-                    $normalized[trim((string) $key)] = $value;
+                    $finalKey = trim($keyString);
+                    
+                    if (str_starts_with($keyString, 'RDB$') && $finalKey !== $key) {
+                       // echo "DEBUG: Normalized Key: '" . $finalKey . "'\n";
+                    }
+
+                    $normalized[$finalKey] = $value;
                 }
 
                 return $normalized;
