@@ -316,6 +316,8 @@ jobs:
           fi
 
       - name: Install Composer dependencies
+        env:
+          MATRIX_FIREBIRD_VERSION: ${{ matrix.firebird-version }}
         run: |
           set -eu
           
@@ -323,7 +325,12 @@ jobs:
           curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
           
           # Install dependencies
-          composer install --prefer-dist --no-progress
+          if [ "${MATRIX_FIREBIRD_VERSION}" = "3.0" ]; then
+            # Firebird 3.0 uses php-firebird v6.2.0 which provides ext-interbase, not ext-firebird
+            composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+          else
+            composer install --prefer-dist --no-progress
+          fi
 
       - name: Prepare PHPUnit configuration for CI
         env:
