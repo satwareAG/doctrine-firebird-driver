@@ -269,7 +269,7 @@ class Statement implements StatementInterface
                         (string) fbird_errmsg(),
                     ));
                 }
-            } catch (\Firebird\Exception $e) {
+            } catch (\Throwable $e) {
                 throw Exception::fromThrowable($e);
             }
 
@@ -309,7 +309,7 @@ class Statement implements StatementInterface
                         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
                         try {
                             $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
-                        } catch (\Firebird\Exception $e) {
+                        } catch (\Throwable $e) {
                             throw Exception::fromThrowable($e);
                         }
 

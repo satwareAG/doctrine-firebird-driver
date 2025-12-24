@@ -90,7 +90,7 @@ final class Result implements ResultInterface
                 // Also commit transaction if autocommit is enabled to keep transaction log clean
                 $this->free();
                 $this->connection->autoCommit();
-            } catch (\Firebird\Exception $e) {
+            } catch (\Throwable $e) {
                 throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
             }
         }
@@ -107,7 +107,7 @@ final class Result implements ResultInterface
             try {
                 // @todo remove @ when fbird_fetch_assoc() doesn't warn
                 $result = @fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
-            } catch (\Firebird\Exception $e) {
+            } catch (\Throwable $e) {
                 throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
             }
 
@@ -236,7 +236,7 @@ final class Result implements ResultInterface
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
             $result = @fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
-        } catch (\Firebird\Exception $e) {
+        } catch (\Throwable $e) {
             throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
         }
 
@@ -281,7 +281,7 @@ final class Result implements ResultInterface
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
             $result = @fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
-        } catch (\Firebird\Exception $e) {
+        } catch (\Throwable $e) {
             throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
         }
 
