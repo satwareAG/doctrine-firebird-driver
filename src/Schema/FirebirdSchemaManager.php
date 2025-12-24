@@ -22,6 +22,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_change_key_case;
 use function array_merge;
+use function dirname;
 use function fbird_close;
 use function fbird_connect;
 use function fbird_drop_db;
@@ -119,10 +120,22 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      */
     public function createDatabase($database): void
     {
-        $params           = $this->_conn->getParams();
+        $params  = $this->_conn->getParams();
+        $charset = $params['charset'] ?? 'UTF8';
+        $user    = $params['user'] ?? '';
+
+        // If database name is not an absolute path, resolve it relative to the
+        // original database directory to ensure it can be created by Firebird.
+        $originalDbname = $params['dbname'] ?? '';
+        if ($database !== '' && $database[0] !== '/' && ! str_contains($database, ':')) {
+            // Extract directory from original dbname
+            $dir = dirname($originalDbname);
+            if ($dir !== '' && $dir !== '.') {
+                $database = $dir . '/' . $database;
+            }
+        }
+
         $params['dbname'] = $database;
-        $charset          = $params['charset'] ?? 'UTF8';
-        $user             = $params['user'] ?? '';
         $password         = $params['password'] ?? '';
         $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
