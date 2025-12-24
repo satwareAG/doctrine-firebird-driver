@@ -281,39 +281,21 @@ jobs:
           export CFLAGS="-I/opt/firebird/include ${CFLAGS:-}"
           export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
           
-          if [ "${MATRIX_FIREBIRD_VERSION}" = "3.0" ]; then
-            echo "Building php-firebird v6.2.0 (legacy interbase) for Firebird 3.0"
-            git clone --depth 1 --branch v6.2.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
-            cd /tmp/php-firebird
-            phpize
-            ./configure --with-interbase=/opt/firebird
-            make -j"$(nproc)"
-            make install
-            
-            PHP_INI_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
-            [ -z "${PHP_INI_DIR}" ] && PHP_INI_DIR="/usr/local/etc/php/conf.d"
-            mkdir -p "${PHP_INI_DIR}"
-            echo "extension=interbase.so" > "${PHP_INI_DIR}/docker-php-ext-interbase.ini"
-            
-            php -m | grep -i interbase
-            php -r "echo 'Interbase extension version: ' . phpversion('interbase') . PHP_EOL;"
-          else
-            echo "Building php-firebird v7.0.0-rc.4 (modern firebird) for Firebird ${MATRIX_FIREBIRD_VERSION}"
-            git clone --depth 1 --branch v7.0.0-rc.4 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
-            cd /tmp/php-firebird
-            phpize
-            ./configure --with-firebird=/opt/firebird
-            make -j"$(nproc)"
-            make install
-            
-            PHP_INI_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
-            [ -z "${PHP_INI_DIR}" ] && PHP_INI_DIR="/usr/local/etc/php/conf.d"
-            mkdir -p "${PHP_INI_DIR}"
-            echo "extension=firebird.so" > "${PHP_INI_DIR}/docker-php-ext-firebird.ini"
-            
-            php -m | grep -i firebird
-            php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
-          fi
+          echo "Building php-firebird v7.0.0-rc.5 (modern firebird) for Firebird ${MATRIX_FIREBIRD_VERSION}"
+          git clone --depth 1 --branch v7.0.0-rc.5 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          cd /tmp/php-firebird
+          phpize
+          ./configure --with-firebird=/opt/firebird
+          make -j"$(nproc)"
+          make install
+          
+          PHP_INI_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
+          [ -z "${PHP_INI_DIR}" ] && PHP_INI_DIR="/usr/local/etc/php/conf.d"
+          mkdir -p "${PHP_INI_DIR}"
+          echo "extension=firebird.so" > "${PHP_INI_DIR}/docker-php-ext-firebird.ini"
+          
+          php -m | grep -i firebird
+          php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
 
       - name: Install Composer dependencies
         run: |

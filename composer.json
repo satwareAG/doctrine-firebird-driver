@@ -48,8 +48,7 @@
             "Satag\\DoctrineFirebirdDriver\\": "src/"
         },
         "files": [
-            "src/Compat/Compat.php",
-            "src/Compat/InterbaseShim.php"
+            "src/Compat/Compat.php"
         ]
     },
     "extra": {
