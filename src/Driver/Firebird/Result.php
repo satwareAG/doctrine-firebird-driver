@@ -91,7 +91,7 @@ final class Result implements ResultInterface
                 $this->free();
                 $this->connection->autoCommit();
             } catch (\Firebird\Exception $e) {
-                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
             }
         }
 
@@ -108,7 +108,7 @@ final class Result implements ResultInterface
                 // @todo remove @ when fbird_fetch_assoc() doesn't warn
                 $result = @fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             } catch (\Firebird\Exception $e) {
-                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
             }
 
             if (is_array($result)) {
@@ -237,7 +237,7 @@ final class Result implements ResultInterface
         try {
             $result = @fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
         } catch (\Firebird\Exception $e) {
-            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
         }
 
         if (is_array($result)) {
@@ -282,7 +282,7 @@ final class Result implements ResultInterface
         try {
             $result = @fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
         } catch (\Firebird\Exception $e) {
-            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
         }
 
         if (is_array($result)) {

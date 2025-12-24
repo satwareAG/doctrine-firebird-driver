@@ -69,23 +69,34 @@ class Exception extends BaseException implements DriverException
     }
 
     /**
-     * Create exception from Firebird\Exception (Exception Mode API).
+     * Create exception from any Throwable (Exception Mode compatible).
      *
      * When Exception Mode is enabled (php-firebird v7.0.0-rc.6+), Firebird API
      * functions throw Firebird\Exception instead of returning false. This factory
      * method converts these native exceptions to Doctrine DriverException.
      *
-     * The Firebird\Exception class provides getSqlState() method directly,
-     * making error classification more reliable than fetching via fbird_sqlstate().
+     * This method accepts \Throwable to satisfy PHPStan when the extension is
+     * not loaded (CI environment). At runtime, it checks if the exception is
+     * Firebird\Exception and extracts SQLSTATE if available.
      *
-     * @param \Firebird\Exception $exception The native Firebird exception
+     * @param Throwable $exception The exception to convert
      */
-    public static function fromFirebirdException(\Firebird\Exception $exception): Exception
+    public static function fromThrowable(Throwable $exception): Exception
     {
-        // Use getSqlState() from Firebird\Exception if available (more reliable)
-        $sqlState = method_exists($exception, 'getSqlState')
-            ? $exception->getSqlState()
-            : self::fetchSqlState();
+        // If already a DriverException, wrap it
+        if ($exception instanceof Exception) {
+            return $exception;
+        }
+
+        // Check if it's a Firebird\Exception and extract SQLSTATE
+        $sqlState = null;
+        if (method_exists($exception, 'getSqlState')) {
+            $sqlState = $exception->getSqlState();
+        }
+
+        if ($sqlState === null) {
+            $sqlState = self::fetchSqlState();
+        }
 
         return new self(
             $exception->getMessage(),
@@ -93,6 +104,18 @@ class Exception extends BaseException implements DriverException
             $exception->getCode(),
             $exception,
         );
+    }
+
+    /**
+     * Create exception from Firebird\Exception (Exception Mode API).
+     *
+     * @deprecated Use fromThrowable() instead for PHPStan compatibility
+     *
+     * @param \Firebird\Exception $exception The native Firebird exception
+     */
+    public static function fromFirebirdException(\Firebird\Exception $exception): Exception
+    {
+        return self::fromThrowable($exception);
     }
 
     /**

@@ -10,6 +10,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use SensitiveParameter;
+use Throwable;
 
 use function fbird_connect;
 use function fbird_errcode;
@@ -56,7 +57,12 @@ final class Driver extends FirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        $firebirdService = @fbird_service_attach($host, $username, $password);
+        try {
+            $firebirdService = @fbird_service_attach($host, $username, $password);
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
+
         if (! is_resource($firebirdService)) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
@@ -68,10 +74,14 @@ final class Driver extends FirebirdDriver
 
         unset($firebirdService);
 
-        if ($persistent) {
-            $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
-        } else {
-            $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+        try {
+            if ($persistent) {
+                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            } else {
+                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            }
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
 
         $notFoundException = null;

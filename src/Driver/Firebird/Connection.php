@@ -50,6 +50,7 @@ use function fbird_release_savepoint;
 use function fbird_rollback;
 use function fbird_rollback_savepoint;
 use function fbird_savepoint;
+use function fbird_set_exception_mode;
 use function fbird_trans_start;
 use function function_exists;
 use function get_resource_type;
@@ -70,6 +71,7 @@ use function version_compare;
 use const FBIRD_COMMITTED;
 use const FBIRD_CONCURRENCY;
 use const FBIRD_CONSISTENCY;
+use const FBIRD_EXCEPTION_MODE_THROW;
 use const FBIRD_NOWAIT;
 use const FBIRD_REC_VERSION;
 use const FBIRD_WAIT;
@@ -301,7 +303,7 @@ final class Connection implements ServerInfoAwareConnection
                 $this->checkLastApiCall();
             }
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
 
         return new Statement(
@@ -423,7 +425,7 @@ final class Connection implements ServerInfoAwareConnection
                         // Ignore rollback exception during cleanup
                     }
 
-                    throw DriverException::fromFirebirdException($e);
+                    throw DriverException::fromThrowable($e);
                 }
             }
 
@@ -470,7 +472,7 @@ final class Connection implements ServerInfoAwareConnection
                     // Ignore rollback exception during cleanup
                 }
 
-                throw DriverException::fromFirebirdException($e);
+                throw DriverException::fromThrowable($e);
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
@@ -511,7 +513,7 @@ final class Connection implements ServerInfoAwareConnection
 
             $this->checkLastApiCall();
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
     }
 
@@ -611,7 +613,7 @@ final class Connection implements ServerInfoAwareConnection
                 throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
             }
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
     }
 
@@ -638,7 +640,7 @@ final class Connection implements ServerInfoAwareConnection
                 throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
             }
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
     }
 
@@ -665,7 +667,7 @@ final class Connection implements ServerInfoAwareConnection
                 throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
             }
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
     }
 
@@ -1206,7 +1208,7 @@ final class Connection implements ServerInfoAwareConnection
 
             return $result;
         } catch (\Firebird\Exception $e) {
-            throw DriverException::fromFirebirdException($e);
+            throw DriverException::fromThrowable($e);
         }
     }
 }

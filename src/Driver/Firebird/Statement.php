@@ -270,7 +270,7 @@ class Statement implements StatementInterface
                     ));
                 }
             } catch (\Firebird\Exception $e) {
-                throw Exception::fromFirebirdException($e);
+                throw Exception::fromThrowable($e);
             }
 
             // Result seems ok - is either #rows or result handle
@@ -310,7 +310,7 @@ class Statement implements StatementInterface
                         try {
                             $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
                         } catch (\Firebird\Exception $e) {
-                            throw Exception::fromFirebirdException($e);
+                            throw Exception::fromThrowable($e);
                         }
 
                         if ($returnedRow !== false && is_array($returnedRow)) {

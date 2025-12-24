@@ -75,7 +75,12 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
 
         // Suppress warning since we handle the error explicitly below
-        $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+        try {
+            $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+        } catch (\Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
+
         if (! is_resource($connection)) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
@@ -87,9 +92,13 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         $this->_conn->close();
-        $result = fbird_drop_db(
-            $connection,
-        );
+        try {
+            $result = fbird_drop_db(
+                $connection,
+            );
+        } catch (\Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
         if (! $result) {
             throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
         }
@@ -119,17 +128,21 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
         /** @psalm-suppress InvalidArgument */
-        $result = fbird_query(
-            FBIRD_CREATE,
-            sprintf(
-                "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
-                $dbname,
-                (int) $pageSize,
-                $user,
-                $password,
-                $charset,
-            ),
-        );
+        try {
+            $result = fbird_query(
+                FBIRD_CREATE,
+                sprintf(
+                    "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
+                    $dbname,
+                    (int) $pageSize,
+                    $user,
+                    $password,
+                    $charset,
+                ),
+            );
+        } catch (\Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
 
         if (! is_resource($result)) {
             $code = (int) fbird_errcode();

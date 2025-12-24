@@ -17,6 +17,9 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
+    <InvalidArgument>
+      <code><![CDATA[$params]]></code>
+    </InvalidArgument>
     <InvalidReturnStatement>
       <code><![CDATA[$result]]></code>
     </InvalidReturnStatement>
@@ -41,8 +44,17 @@
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
+    <UnusedFunctionCall>
+      <code><![CDATA[fbird_set_exception_mode]]></code>
+    </UnusedFunctionCall>
+    <UnusedVariable>
+      <code><![CDATA[$success]]></code>
+    </UnusedVariable>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$exception->getCode()]]></code>
+    </PossiblyInvalidArgument>
     <PossiblyUnusedMethod>
       <code><![CDATA[fromFirebirdException]]></code>
     </PossiblyUnusedMethod>
@@ -61,6 +73,10 @@
     <PossiblyFalseArgument>
       <code><![CDATA[$callArgs]]></code>
     </PossiblyFalseArgument>
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$key]]></code>
+      <code><![CDATA[$key]]></code>
+    </PossiblyInvalidArgument>
     <RedundantCondition>
       <code><![CDATA[$fbirdResultRc === true]]></code>
       <code><![CDATA[is_resource($variable)]]></code>
