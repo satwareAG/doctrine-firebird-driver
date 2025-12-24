@@ -201,12 +201,22 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
+			message: "#^Used function fbird_connection_info not found\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
 			message: "#^Used function fbird_drop_table_force not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
 			message: "#^Used function fbird_execute_auto not found\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Used function fbird_get_limbo_transactions not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
@@ -222,6 +232,11 @@ parameters:
 
 		-
 			message: "#^Used function fbird_query_params_tx not found\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Used function fbird_reconnect_transaction not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
@@ -256,9 +271,39 @@ parameters:
 			path: src/Driver/Firebird/Driver.php
 
 		-
+			message: "#^Call to method getCode\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Exception.php
+
+		-
+			message: "#^Call to method getMessage\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Exception.php
+
+		-
+			message: "#^Call to method getSqlState\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Exception.php
+
+		-
+			message: "#^Parameter \\#4 \\$previous of class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Exception constructor expects Throwable\\|null, Firebird\\\\Exception given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Exception.php
+
+		-
+			message: "#^Parameter \\$exception of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Exception\\:\\:fromFirebirdException\\(\\) has invalid type Firebird\\\\Exception\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Exception.php
+
+		-
 			message: "#^Used function fbird_sqlstate not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Exception.php
+
+		-
+			message: "#^Call to function method_exists\\(\\) with Doctrine\\\\DBAL\\\\Driver\\\\Exception&Firebird\\\\Exception and 'getSqlState' will always evaluate to true\\.$#"
+			count: 1
+			path: src/Driver/Firebird/ExceptionConverter.php
 
 		-
 			message: "#^Constant FBIRD_FETCH_BLOBS not found\\.$#"
@@ -272,6 +317,11 @@ parameters:
 
 		-
 			message: "#^Used constant FBIRD_FETCH_BLOBS not found\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
+			message: "#^Used constant FBIRD_FETCH_DATE_OBJ not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Result.php
 
