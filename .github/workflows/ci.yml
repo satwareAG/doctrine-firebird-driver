@@ -83,6 +83,12 @@ jobs:
           set -eu
           export DEBIAN_FRONTEND=noninteractive
           
+          # Fix "apt does not have a stable CLI interface" warning
+          echo 'Apt::Cmd::Disable-Script-Warning "true";' > /etc/apt/apt.conf.d/99-disable-script-warning
+          
+          # Fix "update-alternatives: warning: skip creation of /usr/share/man/man1/yacc.1.gz"
+          mkdir -p /usr/share/man/man1
+          
           for attempt in 1 2 3; do
             if apt-get update; then
               break
@@ -260,6 +266,9 @@ jobs:
       - name: Build PHP firebird extension from source
         run: |
           set -eu
+          
+          # Fix "shtool:echo:Warning: unable to determine terminal sequence for bold mode"
+          export TERM=xterm-256color
           
           export PATH="/opt/firebird/bin:${PATH}"
           export LD_LIBRARY_PATH="/opt/firebird/lib:${LD_LIBRARY_PATH:-}"
