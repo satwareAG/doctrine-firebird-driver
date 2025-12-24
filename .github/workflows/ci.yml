@@ -182,22 +182,39 @@ jobs:
         run: |
           set -eu
           
+          echo "Applying 'Stop-Configure-Start' strategy..."
+          
+          # 1. STOP (Robust)
+          # Explicitly stop services to ensure clean state before config change
+          echo "Stopping Firebird..."
+          if [ -x /etc/init.d/firebird ]; then
+            /etc/init.d/firebird stop || true
+          fi
+          
+          # Force kill sequence for containers/act where init system fails
+          # CRITICAL: Kill fbguard (watchdog) FIRST to prevent auto-restart logic
+          pkill -f fbguard || true
+          sleep 1
+          pkill -f fbserver || true
+          sleep 2
+          
+          # 2. CONFIGURE
           # Allow DatabaseAccess = Full for test databases in /tmp
           FIREBIRD_CONF="/opt/firebird/firebird.conf"
           if [ -f "${FIREBIRD_CONF}" ]; then
             echo "Configuring DatabaseAccess = Full in ${FIREBIRD_CONF}"
             sed -i 's/^#*DatabaseAccess.*$/DatabaseAccess = Full/' "${FIREBIRD_CONF}" || \
               echo "DatabaseAccess = Full" >> "${FIREBIRD_CONF}"
-            
-            # Restart Firebird to apply config
-            if [ -x /etc/init.d/firebird ]; then
-              /etc/init.d/firebird restart || true
-            elif [ -x /opt/firebird/bin/fbguard ]; then
-              pkill -f fbserver || true
-              pkill -f fbguard || true
-              sleep 2
-              /opt/firebird/bin/fbguard -daemon || true
-            fi
+          fi
+          
+          # 3. START
+          echo "Starting Firebird..."
+          if [ -x /etc/init.d/firebird ]; then
+            /etc/init.d/firebird start || true
+          elif [ -x /opt/firebird/bin/fbguard ]; then
+            /opt/firebird/bin/fbguard -daemon || true
+          elif [ -x /opt/firebird/bin/fbserver ]; then
+            /opt/firebird/bin/fbserver -daemon || true
           fi
           
           # Create test database directory
