@@ -21,6 +21,8 @@ use function in_array;
 use function is_array;
 use function is_numeric;
 use function is_resource;
+use function preg_replace;
+use function trim;
 
 use const FBIRD_FETCH_BLOBS;
 use const FBIRD_FETCH_DATE_OBJ;
@@ -98,14 +100,20 @@ final class Result implements ResultInterface
             $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
                 // Firebird 3.0+ may return padded aliases (e.g. "COLUMN   "), causing issues
-                // with Doctrine's column mapping. We need to trim keys to ensure consistency.
+                // with Doctrine's column mapping. We need to normalize keys to ensure consistency.
+                // The php-firebird extension appends unique suffixes (e.g. _01) AFTER padding.
+                // Examples: "COLUMN   ", "COLUMN   _01"
+                // We need to convert them to: "COLUMN", "COLUMN_01"
                 // See https://github.com/satwareAG/php-firebird/issues/23
-                $trimmed = [];
+                $normalized = [];
                 foreach ($result as $key => $value) {
-                    $trimmed[trim($key)] = $value;
+                    // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
+                    $key = preg_replace('/\s+(?=_\d+$)/', '', (string) $key);
+                    // 2. Trim surrounding spaces
+                    $normalized[trim((string) $key)] = $value;
                 }
 
-                return $trimmed;
+                return $normalized;
             }
 
             $this->free();
@@ -242,13 +250,16 @@ final class Result implements ResultInterface
         $result     = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
 
         if (is_array($result)) {
-            // Trim keys to handle Firebird 3.0+ padded aliases
-            $trimmed = [];
+            // Normalize keys to handle Firebird 3.0+ padded aliases and suffixes
+            $normalized = [];
             foreach ($result as $key => $value) {
-                $trimmed[trim($key)] = $value;
+                // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
+                $key = preg_replace('/\s+(?=_\d+$)/', '', (string) $key);
+                // 2. Trim surrounding spaces
+                $normalized[trim((string) $key)] = $value;
             }
 
-            return $trimmed;
+            return $normalized;
         }
 
         $this->free();
