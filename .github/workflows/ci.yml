@@ -38,37 +38,47 @@ on:
 
 jobs:
   test:
-    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird-version }}
+    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}
     runs-on: ubuntu-latest
 
-    # Single container per job: one PHP CLI image which will also host
-    # the Firebird server installed via IBSurgeon firebirdlinuxinstall.
-    #
-    # We pin the Debian variant to "bookworm" (Debian 12) because the
-    # firebirdlinuxinstall scripts currently support Debian up to 12 and
-    # explicitly fail on 13 (trixie).
-    container:
-      image: php:${{ matrix.php-version }}-cli-bookworm
+    # Use service containers for Firebird instead of IBSurgeon scripts.
+    # Official Firebird Docker images: https://hub.docker.com/r/firebirdsql/firebird
+    services:
+      firebird:
+        image: firebirdsql/firebird:${{ matrix.firebird.docker-tag }}
+        env:
+          FIREBIRD_ROOT_PASSWORD: masterkey
+          FIREBIRD_DATABASE: test.fdb
+          FIREBIRD_DATABASE_DEFAULT_CHARSET: UTF8
+          # Allow connections from any host (needed for service container networking)
+          TZ: UTC
+        ports:
+          - 3050:3050
+        options: >-
+          --health-cmd "nc -z localhost 3050 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
 
     strategy:
       fail-fast: false
       matrix:
         # PHP versions - must be released GA with Docker Hub image available
         # See header comment for verification steps before adding new versions
-        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
-        # Note: Firebird 2.5 removed - php-firebird v7.0.0+ requires Firebird 3.0+
-        firebird-version: ['3.0', '4.0', '5.0']
-        include:
-          # Map Firebird versions to script suffixes and PHPUnit configs
-          - firebird-version: '3.0'
-            firebird-script-suffix: '30'
-            phpunit-config: 'phpunit.xml'
-          - firebird-version: '4.0'
-            firebird-script-suffix: '40'
-            phpunit-config: 'phpunit-firebird4.xml'
-          - firebird-version: '5.0'
-            firebird-script-suffix: '50'
-            phpunit-config: 'phpunit-firebird5.xml'
+        # PHP 8.5 added provisionally - remove if Docker image unavailable
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        # Firebird configs: [display-version, docker-tag, phpunit-config]
+        firebird:
+          - version: '3.0'
+            docker-tag: '3'
+            config: 'phpunit.xml'
+          - version: '4.0'
+            docker-tag: '4'
+            config: 'phpunit-firebird4.xml'
+          - version: '5.0'
+            docker-tag: '5'
+            config: 'phpunit-firebird5.xml'
 
     env:
       # Default Firebird credentials
@@ -79,268 +89,120 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          set -eu
-          export DEBIAN_FRONTEND=noninteractive
-          
-          # Fix "apt does not have a stable CLI interface" warning
-          echo 'Apt::Cmd::Disable-Script-Warning "true";' > /etc/apt/apt.conf.d/99-disable-script-warning
-          
-          # Fix "update-alternatives: warning: skip creation of /usr/share/man/man1/yacc.1.gz"
-          mkdir -p /usr/share/man/man1
-          
-          for attempt in 1 2 3; do
-            if apt-get update; then
-              break
-            fi
-            echo "apt-get update failed (attempt ${attempt}/3), retrying in 5s..." >&2
-            sleep 5
-          done
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo, mbstring, intl
+          coverage: xdebug
+          tools: composer:v2
 
-          # Install apt-utils first to suppress "delaying package configuration" warning
-          apt-get install -y --no-install-recommends apt-utils
-
-          apt-get install -y --no-install-recommends \
-            autoconf \
-            build-essential \
-            ca-certificates \
-            g++ \
-            git \
-            libicu-dev \
-            libreadline-dev \
-            libssl-dev \
-            libtool \
-            netbase \
-            netcat-openbsd \
-            pkg-config \
-            wget \
-            curl \
-            unzip \
-            bison \
-            flex \
-            cmake \
-            jq \
-            python3 \
-            zlib1g-dev
-
-          rm -rf /var/lib/apt/lists/*
-
-      - name: Install Firebird server via IBSurgeon script
-        env:
-          MATRIX_FIREBIRD_VERSION: ${{ matrix.firebird-version }}
+      - name: Wait for Firebird service to be ready
         run: |
           set -eu
           
-          # Note: Firebird 2.5 case removed - php-firebird v7.0.0+ requires Firebird 3.0+
-          case "${MATRIX_FIREBIRD_VERSION}" in
-            '3.0') FB_SCRIPT_SUFFIX='30' ;;
-            '4.0') FB_SCRIPT_SUFFIX='40' ;;
-            '5.0') FB_SCRIPT_SUFFIX='50' ;;
-            *)
-              echo "Unsupported Firebird version: ${MATRIX_FIREBIRD_VERSION}" >&2
-              exit 1
-              ;;
-          esac
-
-          FB_SCRIPT_URL="https://raw.githubusercontent.com/IBSurgeon/firebirdlinuxinstall/refs/heads/main/fb_vanilla-${FB_SCRIPT_SUFFIX}.sh"
-
-          echo "Downloading Firebird install script from ${FB_SCRIPT_URL}"
-          curl -fsSL "${FB_SCRIPT_URL}" -o /tmp/fb_install.sh
-          chmod +x /tmp/fb_install.sh
-
-          # Run IBSurgeon installer in non-interactive mode
-          printf '\n' | /tmp/fb_install.sh
-
-          # Try multiple startup methods since systemd may not be available
-          if ! nc -z 127.0.0.1 3050; then
-            if [ -x /etc/init.d/firebird ]; then
-              echo "Starting Firebird via /etc/init.d/firebird ..."
-              /etc/init.d/firebird restart || /etc/init.d/firebird start || true
-            elif command -v service >/dev/null 2>&1; then
-              echo "Starting Firebird via service ..."
-              service firebird restart || service firebird start || true
-            fi
-          fi
-
-          # Fall back to direct binary execution
-          if ! nc -z 127.0.0.1 3050; then
-            echo "Starting Firebird via binary ..."
-            if [ -x /opt/firebird/bin/fbguard ]; then
-              /opt/firebird/bin/fbguard -daemon || true
-            elif [ -x /opt/firebird/bin/fbserver ]; then
-              /opt/firebird/bin/fbserver -daemon || true
-            fi
-          fi
-
-          # Wait for Firebird to be ready
+          echo "Waiting for Firebird service container..."
+          
           for i in $(seq 1 60); do
-            if nc -z 127.0.0.1 3050; then
-              echo "Firebird is ready on localhost:3050"
+            if nc -z localhost 3050; then
+              echo "✅ Firebird is ready on localhost:3050 (attempt ${i})"
               break
             fi
             echo "Waiting for Firebird to start (attempt ${i}/60)..."
-            sleep 1
+            sleep 2
           done
-
-          if ! nc -z 127.0.0.1 3050; then
-            echo "ERROR: Firebird did not start on localhost:3050" >&2
+          
+          if ! nc -z localhost 3050; then
+            echo "❌ ERROR: Firebird did not start on localhost:3050" >&2
             exit 1
           fi
 
-      - name: Configure Firebird for CI
+      - name: Install Firebird client libraries
         run: |
           set -eu
           
-          echo "Applying 'Stop-Configure-Start' strategy..."
+          # Install Firebird client libraries for PHP extension compilation
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            firebird-dev \
+            firebird3.0-common \
+            libfbclient2 \
+            netcat-openbsd
           
-          # 1. STOP (Robust)
-          # Explicitly stop services to ensure clean state before config change
-          echo "Stopping Firebird..."
-          if [ -x /etc/init.d/firebird ]; then
-            /etc/init.d/firebird stop || true
-          fi
-          
-          # Force kill sequence for containers/act where init system fails
-          # CRITICAL: Kill fbguard (watchdog) FIRST to prevent auto-restart logic
-          pkill -f fbguard || true
-          sleep 1
-          pkill -f fbserver || true
-          sleep 2
-          
-          # 2. CONFIGURE
-          # Allow DatabaseAccess = Full for test databases in /tmp
-          FIREBIRD_CONF="/opt/firebird/firebird.conf"
-          if [ -f "${FIREBIRD_CONF}" ]; then
-            echo "Configuring DatabaseAccess = Full in ${FIREBIRD_CONF}"
-            sed -i 's/^#*DatabaseAccess.*$/DatabaseAccess = Full/' "${FIREBIRD_CONF}" || \
-              echo "DatabaseAccess = Full" >> "${FIREBIRD_CONF}"
-          fi
-          
-          # 3. START
-          echo "Starting Firebird..."
-          if [ -x /etc/init.d/firebird ]; then
-            /etc/init.d/firebird start || true
-          elif [ -x /opt/firebird/bin/fbguard ]; then
-            /opt/firebird/bin/fbguard -daemon || true
-          elif [ -x /opt/firebird/bin/fbserver ]; then
-            /opt/firebird/bin/fbserver -daemon || true
-          fi
-          
-          # Create test database directory
-          mkdir -p /tmp/fb_tests
-          chmod 777 /tmp/fb_tests
-          
-          # Wait for Firebird to be ready again
-          for i in $(seq 1 30); do
-            if nc -z 127.0.0.1 3050; then
-              echo "Firebird restarted successfully"
-              break
-            fi
-            sleep 1
-          done
-          
-          # Verify database creation works
-          echo "Verifying Firebird can create databases..."
-          export PATH="/opt/firebird/bin:${PATH}"
-          export LD_LIBRARY_PATH="/opt/firebird/lib:${LD_LIBRARY_PATH:-}"
-          
-          if command -v isql-fb >/dev/null 2>&1; then
-            ISQL_CMD="isql-fb"
-          elif command -v isql >/dev/null 2>&1; then
-            ISQL_CMD="isql"
-          else
-            ISQL_CMD="/opt/firebird/bin/isql"
-          fi
-          
-          echo "CREATE DATABASE '/tmp/fb_tests/ci_test.fdb';" | "${ISQL_CMD}" -u SYSDBA -p masterkey || echo "Database creation test skipped"
-          rm -f /tmp/fb_tests/ci_test.fdb
+          echo "Firebird client libraries installed"
 
-      - name: Install pcntl extension for PHPUnit time limits
+      - name: Build php-firebird extension from source
         run: |
           set -eu
           
-          # pcntl is a bundled extension, install via docker-php-ext-install
-          docker-php-ext-install pcntl
+          # Clone and build php-firebird v7.0.0-rc.6
+          echo "Building php-firebird v7.0.0-rc.6 for PHP ${{ matrix.php-version }}"
           
-          # Verify extension is loaded
-          php -m | grep -i pcntl
-          echo "pcntl extension installed successfully"
-
-      - name: Build PHP firebird extension from source
-        env:
-          MATRIX_FIREBIRD_VERSION: ${{ matrix.firebird-version }}
-        run: |
-          set -eu
-          
-          # Fix "shtool:echo:Warning: unable to determine terminal sequence for bold mode"
-          export TERM=xterm-256color
-          
-          export PATH="/opt/firebird/bin:${PATH}"
-          export LD_LIBRARY_PATH="/opt/firebird/lib:${LD_LIBRARY_PATH:-}"
-          export CFLAGS="-I/opt/firebird/include ${CFLAGS:-}"
-          export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
-          
-          echo "Building php-firebird v7.0.0-rc.6 (modern firebird) for Firebird ${MATRIX_FIREBIRD_VERSION}"
           git clone --depth 1 --branch v7.0.0-rc.6 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
+          
           phpize
-          ./configure --with-firebird=/opt/firebird
+          ./configure --with-firebird
           make -j"$(nproc)"
-          make install
+          sudo make install
           
-          PHP_INI_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
-          [ -z "${PHP_INI_DIR}" ] && PHP_INI_DIR="/usr/local/etc/php/conf.d"
-          mkdir -p "${PHP_INI_DIR}"
-          echo "extension=firebird.so" > "${PHP_INI_DIR}/docker-php-ext-firebird.ini"
+          # Enable the extension
+          echo "extension=firebird.so" | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-firebird.ini
           
+          # Verify extension is loaded
           php -m | grep -i firebird
           php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
         run: |
           set -eu
           
-          # Install Composer
-          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-          
-          # Install dependencies
-          # If ext-firebird is not loaded (e.g. legacy ext-interbase is present), ignore requirement
+          # Install dependencies - ext-firebird should now be loaded
           if php -m | grep -q -i firebird; then
-            echo "ext-firebird detected, installing normally..."
+            echo "✅ ext-firebird detected, installing normally..."
             composer install --prefer-dist --no-progress
           else
-            echo "ext-firebird NOT detected (likely ext-interbase), ignoring platform req..."
+            echo "⚠️ ext-firebird NOT detected, ignoring platform req..."
             composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
           fi
 
       - name: Prepare PHPUnit configuration for CI
         env:
-          PHPUNIT_CONFIG: ${{ matrix.phpunit-config }}
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
           set -eu
           
           cd tests
           
-          # Modify the PHPUnit config to use localhost and /tmp paths
-          # Original: firebird3/3050, firebird25/3050, firebird4/3050, firebird5/3050
-          # New: localhost/3050
+          # Update PHPUnit config to use localhost (service container networking)
+          # Service containers are accessible via localhost when using ports mapping
           sed -i 's|firebird[0-9]*/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
           sed -i 's|firebird25/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
           
-          # Original: /firebird/data/
-          # New: /tmp/fb_tests/
-          sed -i 's|/firebird/data/|/tmp/fb_tests/|g' "${PHPUNIT_CONFIG}"
+          # Use /tmp for test databases (default writable location)
+          sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"
           
           echo "Modified PHPUnit config (${PHPUNIT_CONFIG}):"
           grep -E 'db_host|db_dbname' "${PHPUNIT_CONFIG}" || true
 
       - name: Run PHPUnit tests
         env:
-          PHPUNIT_CONFIG: ${{ matrix.phpunit-config }}
-          # Ensure Firebird libraries are available
-          LD_LIBRARY_PATH: /opt/firebird/lib
-          PATH: /opt/firebird/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
           set -eu
           
@@ -350,18 +212,12 @@ jobs:
           ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage
 
       - name: Run PHPUnit tests with coverage
-        if: matrix.php-version == '8.1' && matrix.firebird-version == '3.0'
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
         env:
-          PHPUNIT_CONFIG: ${{ matrix.phpunit-config }}
-          LD_LIBRARY_PATH: /opt/firebird/lib
-          PATH: /opt/firebird/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
           XDEBUG_MODE: coverage
         run: |
           set -eu
-          
-          # Install Xdebug for coverage
-          pecl install xdebug || true
-          docker-php-ext-enable xdebug || echo "extension=xdebug.so" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
           
           cd tests
           
@@ -371,7 +227,7 @@ jobs:
             --log-junit ../junit.xml
 
       - name: Upload coverage to Codecov
-        if: matrix.php-version == '8.1' && matrix.firebird-version == '3.0'
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
@@ -379,25 +235,61 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload test results to Codecov
-        if: matrix.php-version == '8.1' && matrix.firebird-version == '3.0' && !cancelled()
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0' && !cancelled()
         uses: codecov/test-results-action@v1
         with:
           files: ./junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # Static analysis job (separate from test matrix)
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, mbstring, intl
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=512M
+
   # Summary job for CI dashboard
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, static-analysis]
     if: always()
     steps:
       - name: Check test results
         run: |
-          if [ "${{ needs.test.result }}" == "success" ]; then
-            echo "✅ All PHP × Firebird matrix tests passed!"
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.static-analysis.result }}" == "success" ]; then
+            echo "✅ All PHP × Firebird matrix tests and static analysis passed!"
             exit 0
           else
-            echo "❌ Some tests failed. Check individual job logs."
+            echo "❌ Some jobs failed. Check individual job logs."
+            echo "  - Test matrix: ${{ needs.test.result }}"
+            echo "  - Static analysis: ${{ needs.static-analysis.result }}"
             exit 1
           fi
