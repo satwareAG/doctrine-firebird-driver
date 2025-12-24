@@ -218,6 +218,7 @@ class Batch implements \Countable
  * Contains execution statistics and per-row error details.
  *
  * @since php-firebird 7.0.0
+ * @implements \IteratorAggregate<int, BatchError>
  */
 class BatchResult implements \Countable, \IteratorAggregate
 {

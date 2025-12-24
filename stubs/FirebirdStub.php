@@ -175,7 +175,7 @@ function fbird_query($link_identifier = null, $query = null, $bind_arg = null) {
  * Fetch a row from an InterBase result identifier
  * @param resource $result
  * @param int|null $fetch_flags
- * @return array|false
+ * @return array<int|string, mixed>|false
  */
 function fbird_fetch_row($result, $fetch_flags = null) {}
 
@@ -183,7 +183,7 @@ function fbird_fetch_row($result, $fetch_flags = null) {}
  * Fetch a result row as an associative array
  * @param resource $result
  * @param int|null $fetch_flags
- * @return array|false
+ * @return array<int|string, mixed>|false
  */
 function fbird_fetch_assoc($result, $fetch_flags = null) {}
 
@@ -243,7 +243,7 @@ function fbird_free_query($query) {}
  *
  * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
  * @param string $query SQL statement to execute
- * @param array|null $params Optional array of bind parameters
+ * @param array<int, mixed>|null $params Optional array of bind parameters
  * @return int Number of affected rows
  * @since php-firebird 6.2.0
  */
@@ -257,7 +257,7 @@ function fbird_execute_statement($trans_handle, string $query, ?array $params = 
  *
  * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
  * @param string $query SQL query to execute
- * @param array|null $params Optional array of bind parameters
+ * @param array<int, mixed>|null $params Optional array of bind parameters
  * @return resource|false Result resource on success, false on failure
  * @since php-firebird 6.2.0
  */
@@ -273,8 +273,8 @@ function fbird_execute_query($trans_handle, string $query, ?array $params = null
  *
  * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
  * @param string $query SQL statement to execute
- * @param array|null $params Optional array of bind parameters
- * @return int|resource|false Affected rows for DML, result resource for SELECT, false on failure
+ * @param array<int, mixed>|null $params Optional array of bind parameters
+ * @return int|false Affected rows for DML, result resource for SELECT, false on failure
  * @since php-firebird 6.2.0
  */
 function fbird_execute_auto($link_identifier, string $query, ?array $params = null): int|false {}
@@ -313,7 +313,7 @@ function fbird_affected_rows($link_identifier = null) {}
  * Get information about a field
  * @param resource $query_result
  * @param int $field_number
- * @return array
+ * @return array<string, mixed>
  */
 function fbird_field_info($query_result, $field_number) {}
 
@@ -321,14 +321,14 @@ function fbird_field_info($query_result, $field_number) {}
  * Return information about a parameter in a prepared query
  * @param resource $query
  * @param int $field_number
- * @return array
+ * @return array<string, mixed>
  */
 function fbird_param_info($query, $field_number) {}
 
 /**
  * Start a transaction
  * @param resource|null $link_identifier
- * @param array|null $options
+ * @param array<string, mixed>|null $options
  * @return resource|bool
  */
 function fbird_trans_start($link_identifier, ?array $options = null) {}
@@ -360,7 +360,7 @@ function fbird_release_savepoint($trans_handle, $name) {}
 /**
  * Return information about a transaction
  * @param resource $trans_handle
- * @return array
+ * @return array<string, mixed>
  */
 function fbird_trans_info($trans_handle) {}
 
@@ -404,7 +404,7 @@ function fbird_rollback_ret($link_identifier = null) {}
  * Return blob length and other useful info
  * @param resource|null $link_identifier
  * @param string|null $blob_id
- * @return array
+ * @return array<string, mixed>
  */
 function fbird_blob_info($link_identifier = null, $blob_id = null) {}
 
@@ -505,7 +505,7 @@ function fbird_blob_open_stream($link_identifier = null, $blob_id = null) {}
  *
  * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
  * @param string $table_name Name of the table to check for blockers
- * @return array|false Array of blocker info (MON$ATTACHMENT_ID, MON$USER, etc.) or false on error
+ * @return array<int|string, mixed>|false Array of blocker info (MON$ATTACHMENT_ID, MON$USER, etc.) or false on error
  * @since php-firebird 6.2.0
  */
 function fbird_list_table_blockers($link_identifier, string $table_name) {}
@@ -709,7 +709,7 @@ function fbird_get_client_minor_version() {}
  * @param resource $link_identifier Connection resource from fbird_connect() or fbird_pconnect()
  * @param resource $trans_handle Transaction resource from fbird_trans() or fbird_trans_start()
  * @param string $query SQL query to execute
- * @param array $params Optional array of bind parameters
+ * @param array<int, mixed> $params Optional array of bind parameters
  * @return resource|int|false Result resource for SELECT, affected rows for DML, false on failure
  * @since php-firebird 7.0.0
  */
@@ -720,7 +720,7 @@ function fbird_query_params_tx($link_identifier, $trans_handle, string $query, a
  *
  * @param resource $link_identifier Connection resource
  * @param string $query SQL query to execute
- * @param array $params Optional array of bind parameters
+ * @param array<int, mixed> $params Optional array of bind parameters
  * @return resource|int|false Result resource for SELECT, affected rows for DML, false on failure
  * @since php-firebird 7.0.0
  */
@@ -730,7 +730,7 @@ function fbird_query_params($link_identifier, string $query, array $params = [])
  * Execute a prepared statement with bind parameters
  *
  * @param resource $statement Prepared statement resource
- * @param array $params Array of bind parameters
+ * @param array<int, mixed> $params Array of bind parameters
  * @return resource|int|false Result resource or affected rows
  * @since php-firebird 7.0.0
  */
