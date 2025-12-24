@@ -86,7 +86,8 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], 'Invalid field type. SQL: ' . self::statementArrayToText($statements));
 
         if (isset($options['notnull'])) {
-            self::assertSame($options['notnull'], boolval(intval($row['RDB$NULL_FLAG_01'])), 'Invalid notnull. SQL: ' . self::statementArrayToText($statements));
+            $nullFlag = $row['RDB$NULL_FLAG_01'] ?? $row['RDB$NULL_FLAG'];
+            self::assertSame($options['notnull'], boolval(intval($nullFlag)), 'Invalid notnull. SQL: ' . self::statementArrayToText($statements));
         }
 
         if (isset($options['length'])) {
@@ -113,7 +114,8 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         }
 
         $expected = "DEFAULT {$default}";
-        self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default. SQL: ' . self::statementArrayToText($statements));
+        $defaultSource = $row['RDB$DEFAULT_SOURCE_01'] ?? $row['RDB$DEFAULT_SOURCE'];
+        self::assertSame($expected, $defaultSource, 'Invalid default. SQL: ' . self::statementArrayToText($statements));
     }
 
     public static function dataProvider_testAlterTableWithVariousColumnOptionCombinations(): Iterator
