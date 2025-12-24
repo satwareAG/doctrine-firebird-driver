@@ -19,12 +19,15 @@ use function fbird_num_fields;
 use function get_resource_type;
 use function in_array;
 use function is_array;
+use function bin2hex;
 use function is_numeric;
+use function fwrite;
 use function is_resource;
 use function preg_replace;
 use function trim;
 
 use const FBIRD_FETCH_BLOBS;
+use const STDERR;
 use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
@@ -108,19 +111,16 @@ final class Result implements ResultInterface
                 $normalized = [];
                 foreach ($result as $key => $value) {
                     $keyString = (string) $key;
-                    // Debug keys for system tables
-                    if (str_starts_with($keyString, 'RDB$')) {
-                        // echo "DEBUG: Original Key: '" . $keyString . "'\n";
-                    }
-
+                    
                     // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
-                    // Note: Adding 'u' modifier for unicode support just in case, though usually ASCII
                     $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString);
+                    
                     // 2. Trim surrounding spaces
                     $finalKey = trim($keyString);
                     
-                    if (str_starts_with($keyString, 'RDB$') && $finalKey !== $key) {
-                       // echo "DEBUG: Normalized Key: '" . $finalKey . "'\n";
+                    // Debug keys for system tables
+                    if (str_starts_with($keyString, 'RDB$')) {
+                        fwrite(STDERR, "DEBUG: Key '$keyString' (hex: " . bin2hex($keyString) . ") -> Normalized '$finalKey' (hex: " . bin2hex($finalKey) . ")\n");
                     }
 
                     $normalized[$finalKey] = $value;
