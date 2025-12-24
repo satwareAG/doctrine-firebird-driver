@@ -97,7 +97,15 @@ final class Result implements ResultInterface
             // @todo remove @ when fbird_fetch_assoc() doesn't warn
             $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
-                return $result;
+                // Firebird 3.0+ may return padded aliases (e.g. "COLUMN   "), causing issues
+                // with Doctrine's column mapping. We need to trim keys to ensure consistency.
+                // See https://github.com/satwareAG/php-firebird/issues/23
+                $trimmed = [];
+                foreach ($result as $key => $value) {
+                    $trimmed[trim($key)] = $value;
+                }
+
+                return $trimmed;
             }
 
             $this->free();
@@ -234,7 +242,13 @@ final class Result implements ResultInterface
         $result     = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
 
         if (is_array($result)) {
-            return $result;
+            // Trim keys to handle Firebird 3.0+ padded aliases
+            $trimmed = [];
+            foreach ($result as $key => $value) {
+                $trimmed[trim($key)] = $value;
+            }
+
+            return $trimmed;
         }
 
         $this->free();
