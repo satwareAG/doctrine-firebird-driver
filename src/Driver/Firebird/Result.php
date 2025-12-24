@@ -19,15 +19,12 @@ use function fbird_num_fields;
 use function get_resource_type;
 use function in_array;
 use function is_array;
-use function bin2hex;
 use function is_numeric;
-use function fwrite;
 use function is_resource;
 use function preg_replace;
 use function trim;
 
 use const FBIRD_FETCH_BLOBS;
-use const STDERR;
 use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
@@ -113,15 +110,11 @@ final class Result implements ResultInterface
                     $keyString = (string) $key;
                     
                     // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
-                    $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString);
+                    // Handle preg_replace returning null on error by using null coalescing
+                    $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
                     
                     // 2. Trim surrounding spaces
                     $finalKey = trim($keyString);
-                    
-                    // Debug keys for system tables
-                    if (str_starts_with($keyString, 'RDB$')) {
-                        fwrite(STDERR, "DEBUG: Key '$keyString' (hex: " . bin2hex($keyString) . ") -> Normalized '$finalKey' (hex: " . bin2hex($finalKey) . ")\n");
-                    }
 
                     $normalized[$finalKey] = $value;
                 }
