@@ -76,17 +76,23 @@ final class Result implements ResultInterface
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
-            // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
-            // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
-            $result = fbird_fetch_row($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
-            if (is_array($result)) {
-                return array_values($result);
-            }
+            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
+            try {
+                // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
+                // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
+                $result = @fbird_fetch_row($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
+                if (is_array($result)) {
+                    return array_values($result);
+                }
 
-            // Free result resource implicitly to allow Statement to be freed later
-            // Also commit transaction if autocommit is enabled to keep transaction log clean
-            $this->free();
-            $this->connection->autoCommit();
+                // Free result resource implicitly to allow Statement to be freed later
+                // Also commit transaction if autocommit is enabled to keep transaction log clean
+                $this->free();
+                $this->connection->autoCommit();
+            } catch (\Firebird\Exception $e) {
+                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+            }
         }
 
         return false;
@@ -96,8 +102,15 @@ final class Result implements ResultInterface
     public function fetchAssociative(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
-            // @todo remove @ when fbird_fetch_assoc() doesn't warn
-            $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
+            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
+            try {
+                // @todo remove @ when fbird_fetch_assoc() doesn't warn
+                $result = @fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
+            } catch (\Firebird\Exception $e) {
+                throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+            }
+
             if (is_array($result)) {
                 // Firebird 3.0+ may return padded aliases (e.g. "COLUMN   "), causing issues
                 // with Doctrine's column mapping. We need to normalize keys to ensure consistency.
@@ -219,7 +232,13 @@ final class Result implements ResultInterface
         }
 
         $fetchFlags = FBIRD_FETCH_BLOBS | FBIRD_FETCH_DATE_OBJ;
-        $result     = fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
+
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            $result = @fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
+        } catch (\Firebird\Exception $e) {
+            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+        }
 
         if (is_array($result)) {
             return array_values($result);
@@ -258,7 +277,13 @@ final class Result implements ResultInterface
         }
 
         $fetchFlags = FBIRD_FETCH_BLOBS | FBIRD_FETCH_DATE_OBJ;
-        $result     = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
+
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            $result = @fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
+        } catch (\Firebird\Exception $e) {
+            throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromFirebirdException($e);
+        }
 
         if (is_array($result)) {
             // Normalize keys to handle Firebird 3.0+ padded aliases and suffixes

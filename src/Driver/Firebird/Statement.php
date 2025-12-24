@@ -253,20 +253,24 @@ class Statement implements StatementInterface
 
             $conn = $this->connection->getNativeConnection();
 
-            // Suppress warning since we properly check return value and throw exception
-            // PHP Firebird extension 6.2.0 may emit warnings during cleanup operations
-            $fbirdResultRc = @fbird_execute(...$callArgs);
+            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
+            try {
+                $fbirdResultRc = @fbird_execute(...$callArgs);
 
-            if ($fbirdResultRc === false) {
-                // fbird_execute returns false on failure and emits a warning or sets error info
-                $this->connection->checkLastApiCall();
+                if ($fbirdResultRc === false) {
+                    // fbird_execute returns false on failure and emits a warning or sets error info
+                    $this->connection->checkLastApiCall();
 
-                // If checkLastApiCall didn't throw, report generic failure
-                throw new Exception(sprintf(
-                    'fbird_execute returned false without error info. Error code: %s, Message: %s',
-                    (string) fbird_errcode(),
-                    (string) fbird_errmsg(),
-                ));
+                    // If checkLastApiCall didn't throw, report generic failure
+                    throw new Exception(sprintf(
+                        'fbird_execute returned false without error info. Error code: %s, Message: %s',
+                        (string) fbird_errcode(),
+                        (string) fbird_errmsg(),
+                    ));
+                }
+            } catch (\Firebird\Exception $e) {
+                throw Exception::fromFirebirdException($e);
             }
 
             // Result seems ok - is either #rows or result handle
@@ -302,7 +306,12 @@ class Statement implements StatementInterface
                     if ($this->hasReturning) {
                         // DML with RETURNING clause - fetch the returned values
                         // This is used by ConnectionWrapper to get identity column values
-                        $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
+                        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+                        try {
+                            $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
+                        } catch (\Firebird\Exception $e) {
+                            throw Exception::fromFirebirdException($e);
+                        }
 
                         if ($returnedRow !== false && is_array($returnedRow)) {
                             // Look for identity column value in returned row

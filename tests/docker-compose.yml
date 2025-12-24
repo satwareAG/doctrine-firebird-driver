@@ -72,8 +72,8 @@ services:
       ISC_PASSWORD: masterkey
       TZ: Europe/Berlin
       FIREBIRD_DATABASE: test.fdb
-    ports:
-      - "3050:3050"
+    # Note: Port mapping removed to avoid conflicts with local Firebird installations.
+    # Tests communicate via Docker network, not host ports.
     healthcheck:
       # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
       test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:test.fdb || exit 1"]

@@ -410,7 +410,9 @@ main() {
     # Install dependencies
     print_header "Installing Dependencies"
     print_step "Running composer install..."
-    docker compose run --rm app composer install --no-interaction --no-progress || die "Composer install failed"
+    # Note: --ignore-platform-req=ext-firebird is needed because php-firebird extension
+    # reports version 1.0.0 internally regardless of the actual git tag version (7.0.0-rc.7)
+    docker compose run --rm app composer install --no-interaction --no-progress --ignore-platform-req=ext-firebird || die "Composer install failed"
     print_success "Dependencies installed"
     
     # Create output directories

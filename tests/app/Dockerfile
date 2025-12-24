@@ -28,10 +28,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v7.0.0-rc.3)
-# This version includes fb_blr_compat.h fix for Firebird 3.0 headers
+# Install php-firebird extension from source (v7.0.0-rc.7)
+# This version includes Exception Mode and improved error handling
 RUN docker-php-source extract \
-    && git clone --branch v7.0.0-rc.3 --depth 1 \
+    && git clone --branch v7.0.0-rc.7 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && docker-php-ext-install firebird pcntl \

@@ -292,11 +292,16 @@ final class Connection implements ServerInfoAwareConnection
             throw new DriverException('SQL statement is empty.');
         }
 
-        // Suppress warning since we properly check return value and throw exception
-        $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
+        try {
+            $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
 
-        if ($stmt === false) {
-            $this->checkLastApiCall();
+            if ($stmt === false) {
+                $this->checkLastApiCall();
+            }
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
 
         return new Statement(
@@ -403,10 +408,22 @@ final class Connection implements ServerInfoAwareConnection
         if ($this->fbirdTransactionLevel === 0) {
             // as Firebird always generates a transaction, we have to commit everything now.
             if (is_resource($this->firebirdActiveTransaction)) {
-                if (! fbird_commit($this->firebirdActiveTransaction)) {
-                    // If implicit commit fails, try rollback to clear state before throwing
-                    fbird_rollback($this->firebirdActiveTransaction);
-                    $this->checkLastApiCall();
+                // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+                try {
+                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                        // If implicit commit fails, try rollback to clear state before throwing
+                        @fbird_rollback($this->firebirdActiveTransaction);
+                        $this->checkLastApiCall();
+                    }
+                } catch (\Firebird\Exception $e) {
+                    // Try rollback to clear state, then convert exception
+                    try {
+                        @fbird_rollback($this->firebirdActiveTransaction);
+                    } catch (\Firebird\Exception) {
+                        // Ignore rollback exception during cleanup
+                    }
+
+                    throw DriverException::fromFirebirdException($e);
                 }
             }
 
@@ -434,14 +451,26 @@ final class Connection implements ServerInfoAwareConnection
                 throw new RuntimeException('No active transaction resource.');
             }
 
-            if (! fbird_commit($this->firebirdActiveTransaction)) {
-                // Capture error, attempt rollback cleanup, then throw
-                $lastError = $this->errorInfo();
-                fbird_rollback($this->firebirdActiveTransaction);
+            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            try {
+                if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                    // Capture error, attempt rollback cleanup, then throw
+                    $lastError = $this->errorInfo();
+                    @fbird_rollback($this->firebirdActiveTransaction);
 
-                if (isset($lastError['code']) && $lastError['code'] !== 0) {
-                    throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
+                    if (isset($lastError['code']) && $lastError['code'] !== 0) {
+                        throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
+                    }
                 }
+            } catch (\Firebird\Exception $e) {
+                // Try rollback cleanup, then convert exception
+                try {
+                    @fbird_rollback($this->firebirdActiveTransaction);
+                } catch (\Firebird\Exception) {
+                    // Ignore rollback exception during cleanup
+                }
+
+                throw DriverException::fromFirebirdException($e);
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
@@ -472,13 +501,18 @@ final class Connection implements ServerInfoAwareConnection
             ));
         }
 
-        $success = fbird_commit_ret($this->firebirdActiveTransaction);
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
 
-        if ($success !== false) {
-            return;
+            if ($success !== false) {
+                return;
+            }
+
+            $this->checkLastApiCall();
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
-
-        $this->checkLastApiCall();
     }
 
     /**
@@ -514,12 +548,19 @@ final class Connection implements ServerInfoAwareConnection
                 return true;
             }
 
-            // Suppress warning since we handle error gracefully below
-            $success = @fbird_rollback($this->firebirdActiveTransaction);
+            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            $success   = true;
+            $lastError = null;
+            try {
+                $success = @fbird_rollback($this->firebirdActiveTransaction);
 
-            if (! $success) {
-                // Capture error before resetting state
-                $lastError = $this->errorInfo();
+                if (! $success) {
+                    // Capture error before resetting state
+                    $lastError = $this->errorInfo();
+                }
+            } catch (\Firebird\Exception $e) {
+                $success   = false;
+                $lastError = ['code' => $e->getCode(), 'message' => $e->getMessage(), 'exception' => $e];
             }
 
             // Always attempt to restore valid state for next operation
@@ -562,10 +603,15 @@ final class Connection implements ServerInfoAwareConnection
 
         assert(is_resource($this->firebirdActiveTransaction));
 
-        if (! fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-            $this->checkLastApiCall();
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            if (! @fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+                $this->checkLastApiCall();
 
-            throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
+                throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
+            }
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
     }
 
@@ -584,10 +630,15 @@ final class Connection implements ServerInfoAwareConnection
 
         assert(is_resource($this->firebirdActiveTransaction));
 
-        if (! fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-            $this->checkLastApiCall();
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            if (! @fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+                $this->checkLastApiCall();
 
-            throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
+                throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
+            }
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
     }
 
@@ -606,10 +657,15 @@ final class Connection implements ServerInfoAwareConnection
 
         assert(is_resource($this->firebirdActiveTransaction));
 
-        if (! fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-            $this->checkLastApiCall();
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        try {
+            if (! @fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+                $this->checkLastApiCall();
 
-            throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
+                throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
+            }
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
     }
 
@@ -1136,15 +1192,21 @@ final class Connection implements ServerInfoAwareConnection
             $options['lock_timeout']    = $this->attrDcTransWait;
         }
 
-        $result = fbird_trans_start($this->connection, $options);
+        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+        // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
+        try {
+            $result = fbird_trans_start($this->connection, $options);
 
-        if (! is_resource($result)) {
-            $this->checkLastApiCall();
+            if (! is_resource($result)) {
+                $this->checkLastApiCall();
 
-            // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
-            throw new DriverException('Failed to create transaction');
+                // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
+                throw new DriverException('Failed to create transaction');
+            }
+
+            return $result;
+        } catch (\Firebird\Exception $e) {
+            throw DriverException::fromFirebirdException($e);
         }
-
-        return $result;
     }
 }

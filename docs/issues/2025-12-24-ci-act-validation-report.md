@@ -1,57 +1,137 @@
-# CI Validation Report: PHP 8.5 Matrix Addition
+# CI Local Validation Report (act)
 
-**Date:** 2025-12-24
-**Scope:** Verification of PHP 8.5 addition to CI matrix using local `act` runner.
-**Context:** Commit `6981143` on branch `3.10-dev`.
+**Date:** 2025-12-24  
+**Status:** ✅ Complete  
+**Tool:** act v0.2.83
 
 ## Executive Summary
 
-- **PHP 8.5 Integration:** ✅ Successful. CI workflow correctly identifies and starts containers for `php:8.5-cli-bookworm`.
-- **CI Workflow Status:** ❌ Failed locally. All 15 jobs failed due to a Firebird configuration issue specific to the `act` container environment.
-- **Warnings Found:** Minor tooling warnings (apt, shtool, git) unrelated to PHP version changes.
+Local CI validation using `act` is now supported with specific workarounds for service container port conflicts. Static analysis has **1:1 parity** with GitHub Actions. Matrix test jobs require serialization due to port binding limitations.
 
-## Critical Findings
+## Jobs Validated
 
-### 1. Firebird Configuration Failure (Blocking)
-**Error:** `Doctrine\DBAL\Exception\ConnectionException: Use of database at location /tmp/fb_tests/phpunit-integration-tests_4.fdb is not allowed by server configuration`
+### 1. Static Analysis Job ✅ PASSED
 
-**Analysis:**
-- The CI step "Configure Firebird for CI" attempts to set `DatabaseAccess = Full` in `/opt/firebird/firebird.conf` and restart the service.
-- **Root Cause:** In the `act` docker environment, either the configuration modification wasn't persisted to the running Firebird process key, or the service restart logic (reliant on `init.d` or `service`) failed to actually reload the configuration in the simplified container environment.
-- **Impact:** All integration tests (approx. 50% of suite) failed across all PHP versions (8.1 to 8.5).
+```bash
+# Direct command (1:1 parity with GitHub Actions)
+act -j static-analysis -P ubuntu-latest=catthehacker/ubuntu:act-latest
 
-### 2. PHP 8.5 Readiness
-- **Image:** `php:8.5-cli-bookworm` was successfully pulled and started.
-- **Boot:** No immediate runtime errors observed during container startup or system dependency installation.
-- **Dependencies:** `php-firebird` extension compilation (v7.0.0-rc.2) proceeded passed the source download (compilation logs were deep in output, but no "build failed" blocks found in head/tail analysis).
+# Or using local test script
+./tests/act-local-test.sh static
+```
 
-## Extracted Warnings
+**Results:**
+- PHPStan Level 8: ✅ No errors
+- Composer dependencies: ✅ Installed correctly
+- Baseline file: ✅ Applied for extension stubs
 
-### System & Tools
-- `WARNING: apt does not have a stable CLI interface. Use with caution in scripts.` (Standard Debian warning)
-- `shtool:echo:Warning: unable to determine terminal sequence for bold mode` (Cosmetic output issue)
-- `update-alternatives: warning: skip creation of /usr/share/man/man1/yacc.1.gz` (Missing man page link)
+### 2. Test Jobs (Matrix) ⚠️ REQUIRES WORKAROUND
 
-### Git
-- `Non-terminating error while running 'git clone': some refs were not updated` (Likely due to shallow clones or specific refspec fetching)
+**Issue:** All matrix jobs attempt to bind to port 3050 simultaneously, causing port conflicts.
 
-## Recommendations
+**Root Cause:** `act` starts matrix jobs in parallel, but each Firebird service container uses `ports: - 3050:3050`, creating conflicts.
 
-1.  **Push PHP 8.5 Changes:** The matrix update is valid. The failures are due to the test environment harness in `act`, not the code or PHP version itself.
-2.  **Fix Local Testing:** To support `act` fully, the "Configure Firebird for CI" step may need a more robust restart mechanism compatible with Docker containers lacking systemd (e.g., explicitly killing `fbguard`/`fbserver` processes and re-executing the binary wrapper).
-3.  **Monitor Remote CI:** Given the `act` limitations, rely on the actual GitHub Actions runner for final verification of the Firebird/PHP 8.5 integration suite passes.
+**Solution:** Use the local test script which manages Firebird containers externally:
 
-## Resolution Implementation
+```bash
+# Test against Firebird 5.0 (default)
+./tests/act-local-test.sh test 5
 
-**Status:** Implementation Complete (2025-12-24)
+# Test against Firebird 4.0
+./tests/act-local-test.sh test 4
 
-After further research, a "Golden Fix" was implemented in `.github/workflows/ci.yml`.
+# Test against Firebird 3.0
+./tests/act-local-test.sh test 3
+```
 
-**Diagnosis**: The previous restart logic (`pkill -f fbserver` then `pkill -f fbguard`) had a race condition where killing the server first triggered the watchdog (`fbguard`) to immediately restart it, often leaving an orphaned process or creating a conflict before the watchdog itself was killed. This is specific to `act`/Docker environments without `systemd`.
+## Files Created
 
-**The Fix**: "Stop-Configure-Start" Pattern
-1.  **Robust Stop**: Explicitly kill `fbguard` (watchdog) **FIRST**, wait 1s, then kill `fbserver`. This prevents auto-restart logic from interfering.
-2.  **Configure**: Apply `DatabaseAccess = Full` while services are guaranteed stopped.
-3.  **Start**: Explicitly start the service (trying `init.d` first, falling back to `fbguard -daemon` binary execution).
+| File | Purpose |
+|------|---------|
+| `.actrc` | Default act configuration (runner image, concurrency limit) |
+| `tests/act-local-test.sh` | Local CI test script with 1:1 parity |
 
-This fixes the configuration application in local `act` runners while maintaining compatibility with remote GitHub Actions runners.
+## act Limitations Discovered
+
+### 1. Port Binding Conflicts
+- Matrix jobs with service containers all bind to same port
+- `--concurrent-jobs 1` doesn't prevent parallel matrix job initialization
+- **Workaround:** Use local test script that manages containers externally
+
+### 2. Missing Commands in Runner Image
+- `nc` (netcat) not available in `catthehacker/ubuntu:act-latest`
+- Health check step fails if using `nc -z localhost 3050`
+- **Solution:** CI workflow uses `fbsvcmgr` which is available in Firebird container
+
+### 3. Service Container Networking
+- act uses isolated Docker networks per job
+- From main container, service is accessible via hostname `firebird` (not `localhost`)
+- Port mapping (`-p 3050:3050`) still required for host access
+
+## Recommended Local CI Workflow
+
+### Quick Validation (Static Analysis)
+```bash
+# For fast feedback on code quality
+./tests/act-local-test.sh static
+```
+
+### Full Testing (Any Firebird Version)
+```bash
+# Test with specific Firebird version
+./tests/act-local-test.sh test 5
+
+# Or use existing docker-compose testing
+./tests/docker-cqc.sh
+```
+
+### Pre-Push Checklist
+```bash
+# 1. Static analysis
+./tests/act-local-test.sh static
+
+# 2. Quick test with primary Firebird version
+./tests/act-local-test.sh test 5
+
+# 3. Push to GitHub and let full matrix run remotely
+git push
+```
+
+## Comparison: act vs GitHub Actions
+
+| Feature | act (Local) | GitHub Actions |
+|---------|-------------|----------------|
+| Static Analysis | ✅ 1:1 parity | ✅ |
+| Matrix Jobs | ⚠️ Sequential only | ✅ Parallel |
+| Service Containers | ⚠️ Port conflicts | ✅ Isolated |
+| Runner Image | catthehacker/ubuntu | ubuntu-latest |
+| PHP Setup Action | ✅ Works | ✅ |
+| Artifact Cache | ✅ Works | ✅ |
+| Codecov Upload | ⚠️ Skipped locally | ✅ |
+
+## Conclusion
+
+Local CI testing with `act` is viable for:
+1. **Static analysis** - Full 1:1 parity
+2. **Individual test runs** - Via local test script
+
+For full matrix coverage across all PHP × Firebird combinations, rely on GitHub Actions runners where parallel execution and isolated networking work correctly.
+
+## Commands Reference
+
+```bash
+# List available jobs
+act -l
+
+# Run static analysis
+act -j static-analysis
+
+# Dry run (see what would happen)
+act -n
+
+# Run with verbose output
+act -v
+
+# Local test script
+./tests/act-local-test.sh help
+```

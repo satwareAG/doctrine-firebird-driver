@@ -1,133 +1,190 @@
 # Implementation Plan
 
 [Overview]
-Resolve all 12 open GitHub issues using a Foundation First approach, starting with ext-firebird v7.0.0-rc.7 upgrade.
+Fix 31 test failures and 3 errors in GitHub Actions CI caused by unhandled Firebird\Exception when php-firebird Exception Mode is enabled, and improve local testing scripts with dynamic port allocation.
 
-This plan addresses issues in dependency order to avoid conflicts and maximize code reuse. The php-firebird v7.0.0-rc.7 upgrade (#36) enables TIME fixes (#33), Exception Mode API (#35), and fork-safety detection (#37). Deprecation cleanup (#24) and obsolete issue consolidation complete the work.
+The CI failures show `Firebird\Exception` being thrown directly instead of being wrapped in DBAL-compatible exceptions. When `fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW)` is enabled in Connection.php constructor, native Firebird functions throw `Firebird\Exception` directly BEFORE code can check return values via `checkLastApiCall()`. This bypasses the DBAL exception conversion pipeline entirely.
 
-Key observations from codebase analysis:
-- Issue #23 (transaction deadlock) is ALREADY FIXED - Connection.php uses `fbird_trans_start()` with proper options array
-- Issue #35 (Exception Mode) is partially implemented - `fbird_set_exception_mode()` called in Connection constructor
-- Issues #28, #29, #34 are superseded by #36 (ext-firebird upgrade)
+Additionally, the local test scripts (`docker-cqc.sh`, `act-local-test.sh`) use hardcoded port `3050:3050` bindings that can cause conflicts when Firebird is already running locally.
+
+**Root Cause Analysis (CI Failures):**
+1. Connection.php enables `FBIRD_EXCEPTION_MODE_THROW` at line ~130-131
+2. Subsequent `fbird_*` calls (prepare, execute, commit, rollback, trans_start) can throw `Firebird\Exception`
+3. The `@` operator (warning suppression) does NOT suppress exceptions thrown by the extension
+4. `Firebird\Exception` bubbles up without conversion to DBAL exceptions
+5. Tests expect `Doctrine\DBAL\Exception\*` but receive `Firebird\Exception`
+
+**Evidence from CI logs:**
+- `Expected: 'Doctrine\DBAL\Exception\SyntaxErrorException'`
+- `Actual: 'Firebird\Exception'`
 
 [Types]
-No new type definitions required for this implementation.
-
-Existing types remain unchanged:
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection` - Main connection class
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement` - Statement with bindParam deprecation
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter` - May be enhanced for SQLSTATE
+No new types required. The fix involves wrapping existing `Firebird\Exception` in the driver's own `Exception` class which already implements `Doctrine\DBAL\Driver\Exception`.
 
 [Files]
-Files will be modified to address the open issues.
+Modify 4 existing PHP files and 2 shell scripts.
 
-**Modified Files:**
-1. `composer.json` - Update ext-firebird constraint from `"*"` to `"^7.0.0-rc.7"`
-2. `src/Driver/Firebird/Connection.php` - Add fork-safety documentation and detection enhancements
-3. `src/Driver/Firebird/ExceptionConverter.php` - Optional: Add SQLSTATE support from Firebird\Exception
-4. `tests/Test/Functional/TypeConversionTest.php` - Enable TIME test cases (remove skips)
-5. `README.md` - Add fork-safety documentation section
-6. `CHANGELOG.md` - Document all changes for next release
+**PHP Files to Modify:**
 
-**Files to Review (for issue closure):**
-- `docs/issues/2025-11-25-transaction-deadlock-fix-plan.md` - Verify #23 is resolved
-- `docs/plans/2025-12-22-php-firebird-v7-integration.md` - Reference for extension features
+1. **`src/Driver/Firebird/Connection.php`** (~15 changes)
+   - Add `use` statement for `Firebird\Exception as FirebirdNativeException`
+   - Wrap all `fbird_*` function calls in try-catch blocks to catch `Firebird\Exception`
+   - Convert caught `Firebird\Exception` to `Driver\Firebird\Exception` with proper error code/message
+
+2. **`src/Driver/Firebird/Statement.php`** (~3 changes)
+   - Add `use` statement for `Firebird\Exception as FirebirdNativeException`
+   - Wrap `fbird_execute()` and related calls in try-catch blocks
+   - Convert caught exceptions to DBAL-compatible exceptions
+
+3. **`src/Driver/Firebird/Result.php`** (~5 changes - need to verify)
+   - May need similar try-catch wrapping for `fbird_fetch_*` calls
+   - Review fetch operations for exception handling
+
+4. **`src/Driver/Firebird/Exception.php`** (~1 change)
+   - Add static factory method `fromFirebirdException(Firebird\Exception $e)` for clean conversion
+
+**Shell Scripts to Modify:**
+
+5. **`tests/docker-compose.yml`**
+   - Remove hardcoded port mapping `- "3050:3050"` from firebird3 service
+   - Use Docker internal networking (containers communicate by hostname)
+   - Add optional dynamic port mapping via environment variable
+
+6. **`tests/act-local-test.sh`**
+   - Replace hardcoded `-p 3050:3050` with dynamic port allocation
+   - Use `FIREBIRD_PORT` environment variable with fallback to automatic port
+   - Update health check to use dynamic port
 
 [Functions]
-No new functions required. Minor modifications to existing functions.
+Modify exception handling in critical functions across Connection.php and Statement.php.
 
-**Connection.php Enhancements:**
-- `isConnectionValid()` - Already detects 'Unknown' resource type (fork invalidation)
-- `isTransactionValid()` - Already detects 'Unknown' resource type
-- Add docblock comments explaining fork-safety behavior
+**New Functions:**
 
-**ExceptionConverter.php (Optional Enhancement):**
-- `convert()` - Could leverage `Firebird\Exception::getSqlState()` for better error classification
-- Current implementation already handles exception conversion adequately
+1. **`Exception::fromFirebirdException(Firebird\Exception $e): self`** (in `src/Driver/Firebird/Exception.php`)
+   - Static factory method to convert native Firebird exception to DBAL-compatible
+   - Extracts SQLSTATE, error code, and message from native exception
+   - Location: `src/Driver/Firebird/Exception.php`
+
+**Modified Functions (Connection.php):**
+
+2. **`prepare(string $sql): DriverStatement`**
+   - Wrap `fbird_prepare()` call in try-catch for `Firebird\Exception`
+   - Current: Uses `@` suppression + return value check
+   - New: Also catch and convert `Firebird\Exception`
+
+3. **`commit(): bool`**
+   - Wrap `fbird_commit()` call in try-catch
+   - Current: Checks return value + manual error info
+   - New: Also catch `Firebird\Exception`
+
+4. **`rollBack(): bool`**
+   - Wrap `fbird_rollback()` call in try-catch
+   - Convert native exception to DBAL exception
+
+5. **`createTransaction(): resource`** (private)
+   - Wrap `fbird_trans_start()` in try-catch
+   - Most critical - called frequently
+
+6. **`autoCommit(): void`**
+   - Wrap `fbird_commit_ret()` in try-catch
+
+7. **`createSavepoint(string $savepoint): void`**
+   - Wrap `fbird_savepoint()` in try-catch
+
+8. **`releaseSavepoint(string $savepoint): void`**
+   - Wrap `fbird_release_savepoint()` in try-catch
+
+9. **`rollbackSavepoint(string $savepoint): void`**
+   - Wrap `fbird_rollback_savepoint()` in try-catch
+
+**Modified Functions (Statement.php):**
+
+10. **`execute($params = null): ResultInterface`**
+    - Wrap `fbird_execute()` at line ~235 in try-catch
+    - Most important: This is the main execution path
+    - Also wrap `fbird_fetch_assoc()` for RETURNING clause handling
 
 [Classes]
-No new classes required. Minor enhancements to existing classes.
+Enhance `Exception` class with conversion capability.
 
-**Connection class enhancements:**
-- Path: `src/Driver/Firebird/Connection.php`
-- Add fork-safety documentation to class docblock
-- Add constants documenting fork-detection behavior
-- Methods `isConnectionValid()` and `isTransactionValid()` already handle invalid resources
+**Modified Class:**
 
-**Statement class cleanup (Issue #24):**
-- Path: `src/Driver/Firebird/Statement.php`
-- `bindParam()` already has deprecation trigger - mark for removal in DBAL 4.x
-- No code changes needed, just documentation update
+1. **`Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception`**
+   - File: `src/Driver/Firebird/Exception.php`
+   - Add `fromFirebirdException()` static factory method
+   - Preserve SQLSTATE if available from native exception (`getSqlState()`)
+   - Preserve SQLCODE as error code (`getCode()`)
+   - Pattern: Similar to existing `fromErrorInfo()` method
 
 [Dependencies]
-Single dependency constraint update required.
+No new dependencies required.
 
-**composer.json changes:**
-```json
-"require": {
-    "ext-firebird": "^7.0.0-rc.7"  // Changed from "*"
-}
-```
-
-This enables:
-- TIME encoding fix (v7.0.0-rc.3+)
-- Exception Mode API (v7.0.0-rc.6+)
-- Fork-safety resource invalidation (v7.0.0-rc.7)
-- Alias padding fix for metadata operations
+The fix uses conditional class existence checking (`class_exists(\Firebird\Exception::class, false)`) to ensure backward compatibility with systems where the Firebird extension doesn't have the Exception class (older php-interbase or pre-v7 php-firebird).
 
 [Testing]
-Enable previously skipped TIME-related tests and verify all existing tests pass.
+Verify all 31 failures and 3 errors are resolved by the exception wrapping.
 
-**Test files to modify:**
-- `tests/Test/Functional/TypeConversionTest.php` - Enable TIME test cases
+**Test Verification Strategy:**
 
-**Verification steps:**
-1. Run full test suite: `vendor/bin/phpunit`
-2. Run PHPStan: `vendor/bin/phpstan analyse src/ --level=8`
-3. Run PHPCS: `vendor/bin/phpcs`
-4. Verify TIME tests no longer skipped
+1. **Local Testing:**
+   ```bash
+   # Run docker-cqc.sh with coverage to verify all tests pass
+   ./tests/docker-cqc.sh --coverage
+   ```
 
-**Test coverage targets:**
-- Maintain or improve existing coverage (≥80%)
-- All TIME-related tests should pass with ext-firebird v7.0.0-rc.7
+2. **Specific Failed Tests to Verify:**
+   - `StatementTest::testExecuteThrowsExceptionWhenSQLIsInvalid`
+   - `ConnectionTest::testTransactionNestingBehavior`
+   - `ConnectionTest::testTransactionNestingBehaviorWithSavepoints`
+   - `ConnectionTest::testExceptionOnExecuteStatement`
+   - `ConnectionTest::testExceptionOnExecuteQuery`
+   - All exception-related tests in `Test/Functional/` directory
+
+3. **Exception Conversion Tests:**
+   - Syntax errors → `SyntaxErrorException`
+   - Unique constraint violations → `UniqueConstraintViolationException`
+   - Foreign key violations → `ForeignKeyConstraintViolationException`
+   - Connection errors → `ConnectionException`
+
+4. **Backward Compatibility:**
+   - Tests should pass both with and without Exception Mode enabled
+   - Verify on multiple PHP versions (8.1, 8.2, 8.3, 8.4)
 
 [Implementation Order]
-Execute changes in this order to minimize conflicts and validate at each step.
+Sequential implementation to minimize risk and enable incremental testing.
 
-1. **Issue #36 - ext-firebird upgrade** (5 min)
-   - Update composer.json: `"ext-firebird": "^7.0.0-rc.7"`
-   - Run `composer validate`
+1. **Step 1: Add exception conversion factory to Exception.php**
+   - Add `fromFirebirdException()` static method
+   - Test: Verify method exists and converts properly (unit test possible)
 
-2. **Issue #33 - Enable TIME tests** (15 min)
-   - Search for TIME-related skip markers in tests
-   - Remove skip conditions where TIME fix applies
-   - Run PHPUnit to verify tests pass
+2. **Step 2: Wrap Connection.php high-traffic methods**
+   - Start with `prepare()` and `createTransaction()`
+   - These are called most frequently and cover most test cases
+   - Test: Run `./tests/docker-cqc.sh --quick` for syntax validation
 
-3. **Issue #35 - Exception Mode verification** (10 min)
-   - Verify `fbird_set_exception_mode()` is called in Connection constructor
-   - Already implemented - just verify and document
+3. **Step 3: Wrap Connection.php transaction methods**
+   - `commit()`, `rollBack()`, `autoCommit()`
+   - `createSavepoint()`, `releaseSavepoint()`, `rollbackSavepoint()`
+   - Test: Run transaction-related functional tests
 
-4. **Issue #37 - Fork-safety documentation** (20 min)
-   - Add docblock comments to Connection.php explaining fork behavior
-   - Update README.md with fork-safety section
-   - Add test case if pcntl extension available (optional)
+4. **Step 4: Wrap Statement.php execute method**
+   - The `execute()` method with `fbird_execute()` call
+   - Also wrap `fbird_fetch_assoc()` for RETURNING handling
+   - Test: Run statement execution tests
 
-5. **Issue #24 - bindParam documentation** (5 min)
-   - Document removal timeline in CHANGELOG
-   - No code changes needed - deprecation already in place
+5. **Step 5: Review and wrap Result.php if needed**
+   - Check for any `fbird_fetch_*` calls that might throw
+   - Test: Run result fetching tests
 
-6. **Close obsolete issues** (5 min)
-   - Close #28, #29, #34 as superseded by #36
-   - Close #23 as already fixed (verify in git history)
+6. **Step 6: Update docker-compose.yml for dynamic ports**
+   - Remove hardcoded port, use environment variable
+   - Test: `docker compose up -d` should work without port conflicts
 
-7. **Update CHANGELOG.md** (10 min)
-   - Document ext-firebird v7.0.0-rc.7 requirement
-   - Document TIME test enablement
-   - Document fork-safety support
-   - Prepare for v3.11.0 release
+7. **Step 7: Update act-local-test.sh for dynamic ports**
+   - Implement dynamic port allocation
+   - Test: `./tests/act-local-test.sh test 5` should work even if port 3050 is in use
 
-8. **Final verification** (15 min)
-   - Run full test suite
-   - Run static analysis (PHPStan, Psalm)
-   - Run code style checks (PHPCS)
-   - Verify all open issues can be closed
+8. **Step 8: Full CI validation**
+   - Run complete test suite: `./tests/docker-cqc.sh`
+   - Verify all 31 failures and 3 errors are resolved
+   - Push to branch and verify GitHub Actions passes
