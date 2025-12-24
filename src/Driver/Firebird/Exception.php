@@ -79,25 +79,18 @@ class Exception extends BaseException implements DriverException
      * making error classification more reliable than fetching via fbird_sqlstate().
      *
      * @param \Firebird\Exception $exception The native Firebird exception
-     * @phpstan-param Throwable $exception
-     *
-     * @phpstan-ignore parameter.notFound
      */
     public static function fromFirebirdException(\Firebird\Exception $exception): Exception
     {
         // Use getSqlState() from Firebird\Exception if available (more reliable)
-        /** @phpstan-ignore method.nonObject */
         $sqlState = method_exists($exception, 'getSqlState')
-            /** @phpstan-ignore method.nonObject */
             ? $exception->getSqlState()
             : self::fetchSqlState();
 
         return new self(
-            /** @phpstan-ignore method.nonObject */
             $exception->getMessage(),
             $sqlState,
-            /** @phpstan-ignore method.nonObject */
-            (int) $exception->getCode(),
+            $exception->getCode(),
             $exception,
         );
     }

@@ -347,6 +347,9 @@ class BlobId implements \Stringable
  */
 class DbInfo
 {
+    /** @param mixed $connection */
+    public static function fromConnection(mixed $connection): self {}
+
     /**
      * Get the Firebird server version string.
      */
@@ -388,4 +391,15 @@ class DbInfo
      * @return array<string, mixed>
      */
     public function toArray(): array {}
+}
+
+/**
+ * Exception thrown by Firebird extension.
+ *
+ * @since php-firebird 7.0.0
+ */
+class Exception extends \Exception
+{
+    /** @return string|null */
+    public function getSqlState(): ?string {}
 }

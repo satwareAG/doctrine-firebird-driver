@@ -25,9 +25,9 @@
     </MismatchingDocblockParamType>
     <PossiblyNullArgument>
       <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
     </PossiblyNullArgument>
     <PossiblyUnusedMethod>
-      <code><![CDATA[createBatch]]></code>
       <code><![CDATA[createIndependentTransaction]]></code>
       <code><![CDATA[dropTableForce]]></code>
       <code><![CDATA[executeAuto]]></code>
@@ -41,34 +41,8 @@
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
-    <UndefinedClass>
-      <code><![CDATA[Batch]]></code>
-      <code><![CDATA[BatchResult]]></code>
-      <code><![CDATA[Database]]></code>
-      <code><![CDATA[DbInfo|array|false]]></code>
-      <code><![CDATA[TBuilder]]></code>
-      <code><![CDATA[Transaction|null]]></code>
-      <code><![CDATA[Transaction|resource|null]]></code>
-    </UndefinedClass>
-    <UndefinedDocblockClass>
-      <code><![CDATA[Transaction|resource|null]]></code>
-      <code><![CDATA[resource|Transaction]]></code>
-    </UndefinedDocblockClass>
-    <UnusedParam>
-      <code><![CDATA[$params]]></code>
-      <code><![CDATA[$rows]]></code>
-      <code><![CDATA[$sql]]></code>
-      <code><![CDATA[$sql]]></code>
-      <code><![CDATA[$sql]]></code>
-      <code><![CDATA[$transaction]]></code>
-      <code><![CDATA[$transaction]]></code>
-      <code><![CDATA[$transaction]]></code>
-    </UnusedParam>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
-    <MismatchingDocblockParamType>
-      <code><![CDATA[Throwable]]></code>
-    </MismatchingDocblockParamType>
     <PossiblyUnusedMethod>
       <code><![CDATA[fromFirebirdException]]></code>
     </PossiblyUnusedMethod>
