@@ -115,6 +115,11 @@ final class Result implements ResultInterface
                     
                     // 2. Trim surrounding spaces
                     $finalKey = trim($keyString);
+                    
+                    // 3. Skip empty keys (shouldn't happen, but defensive programming)
+                    if ($finalKey === '') {
+                        continue;
+                    }
 
                     $normalized[$finalKey] = $value;
                 }
@@ -259,10 +264,21 @@ final class Result implements ResultInterface
             // Normalize keys to handle Firebird 3.0+ padded aliases and suffixes
             $normalized = [];
             foreach ($result as $key => $value) {
+                $keyString = (string) $key;
+                
                 // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
-                $key = preg_replace('/\s+(?=_\d+$)/', '', (string) $key);
+                // Handle preg_replace returning null on error by using null coalescing
+                $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
+                
                 // 2. Trim surrounding spaces
-                $normalized[trim((string) $key)] = $value;
+                $finalKey = trim($keyString);
+                
+                // 3. Skip empty keys (shouldn't happen, but defensive programming)
+                if ($finalKey === '') {
+                    continue;
+                }
+                
+                $normalized[$finalKey] = $value;
             }
 
             return $normalized;
