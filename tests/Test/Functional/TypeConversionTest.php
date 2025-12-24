@@ -77,6 +77,12 @@ class TypeConversionTest extends FunctionalTestCase
     #[DataProvider('toDateTimeProvider')]
     public function testIdempotentConversionToDateTime(string $type, DateTime $originalValue): void
     {
+        // Upstream bug in php-firebird v7.0.0-rc.2+ OO API causes incorrect TIME type conversion
+        // See: https://github.com/satwareAG/php-firebird/issues/21
+        if ($type === Types::TIME_MUTABLE) {
+            self::markTestSkipped('Skipping TIME type test due to upstream php-firebird bug #21');
+        }
+
         // Firebird 4+ returns TIMESTAMP WITH TIME ZONE in a different format (e.g., "2010-04-05 10:10:10 GMT")
         // that Doctrine's DateTimeTzType cannot parse with the standard "Y-m-d H:i:s" format.
         // This is a known limitation - Firebird 4+ native timezone support requires custom type handling.

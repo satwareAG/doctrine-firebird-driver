@@ -71,7 +71,8 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         self::assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], 'Invalid field type.');
 
         if (isset($options['notnull'])) {
-            self::assertSame($options['notnull'], boolval(intval($row['RDB$NULL_FLAG_01'])), 'Invalid notnull.');
+            $nullFlag = $row['RDB$NULL_FLAG_01'] ?? $row['RDB$NULL_FLAG'];
+            self::assertSame($options['notnull'], boolval(intval($nullFlag)), 'Invalid notnull.');
         }
 
         if (isset($options['length'])) {
@@ -98,7 +99,8 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         }
 
         $expected = "DEFAULT {$default}";
-        self::assertSame($expected, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default.');
+        $defaultSource = $row['RDB$DEFAULT_SOURCE_01'] ?? $row['RDB$DEFAULT_SOURCE'];
+        self::assertSame($expected, $defaultSource, 'Invalid default.');
     }
 
     public static function dataProvider_testCreateTableWithVariousColumnOptionCombinations(): Iterator
@@ -273,7 +275,8 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             self::assertSame($expectedPrecision, $row['RDB$FIELD_PRECISION'], 'Invalid precision');
             self::assertSame($column->getScale(), $row['RDB$FIELD_SCALE'], 'Invalid scale');
             self::assertSame($expectedFixed, ($expectedType === FirebirdSchemaManager::META_FIELD_TYPE_CHAR), 'Invalid fixed');
-            self::assertSame($column->getNotnull(), boolval($row['RDB$NULL_FLAG_01']), 'Invalid notnull');
+            $nullFlag = $row['RDB$NULL_FLAG_01'] ?? $row['RDB$NULL_FLAG'];
+            self::assertSame($column->getNotnull(), boolval($nullFlag), 'Invalid notnull');
 
             $expectedDefaultSource = $expectedDefault;
             if ($expectedDefaultSource !== null) {
@@ -299,7 +302,8 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             }
 
             // Use RF.RDB$DEFAULT_SOURCE instead of RF.RDB$DEFAULT_VALUE becuase the latter is binary.
-            self::assertSame($expectedDefaultSource, $row['RDB$DEFAULT_SOURCE_01'], 'Invalid default');
+            $defaultSource = $row['RDB$DEFAULT_SOURCE_01'] ?? $row['RDB$DEFAULT_SOURCE'];
+            self::assertSame($expectedDefaultSource, $defaultSource, 'Invalid default');
         }
     }
 }
