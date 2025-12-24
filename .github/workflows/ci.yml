@@ -97,6 +97,9 @@ jobs:
             sleep 5
           done
 
+          # Install apt-utils first to suppress "delaying package configuration" warning
+          apt-get install -y --no-install-recommends apt-utils
+
           apt-get install -y --no-install-recommends \
             autoconf \
             build-essential \
@@ -275,8 +278,8 @@ jobs:
           export CFLAGS="-I/opt/firebird/include ${CFLAGS:-}"
           export LDFLAGS="-L/opt/firebird/lib ${LDFLAGS:-}"
           
-          # Clone php-firebird extension source (v7.0.0-rc.2 registers as ext-firebird)
-          git clone --depth 1 --branch v7.0.0-rc.2 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          # Clone php-firebird extension source (v7.0.0-rc.4 registers as ext-firebird)
+          git clone --depth 1 --branch v7.0.0-rc.4 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           
           # Build extension
