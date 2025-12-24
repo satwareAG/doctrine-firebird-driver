@@ -32,7 +32,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
+        # Note: PHP 8.5 excluded until officially released
+        php-version: ['8.1', '8.2', '8.3', '8.4']
         # Note: Firebird 2.5 removed - php-firebird v7.0.0+ requires Firebird 3.0+
         firebird-version: ['3.0', '4.0', '5.0']
         include:
