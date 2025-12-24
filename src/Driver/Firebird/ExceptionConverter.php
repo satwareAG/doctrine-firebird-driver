@@ -23,8 +23,11 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
 
+use function class_exists;
+use function method_exists;
 use function str_contains;
 use function strtolower;
+use function substr;
 
 /**
  * Reference https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html#fblangref40-appx02-sqlcodes
@@ -51,7 +54,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
                 }
             }
         }
-        
+
         // Fall back to SQLCODE-based classification for backward compatibility
         switch ($exception->getCode()) {
             case -104: // Syntax Error (multiple specific causes, such as invalid syntax, unexpected tokens).
@@ -177,28 +180,28 @@ final class ExceptionConverter implements ExceptionConverterInterface
         return match ($class) {
             // Class 08: Connection Exception
             '08' => new ConnectionException($exception, $query),
-            
+
             // Class 21: Cardinality Violation
             '21' => new DriverException($exception, $query),
-            
+
             // Class 22: Data Exception (includes string truncation, numeric overflow)
             '22' => new DriverException($exception, $query),
-            
+
             // Class 23: Integrity Constraint Violation
             '23' => $this->convertConstraintViolation($sqlState, $exception, $query),
-            
+
             // Class 28: Invalid Authorization Specification
             '28' => new ConnectionException($exception, $query),
-            
+
             // Class 40: Transaction Rollback (includes deadlock)
             '40' => new DeadlockException($exception, $query),
-            
+
             // Class 42: Syntax Error or Access Rule Violation
             '42' => new SyntaxErrorException($exception, $query),
-            
+
             // Class HY: General Error (fallback)
             'HY' => null, // Fall back to SQLCODE classification
-            
+
             // Unknown SQLSTATE class - fall back to SQLCODE
             default => null,
         };
@@ -210,7 +213,7 @@ final class ExceptionConverter implements ExceptionConverterInterface
      * Subclass analysis for more accurate classification:
      * - 23000: Generic integrity constraint violation
      * - 23001: Restrict violation (e.g., foreign key)
-     * - 23502: NOT NULL constraint violation  
+     * - 23502: NOT NULL constraint violation
      * - 23503: Foreign key constraint violation
      * - 23505: Unique constraint violation
      */

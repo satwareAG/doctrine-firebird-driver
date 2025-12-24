@@ -10,6 +10,7 @@ use Throwable;
 
 use function fbird_sqlstate;
 use function function_exists;
+use function method_exists;
 
 /**
  * Firebird driver exception.
@@ -78,7 +79,8 @@ class Exception extends BaseException implements DriverException
      * making error classification more reliable than fetching via fbird_sqlstate().
      *
      * @param \Firebird\Exception $exception The native Firebird exception
-     * @phpstan-param \Throwable $exception
+     * @phpstan-param Throwable $exception
+     *
      * @phpstan-ignore parameter.notFound
      */
     public static function fromFirebirdException(\Firebird\Exception $exception): Exception
@@ -95,7 +97,7 @@ class Exception extends BaseException implements DriverException
             $exception->getMessage(),
             $sqlState,
             /** @phpstan-ignore method.nonObject */
-            $exception->getCode(),
+            (int) $exception->getCode(),
             $exception,
         );
     }

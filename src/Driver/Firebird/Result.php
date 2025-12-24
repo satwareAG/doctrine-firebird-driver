@@ -108,14 +108,14 @@ final class Result implements ResultInterface
                 $normalized = [];
                 foreach ($result as $key => $value) {
                     $keyString = (string) $key;
-                    
+
                     // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
                     // Handle preg_replace returning null on error by using null coalescing
                     $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
-                    
+
                     // 2. Trim surrounding spaces
                     $finalKey = trim($keyString);
-                    
+
                     // 3. Skip empty keys (shouldn't happen, but defensive programming)
                     if ($finalKey === '') {
                         continue;
@@ -265,19 +265,19 @@ final class Result implements ResultInterface
             $normalized = [];
             foreach ($result as $key => $value) {
                 $keyString = (string) $key;
-                
+
                 // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
                 // Handle preg_replace returning null on error by using null coalescing
                 $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
-                
+
                 // 2. Trim surrounding spaces
                 $finalKey = trim($keyString);
-                
+
                 // 3. Skip empty keys (shouldn't happen, but defensive programming)
                 if ($finalKey === '') {
                     continue;
                 }
-                
+
                 $normalized[$finalKey] = $value;
             }
 

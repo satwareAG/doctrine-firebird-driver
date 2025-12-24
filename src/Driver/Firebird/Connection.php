@@ -31,6 +31,7 @@ use UnexpectedValueException;
 use function addcslashes;
 use function assert;
 use function class_exists;
+use function defined;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -147,7 +148,7 @@ final class Connection implements ServerInfoAwareConnection
     {
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
-        
+
         if ($connection !== null) {
             // Enable Exception Mode API if available (php-firebird v7.0.0-rc.6+)
             // This provides PDO::ERRMODE_EXCEPTION-like behavior where Firebird API
@@ -157,7 +158,7 @@ final class Connection implements ServerInfoAwareConnection
             if (function_exists('fbird_set_exception_mode') && defined('FBIRD_EXCEPTION_MODE_THROW')) {
                 fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
             }
-            
+
             $this->firebirdActiveTransaction = $this->createTransaction();
         }
 
