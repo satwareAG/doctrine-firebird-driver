@@ -1653,8 +1653,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        $this->markConnectionNotReusable();
-
         parent::tearDown();
     }
 

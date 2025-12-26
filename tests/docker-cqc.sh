@@ -215,8 +215,22 @@ wait_for_containers() {
 
 run_in_docker() {
     local cmd="$1"
-    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd"
-    docker compose run --rm app bash -c "$cmd"
+    local timeout="${2:-300}"  # Default 5 minute timeout
+    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd (timeout: ${timeout}s)"
+    
+    # Use -T to disable pseudo-TTY allocation (prevents hangs in scripts)
+    # Use timeout command to prevent infinite hangs
+    if timeout "$timeout" docker compose run --rm -T app bash -c "$cmd"; then
+        return 0
+    else
+        local exit_code=$?
+        if [[ $exit_code -eq 124 ]]; then
+            print_error "Command timed out after ${timeout}s: $cmd"
+        else
+            print_error "Command failed with exit code $exit_code: $cmd"
+        fi
+        return $exit_code
+    fi
 }
 
 # =============================================================================
@@ -302,10 +316,15 @@ run_tests_with_coverage() {
     print_header "Phase 4: PHPUnit Test Suite with Coverage"
     print_step "Running tests against Firebird 3 with PCOV coverage..."
     
+    # Restart Firebird 3 to ensure clean state
+    print_info "Restarting Firebird 3 container..."
+    docker compose restart firebird3
+    wait_for_containers 30
+    
     local start_time
     start_time=$(date +%s)
     
-    if run_in_docker "php -d pcov.enabled=1 -d pcov.directory=/app/src vendor/bin/phpunit -c tests/phpunit.xml --coverage-text --coverage-html=tests/var/coverage/html 2>&1 | tee tests/var/reports/phpunit-fb3-report.txt"; then
+    if run_in_docker "php -d pcov.enabled=1 -d pcov.directory=/app/src vendor/bin/phpunit -c tests/phpunit.xml --coverage-text --coverage-html=tests/var/coverage/html 2>&1 | tee tests/var/reports/phpunit-fb3-report.txt" 1200; then
         print_success "Firebird 3 Tests: PASSED"
     else
         print_error "Firebird 3 Tests: FAILED"
@@ -329,7 +348,9 @@ run_multiversion_tests() {
     
     # Firebird 2.5
     print_info "Testing Firebird 2.5..."
-    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird25.xml --no-coverage 2>&1 | tail -10"; then
+    docker compose restart firebird25
+    wait_for_containers 30
+    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird25.xml --no-coverage 2>&1 | tail -10" 1200; then
         print_success "Firebird 2.5: PASSED"
     else
         print_error "Firebird 2.5: FAILED"
@@ -338,7 +359,9 @@ run_multiversion_tests() {
     
     # Firebird 4.x
     print_info "Testing Firebird 4.x..."
-    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird4.xml --no-coverage 2>&1 | tail -10"; then
+    docker compose restart firebird4
+    wait_for_containers 30
+    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird4.xml --no-coverage 2>&1 | tail -10" 1200; then
         print_success "Firebird 4.x: PASSED"
     else
         print_error "Firebird 4.x: FAILED"
@@ -347,7 +370,9 @@ run_multiversion_tests() {
     
     # Firebird 5.x
     print_info "Testing Firebird 5.x..."
-    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird5.xml --no-coverage 2>&1 | tail -10"; then
+    docker compose restart firebird5
+    wait_for_containers 30
+    if run_in_docker "vendor/bin/phpunit -c tests/phpunit-firebird5.xml --no-coverage 2>&1 | tail -10" 1200; then
         print_success "Firebird 5.x: PASSED"
     else
         print_error "Firebird 5.x: FAILED"
@@ -412,7 +437,7 @@ main() {
     print_step "Running composer install..."
     # Note: --ignore-platform-req=ext-firebird is needed because php-firebird extension
     # reports version 1.0.0 internally regardless of the actual git tag version (7.0.0-rc.7)
-    docker compose run --rm app composer install --no-interaction --no-progress --ignore-platform-req=ext-firebird || die "Composer install failed"
+    docker compose run --rm app composer update --no-interaction --no-progress --ignore-platform-req=ext-firebird || die "Composer update failed"
     print_success "Dependencies installed"
     
     # Create output directories

@@ -14,11 +14,12 @@ use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
+use Throwable;
 
 use function array_change_key_case;
 use function date;
 use function strtotime;
-use function uniqid;
 
 use const CASE_LOWER;
 
@@ -26,11 +27,12 @@ class DataAccessTest extends FunctionalTestCase
 {
     use VerifyDeprecations;
 
-    private string $table = 'fetch_table';
+    private string $table = 'fetch_table_shared';
 
     public function tearDown(): void
     {
-        $this->markConnectionNotReusable();
+        // Do NOT mark connection not reusable
+        parent::tearDown();
     }
 
     public function testPrepareWithBindValue(): void
@@ -440,20 +442,20 @@ class DataAccessTest extends FunctionalTestCase
         self::markTestSkipped('test is for SQLite only');
 
         $sql = <<< 'SQL'
-            SELECT
-                LOCATE(test_string, 'oo') AS locate1,
-                LOCATE(test_string, 'foo') AS locate2,
-                LOCATE(test_string, 'bar') AS locate3,
-                LOCATE(test_string, test_string) AS locate4,
-                LOCATE('foo', test_string) AS locate5,
-                LOCATE('barfoobaz', test_string) AS locate6,
-                LOCATE('bar', test_string) AS locate7,
-                LOCATE(test_string, 'oo', 2) AS locate8,
-                LOCATE(test_string, 'oo', 3) AS locate9,
-                LOCATE(test_string, 'foo', 1) AS locate10,
-                LOCATE(test_string, 'oo', 1 + 1) AS locate11
-            FROM {$this->table}
-            SQL;
+			SELECT
+				LOCATE(test_string, 'oo') AS locate1,
+				LOCATE(test_string, 'foo') AS locate2,
+				LOCATE(test_string, 'bar') AS locate3,
+				LOCATE(test_string, test_string) AS locate4,
+				LOCATE('foo', test_string) AS locate5,
+				LOCATE('barfoobaz', test_string) AS locate6,
+				LOCATE('bar', test_string) AS locate7,
+				LOCATE(test_string, 'oo', 2) AS locate8,
+				LOCATE(test_string, 'oo', 3) AS locate9,
+				LOCATE(test_string, 'foo', 1) AS locate10,
+				LOCATE(test_string, 'oo', 1 + 1) AS locate11
+			FROM {$this->table}
+			SQL;
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5749');
 
@@ -478,6 +480,41 @@ class DataAccessTest extends FunctionalTestCase
         $rows = $this->connection->fetchAllAssociative($sql);
 
         self::assertCount(0, $rows, 'no result should be returned, otherwise SQL injection is possible');
+    }
+
+    public static function setUpBeforeClass(): void
+    {
+        $conn = TestUtil::getConnection();
+        $sm   = $conn->createSchemaManager();
+
+        try {
+            $sm->dropTable('fetch_table_shared');
+        } catch (Throwable) {
+            // Ignore if not exists
+        }
+
+        $table = new Table('fetch_table_shared');
+        $table->addColumn('test_int', Types::INTEGER);
+        $table->addColumn('test_string', Types::STRING);
+        $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);
+        $table->setPrimaryKey(['test_int']);
+
+        $sm->createTable($table);
+        $conn->close();
+    }
+
+    public static function tearDownAfterClass(): void
+    {
+        $conn = TestUtil::getConnection();
+        $sm   = $conn->createSchemaManager();
+
+        try {
+            $sm->dropTable('fetch_table_shared');
+        } catch (Throwable) {
+            // Ignore
+        }
+
+        $conn->close();
     }
 
     /** @return array<int, array<int, mixed>> */
@@ -523,15 +560,10 @@ class DataAccessTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $this->table = 'fetch_table' . uniqid();
-        $table       = new Table($this->table);
-        $table->addColumn('test_int', Types::INTEGER);
-        $table->addColumn('test_string', Types::STRING);
-        $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);
-        $table->setPrimaryKey(['test_int']);
+        parent::setUp();
 
-        $this->dropAndCreateTable($table);
-
+        // Clean up and re-insert data
+        $this->connection->executeStatement('DELETE FROM ' . $this->table);
         $this->connection->insert($this->table, [
             'test_int' => 1,
             'test_string' => 'foo',

@@ -53,6 +53,7 @@ services:
     environment:
       ISC_PASSWORD: masterkey
       TZ: Europe/Berlin
+      FIREBIRD_DATABASE: test.fdb
     healthcheck:
       # Note: $$ escapes $ in Docker Compose to prevent variable interpolation in RDB$DATABASE
       test: ["CMD-SHELL", "echo 'SELECT 1 FROM RDB$$DATABASE;' | /usr/local/firebird/bin/isql -u SYSDBA -p masterkey localhost:/firebird/data/test.fdb || exit 1"]
@@ -112,13 +113,13 @@ services:
       - ./../:/app:cached
     depends_on:
       firebird25:
-        condition: service_started
+        condition: service_healthy
       firebird3:
-        condition: service_started
+        condition: service_healthy
       firebird4:
-        condition: service_started
+        condition: service_healthy
       firebird5:
-        condition: service_started
+        condition: service_healthy
     tmpfs:
       - /tmp:mode=1777
     # Keep container running for interactive use
