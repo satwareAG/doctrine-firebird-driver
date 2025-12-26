@@ -10,6 +10,7 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
 use Override;
 use RuntimeException;
+use Throwable;
 
 use function array_flip;
 use function array_map;
@@ -269,7 +270,7 @@ class Statement implements StatementInterface
                         (string) fbird_errmsg(),
                     ));
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 throw Exception::fromThrowable($e);
             }
 
@@ -309,7 +310,7 @@ class Statement implements StatementInterface
                         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
                         try {
                             $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             throw Exception::fromThrowable($e);
                         }
 

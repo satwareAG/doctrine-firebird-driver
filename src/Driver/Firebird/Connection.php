@@ -26,6 +26,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
+use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
@@ -50,6 +51,7 @@ use function fbird_release_savepoint;
 use function fbird_rollback;
 use function fbird_rollback_savepoint;
 use function fbird_savepoint;
+use function fbird_set_exception_mode;
 use function fbird_trans_start;
 use function function_exists;
 use function get_resource_type;
@@ -70,6 +72,7 @@ use function version_compare;
 use const FBIRD_COMMITTED;
 use const FBIRD_CONCURRENCY;
 use const FBIRD_CONSISTENCY;
+use const FBIRD_EXCEPTION_MODE_THROW;
 use const FBIRD_NOWAIT;
 use const FBIRD_REC_VERSION;
 use const FBIRD_WAIT;
@@ -156,7 +159,7 @@ final class Connection implements ServerInfoAwareConnection
             // Note: This is a GLOBAL setting affecting all Firebird operations in this process.
             // We enable it AFTER connection is established to avoid interfering with database creation.
             if (function_exists('fbird_set_exception_mode') && defined('FBIRD_EXCEPTION_MODE_THROW')) {
-                \fbird_set_exception_mode(\FBIRD_EXCEPTION_MODE_THROW);
+                fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
@@ -193,12 +196,12 @@ final class Connection implements ServerInfoAwareConnection
                         // If commit fails, try rollback to clean up gracefully
                         @fbird_rollback($this->firebirdActiveTransaction);
                     }
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Silently ignore exceptions during destructor cleanup.
                     // Destructors cannot throw; best effort cleanup only.
                     try {
                         @fbird_rollback($this->firebirdActiveTransaction);
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         // Ignore - nothing more we can do during destruction
                     }
                 }
@@ -310,7 +313,7 @@ final class Connection implements ServerInfoAwareConnection
             if ($stmt === false) {
                 $this->checkLastApiCall();
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
 
@@ -425,11 +428,11 @@ final class Connection implements ServerInfoAwareConnection
                         @fbird_rollback($this->firebirdActiveTransaction);
                         $this->checkLastApiCall();
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     // Try rollback to clear state, then convert exception
                     try {
                         @fbird_rollback($this->firebirdActiveTransaction);
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         // Ignore rollback exception during cleanup
                     }
 
@@ -472,11 +475,11 @@ final class Connection implements ServerInfoAwareConnection
                         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
                     }
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Try rollback cleanup, then convert exception
                 try {
                     @fbird_rollback($this->firebirdActiveTransaction);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore rollback exception during cleanup
                 }
 
@@ -520,7 +523,7 @@ final class Connection implements ServerInfoAwareConnection
             }
 
             $this->checkLastApiCall();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
     }
@@ -568,7 +571,7 @@ final class Connection implements ServerInfoAwareConnection
                     // Capture error before resetting state
                     $lastError = $this->errorInfo();
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $success   = false;
                 $lastError = ['code' => $e->getCode(), 'message' => $e->getMessage(), 'exception' => $e];
             }
@@ -620,7 +623,7 @@ final class Connection implements ServerInfoAwareConnection
 
                 throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
     }
@@ -647,7 +650,7 @@ final class Connection implements ServerInfoAwareConnection
 
                 throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
     }
@@ -674,7 +677,7 @@ final class Connection implements ServerInfoAwareConnection
 
                 throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
     }
@@ -1215,7 +1218,7 @@ final class Connection implements ServerInfoAwareConnection
             }
 
             return $result;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
     }

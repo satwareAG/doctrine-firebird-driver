@@ -19,6 +19,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Throwable;
 
 use function array_change_key_case;
 use function array_merge;
@@ -78,7 +79,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         // Suppress warning since we handle the error explicitly below
         try {
             $connection = @fbird_connect($dbname, $params['user'], $params['password']);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
@@ -97,9 +98,10 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             $result = fbird_drop_db(
                 $connection,
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
+
         if (! $result) {
             throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
         }
@@ -153,7 +155,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
                     $charset,
                 ),
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 

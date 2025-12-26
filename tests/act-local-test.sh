@@ -78,6 +78,18 @@ start_firebird() {
     # Remove any existing container
     docker rm -f doctrine-firebird-test 2>/dev/null || true
     
+    # Find a free port
+    local port="${FIREBIRD_PORT:-3050}"
+    if [ -z "${FIREBIRD_PORT:-}" ]; then
+        # If FIREBIRD_PORT is not set, try to find a free port starting from 3050
+        while lsof -i:$port -sTCP:LISTEN -t >/dev/null 2>&1; do
+            port=$((port + 1))
+        done
+    fi
+    
+    log_info "Using port $port for Firebird..."
+    export DB_PORT=$port
+
     # Start Firebird with same configuration as GitHub Actions
     docker run -d \
         --name doctrine-firebird-test \
@@ -85,7 +97,7 @@ start_firebird() {
         -e FIREBIRD_DATABASE=test.fdb \
         -e FIREBIRD_USER=SYSDBA \
         -e FIREBIRD_PASSWORD=masterkey \
-        -p 3050:3050 \
+        -p $port:3050 \
         "firebirdsql/firebird:$docker_tag"
     
     log_info "Waiting for Firebird to be ready..."
@@ -135,7 +147,7 @@ run_phpunit_tests() {
     log_info "Running PHPUnit..."
     
     export DB_HOST=127.0.0.1
-    export DB_PORT=3050
+    # DB_PORT is already exported in start_firebird
     export DB_USER=SYSDBA
     export DB_PASSWORD=masterkey
     export DB_DATABASE=/firebird/data/test.fdb

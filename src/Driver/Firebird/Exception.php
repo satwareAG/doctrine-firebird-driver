@@ -111,9 +111,9 @@ class Exception extends BaseException implements DriverException
      *
      * @deprecated Use fromThrowable() instead for PHPStan compatibility
      *
-     * @param \Throwable $exception The native Firebird exception
+     * @param Throwable $exception The native Firebird exception
      */
-    public static function fromFirebirdException(\Throwable $exception): Exception
+    public static function fromFirebirdException(Throwable $exception): Exception
     {
         return self::fromThrowable($exception);
     }
