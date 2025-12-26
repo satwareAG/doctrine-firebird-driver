@@ -16,6 +16,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Satag\DoctrineFirebirdDriver\ORM\Mapping\FirebirdQuoteStrategy;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use PHPUnit\Framework\Attributes\Large;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use SebastianBergmann\Timer\Timer;
@@ -29,6 +30,7 @@ use function is_string;
 
 use const PHP_EOL;
 
+#[Large]
 abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 {
     public const DEFAULT_DATABASE_FILE_PATH = '/firebird/data/music_library.fdb';
@@ -41,8 +43,13 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     public function setUp(): void
     {
         $configurationArray = static::getSetUpDoctrineConfigurationArray();
-        $this->installFirebirdDatabase($configurationArray);
+        static::installFirebirdDatabase($this->connection, $configurationArray, $this);
 
+        $this->setUpEntityManager();
+    }
+
+    protected function setUpEntityManager(): void
+    {
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
         $this->connection->setNestTransactionsWithSavepoints(true);
         $eventManager = new EventManager();
@@ -57,10 +64,12 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
        $this->markConnectionNotReusable();
     }
 
-    protected function installFirebirdDatabase(array $configurationArray): void
+    protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, ?self $testCase = null): void
     {
-        $this->stopIfOver(999, 'installFirebirdDatabase');
-        $this->connection->createSchemaManager();
+        if ($testCase !== null) {
+            $testCase->stopIfOver(999, 'installFirebirdDatabase');
+        }
+        $connection->createSchemaManager();
 
         $schema = new Schema();
         $tAlbum = $schema->createTable('Album');
@@ -117,8 +126,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
-        $platform = $this->connection->getDatabasePlatform();
-        $schemaManager = $this->connection->createSchemaManager();
+        $platform = $connection->getDatabasePlatform();
+        $schemaManager = $connection->createSchemaManager();
         $tablesToDrop = [];
         foreach ($schema->getTables() as $table) {
             if ($schemaManager->tablesExist([$table->getName()])) {
@@ -130,46 +139,46 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $queriesRemove = $schemaToDrop->toDropSql($platform);
         $queriesInsert = $schema->toSql($platform);
 
-        $this->connection->beginTransaction();
+        $connection->beginTransaction();
         foreach ($queriesRemove as $query) {
             try {
-                $this->connection->executeStatement($query);
+                $connection->executeStatement($query);
             } catch (DatabaseObjectNotFoundException | Throwable) {
             }
         }
 
-        $this->connection->commit();
+        $connection->commit();
 
-        $this->connection->beginTransaction();
+        $connection->beginTransaction();
         foreach ($queriesInsert as $sql) {
-            $this->connection->executeStatement($sql);
+            $connection->executeStatement($sql);
         }
 
-        $this->connection->commit();
+        $connection->commit();
 
-        $this->connection->beginTransaction();
+        $connection->beginTransaction();
         foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $name) {
-            $this->connection->insert($tArtistType->getName(), ['name' => $name]);
+            $connection->insert($tArtistType->getName(), ['name' => $name]);
         }
 
         foreach (['Unknown' => 1, 'Britney Spears' => 2, 'Nickelback' => 6, 'AC/DC' => 6] as $name => $type) {
-            $this->connection->insert($tArtist->getName(), ['name' => $name, 'type_id' => $type]);
+            $connection->insert($tArtist->getName(), ['name' => $name, 'type_id' => $type]);
         }
 
         foreach (['Unclassified genre', 'Rock', 'Pop', 'Classical'] as $name) {
-            $this->connection->insert($tGenre->getName(), ['name' => $name]);
+            $connection->insert($tGenre->getName(), ['name' => $name]);
         }
 
-        $this->connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2]);
-        $this->connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3]);
+        $connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2]);
+        $connection->insert($tAlbum->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3]);
 
-        $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0]);
-        $this->connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1]);
+        $connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0]);
+        $connection->insert($tSong->getName(), ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1]);
 
-        $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 1]);
-        $this->connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
+        $connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 1]);
+        $connection->insert($tAlbumSongmap->getName(), ['album_id' => 1, 'song_id' => 2]);
 
-        $this->connection->commit();
+        $connection->commit();
     }
 
     protected static function statementArrayToText(array $statements): string
@@ -233,7 +242,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         if (($took = $timer->stop()->asSeconds()) > $seconds) {
             $timer->start();
-            $this->addWarning("Execution time for $cmd took {$took} seconds exceeding maximum execute Time of  {$seconds} seconds.");
+            // addWarning is removed in PHPUnit 10
+            // $this->addWarning("Execution time for $cmd took {$took} seconds exceeding maximum execute Time of  {$seconds} seconds.");
         }
 
         $timer->start();
