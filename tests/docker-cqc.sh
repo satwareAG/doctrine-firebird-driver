@@ -293,16 +293,24 @@ run_psalm() {
     local start_time
     start_time=$(date +%s)
     
+    # Determine Psalm command based on PHP version
+    # Suppress E_DEPRECATED on PHP 8.4+ due to Psalm v5 using deprecated E_STRICT constant
+    local psalm_cmd="vendor/bin/psalm"
+    if [[ "$PHP_VERSION" == "8.4" ]] || [[ "$PHP_VERSION" == "8.5" ]]; then
+        psalm_cmd="php -d error_reporting='E_ALL & ~E_DEPRECATED' vendor/bin/psalm"
+        print_info "PHP $PHP_VERSION detected: Suppressing E_DEPRECATED for Psalm compatibility"
+    fi
+    
     # Auto-fix type hints where possible
     print_info "Attempting to auto-fix type issues..."
-    run_in_docker "vendor/bin/psalm --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" 900 || true
+    run_in_docker "$psalm_cmd --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" 900 || true
     
     # Update baseline if needed
     print_info "Updating Psalm baseline..."
-    run_in_docker "vendor/bin/psalm --set-baseline=psalm-baseline.xml --no-cache 2>&1 | tee tests/var/reports/psalm-report.txt" 900 || true
+    run_in_docker "$psalm_cmd --set-baseline=psalm-baseline.xml --no-cache 2>&1 | tee tests/var/reports/psalm-report.txt" 900 || true
     
     # Final analysis
-    if run_in_docker "vendor/bin/psalm --no-cache --show-info=false --output-format=text" 900; then
+    if run_in_docker "$psalm_cmd --no-cache --show-info=false --output-format=text" 900; then
         print_success "Psalm: PASSED"
     else
         print_info "Psalm: Completed with baseline (check psalm-baseline.xml for known issues)"

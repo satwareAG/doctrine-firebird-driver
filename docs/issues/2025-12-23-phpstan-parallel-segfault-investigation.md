@@ -240,6 +240,26 @@ Will likely show crash in one of:
 
 ---
 
+## Update: 2025-12-27 - Segfault Persists in Single Process Mode
+
+**Status Update**: The segfault issue has escalated. It now occurs even with `maximumNumberOfProcesses: 1` (single process mode), indicating that the issue is not strictly limited to `pcntl_fork()` but involves a deeper Use-After-Free (UAF) bug in the php-firebird extension's persistent connection handling.
+
+**Symptoms**:
+- PHPStan reports "PASSED" in CQC pipeline but exits prematurely or with hidden errors.
+- Segfaults observed in logs even without parallel workers.
+- Root cause identified as UAF in `php_ibase_pconnect` resource management.
+
+**Fix in Progress**:
+- A fix is being implemented in the `php-firebird` repository (v7.0.0-rc.12 target).
+- Strategy: Fix UAF in persistent connection list traversal and cleanup.
+- Reference: `/home/mw/CLionProjects/php-firebird/docs/planning/UAF_FIX_NEXT_STEPS.md`
+
+**Impact on CQC**:
+- The "PASSED" status for PHPStan in `tests/docker-cqc.sh` may be misleading until the extension is updated.
+- We will continue to run PHPStan but acknowledge the potential for incomplete analysis until the underlying extension bug is resolved.
+
+---
+
 ## References
 
 1. [PHPStan Parallel Processing](https://phpstan.org/config-reference#parallel-processing)

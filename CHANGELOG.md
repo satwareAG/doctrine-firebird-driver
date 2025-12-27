@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **PHP 8.4 Quality Improvements**
+  - Fixed PHPCS error in `DataAccessTest.php` (heredoc tab indentation)
+  - Suppressed Psalm `E_STRICT` deprecation warnings on PHP 8.4+ in CQC pipeline
+  - Updated PHPStan segfault investigation (confirmed UAF issue in php-firebird extension)
 - **CI Test Fixes for php-firebird Exception Mode**
   - Wrapped all `fbird_*` function calls in try-catch blocks to handle `Firebird\Exception` when Exception Mode is enabled
   - Updated `Statement::execute()`, `Result::fetch()`, and `Connection` destructor with proper exception handling

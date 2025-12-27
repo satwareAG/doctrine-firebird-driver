@@ -442,20 +442,20 @@ class DataAccessTest extends FunctionalTestCase
         self::markTestSkipped('test is for SQLite only');
 
         $sql = <<< 'SQL'
-			SELECT
-				LOCATE(test_string, 'oo') AS locate1,
-				LOCATE(test_string, 'foo') AS locate2,
-				LOCATE(test_string, 'bar') AS locate3,
-				LOCATE(test_string, test_string) AS locate4,
-				LOCATE('foo', test_string) AS locate5,
-				LOCATE('barfoobaz', test_string) AS locate6,
-				LOCATE('bar', test_string) AS locate7,
-				LOCATE(test_string, 'oo', 2) AS locate8,
-				LOCATE(test_string, 'oo', 3) AS locate9,
-				LOCATE(test_string, 'foo', 1) AS locate10,
-				LOCATE(test_string, 'oo', 1 + 1) AS locate11
-			FROM {$this->table}
-			SQL;
+            SELECT
+                LOCATE(test_string, 'oo') AS locate1,
+                LOCATE(test_string, 'foo') AS locate2,
+                LOCATE(test_string, 'bar') AS locate3,
+                LOCATE(test_string, test_string) AS locate4,
+                LOCATE('foo', test_string) AS locate5,
+                LOCATE('barfoobaz', test_string) AS locate6,
+                LOCATE('bar', test_string) AS locate7,
+                LOCATE(test_string, 'oo', 2) AS locate8,
+                LOCATE(test_string, 'oo', 3) AS locate9,
+                LOCATE(test_string, 'foo', 1) AS locate10,
+                LOCATE(test_string, 'oo', 1 + 1) AS locate11
+            FROM {$this->table}
+            SQL;
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5749');
 
