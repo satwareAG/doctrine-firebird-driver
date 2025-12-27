@@ -51,6 +51,10 @@ define('FBIRD_READ_CONSISTENCY', 32768);
 // Event handling
 define('FBIRD_EVENT_TIMEOUT', -2);
 
+// Exception handling modes
+define('FBIRD_EXCEPTION_MODE_OFF', 0);
+define('FBIRD_EXCEPTION_MODE_THROW', 1);
+
 // Connection options
 define('FBIRD_CONNECT_FORCE_NEW', 2);
 
@@ -695,6 +699,14 @@ function fbird_get_client_major_version() {}
  * @return int
  */
 function fbird_get_client_minor_version() {}
+
+/**
+ * Set the exception mode for the Firebird driver
+ *
+ * @param int $mode One of FBIRD_EXCEPTION_MODE_* constants
+ * @return bool
+ */
+function fbird_set_exception_mode(int $mode): bool {}
 
 // Note: Legacy ibase_* alias functions removed in php-firebird v7.0.0-rc.1
 // Use fbird_* functions instead

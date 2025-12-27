@@ -220,7 +220,8 @@ run_in_docker() {
     
     # Use -T to disable pseudo-TTY allocation (prevents hangs in scripts)
     # Use timeout command to prevent infinite hangs
-    if timeout "$timeout" docker compose run --rm -T app bash -c "$cmd"; then
+    # Use < /dev/null to close stdin (prevents hangs with stdin_open: true)
+    if timeout "$timeout" docker compose run --rm -T app bash -c "$cmd" < /dev/null; then
         return 0
     else
         local exit_code=$?
@@ -245,13 +246,14 @@ run_coding_standards() {
     start_time=$(date +%s)
     
     # Try to auto-fix first, then check
-    if ! run_in_docker "vendor/bin/phpcs --report=summary 2>/dev/null"; then
+    # Note: Disable parallel and cache to prevent hangs in Docker environment
+    if ! run_in_docker "vendor/bin/phpcs --report=summary --parallel=1 --no-cache" 900; then
         print_info "Attempting auto-fix with PHPCBF..."
-        run_in_docker "vendor/bin/phpcbf" || true
+        run_in_docker "vendor/bin/phpcbf --parallel=1 --no-cache" 900 || true
     fi
     
     # Final check
-    if run_in_docker "vendor/bin/phpcs --report=full --report-file=tests/var/reports/phpcs-report.txt"; then
+    if run_in_docker "vendor/bin/phpcs --report=full --report-file=tests/var/reports/phpcs-report.txt --parallel=1 --no-cache" 900; then
         print_success "Coding standards: PASSED"
     else
         print_error "Coding standards: FAILED (see tests/var/reports/phpcs-report.txt)"
@@ -271,7 +273,7 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    if run_in_docker "vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt"; then
+    if run_in_docker "vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt" 900; then
         print_success "PHPStan Level 8: PASSED"
     else
         print_error "PHPStan Level 8: FAILED"
@@ -293,14 +295,14 @@ run_psalm() {
     
     # Auto-fix type hints where possible
     print_info "Attempting to auto-fix type issues..."
-    run_in_docker "vendor/bin/psalm --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" || true
+    run_in_docker "vendor/bin/psalm --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" 900 || true
     
     # Update baseline if needed
     print_info "Updating Psalm baseline..."
-    run_in_docker "vendor/bin/psalm --set-baseline=psalm-baseline.xml --no-cache 2>&1 | tee tests/var/reports/psalm-report.txt" || true
+    run_in_docker "vendor/bin/psalm --set-baseline=psalm-baseline.xml --no-cache 2>&1 | tee tests/var/reports/psalm-report.txt" 900 || true
     
     # Final analysis
-    if run_in_docker "vendor/bin/psalm --no-cache --show-info=false --output-format=text"; then
+    if run_in_docker "vendor/bin/psalm --no-cache --show-info=false --output-format=text" 900; then
         print_success "Psalm: PASSED"
     else
         print_info "Psalm: Completed with baseline (check psalm-baseline.xml for known issues)"

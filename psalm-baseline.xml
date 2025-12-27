@@ -44,9 +44,6 @@
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
-    <UnusedFunctionCall>
-      <code><![CDATA[fbird_set_exception_mode]]></code>
-    </UnusedFunctionCall>
     <UnusedVariable>
       <code><![CDATA[$success]]></code>
     </UnusedVariable>
