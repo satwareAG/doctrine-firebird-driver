@@ -703,10 +703,38 @@ function fbird_get_client_minor_version() {}
 /**
  * Set the exception mode for the Firebird driver
  *
+ * When set to FBIRD_EXCEPTION_MODE_THROW, all fbird_* functions will throw
+ * \Firebird\Exception on errors instead of returning false and triggering warnings.
+ *
  * @param int $mode One of FBIRD_EXCEPTION_MODE_* constants
- * @return bool
+ * @return bool True on success
+ * @since php-firebird 7.0.0
  */
 function fbird_set_exception_mode(int $mode): bool {}
+
+/**
+ * Get the current exception mode for the Firebird driver
+ *
+ * @return int Current exception mode (FBIRD_EXCEPTION_MODE_OFF or FBIRD_EXCEPTION_MODE_THROW)
+ * @since php-firebird 7.0.0
+ */
+function fbird_get_exception_mode(): int {}
+
+/**
+ * Escape a string for safe use in SQL queries
+ *
+ * Escapes single quotes by doubling them (SQL standard escaping).
+ * Use this for string literals not handled by parameterized queries.
+ *
+ * Example:
+ *   $name = fbird_escape_string("O'Reilly");  // Returns: O''Reilly
+ *   $sql = "SELECT * FROM users WHERE name = '$name'";
+ *
+ * @param string $string The string to escape
+ * @return string The escaped string with single quotes doubled
+ * @since php-firebird 7.0.0-rc.25
+ */
+function fbird_escape_string(string $string): string {}
 
 // Note: Legacy ibase_* alias functions removed in php-firebird v7.0.0-rc.1
 // Use fbird_* functions instead

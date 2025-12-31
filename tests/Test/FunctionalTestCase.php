@@ -220,7 +220,35 @@ abstract class FunctionalTestCase extends TestCase
     /** @before */
     final protected function connect(): void
     {
-        if (! self::$sharedConnection instanceof Connection) {
+        $needNewConnection = ! self::$sharedConnection instanceof Connection;
+
+        // Check if existing shared connection's underlying Firebird connection is still valid
+        // This handles cases where php-firebird v7 Exception Mode or GC has invalidated the connection
+        if (! $needNewConnection) {
+            $fbirdConn = null;
+            $conn      = self::$sharedConnection;
+            while (method_exists($conn, 'getWrappedConnection')) {
+                $conn = $conn->getWrappedConnection();
+                if ($conn instanceof FirebirdConnection) {
+                    $fbirdConn = $conn;
+                    break;
+                }
+            }
+
+            if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
+                // Connection resource is invalid - need to reconnect
+                try {
+                    self::$sharedConnection->close();
+                } catch (Throwable) {
+                    // Ignore close errors on invalid connection
+                }
+
+                self::$sharedConnection = null;
+                $needNewConnection      = true;
+            }
+        }
+
+        if ($needNewConnection) {
             self::$sharedConnection = TestUtil::getConnection();
         }
 
