@@ -137,10 +137,10 @@ jobs:
         run: |
           set -eu
           
-          # Clone and build php-firebird v7.0.0-rc.6
-          echo "Building php-firebird v7.0.0-rc.6 for PHP ${{ matrix.php-version }}"
+          # Clone and build php-firebird v7.0.0-rc.28
+          echo "Building php-firebird v7.0.0-rc.28 for PHP ${{ matrix.php-version }}"
           
-          git clone --depth 1 --branch v7.0.0-rc.6 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          git clone --depth 1 --branch v7.0.0-rc.28 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           
           phpize
