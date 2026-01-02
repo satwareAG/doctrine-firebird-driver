@@ -6,19 +6,19 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-/** @requires extension interbase **/
+/**
+ * @requires extension interbase
+ */
 class ConnectionTest extends FunctionalTestCase
 {
-    public function testHostnameDbNameIsRequired(): void
-    {
-        $this->expectException(HostDbnameRequired::class);
-        (new Driver())->connect(['persistent' => 'true']);
-    }
-
+    /**
+     * Tests lastInsertId() with fully-qualified sequence name.
+     *
+     * Note: HostDbnameRequired exception test is covered by Integration/ConnectionTest
+     * to avoid duplicate tests.
+     */
     public function testLastInsertIdAcceptsFqn(): void
     {
         $table = new Table('DBAL2595');
