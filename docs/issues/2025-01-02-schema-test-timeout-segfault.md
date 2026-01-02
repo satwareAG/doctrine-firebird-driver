@@ -1,7 +1,7 @@
 # Schema Test Timeout + Exit Code 139 (SIGSEGV) Investigation
 
 **Date**: 2025-01-02
-**Status**: Open - Investigation Required
+**Status**: Open - Bug Filed on php-firebird
 **Priority**: High (blocks CI/CD reliability)
 **Components**: SchemaManager tests, php-firebird extension
 **GitHub Issue**: https://github.com/satwareAG/doctrine-firebird-driver/issues/49
@@ -72,8 +72,10 @@ The php-firebird extension has a documented issue where:
 
 ### Extension Fix Status
 - **Repository**: satwareAG/php-firebird
-- **Target Version**: v7.0.0-rc.12
-- **Status**: Fix in progress
+- **Bug Report**: https://github.com/satwareAG/php-firebird/issues/50
+- **Original Target**: v7.0.0-rc.12
+- **Tested Version**: v7.0.0-rc.28 (SIGSEGV still occurs)
+- **Status**: Bug filed, awaiting fix
 
 ---
 
