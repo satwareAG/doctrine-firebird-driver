@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Exception\SyntaxErrorException;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Result;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Throwable;
 
@@ -63,21 +62,9 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertSame(3, $rows[1][1] ?? false);
     }
 
-    public function testFetchColumnWorks(): void
-    {
-        $sql       = 'SELECT * FROM Album';
-        $statement = $this->connection->prepare($sql);
-
-        $result = $statement->execute();
-        $column = $result->fetchNumeric();
-        self::assertSame(1, $column[0]);
-
-        self::assertSame('2017-01-01 15:00:00', $column[2]);
-
-        self::assertSame('...Baby One More Time', $column[3]);
-
-        self::assertSame(2, $column[1]);
-    }
+    /**
+     * Note: testFetchColumnWorks removed - overlaps with Functional/StatementTest::testFetchInColumnMode
+     */
 
     public function testGetIteratorWorks(): void
     {
@@ -93,19 +80,10 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertSame(2, $array[1]['ID'] ?? false);
     }
 
-    public function testExecuteWorks(): void
-    {
-        $sql       = 'SELECT * FROM Album';
-        $statement = $this->connection->getWrappedConnection()->prepare($sql);
-        self::assertInstanceOf(Result::class, $statement->execute());
-    }
-
-    public function testExecuteWorksWithParameters(): void
-    {
-        $sql       = 'SELECT * FROM Album WHERE ID = ?';
-        $statement = $this->connection->getWrappedConnection()->prepare($sql);
-        self::assertInstanceOf(Result::class, $statement->execute([1]));
-    }
+    /**
+     * Note: testExecuteWorks removed - overlaps with Functional/StatementTest::testExecuteQuery
+     * Note: testExecuteWorksWithParameters removed - overlaps with Functional/StatementTest::testExecuteQueryWithParams
+     */
 
     public function testExecuteThrowsExceptionWhenSQLIsInvalid(): void
     {
@@ -149,23 +127,8 @@ class StatementTest extends AbstractIntegrationTestCase
         $this->fail('Exception was never thrown');
     }
 
-    public function testBindValueWorks(): void
-    {
-        $statement = $this->connection->prepare('SELECT ID FROM Album WHERE ID = ?');
-
-        $statement->bindValue(1, 2);
-        $result = $statement->execute();
-        $value  = $result->fetchOne();
-        self::assertSame(2, $value);
-    }
-
-    public function testBindParamWorks(): void
-    {
-        $statement = $this->connection->prepare('SELECT ID FROM Album WHERE ID = :ID');
-
-        $id = 2;
-        $statement->bindValue(':ID', $id);
-        $value = $statement->execute()->fetchOne();
-        self::assertSame(2, $value);
-    }
+    /**
+     * Note: testBindValueWorks removed - overlaps with Functional/StatementTest::testReuseStatementWithReboundValue
+     * Note: testBindParamWorks removed - overlaps with Functional/StatementTest::testReuseStatementWithReboundParam
+     */
 }
