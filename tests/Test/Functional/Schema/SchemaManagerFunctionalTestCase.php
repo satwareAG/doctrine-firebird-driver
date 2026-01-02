@@ -1848,7 +1848,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         // OPTIMIZATION: Query existing tables/views once to avoid exception overhead
         try {
             $existingTables = array_map('strtolower', $this->schemaManager->listTableNames());
-            $existingViews = array_map(
+            $existingViews  = array_map(
                 static fn ($view): string => strtolower($view->getName()),
                 $this->schemaManager->listViews(),
             );
@@ -1856,7 +1856,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             // If we can't list tables/views, fall back to empty arrays
             // This means we won't attempt any drops (safe default)
             $existingTables = [];
-            $existingViews = [];
+            $existingViews  = [];
         }
 
         // Drop tables in dependency order (foreign key constraints)
