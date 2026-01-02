@@ -86,29 +86,26 @@ final class Connection implements ServerInfoAwareConnection
 {
     /**
      * Valid resource types for Firebird connection.
-     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     * php-firebird v7.0.0+ resource type strings only.
      */
     private const RESOURCE_TYPES_CONNECTION = [
-        'Firebird/InterBase link',    // php-interbase and older php-firebird
-        'Firebird link',              // php-firebird v7.0.0+
+        'Firebird link',
     ];
 
     /**
      * Valid resource types for Firebird persistent connection.
-     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     * php-firebird v7.0.0+ resource type strings only.
      */
     private const RESOURCE_TYPES_PERSISTENT_CONNECTION = [
-        'Firebird/InterBase persistent link',  // php-interbase and older php-firebird
-        'Firebird persistent link',            // php-firebird v7.0.0+
+        'Firebird persistent link',
     ];
 
     /**
      * Valid resource types for Firebird transaction.
-     * Supports both php-interbase (legacy) and php-firebird v7.0.0+ resource type strings.
+     * php-firebird v7.0.0+ resource type strings only.
      */
     private const RESOURCE_TYPES_TRANSACTION = [
-        'Firebird/InterBase transaction',  // php-interbase and older php-firebird
-        'Firebird transaction',            // php-firebird v7.0.0+
+        'Firebird transaction',
     ];
 
     private readonly ExecutionMode $executionMode;

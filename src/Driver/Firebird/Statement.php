@@ -26,7 +26,6 @@ use function fbird_free_query;
 use function fclose;
 use function func_num_args;
 use function get_resource_type;
-use function in_array;
 use function is_array;
 use function is_int;
 use function is_numeric;
@@ -102,22 +101,13 @@ class Statement implements StatementInterface
 
         $statementType = get_resource_type($this->statement);
 
-        // Skip cleanup for transaction resources
-        // Valid transaction types depend on php-firebird version:
-        // - php-interbase and older php-firebird: 'Firebird/InterBase transaction'
-        // - php-firebird v7.0.0+: 'Firebird transaction'
-        $transactionTypes = ['Firebird/InterBase transaction', 'Firebird transaction'];
-        if (in_array($statementType, $transactionTypes, true)) {
+        // Skip cleanup for transaction resources (php-firebird v7.0.0+)
+        if ($statementType === 'Firebird transaction') {
             return;
         }
 
-        // Free query resources
-        // Valid query types depend on php-firebird version:
-        // - php-interbase: 'interbase query'
-        // - older php-firebird: 'Firebird/InterBase query'
-        // - php-firebird v7.0.0+: 'Firebird query'
-        $queryTypes = ['interbase query', 'Firebird/InterBase query', 'Firebird query'];
-        if (in_array($statementType, $queryTypes, true)) {
+        // Free query resources (php-firebird v7.0.0+)
+        if ($statementType === 'Firebird query') {
             fbird_free_query($this->statement);
             unset($this->statement);
         }
@@ -197,12 +187,9 @@ class Statement implements StatementInterface
         }
 
         // Check if statement is actually a transaction resource (used for implicit commits)
-        // Valid transaction types depend on php-firebird version:
-        // - php-interbase and older php-firebird: 'Firebird/InterBase transaction'
-        // - php-firebird v7.0.0+: 'Firebird transaction'
-        $resourceType     = get_resource_type($this->statement);
-        $transactionTypes = ['Firebird/InterBase transaction', 'Firebird transaction'];
-        if (in_array($resourceType, $transactionTypes, true)) {
+        // php-firebird v7.0.0+ resource type
+        $resourceType = get_resource_type($this->statement);
+        if ($resourceType === 'Firebird transaction') {
             $fbirdResultRc = 1;
         } else {
             if ($params !== null) {
