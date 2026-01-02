@@ -273,9 +273,10 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    # Use --jobs 1 to disable parallel mode - workaround for php-firebird SIGSEGV
+    # Use PHPSTAN_WORKERS=1 to disable parallel mode - workaround for php-firebird SIGSEGV
     # See: https://github.com/satwareAG/php-firebird/issues/50
-    local phpstan_cmd="vendor/bin/phpstan analyse --memory-limit=2G --jobs 1 --error-format=table"
+    # Note: --jobs option does not exist in PHPStan, use environment variable instead
+    local phpstan_cmd="PHPSTAN_WORKERS=1 vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
     local report_file="tests/var/reports/phpstan-report.txt"
     
     # Run PHPStan and capture exit code properly
