@@ -281,6 +281,67 @@ run_in_docker() {
     fi
 }
 
+# Check if PHPUnit output indicates success
+# Returns 0 if output contains "OK" success pattern, 1 otherwise
+is_phpunit_success() {
+    local output_file="$1"
+    # PHPUnit success patterns: "OK!" or "OK, but there were issues!"
+    if grep -q "^OK" "$output_file" 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# Run PHPUnit in Docker with exit code 139 (SIGSEGV) handling
+# The php-firebird extension has a known bug causing SIGSEGV during shutdown
+# when persistent connections are cleaned up. If tests actually passed (PHPUnit
+# reported "OK"), we treat exit 139 as success with a warning.
+# See: docs/issues/2025-01-02-schema-test-timeout-segfault.md
+run_phpunit_in_docker() {
+    local cmd="$1"
+    local timeout_secs="${2:-300}"
+    local output_file
+    local exit_code
+    
+    output_file=$(mktemp)
+    
+    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd (timeout: ${timeout_secs}s)"
+    
+    # Run command, capture output with tee while streaming to terminal
+    # Use PIPESTATUS to capture the actual command exit code (not tee's)
+    timeout "$timeout_secs" docker compose run --rm -T app bash -c "$cmd" < /dev/null 2>&1 | tee "$output_file"
+    exit_code=${PIPESTATUS[0]}
+    
+    # Handle different exit codes
+    if [[ $exit_code -eq 0 ]]; then
+        rm -f "$output_file"
+        return 0
+    elif [[ $exit_code -eq 139 ]]; then
+        # Exit code 139 = 128 + SIGSEGV (signal 11)
+        # Check if PHPUnit actually reported success before the crash
+        if is_phpunit_success "$output_file"; then
+            echo ""
+            print_info "⚠️  PHP crashed with SIGSEGV (exit 139) during shutdown, but all tests passed."
+            print_info "   This is a known php-firebird extension bug during persistent connection cleanup."
+            print_info "   See: satwareAG/php-firebird#50, #51"
+            rm -f "$output_file"
+            return 0
+        else
+            print_error "Tests failed with SIGSEGV (exit 139) and PHPUnit did not report success"
+            rm -f "$output_file"
+            return 139
+        fi
+    elif [[ $exit_code -eq 124 ]]; then
+        print_error "Command timed out after ${timeout_secs}s: $cmd"
+        rm -f "$output_file"
+        return 124
+    else
+        print_error "Command failed with exit code $exit_code: $cmd"
+        rm -f "$output_file"
+        return $exit_code
+    fi
+}
+
 build_phpunit_command() {
     local config="$1"
     local cmd=""
@@ -349,8 +410,9 @@ run_tests_for_version() {
     print_info "Config: $config"
     [[ "$VERBOSE" == "true" ]] && print_info "Command: $cmd"
     
-    # Use run_in_docker with 20 minute timeout (1200 seconds) for test execution
-    if run_in_docker "$cmd" 1200; then
+    # Use run_phpunit_in_docker with 20 minute timeout (1200 seconds) for test execution
+    # This handles exit code 139 (SIGSEGV) gracefully when tests actually passed
+    if run_phpunit_in_docker "$cmd" 1200; then
         print_success "Firebird $version: PASSED"
         return 0
     else

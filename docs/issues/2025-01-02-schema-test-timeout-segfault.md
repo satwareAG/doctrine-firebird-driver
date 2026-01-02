@@ -1,8 +1,8 @@
 # Schema Test Timeout + Exit Code 139 (SIGSEGV) Investigation
 
 **Date**: 2025-01-02
-**Status**: Open - Bug Filed on php-firebird
-**Priority**: High (blocks CI/CD reliability)
+**Status**: Partially Resolved - CI workaround implemented
+**Priority**: Medium (SIGSEGV still occurs but CI handles it gracefully)
 **Components**: SchemaManager tests, php-firebird extension
 **GitHub Issue**: https://github.com/satwareAG/doctrine-firebird-driver/issues/49
 
@@ -225,7 +225,7 @@ $params['persistent'] = false;
 ### Immediate
 - [x] Document the issue (this file)
 - [ ] Add `@group schema` annotation to affected tests
-- [ ] Update CI to handle exit code 139 gracefully
+- [x] Update CI to handle exit code 139 gracefully (see `tests/phpunit.sh` - `run_phpunit_in_docker()` function)
 
 ### Short-term  
 - [ ] Investigate transaction state during schema tests
