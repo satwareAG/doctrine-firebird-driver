@@ -273,12 +273,37 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    if run_in_docker "vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt" 900; then
-        print_success "PHPStan Level 8: PASSED"
-    else
-        print_error "PHPStan Level 8: FAILED"
+    # Use --jobs 1 to disable parallel mode - workaround for php-firebird SIGSEGV
+    # See: https://github.com/satwareAG/php-firebird/issues/50
+    local phpstan_cmd="vendor/bin/phpstan analyse --memory-limit=2G --jobs 1 --error-format=table"
+    local report_file="tests/var/reports/phpstan-report.txt"
+    
+    # Run PHPStan and capture exit code properly
+    local phpstan_exit=0
+    run_in_docker "$phpstan_cmd 2>&1 | tee $report_file" 900 || phpstan_exit=$?
+    
+    # Check for SIGSEGV (exit code 139 = 128 + 11 where 11 = SIGSEGV)
+    if [[ $phpstan_exit -eq 139 ]]; then
+        print_error "PHPStan Level 8: SIGSEGV detected (exit code 139)"
+        print_info "This is likely caused by php-firebird extension crash in parallel mode"
+        print_info "See: https://github.com/satwareAG/php-firebird/issues/50"
         return 1
     fi
+    
+    # Check for "severe errors" in output (PHPStan internal errors)
+    if grep -qi "severe errors" "$report_file" 2>/dev/null; then
+        print_error "PHPStan Level 8: INCOMPLETE (severe errors detected)"
+        print_info "PHPStan encountered internal errors during analysis"
+        return 1
+    fi
+    
+    # Check normal exit code
+    if [[ $phpstan_exit -ne 0 ]]; then
+        print_error "PHPStan Level 8: FAILED (exit code $phpstan_exit)"
+        return 1
+    fi
+    
+    print_success "PHPStan Level 8: PASSED"
     
     local end_time
     end_time=$(date +%s)

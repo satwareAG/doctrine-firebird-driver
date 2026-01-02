@@ -57,6 +57,20 @@ abstract class ReadOnlyIntegrationTestCase extends AbstractIntegrationTestCase
         // Initialize EntityManager (without reinstalling database)
         $this->setUpEntityManager();
         
+        // Verify Firebird transaction is valid before starting DBAL transaction
+        // This handles edge cases where the transaction handle becomes invalid between tests
+        // (e.g., due to connection state issues or php-firebird Exception Mode side effects)
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && ! $fbirdConnection->isTransactionValid()) {
+            // Execute a simple query to force the driver to initialize a valid transaction
+            // This is a workaround for Firebird's requirement that queries must run within transactions
+            try {
+                $this->connection->executeQuery('SELECT 1 FROM RDB$DATABASE');
+            } catch (Throwable) {
+                // If query fails, connection is likely invalid - let beginTransaction fail naturally
+            }
+        }
+        
         // Start transaction to isolate test changes
         $this->connection->beginTransaction();
     }

@@ -562,8 +562,8 @@ final class Connection implements ServerInfoAwareConnection
             }
 
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-            $success   = true;
             $lastError = null;
+            $success   = false;
             try {
                 $success = @fbird_rollback($this->firebirdActiveTransaction);
 
