@@ -1818,6 +1818,9 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /**
      * Cleanup tables commonly created by schema tests.
      * This ensures no leftover locks from previous test runs.
+     *
+     * OPTIMIZATION: Query existing tables/views ONCE, then filter to avoid
+     * expensive exception handling for non-existent objects (~60 potential drops).
      */
     private function cleanupSchemaTestTables(): void
     {
@@ -1841,6 +1844,20 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         }
 
         $platform = $this->connection->getDatabasePlatform();
+
+        // OPTIMIZATION: Query existing tables/views once to avoid exception overhead
+        try {
+            $existingTables = array_map('strtolower', $this->schemaManager->listTableNames());
+            $existingViews = array_map(
+                static fn ($view): string => strtolower($view->getName()),
+                $this->schemaManager->listViews(),
+            );
+        } catch (Throwable) {
+            // If we can't list tables/views, fall back to empty arrays
+            // This means we won't attempt any drops (safe default)
+            $existingTables = [];
+            $existingViews = [];
+        }
 
         // Drop tables in dependency order (foreign key constraints)
         // Tables with foreign keys should be dropped first
@@ -1880,14 +1897,18 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $orderedTables[] = $table;
         }
 
-        // Drop views first (they depend on tables)
+        // Drop views first (they depend on tables) - only if they exist
         $viewsToDrop = ['doctrine_test_view', 'test_view'];
         foreach ($viewsToDrop as $viewName) {
+            if (! in_array(strtolower($viewName), $existingViews, true)) {
+                continue; // Skip non-existent views
+            }
+
             try {
                 $this->schemaManager->dropView($viewName);
                 $fbirdConnection?->commit();
             } catch (Throwable) {
-                // View doesn't exist or can't be dropped, ignore
+                // View can't be dropped, ignore
                 try {
                     @$fbirdConnection?->rollBack();
                 } catch (Throwable) {
@@ -1895,8 +1916,12 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             }
         }
 
-        // Drop tables
+        // Drop tables - only if they exist
         foreach ($orderedTables as $tableName) {
+            if (! in_array(strtolower($tableName), $existingTables, true)) {
+                continue; // Skip non-existent tables
+            }
+
             try {
                 // Quote reserved keyword tables
                 $quotedName = in_array(strtolower($tableName), ['user', 'group'], true)
@@ -1905,7 +1930,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
                 $this->dropTableIfExists($quotedName);
             } catch (Throwable) {
-                // Ignore cleanup errors - table may not exist or may be locked
+                // Ignore cleanup errors - table may be locked
                 // Try to rollback to clear any failed transaction state
                 try {
                     @$fbirdConnection?->rollBack();
