@@ -76,8 +76,9 @@ The php-firebird extension has a documented issue where:
 - **Repository**: satwareAG/php-firebird
 - **Bug Report**: https://github.com/satwareAG/php-firebird/issues/50
 - **Root Cause Analysis**: https://github.com/satwareAG/php-firebird/issues/51
+- **Latest Report**: https://github.com/satwareAG/php-firebird/issues/54 (v7.0.0-rc.29)
 - **Original Target**: v7.0.0-rc.12
-- **Tested Version**: v7.0.0-rc.28 (SIGSEGV still occurs)
+- **Tested Version**: v7.0.0-rc.29 (SIGSEGV still occurs)
 - **Status**: Root cause identified - EG() access during MSHUTDOWN
 
 ### Root Cause (Issue #51)
