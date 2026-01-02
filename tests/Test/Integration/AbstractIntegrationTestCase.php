@@ -40,12 +40,36 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     protected $_entityManager;
     protected $_platform;
 
+    /**
+     * Install database schema ONCE per test class (not per test method).
+     * PERFORMANCE OPTIMIZATION: Avoids reinstalling 8 tables + 6 inserts per test.
+     */
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        $connection = TestUtil::getConnection();
+        static::installFirebirdDatabase($connection, []);
+        $connection->close();
+    }
+
     public function setUp(): void
     {
-        $configurationArray = static::getSetUpDoctrineConfigurationArray();
-        static::installFirebirdDatabase($this->connection, $configurationArray, $this);
-
+        // Initialize EntityManager (without reinstalling database)
         $this->setUpEntityManager();
+
+        // Verify Firebird transaction is valid before starting DBAL transaction
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && ! $fbirdConnection->isTransactionValid()) {
+            try {
+                $this->connection->executeQuery('SELECT 1 FROM RDB$DATABASE');
+            } catch (Throwable) {
+                // Let beginTransaction fail naturally if connection is invalid
+            }
+        }
+
+        // Start transaction to isolate test changes (rollback in tearDown)
+        $this->connection->beginTransaction();
     }
 
     protected function setUpEntityManager(): void
@@ -61,7 +85,16 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
     public function tearDown(): void
     {
-       $this->markConnectionNotReusable();
+        // Rollback transaction to revert any test changes (isolation pattern)
+        if ($this->connection->isTransactionActive()) {
+            try {
+                $this->connection->rollBack();
+            } catch (Throwable) {
+                // Ignore rollback errors - connection may have been reset
+            }
+        }
+
+        // Don't mark connection not reusable - we're using transaction isolation
     }
 
     protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, ?self $testCase = null): void

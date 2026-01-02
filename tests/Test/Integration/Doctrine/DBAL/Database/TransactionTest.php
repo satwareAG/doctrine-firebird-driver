@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
 use Doctrine\DBAL\ConnectionException;
-use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\ModifyingIntegrationTestCase;
 
 use function array_keys;
 use function implode;
@@ -13,7 +13,7 @@ use function md5;
 use function strtoupper;
 use function substr;
 
-class TransactionTest extends AbstractIntegrationTestCase
+class TransactionTest extends ModifyingIntegrationTestCase
 {
 
     public function testWillAutoCommitBottomLevelTransaction(): void

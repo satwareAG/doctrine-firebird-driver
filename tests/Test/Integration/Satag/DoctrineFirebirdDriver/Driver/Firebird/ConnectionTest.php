@@ -14,11 +14,11 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
-use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\ModifyingIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use UnexpectedValueException;
 
-class ConnectionTest extends AbstractIntegrationTestCase
+class ConnectionTest extends ModifyingIntegrationTestCase
 {
     public function testBasics(): void
     {
