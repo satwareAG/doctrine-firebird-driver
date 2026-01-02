@@ -1717,9 +1717,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $this->schemaManager = $this->connection->createSchemaManager();
 
-        // Ensure clean state at start of each test by cleaning up any leftover tables
-        // This handles dirty state from previous test runs or crashes
-        $this->cleanupSchemaTestTables();
+        // NOTE: Cleanup moved to tearDown() only to follow Doctrine DBAL pattern
+        // Each test is responsible for creating what it needs; tearDown cleans up
     }
 
     protected function tearDown(): void
