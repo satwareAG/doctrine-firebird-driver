@@ -10,11 +10,13 @@
 
 ## Summary
 
-PHPUnit test suite completes but reports failure due to two interrelated issues:
-1. **2 timeout errors** in Firebird3SchemaManagerTest 
-2. **Exit code 139 (SIGSEGV)** during PHP process shutdown
+PHPUnit test suite completes but reports failure due to exit code 139 (SIGSEGV).
 
-The test run shows `Tests: 1585, Assertions: 3355, Errors: 2, Skipped: 121, Incomplete: 3` followed by exit code 139.
+**Latest Test (2026-01-02)**: `Tests: 1585, Assertions: 3357, Skipped: 121, Incomplete: 3` - **ALL PASS**, exit code 139
+
+**Previous Test (2025-01-02)**: `Tests: 1585, Assertions: 3355, Errors: 2, Skipped: 121, Incomplete: 3` + exit code 139
+
+**Note**: The schema test timeout issue appears **RESOLVED** in the latest test run - no timeout errors occurred.
 
 ---
 
@@ -73,9 +75,18 @@ The php-firebird extension has a documented issue where:
 ### Extension Fix Status
 - **Repository**: satwareAG/php-firebird
 - **Bug Report**: https://github.com/satwareAG/php-firebird/issues/50
+- **Root Cause Analysis**: https://github.com/satwareAG/php-firebird/issues/51
 - **Original Target**: v7.0.0-rc.12
 - **Tested Version**: v7.0.0-rc.28 (SIGSEGV still occurs)
-- **Status**: Bug filed, awaiting fix
+- **Status**: Root cause identified - EG() access during MSHUTDOWN
+
+### Root Cause (Issue #51)
+The `_php_fbird_close_plink()` persistent resource destructor calls:
+```c
+zend_hash_str_del(&EG(regular_list), link->hash_key, ...);
+zend_hash_str_del(&EG(persistent_list), link->hash_key, ...);
+```
+During MSHUTDOWN, these executor globals may already be destroyed, causing SIGSEGV.
 
 ---
 
