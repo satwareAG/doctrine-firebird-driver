@@ -260,6 +260,76 @@ Will likely show crash in one of:
 
 ---
 
+## Update: 2026-01-02 - MSHUTDOWN Fix Implemented
+
+**Status Update**: Major progress - the MSHUTDOWN segfault fix has been implemented and released.
+
+### Fix Details
+
+**GitHub Issues**:
+- **#22** (PHPStan parallel/fork): CLOSED
+- **#50** (MSHUTDOWN segfault during shutdown): CLOSED
+- **#51** (Related MSHUTDOWN issue): CLOSED
+
+**Fix Commit**: `65f49d6` - `fix(shutdown): prevent EG() access during MSHUTDOWN (closes #50, #51)`
+
+**Fix Version**: v7.0.0-rc.29 (doctrine-firebird-driver Dockerfile already updated to this version)
+
+### Technical Fix
+
+Added `in_mshutdown` flag to module globals that is set at the start of `PHP_MSHUTDOWN_FUNCTION`:
+
+```c
+// php_fbird_includes.h:92
+zend_bool in_mshutdown;         /* Flag: 1 during MSHUTDOWN to prevent EG() access */
+
+// firebird.c:1367-1371
+PHP_MSHUTDOWN_FUNCTION(fbird)
+{
+    /* Set in_mshutdown flag FIRST to prevent EG() access in persistent resource destructors. */
+    IBG(in_mshutdown) = 1;
+    // ...
+}
+
+// firebird.c:1013 - protected access
+if (!IBG(in_mshutdown) && /* hash_key check */) {
+    zend_hash_str_del(&EG(regular_list), ...);
+    zend_hash_str_del(&EG(persistent_list), ...);
+}
+```
+
+### Remaining Issue
+
+**PHPStan Still Shows Segfault** in CQC report despite:
+1. Fix included in v7.0.0-rc.29
+2. `maximumNumberOfProcesses: 1` workaround in phpstan.neon.dist
+
+**Possible Causes**:
+1. Docker image not rebuilt with updated extension
+2. PHPStan may still fork internally even in single-process mode
+3. Different shutdown scenario (analysis completion vs request shutdown)
+
+### Action Items
+
+1. **Immediate**: Rebuild Docker image to ensure v7.0.0-rc.29 is installed
+   ```bash
+   cd tests && docker compose build --no-cache app
+   ```
+
+2. **Test**: Re-run PHPStan after rebuild
+   ```bash
+   ./tests/docker-cqc.sh --phpstan-only
+   ```
+
+3. **If Persists**: Open new issue in php-firebird with:
+   - Confirmation using v7.0.0-rc.29+
+   - Full reproduction steps in Docker
+   - Core dump analysis if available
+
+4. **Alternative Workaround**: If segfault persists, modify CQC script to handle exit code 139 gracefully for PHPStan (as it completes analysis before crashing)
+
+---
+
 ## References
 
 1. [PHPStan Parallel Processing](https://phpstan.org/config-reference#parallel-processing)
