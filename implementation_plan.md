@@ -1,75 +1,120 @@
-# Implementation Plan
+# Implementation Plan: PHPUnit Script Bugfix and Optimization
 
 [Overview]
-Optimize the PHPUnit test suite by refactoring integration tests to use shared database fixtures, implementing test classification attributes, and splitting test suites for parallel execution potential.
+Fix the false failure reporting in tests/phpunit.sh where PHPUnit passes but the script reports failure, and optimize the script following bash best practices.
 
-The current test suite takes ~258 seconds to run, with 72% of the time spent in 10 test classes. The primary bottleneck is `AbstractIntegrationTestCase`, which rebuilds the entire database schema (8 tables) and seeds data for *every single test method*. This results in over 70 full database rebuilds for tests that are largely read-only (SELECT queries). By moving this initialization to `setUpBeforeClass` for read-only tests and wrapping them in transactions, we can reduce the integration test runtime by ~68%. Additionally, we will modernize the suite with PHPUnit 10 attributes and better suite organization.
+The root cause is missing the `-T` flag when running `docker compose run` commands. When docker-compose.yml has `tty: true` and `stdin_open: true`, the pseudo-TTY allocation interferes with proper exit code propagation. The docker-cqc.sh script in the same project correctly uses `-T` flag, `timeout`, and `< /dev/null` patterns that are missing from phpunit.sh.
+
+The optimization focuses on:
+1. Fixing exit code propagation (the critical bug)
+2. Adding timeout protection against hangs
+3. Reducing verbose noise from docker compose output
+4. Fixing ShellCheck warnings (SC2155)
+5. Consistent pattern with docker-cqc.sh
 
 [Types]
-No new PHP types or interfaces are required.
+No new types required - this is a bash script modification.
+
+This implementation involves only bash script changes with no type definitions.
 
 [Files]
-Refactor existing test base classes and configuration files.
+Modify the single file tests/phpunit.sh to fix the bug and optimize output.
 
-Detailed breakdown:
-- **New File**: `tests/Test/Integration/ReadOnlyIntegrationTestCase.php`
-  - Purpose: Base class for integration tests that only read data or can run inside a transaction rollback.
-  - Extends: `AbstractIntegrationTestCase`
-- **Modified File**: `tests/Test/Integration/AbstractIntegrationTestCase.php`
-  - Changes: Refactor `installFirebirdDatabase` to be static or accessible from static context. Add support for shared connection management.
-- **Modified File**: `tests/Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php`
-  - Changes: Extend `ReadOnlyIntegrationTestCase`.
-- **Modified File**: `tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindTest.php`
-  - Changes: Extend `ReadOnlyIntegrationTestCase`.
-- **Modified File**: `tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindAllTest.php`
-  - Changes: Extend `ReadOnlyIntegrationTestCase`.
-- **Modified File**: `tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindByTest.php`
-  - Changes: Extend `ReadOnlyIntegrationTestCase`.
-- **Modified File**: `tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindOneByTest.php`
-  - Changes: Extend `ReadOnlyIntegrationTestCase`.
-- **Modified File**: `tests/phpunit.xml`
-  - Changes: Add test suite definitions for `Integration-ReadOnly`, `Integration-Write`, `Schema`. Add extensions configuration if needed.
+**Modified Files:**
+- `tests/phpunit.sh` - Main test runner script (all changes)
+
+**Changes Summary:**
+1. Add `run_in_docker()` helper function (extracted from docker-cqc.sh pattern)
+2. Fix all `docker compose run` invocations to use `-T` flag
+3. Suppress docker compose output noise with `2>&1 | grep -v "^WARN\|^Container"` patterns
+4. Fix SC2155 warnings for readonly declarations
+5. Add timeout protection on test execution
+6. Close stdin with `< /dev/null` to prevent hangs
 
 [Functions]
-Refactor setup and teardown logic.
+Add one new function and modify several existing functions in tests/phpunit.sh.
 
-Detailed breakdown:
-- **New Function**: `ReadOnlyIntegrationTestCase::setUpBeforeClass()`
-  - Purpose: Initialize the database once for the class.
-- **New Function**: `ReadOnlyIntegrationTestCase::tearDownAfterClass()`
-  - Purpose: Clean up the database after all tests in the class.
-- **Modified Function**: `AbstractIntegrationTestCase::installFirebirdDatabase()`
-  - Change: Make static or compatible with static context.
-- **Modified Function**: `AbstractIntegrationTestCase::setUp()`
-  - Change: Check if database is already initialized.
+**New Functions:**
+1. `run_in_docker()` (after line ~260, after `wait_for_containers`)
+   - Signature: `run_in_docker(cmd, timeout)`
+   - Purpose: Execute commands in docker with proper TTY handling and timeout
+   - Uses: `-T` flag, `timeout` command, `< /dev/null`
+
+**Modified Functions:**
+1. `run_tests_for_version()` (line 319)
+   - Change: Use `run_in_docker` instead of direct `docker compose run`
+   - Reason: Proper exit code propagation
+
+2. `main()` (line 341)
+   - Change: Fix composer update call to use `-T` flag
+   - Change: Fix mkdir call to use `-T` flag  
+   - Change: Suppress WARN messages from docker compose commands
+   - Change: Add quiet mode for build commands
+
+**Variable Declarations (lines 24-26):**
+- Fix SC2155: Separate declaration from assignment for `SCRIPT_NAME`, `SCRIPT_DIR`, `PROJECT_ROOT`
 
 [Classes]
-Refactor test inheritance hierarchy.
+Not applicable - this is a bash script with no class definitions.
 
-Detailed breakdown:
-- **New Class**: `Satag\DoctrineFirebirdDriver\Test\Integration\ReadOnlyIntegrationTestCase`
-  - Extends: `AbstractIntegrationTestCase`
-  - Key Methods: `setUpBeforeClass`, `tearDownAfterClass`, `setUp`, `tearDown`
-- **Modified Class**: `Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase`
-  - Modifications: Add static properties for shared connection and initialization state.
+No classes to modify.
 
 [Dependencies]
-No new package dependencies.
+No new dependencies required.
+
+The script already uses:
+- bash (GNU Bash)
+- docker/docker compose
+- ShellCheck (for validation)
+
+No package changes needed.
 
 [Testing]
-Verify performance improvements and test isolation.
+Manual testing required to verify the fix.
 
-Test file requirements:
-- Run `tests/docker-cqc.sh` to ensure all tests still pass.
-- Compare execution time before and after changes.
-- Verify that `AlbumTest` runs significantly faster (target < 5s vs current 25s).
+**Test Procedure:**
+1. Run `shellcheck tests/phpunit.sh` - should pass with no warnings
+2. Run `./tests/phpunit.sh` - should report PASSED when PHPUnit shows "OK, but there were issues!"
+3. Run `./tests/phpunit.sh -v all` (optional) - verify all Firebird versions work
+4. Verify output noise is reduced (no WARN messages from docker compose)
+5. Verify docker containers still function correctly
+
+**Success Criteria:**
+- PHPUnit "OK, but there were issues!" results in script exit code 0
+- All 1585 tests pass without false failure report
+- ShellCheck passes with `--severity=warning`
+- Reduced output noise (minimal WARN messages)
 
 [Implementation Order]
-Step-by-step execution plan.
+Implement changes in this specific order to ensure incremental testing.
 
-1.  Refactor `AbstractIntegrationTestCase` to support static database initialization.
-2.  Create `ReadOnlyIntegrationTestCase` implementing `setUpBeforeClass` logic.
-3.  Update `AlbumTest` to extend `ReadOnlyIntegrationTestCase` and verify performance/correctness.
-4.  Update other read-only repository tests (`FindTest`, `FindAllTest`, etc.) to extend `ReadOnlyIntegrationTestCase`.
-5.  Update `phpunit.xml` to define granular test suites.
-6.  Add PHPUnit attributes (`#[Small]`, `#[Medium]`, `#[Large]`) to key test classes.
+1. **Fix SC2155 warnings** (lines 24-26)
+   - Separate readonly declarations from command substitution assignments
+   - Low risk, can be tested immediately with shellcheck
+
+2. **Add `run_in_docker()` function** (after line ~260)
+   - Add the helper function with proper `-T`, timeout, and stdin handling
+   - Pattern taken from working docker-cqc.sh implementation
+
+3. **Update `run_tests_for_version()`** (line 330)
+   - Replace direct docker compose run with `run_in_docker` call
+   - This is the critical fix for the bug
+
+4. **Update composer update call** (line 386)
+   - Add `-T` flag and stdin redirection
+   - Ensures consistent behavior
+
+5. **Update mkdir call** (line 390)
+   - Add `-T` flag and stdin redirection
+   - Ensures consistent behavior
+
+6. **Suppress docker compose noise** (lines 361-369, 376, etc.)
+   - Add output filtering for WARN messages
+   - Redirect stderr where appropriate
+
+7. **Final ShellCheck validation**
+   - Run `shellcheck --severity=warning tests/phpunit.sh`
+   - Verify no new warnings introduced
+
+8. **Integration test**
+   - Run full test suite and verify correct exit code handling

@@ -21,9 +21,10 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 # Constants and Colors
 # =============================================================================
 
-readonly SCRIPT_NAME="$(basename "$0")"
-readonly SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+readonly SCRIPT_NAME SCRIPT_DIR PROJECT_ROOT
 
 # Colors for output (check if terminal supports colors)
 if [[ -t 1 ]] && command -v tput &>/dev/null && [[ $(tput colors) -ge 8 ]]; then
@@ -259,6 +260,27 @@ wait_for_containers() {
     return 0
 }
 
+run_in_docker() {
+    local cmd="$1"
+    local timeout_secs="${2:-300}"  # Default 5 minute timeout
+    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd (timeout: ${timeout_secs}s)"
+    
+    # Use -T to disable pseudo-TTY allocation (prevents exit code corruption)
+    # Use timeout command to prevent infinite hangs
+    # Use < /dev/null to close stdin (prevents hangs with stdin_open: true)
+    if timeout "$timeout_secs" docker compose run --rm -T app bash -c "$cmd" < /dev/null; then
+        return 0
+    else
+        local exit_code=$?
+        if [[ $exit_code -eq 124 ]]; then
+            print_error "Command timed out after ${timeout_secs}s: $cmd"
+        else
+            print_error "Command failed with exit code $exit_code: $cmd"
+        fi
+        return $exit_code
+    fi
+}
+
 build_phpunit_command() {
     local config="$1"
     local cmd=""
@@ -327,7 +349,8 @@ run_tests_for_version() {
     print_info "Config: $config"
     [[ "$VERBOSE" == "true" ]] && print_info "Command: $cmd"
     
-    if docker compose run --rm app bash -c "$cmd"; then
+    # Use run_in_docker with 20 minute timeout (1200 seconds) for test execution
+    if run_in_docker "$cmd" 1200; then
         print_success "Firebird $version: PASSED"
         return 0
     else
@@ -356,17 +379,18 @@ main() {
     print_header "Docker Test Environment Setup (PHP $PHP_VERSION)"
     
     # Setup Docker environment
+    # Note: Redirect stderr to suppress docker compose WARN messages about orphan containers
     if [[ "$REBUILD_CONTAINER" == "true" ]]; then
         print_step "Rebuilding Docker containers (--rebuild specified)..."
         docker compose down --remove-orphans --volumes 2>/dev/null || true
-        docker compose build --no-cache --build-arg PHP_VERSION="$PHP_VERSION"
+        docker compose build --no-cache --build-arg PHP_VERSION="$PHP_VERSION" 2>&1 | grep -v "^WARN\[" || true
     else
         print_step "Starting Docker containers with PHP $PHP_VERSION..."
         docker compose down --remove-orphans 2>/dev/null || true
-        docker compose build --build-arg PHP_VERSION="$PHP_VERSION"
+        docker compose build --build-arg PHP_VERSION="$PHP_VERSION" 2>&1 | grep -v "^WARN\[" || true
     fi
     
-    docker compose up -d
+    docker compose up -d 2>&1 | grep -v "^WARN\[" || true
     
     # Wait for containers
     wait_for_containers 60 || die "Failed to start containers"
@@ -383,11 +407,11 @@ main() {
     
     # Install dependencies
     print_header "Installing Dependencies"
-    docker compose run --rm app composer update --prefer-stable || die "Composer update failed"
+    docker compose run --rm -T app composer update --prefer-stable < /dev/null || die "Composer update failed"
     print_success "Dependencies installed"
     
     # Create output directories
-    docker compose run --rm app mkdir -p tests/var/coverage tests/var/logs tests/var/reports
+    docker compose run --rm -T app mkdir -p tests/var/coverage tests/var/logs tests/var/reports < /dev/null
     
     # Run tests
     print_header "Running PHPUnit Tests"
