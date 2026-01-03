@@ -13,7 +13,6 @@ use function is_string;
 
 class MoneyType extends Type
 {
-    /** @var string */
     public const NAME = 'money';
 
     /**

@@ -26,7 +26,6 @@ class ConnectionTest extends FunctionalTestCase
 {
     use VerifyDeprecations;
 
-    /** @var string */
     private const TABLE = 'connection_test';
 
     public function testGetWrappedConnection(): void
