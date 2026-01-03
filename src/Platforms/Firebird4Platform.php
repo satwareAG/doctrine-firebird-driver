@@ -15,6 +15,59 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * presenting them in formats that are meaningful to the application and its users and handling any exceptions
  * arising from decoding and encoding them.
  */
+use Doctrine\DBAL\Types\Types;
+
 class Firebird4Platform extends Firebird3Platform
 {
+    /**
+     * Firebird 4 returns TIMESTAMP WITH TIME ZONE values as
+     * "Y-m-d H:i:s <TimezoneIdentifier>" (example: "2010-04-05 10:10:10 Europe/Berlin").
+     */
+    public function getDateTimeTzFormatString(): string
+    {
+        return 'Y-m-d H:i:s e';
+    }
+
+    /**
+     * Firebird 4 returns TIME WITH TIME ZONE values as
+     * "H:i:s <TimezoneIdentifier>" (example: "10:10:10 Europe/Berlin").
+     */
+    public function getTimeTzFormatString(): string
+    {
+        return 'H:i:s e';
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param array<array-key, mixed> $column
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress PossiblyUnusedParam
+     */
+    public function getDateTimeTzTypeDeclarationSQL(array $column): string
+    {
+        return 'TIMESTAMP WITH TIME ZONE';
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param array<array-key, mixed> $column
+     *
+     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress PossiblyUnusedParam
+     */
+    public function getTimeTzTypeDeclarationSQL(array $column): string
+    {
+        return 'TIME WITH TIME ZONE';
+    }
+
+    protected function initializeDoctrineTypeMappings(): void
+    {
+        parent::initializeDoctrineTypeMappings();
+
+        $this->doctrineTypeMapping['timestamp with time zone'] = Types::DATETIMETZ_MUTABLE;
+        $this->doctrineTypeMapping['time with time zone']      = Types::TIME_MUTABLE;
+    }
 }

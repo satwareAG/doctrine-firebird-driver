@@ -23,8 +23,11 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
 
+use function class_exists;
+use function method_exists;
 use function str_contains;
 use function strtolower;
+use function substr;
 
 /**
  * Reference https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html#fblangref40-appx02-sqlcodes
@@ -35,6 +38,24 @@ final class ExceptionConverter implements ExceptionConverterInterface
 {
     public function convert(Exception $exception, Query|null $query): DriverException
     {
+        // SQLSTATE-based classification (php-firebird v7.0.0-rc.6+ Exception Mode)
+        // When Firebird\Exception is thrown with Exception Mode enabled, we can use
+        // the standardized SQLSTATE codes for more accurate error classification
+        if (class_exists(\Firebird\Exception::class, false)) {
+            /** @phpstan-ignore class.notFound */
+            if ($exception instanceof \Firebird\Exception && method_exists($exception, 'getSqlState')) {
+                /** @phpstan-ignore method.nonObject */
+                $sqlState = $exception->getSqlState();
+                if ($sqlState !== null && $sqlState !== '') {
+                    $result = $this->convertBySqlState($sqlState, $exception, $query);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+
+        // Fall back to SQLCODE-based classification for backward compatibility
         switch ($exception->getCode()) {
             case -104: // Syntax Error (multiple specific causes, such as invalid syntax, unexpected tokens).
                 return new SyntaxErrorException($exception, $query);
@@ -138,5 +159,71 @@ final class ExceptionConverter implements ExceptionConverterInterface
         }
 
         return false;
+    }
+
+    /**
+     * Convert exception using SQLSTATE code (SQL:2003 standard).
+     *
+     * SQLSTATE format: Class (2 chars) + Subclass (3 chars)
+     * Only the class (first 2 characters) is used for classification.
+     *
+     * @link https://en.wikipedia.org/wiki/SQLSTATE
+     * @link https://www.firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-appx02-sqlstates
+     *
+     * @return DriverException|null Returns specific exception or null to fall back to SQLCODE
+     */
+    private function convertBySqlState(string $sqlState, Exception $exception, Query|null $query): DriverException|null
+    {
+        // Extract SQLSTATE class (first 2 characters)
+        $class = substr($sqlState, 0, 2);
+
+        return match ($class) {
+            // Class 08: Connection Exception
+            '08' => new ConnectionException($exception, $query),
+
+            // Class 21: Cardinality Violation
+            '21' => new DriverException($exception, $query),
+
+            // Class 22: Data Exception (includes string truncation, numeric overflow)
+            '22' => new DriverException($exception, $query),
+
+            // Class 23: Integrity Constraint Violation
+            '23' => $this->convertConstraintViolation($sqlState, $exception, $query),
+
+            // Class 28: Invalid Authorization Specification
+            '28' => new ConnectionException($exception, $query),
+
+            // Class 40: Transaction Rollback (includes deadlock)
+            '40' => new DeadlockException($exception, $query),
+
+            // Class 42: Syntax Error or Access Rule Violation
+            '42' => new SyntaxErrorException($exception, $query),
+
+            // Class HY: General Error (fallback)
+            'HY' => null, // Fall back to SQLCODE classification
+
+            // Unknown SQLSTATE class - fall back to SQLCODE
+            default => null,
+        };
+    }
+
+    /**
+     * Convert Class 23 (Integrity Constraint Violation) to specific exceptions.
+     *
+     * Subclass analysis for more accurate classification:
+     * - 23000: Generic integrity constraint violation
+     * - 23001: Restrict violation (e.g., foreign key)
+     * - 23502: NOT NULL constraint violation
+     * - 23503: Foreign key constraint violation
+     * - 23505: Unique constraint violation
+     */
+    private function convertConstraintViolation(string $sqlState, Exception $exception, Query|null $query): DriverException
+    {
+        return match ($sqlState) {
+            '23502' => new NotNullConstraintViolationException($exception, $query),
+            '23503' => new ForeignKeyConstraintViolationException($exception, $query),
+            '23505' => new UniqueConstraintViolationException($exception, $query),
+            default => new DriverException($exception, $query),
+        };
     }
 }

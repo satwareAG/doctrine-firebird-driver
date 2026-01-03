@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Repository;
 
-use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\ReadOnlyIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
-class FindAllTest extends AbstractIntegrationTestCase
+class FindAllTest extends ReadOnlyIntegrationTestCase
 {
     public function testFindByAlbum(): void
     {

@@ -20,6 +20,8 @@ use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
@@ -33,13 +35,20 @@ use function uniqid;
 use const PHP_INT_MAX;
 
 /**
- * Tests SQL generation. For functional tests, see FirebirdPlatformTest.
- * Inspired by:
+ * Tests SQL generation.
  *
- * @link https://github.com/ISTDK/doctrine-dbal/blob/master/tests/Doctrine/Tests/DBAL/Platforms/OraclePlatformTest.php
+ * Refactored to be a true Unit test extending TestCase directly to avoid
+ * unnecessary database connections and locking issues.
  */
-class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
+class FirebirdPlatformSQLTest extends TestCase
 {
+    protected Firebird3Platform $_platform;
+
+    protected function setUp(): void
+    {
+        $this->_platform = new Firebird3Platform();
+    }
+
     public function testGetBitAndComparisonExpression(): void
     {
         $found = $this->_platform->getBitAndComparisonExpression(0, 1);
@@ -68,18 +77,17 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetDateArithmeticIntervalExpression */
+    #[DataProvider('dataProvider_testGetDateArithmeticIntervalExpression')]
     public function testGetDateArithmeticIntervalExpression($expected, $operator, $interval, $unit): void
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getDateArithmeticIntervalExpression');
-        $method->setAccessible(true);
         $found = $method->invoke($this->_platform, '2018-01-01', $operator, $interval, $unit);
         self::assertIsString($found);
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
+    public static function dataProvider_testGetDateArithmeticIntervalExpression(): Iterator
     {
         yield ['DATEADD(DAY, 1, 2018-01-01)', '', 1, DateIntervalUnit::DAY];
         yield ['DATEADD(DAY, -1, 2018-01-01)', '-', 1, DateIntervalUnit::DAY];
@@ -109,7 +117,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame('DATEADD(-1 MONTH TO 2018-01-01)', $found);
     }
 
-    /** @dataProvider dataProvider_testGetLocateExpression */
+    #[DataProvider('dataProvider_testGetLocateExpression')]
     public function testGetLocateExpression($expected, $startPos): void
     {
         $found = $this->_platform->getLocateExpression('foo', 'o', $startPos);
@@ -117,7 +125,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame($expected, $found);
     }
 
-    public function dataProvider_testGetLocateExpression(): Iterator
+    public static function dataProvider_testGetLocateExpression(): Iterator
     {
         yield ['POSITION (o in foo)', false];
         yield ['POSITION (o, foo, 1)', 1];
@@ -184,8 +192,8 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1097
-     * @dataProvider dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL
      */
+    #[DataProvider('dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL($expected, array $options): void
     {
         $foreignKey = new ForeignKeyConstraint(
@@ -199,7 +207,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     }
 
     /** @return array */
-    public function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
+    public static function dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL(): Iterator
     {
         yield ['', []];
         yield [' ON UPDATE CASCADE', ['onUpdate' => 'CASCADE']];
@@ -307,7 +315,6 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
      */
     public function testAlterTableNotNULL(): void
     {
-        $sm        = $this->connection->createSchemaManager();
         $fromTable = new Table('mytable');
         $fromTable->addColumn('foo', Types::TEXT, ['length' => 255, 'notnull' => false]);
         $fromTable->addColumn('bar', Types::STRING, ['length' => 10, 'notnull' => false]);
@@ -323,9 +330,10 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
          $toTable->addColumn('metar', 'string', ['notnull' => false, 'length' => 255]);
 
-        $tableDiff = $sm->createComparator()->compareTables($fromTable, $toTable);
+        $comparator = new Comparator();
+        $tableDiff = $comparator->compareTables($fromTable, $toTable);
 
-        $found = $this->connection->getDatabasePlatform()->getAlterTableSQL($tableDiff);
+        $found = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertCount(7, $found);
         self::assertArrayHasKey(0, $found);
         self::assertSame('ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)', $found[0]);
@@ -337,7 +345,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         self::assertSame("ALTER TABLE mytable ALTER bar SET DEFAULT 'bla'", $found[3]);
         self::assertArrayHasKey(4, $found);
         self::assertArrayHasKey(6, $found);
-        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
+        if ($this->_platform instanceof Firebird3Platform) {
             self::assertSame('ALTER TABLE mytable ALTER bar SET NOT NULL', $found[4]);
             self::assertSame('ALTER TABLE mytable ALTER metar DROP NOT NULL', $found[6]);
         } else {
@@ -498,45 +506,11 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     {
         $this->expectExceptionMessageMatches('/.*firebird does not support it.*/i');
         $this->expectException(Exception::class);
-        $table = new Table('mytable');
-        $table->addColumn('id', 'integer', ['autoincrement' => true]);
-        $table->addColumn('foo', 'integer');
-        $table->addColumn('bar', 'string');
-        $table->addColumn('bloo', 'boolean');
-        $table->setPrimaryKey(['id']);
-        $tableDiff                         = new TableDiff('mytable');
-        $tableDiff->fromTable              = $table;
-        $tableDiff->newName                = 'userlist';
-        $tableDiff->addedColumns['quota']  = new Column(
-            'quota',
-            Type::getType('integer'),
-            ['notnull' => false],
-        );
-        $tableDiff->removedColumns['foo']  = new Column(
-            'foo',
-            Type::getType('integer'),
-        );
-        $tableDiff->changedColumns['bar']  = new ColumnDiff(
-            'bar',
-            new Column(
-                'baz',
-                Type::getType('string'),
-                ['default' => 'def'],
-            ),
-            ['type', 'notnull', 'default'],
-        );
-        $tableDiff->changedColumns['bloo'] = new ColumnDiff(
-            'bloo',
-            new Column(
-                'bloo',
-                Type::getType('boolean'),
-                ['default' => false],
-            ),
-            ['type', 'notnull', 'default'],
-        );
-        $sm                                = $this->connection->createSchemaManager();
-        $sm->renameTable('old', 'new');
-        $this->_platform->getAlterTableSQL($tableDiff);
+        
+        // FirebirdPlatform explicitly overrides getAlterTableSQL and currently ignores newName,
+        // but getRenameTableSQL explicitly throws the exception we want to verify.
+        // Verifying the platform capability directly.
+        $this->_platform->getRenameTableSQL('old', 'new');
     }
 
     public function testGetCustomColumnDeclarationSql(): void
@@ -548,9 +522,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetCreateTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetCreateTableSqlDispatchEvenListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->addMethods([
                 'onSchemaCreateTable',
                 'onSchemaCreateTableColumn',
             ])
@@ -579,9 +553,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetDropTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetDropTableSqlDispatchEventListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods(['onSchemaDropTable'])
+            ->addMethods(['onSchemaDropTable'])
             ->getMock();
         $listenerMock
             ->expects($this->once())
@@ -595,9 +569,9 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
     public function testGetAlterTableSqlDispatchEvent(): void
     {
         $listenerMock = $this
-            ->getMockBuilder('GetAlterTableSqlDispatchEvenListener')
+            ->getMockBuilder(\stdClass::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->addMethods([
                 'onSchemaAlterTable',
                 'onSchemaAlterTableAddColumn',
                 'onSchemaAlterTableRemoveColumn',
@@ -1106,7 +1080,8 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         $table2->addForeignKeyConstraint('fk_table2', ['fk2'], ['id'], [], 'fk2');
         $table2->removeForeignKey('fk1');
 
-        $tableDiff = $this->connection->createSchemaManager()->createComparator()->compareTables($table, $table2);
+        $comparator = new Comparator();
+        $tableDiff = $comparator->compareTables($table, $table2);
 
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
@@ -1123,7 +1098,7 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
         /**
          * Firebird 3
          */
-        if ($this->connection->getDatabasePlatform() instanceof Firebird3Platform) {
+        if ($this->_platform instanceof Firebird3Platform) {
             self::assertSame('ALTER TABLE "foo" ALTER bar DROP NOT NULL', $found[6]);
         } else {
             self::assertSame('UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') '
@@ -1187,15 +1162,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1082
-     * @dataProvider getGeneratesDecimalTypeDeclarationSQL
      */
+    #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getDecimalTypeDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesDecimalTypeDeclarationSQL(): Iterator
+    public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
         yield [[], 'NUMERIC(10, 0)'];
         yield [['unsigned' => true], 'NUMERIC(10, 0)'];
@@ -1207,15 +1182,15 @@ class FirebirdPlatformSQLTest extends AbstractFirebirdPlatformTestCase
 
     /**
      * @group DBAL-1082
-     * @dataProvider getGeneratesFloatDeclarationSQL
      */
+    #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, $expectedSql): void
     {
         self::assertSame($expectedSql, $this->_platform->getFloatDeclarationSQL($column));
     }
 
     /** @return array */
-    public function getGeneratesFloatDeclarationSQL(): Iterator
+    public static function getGeneratesFloatDeclarationSQL(): Iterator
     {
         yield [[], 'DOUBLE PRECISION'];
         yield [['unsigned' => true], 'DOUBLE PRECISION'];

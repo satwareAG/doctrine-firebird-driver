@@ -190,8 +190,7 @@ class Firebird3Platform extends FirebirdPlatform
         return true;
     }
 
-    /** @inheritDoc */
-    public function prefersIdentityColumns()
+    public function prefersIdentityColumns(): bool
     {
         return true;
     }
@@ -262,8 +261,7 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    /** @inheritDoc */
-    public function usesSequenceEmulatedIdentityColumns()
+    public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return false;
     }
@@ -304,14 +302,6 @@ ___query___;
             ],
             'formatLineBreak' => true,
         ]);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBooleanTypeDeclarationSQL(array $column): string
-    {
-        return 'BOOLEAN';
     }
 
     public function isCommentedDoctrineType(Type $doctrineType): bool

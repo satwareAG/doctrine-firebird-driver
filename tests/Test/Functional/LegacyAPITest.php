@@ -13,6 +13,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_change_key_case;
 use function array_map;
+use function uniqid;
 
 use const CASE_LOWER;
 
@@ -20,9 +21,11 @@ class LegacyAPITest extends FunctionalTestCase
 {
     use VerifyDeprecations;
 
+    private string $table = 'legacy_table';
+
     public function testFetchWithAssociativeMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -34,7 +37,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchWithNumericMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -46,7 +49,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchWithColumnMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -58,7 +61,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchWithTooManyArguments(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -69,7 +72,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchWithUnsupportedFetchMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -80,7 +83,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchAllWithAssociativeModes(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -94,7 +97,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchAllWithNumericModes(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -106,7 +109,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchAllWithColumnMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -118,7 +121,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchAllWithTooManyArguments(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -129,7 +132,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     public function testFetchAllWithUnsupportedFetchMode(): void
     {
-        $sql = 'SELECT test_int FROM legacy_table WHERE test_int = 1';
+        $sql = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = 1';
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -141,12 +144,12 @@ class LegacyAPITest extends FunctionalTestCase
     public function testExecuteUpdate(): void
     {
         $this->connection->executeUpdate(
-            'INSERT INTO legacy_table (test_int, test_string) VALUES (?, ?)',
+            'INSERT INTO ' . $this->table . ' (test_int, test_string) VALUES (?, ?)',
             [2, 'bar'],
             ['integer', 'string'],
         );
 
-        $sql = 'SELECT test_string FROM legacy_table';
+        $sql = 'SELECT test_string FROM ' . $this->table;
 
         $stmt = $this->connection->executeQuery($sql);
 
@@ -160,35 +163,36 @@ class LegacyAPITest extends FunctionalTestCase
     {
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/4163');
 
-        $stmt = $this->connection->query('SELECT test_string FROM legacy_table WHERE test_int = 1');
+        $stmt = $this->connection->query('SELECT test_string FROM ' . $this->table . ' WHERE test_int = 1');
 
         self::assertSame('foo', $stmt->fetchOne());
     }
 
     public function testExec(): void
     {
-        $this->connection->insert('legacy_table', [
+        $this->connection->insert($this->table, [
             'test_int' => 2,
             'test_string' => 'bar',
         ]);
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/4163');
 
-        $count = $this->connection->exec('DELETE FROM legacy_table WHERE test_int > 1');
+        $count = $this->connection->exec('DELETE FROM ' . $this->table . ' WHERE test_int > 1');
 
         self::assertSame(1, $count);
     }
 
     protected function setUp(): void
     {
-        $table = new Table('legacy_table');
+        $this->table = 'legacy_table' . uniqid();
+        $table       = new Table($this->table);
         $table->addColumn('test_int', Types::INTEGER);
         $table->addColumn('test_string', Types::STRING);
         $table->setPrimaryKey(['test_int']);
 
         $this->dropAndCreateTable($table);
 
-        $this->connection->insert('legacy_table', [
+        $this->connection->insert($this->table, [
             'test_int' => 1,
             'test_string' => 'foo',
         ]);
@@ -196,6 +200,6 @@ class LegacyAPITest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        $this->connection->executeStatement('DELETE FROM legacy_table WHERE test_int > 1');
+        $this->markConnectionNotReusable();
     }
 }

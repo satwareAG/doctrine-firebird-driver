@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\QueryBuilder;
 
-use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\ReadOnlyIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 use function count;
 
 use const PHP_INT_MAX;
 
-class AlbumTest extends AbstractIntegrationTestCase
+class AlbumTest extends ReadOnlyIntegrationTestCase
 {
     public function testSelect(): void
     {
@@ -74,6 +74,7 @@ class AlbumTest extends AbstractIntegrationTestCase
         self::assertInstanceOf(Entity\Album::class, $albums[0]);
 
         self::assertSame(1, $albums[0]->getId());
+        self::assertNotNull($albums[0]->getArtist());
         self::assertSame(2, $albums[0]->getArtist()->getId());
     }
 
@@ -99,6 +100,7 @@ class AlbumTest extends AbstractIntegrationTestCase
         self::assertInstanceOf(Entity\Album::class, $albums[0]);
 
         self::assertSame(1, $albums[0]->getId());
+        self::assertNotNull($albums[0]->getArtist());
         self::assertSame(2, $albums[0]->getArtist()->getId());
     }
 
@@ -122,6 +124,7 @@ class AlbumTest extends AbstractIntegrationTestCase
         self::assertInstanceOf(Entity\Album::class, $albums[0]);
 
         self::assertSame(1, $albums[0]->getId());
+        self::assertNotNull($albums[0]->getArtist());
         self::assertSame(2, $albums[0]->getArtist()->getId());
     }
 

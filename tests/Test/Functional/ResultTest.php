@@ -6,11 +6,12 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class ResultTest extends FunctionalTestCase
 {
-    /** @dataProvider methodProvider */
+    #[DataProvider('methodProvider')]
     public function testExceptionHandling(callable $method, mixed $expected): void
     {
         $result = $this->connection->executeQuery(

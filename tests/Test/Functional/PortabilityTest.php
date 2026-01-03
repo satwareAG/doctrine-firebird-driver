@@ -11,10 +11,12 @@ use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 use function array_merge;
+use function sleep;
 use function strlen;
 
 class PortabilityTest extends FunctionalTestCase
@@ -45,9 +47,8 @@ class PortabilityTest extends FunctionalTestCase
     /**
      * @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case
      * @param list<string>                          $expected
-     *
-     * @dataProvider caseProvider
      */
+    #[DataProvider('caseProvider')]
     public function testCaseConversion(int $case, array $expected): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_FIX_CASE, $case);
@@ -73,11 +74,8 @@ class PortabilityTest extends FunctionalTestCase
         self::assertArrayNotHasKey(0, $row, 'The row should not contain numerical keys.');
     }
 
-    /**
-     * @param mixed[] $expected
-     *
-     * @dataProvider fetchColumnProvider
-     */
+    /** @param mixed[] $expected */
+    #[DataProvider('fetchColumnProvider')]
     public function testFetchColumn(string $column, array $expected): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_RTRIM, 0);
@@ -102,6 +100,12 @@ class PortabilityTest extends FunctionalTestCase
     {
         $this->connectWithPortability(Connection::PORTABILITY_EMPTY_TO_NULL, 0);
         self::assertNotNull($this->connection->getDatabase());
+    }
+
+    public function testTimeout(): void
+    {
+        sleep(1); // Short sleep - just verify test completes
+        self::assertTrue(true);
     }
 
     /** @return iterable<string, array{(ColumnCase::LOWER|ColumnCase::UPPER), list<string>}> */
@@ -129,6 +133,7 @@ class PortabilityTest extends FunctionalTestCase
     {
         // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
         // see https://github.com/doctrine/dbal/issues/4515
+        $this->markConnectionNotReusable();
         $this->connection->close();
     }
 
@@ -144,10 +149,15 @@ class PortabilityTest extends FunctionalTestCase
      /** @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case */
     private function connectWithPortability(int $mode, int $case): void
     {
-        // closing the default connection prior to 4.0.0 to prevent connection leak
+        // Mark connection not reusable - framework will handle cleanup
+        $this->markConnectionNotReusable();
+
+        $params        = $this->connection->getParams();
+        $configuration = $this->connection->getConfiguration();
+
+        // Close the existing shared connection to prevent locking issues during DROP TABLE
         $this->connection->close();
 
-        $configuration = $this->connection->getConfiguration();
         $configuration->setMiddlewares(
             array_merge(
                 $configuration->getMiddlewares(),
@@ -155,7 +165,7 @@ class PortabilityTest extends FunctionalTestCase
             ),
         );
 
-        $this->connection = DriverManager::getConnection($this->connection->getParams(), $configuration);
+        $this->connection = DriverManager::getConnection($params, $configuration);
     }
 
     private function createTable(): void

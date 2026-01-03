@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="src/Compat/Compat.php">
+    <UnusedClass>
+      <code><![CDATA[Compat]]></code>
+    </UnusedClass>
+  </file>
+  <file src="src/DBAL/FirebirdConnection.php">
+    <InternalMethod>
+      <code><![CDATA[getParams]]></code>
+    </InternalMethod>
+    <InvalidArrayOffset>
+      <code><![CDATA[$params['firebird']]]></code>
+    </InvalidArrayOffset>
+    <UnusedClass>
+      <code><![CDATA[FirebirdConnection]]></code>
+    </UnusedClass>
+  </file>
+  <file src="src/Driver/Firebird/Connection.php">
+    <MismatchingDocblockParamType>
+      <code><![CDATA[Transaction|resource|null]]></code>
+    </MismatchingDocblockParamType>
+    <PossiblyNullArgument>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$this->connection]]></code>
+    </PossiblyNullArgument>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[createBatch]]></code>
+      <code><![CDATA[createIndependentTransaction]]></code>
+      <code><![CDATA[dropTableForce]]></code>
+      <code><![CDATA[executeAuto]]></code>
+      <code><![CDATA[executeBatch]]></code>
+      <code><![CDATA[getActiveTransaction]]></code>
+      <code><![CDATA[getConnectionInfo]]></code>
+      <code><![CDATA[getLimboTransactions]]></code>
+      <code><![CDATA[getOOWrapper]]></code>
+      <code><![CDATA[killAttachment]]></code>
+      <code><![CDATA[listTableBlockers]]></code>
+      <code><![CDATA[queryInTransaction]]></code>
+      <code><![CDATA[reconnectLimboTransaction]]></code>
+    </PossiblyUnusedMethod>
+    <UndefinedClass>
+      <code><![CDATA[Batch]]></code>
+      <code><![CDATA[BatchResult]]></code>
+      <code><![CDATA[Database]]></code>
+      <code><![CDATA[DbInfo|array|false]]></code>
+      <code><![CDATA[TBuilder]]></code>
+      <code><![CDATA[Transaction|null]]></code>
+      <code><![CDATA[Transaction|resource|null]]></code>
+    </UndefinedClass>
+    <UndefinedDocblockClass>
+      <code><![CDATA[Transaction|resource|null]]></code>
+      <code><![CDATA[resource|Transaction]]></code>
+    </UndefinedDocblockClass>
+    <UnusedParam>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$rows]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+    </UnusedParam>
+    <UnusedVariable>
+      <code><![CDATA[$success]]></code>
+    </UnusedVariable>
+  </file>
+  <file src="src/Driver/Firebird/Driver.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[$serverVersion]]></code>
+    </PossiblyFalseArgument>
+  </file>
+  <file src="src/Driver/Firebird/Exception.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$exception->getCode()]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[fromFirebirdException]]></code>
+    </PossiblyUnusedMethod>
+  </file>
+  <file src="src/Driver/Firebird/ExceptionConverter.php">
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[$sqlState !== null]]></code>
+    </RedundantConditionGivenDocblockType>
+  </file>
+  <file src="src/Driver/Firebird/Result.php">
+    <FalsableReturnStatement>
+      <code><![CDATA[fbird_num_fields($this->firebirdResultResource)]]></code>
+    </FalsableReturnStatement>
+    <InvalidFalsableReturnType>
+      <code><![CDATA[int]]></code>
+    </InvalidFalsableReturnType>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[fetchAllAssociativeWithDateObjects]]></code>
+      <code><![CDATA[fetchNumericWithDateObjects]]></code>
+      <code><![CDATA[isDateObjectFetchAvailable]]></code>
+    </PossiblyUnusedMethod>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $key]]></code>
+      <code><![CDATA[(string) $key]]></code>
+    </RedundantCastGivenDocblockType>
+    <UnusedProperty>
+      <code><![CDATA[$statement]]></code>
+    </UnusedProperty>
+  </file>
+  <file src="src/Driver/Firebird/Statement.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[$callArgs]]></code>
+    </PossiblyFalseArgument>
+    <RedundantCondition>
+      <code><![CDATA[$fbirdResultRc === true]]></code>
+      <code><![CDATA[$returnedRow !== false && is_array($returnedRow)]]></code>
+      <code><![CDATA[is_array($returnedRow)]]></code>
+      <code><![CDATA[is_resource($variable)]]></code>
+      <code><![CDATA[is_resource($variable)]]></code>
+    </RedundantCondition>
+  </file>
+</files>

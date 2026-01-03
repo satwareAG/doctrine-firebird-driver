@@ -1,29 +1,249 @@
 parameters:
 	ignoreErrors:
 		-
+			message: "#^Call to method add\\(\\) on an unknown class Firebird\\\\Batch\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Call to method execute\\(\\) on an unknown class Firebird\\\\Batch\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Call to method getResource\\(\\) on an unknown class Firebird\\\\Transaction\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Call to static method create\\(\\) on an unknown class Firebird\\\\TBuilder\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Call to static method fromResource\\(\\) on an unknown class Firebird\\\\Database\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Class Firebird\\\\Transaction not found\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: """
+				#^Class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection implements deprecated interface Doctrine\\\\DBAL\\\\Driver\\\\ServerInfoAwareConnection\\:
+				The methods defined in this interface will be made part of the \\{@see Driver\\} interface
+				in the next major release\\.$#
+			"""
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
 			message: "#^Function fbird_prepare invoked with 3 parameters, 1 required\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createTransaction\\(\\) should return resource but returns bool\\|resource\\.$#"
+			message: "#^Function fbird_query_params_tx not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Parameter \\#1 \\$query of function fbird_prepare expects string, resource\\|null given\\.$#"
+			message: "#^Instantiated class Firebird\\\\Batch not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Parameter \\#1 \\$preparedStatement of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:checkLastApiCall\\(\\) expects resource\\|null, resource\\|false given\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Statement.php
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createBatch\\(\\) has invalid return type Firebird\\\\Batch\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Parameter \\#1 \\$resource of function get_resource_type expects resource, resource\\|false given\\.$#"
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createIndependentTransaction\\(\\) has invalid return type Firebird\\\\TBuilder\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:executeBatch\\(\\) has invalid return type Firebird\\\\BatchResult\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:getConnectionInfo\\(\\) has invalid return type Firebird\\\\DbInfo\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:getOOWrapper\\(\\) has invalid return type Firebird\\\\Database\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$transaction with type Firebird\\\\Transaction\\|resource\\|null is not subtype of native type Firebird\\\\Transaction\\|null\\.$#"
 			count: 1
-			path: src/Driver/Firebird/Statement.php
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\#1 \\$link_identifier of function fbird_trans_start expects resource, resource\\|null given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\#3 \\$params of function fbird_execute_auto expects array, array\\|null given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\$transaction of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createBatch\\(\\) has invalid type Firebird\\\\Transaction\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\$transaction of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:executeBatch\\(\\) has invalid type Firebird\\\\Transaction\\.$#"
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\$transaction of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:queryInTransaction\\(\\) has invalid type Firebird\\\\Transaction\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Used function fbird_query_params_tx not found\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Call to deprecated method getIdentitySequenceName\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\.$#"
+			count: 2
+			path: src/Driver/Firebird/ConnectionWrapper.php
+
+		-
+			message: "#^Parameter \\#2 \\$serverVersion of class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Driver.php
+
+		-
+			message: "#^Call to function method_exists\\(\\) with Doctrine\\\\DBAL\\\\Driver\\\\Exception&Firebird\\\\Exception and 'getSqlState' will always evaluate to true\\.$#"
+			count: 1
+			path: src/Driver/Firebird/ExceptionConverter.php
+
+		-
+			message: "#^Strict comparison using \\!\\=\\= between string and null will always evaluate to true\\.$#"
+			count: 1
+			path: src/Driver/Firebird/ExceptionConverter.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:columnCount\\(\\) should return int but returns int\\|false\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
+			message: "#^Property Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:\\$statement is never read, only written\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
+			message: """
+				#^Class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\FirebirdDriver implements deprecated interface Doctrine\\\\DBAL\\\\VersionAwarePlatformDriver\\:
+				All drivers will have to be aware of the server version in the next major release\\.$#
+			"""
+			count: 1
+			path: src/Driver/FirebirdDriver.php
+
+		-
+			message: """
+				#^Call to deprecated method getColumnComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 2
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Call to deprecated method getOldColumnName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\ColumnDiff\\:
+				Use \\{@see \\$fromColumn\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Access to deprecated property \\$name of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getBinaryMaxLength\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getColumnComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getDoctrineTypeComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getIdentitySequenceName\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 5
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Types\\\\Type\\:
+				this method will be removed in Doctrine DBAL 4\\.0,
+				            use \\{@see TypeRegistry\\:\\:lookupName\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getOldColumnName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\ColumnDiff\\:
+				Use \\{@see \\$fromColumn\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getTemporaryTableSQL\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getVarcharMaxLength\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
 
 		-
 			message: "#^Offset 'password' does not exist on array\\{application_name\\?\\: string, charset\\?\\: string, dbname\\: string, defaultTableOptions\\?\\: array\\<string, mixed\\>, default_dbname\\?\\: string, driver\\?\\: 'ibm_db2'\\|'mysqli'\\|'oci8'\\|'pdo_mysql'\\|'pdo_oci'\\|'pdo_pgsql'\\|'pdo_sqlite'\\|'pdo_sqlsrv'\\|'pgsql'\\|'sqlite3'\\|'sqlsrv', driverClass\\?\\: class\\-string\\<Doctrine\\\\DBAL\\\\Driver\\>, driverOptions\\?\\: array, \\.\\.\\.\\}\\.$#"
@@ -36,6 +256,6 @@ parameters:
 			path: src/Schema/FirebirdSchemaManager.php
 
 		-
-			message: "#^Parameter \\#1 \\$link_identifier of function fbird_query expects resource\\|null, int given\\.$#"
+			message: "#^Parameter \\#1 \\$link_identifier of function fbird_query expects resource\\|string\\|null, int given\\.$#"
 			count: 1
 			path: src/Schema/FirebirdSchemaManager.php

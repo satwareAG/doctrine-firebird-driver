@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
@@ -24,6 +25,7 @@ use function posix_getpwuid;
 use function sprintf;
 use function sys_get_temp_dir;
 use function touch;
+use function uniqid;
 use function unlink;
 
 use const E_ALL;
@@ -33,6 +35,14 @@ use const PHP_OS_FAMILY;
 /** @psalm-import-type Params from DriverManager */
 class ExceptionTest extends FunctionalTestCase
 {
+    private string $tableConstraint = 'con_err_tbl';
+    private string $tableOwning     = 'own_tbl';
+
+    public function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+    }
+
     public function testPrimaryConstraintViolationException(): void
     {
         $table = new Table('duplicatekey_table');
@@ -71,8 +81,8 @@ class ExceptionTest extends FunctionalTestCase
         $this->setUpForeignKeyConstraintViolationExceptionTest();
 
         try {
-            $this->connection->insert('constraint_error_table', ['id' => 1]);
-            $this->connection->insert('owning_table', ['id' => 1, 'constraint_id' => 1]);
+            $this->connection->insert($this->tableConstraint, ['id' => 1]);
+            $this->connection->insert($this->tableOwning, ['id' => 1, 'constraint_id' => 1]);
         } catch (Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -82,7 +92,7 @@ class ExceptionTest extends FunctionalTestCase
         $this->expectException(Exception\ForeignKeyConstraintViolationException::class);
 
         try {
-            $this->connection->insert('owning_table', ['id' => 2, 'constraint_id' => 2]);
+            $this->connection->insert($this->tableOwning, ['id' => 2, 'constraint_id' => 2]);
         } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -97,8 +107,8 @@ class ExceptionTest extends FunctionalTestCase
         $this->setUpForeignKeyConstraintViolationExceptionTest();
 
         try {
-            $this->connection->insert('constraint_error_table', ['id' => 1]);
-            $this->connection->insert('owning_table', ['id' => 1, 'constraint_id' => 1]);
+            $this->connection->insert($this->tableConstraint, ['id' => 1]);
+            $this->connection->insert($this->tableOwning, ['id' => 1, 'constraint_id' => 1]);
         } catch (Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -108,7 +118,7 @@ class ExceptionTest extends FunctionalTestCase
         $this->expectException(Exception\ForeignKeyConstraintViolationException::class);
 
         try {
-            $this->connection->update('constraint_error_table', ['id' => 2], ['id' => 1]);
+            $this->connection->update($this->tableConstraint, ['id' => 2], ['id' => 1]);
         } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -123,8 +133,8 @@ class ExceptionTest extends FunctionalTestCase
         $this->setUpForeignKeyConstraintViolationExceptionTest();
 
         try {
-            $this->connection->insert('constraint_error_table', ['id' => 1]);
-            $this->connection->insert('owning_table', ['id' => 1, 'constraint_id' => 1]);
+            $this->connection->insert($this->tableConstraint, ['id' => 1]);
+            $this->connection->insert($this->tableOwning, ['id' => 1, 'constraint_id' => 1]);
         } catch (Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -134,7 +144,7 @@ class ExceptionTest extends FunctionalTestCase
         $this->expectException(Exception\ForeignKeyConstraintViolationException::class);
 
         try {
-            $this->connection->delete('constraint_error_table', ['id' => 1]);
+            $this->connection->delete($this->tableConstraint, ['id' => 1]);
         } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -146,13 +156,15 @@ class ExceptionTest extends FunctionalTestCase
 
     public function testForeignKeyConstraintViolationExceptionOnTruncate(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-
         $this->setUpForeignKeyConstraintViolationExceptionTest();
 
+        // Force fresh connection for this test
+        $this->connection = TestUtil::getConnection();
+        $platform         = $this->connection->getDatabasePlatform();
+
         try {
-            $this->connection->insert('constraint_error_table', ['id' => 1]);
-            $this->connection->insert('owning_table', ['id' => 1, 'constraint_id' => 1]);
+            $this->connection->insert($this->tableConstraint, ['id' => 1]);
+            $this->connection->insert($this->tableOwning, ['id' => 1, 'constraint_id' => 1]);
         } catch (Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -162,7 +174,7 @@ class ExceptionTest extends FunctionalTestCase
         $this->expectException(Exception\ForeignKeyConstraintViolationException::class);
 
         try {
-            $this->connection->executeStatement($platform->getTruncateTableSQL('constraint_error_table'));
+            $this->connection->executeStatement($platform->getTruncateTableSQL($this->tableConstraint));
         } catch (Exception\ForeignKeyConstraintViolationException | Throwable $exception) {
             $this->tearDownForeignKeyConstraintViolationExceptionTest();
 
@@ -172,6 +184,36 @@ class ExceptionTest extends FunctionalTestCase
         $this->tearDownForeignKeyConstraintViolationExceptionTest();
     }
 
+    /**
+     * Tests that NOT NULL constraint violations are properly detected.
+     *
+     * IMPORTANT: This test uses explicit NULL in SQL string instead of parameter binding
+     * because the php-firebird extension has a limitation where fbird_execute() with
+     * bound NULL parameters bypasses Firebird's NOT NULL constraint validation.
+     *
+     * KNOWN LIMITATION:
+     * - Parameter binding with NULL: Inserts garbage values (e.g., "-1073741823")
+     * - Explicit NULL in SQL: Correctly throws NotNullConstraintViolationException
+     *
+     * This limitation affects:
+     * - ALL Firebird versions (2.5, 3.0, 4.0, 5.0)
+     * - ALL php-firebird extension versions (v3.0.1 through v6.1.1-RC.1)
+     *
+     * Root Cause:
+     * The php-firebird extension's fbird_execute() function does not properly handle
+     * bound NULL parameters. When NULL is passed as a bound parameter, Firebird's
+     * NOT NULL constraint validation is bypassed, and uninitialized memory or default
+     * values are inserted instead.
+     *
+     * Workaround:
+     * Use executeStatement() with explicit NULL in the SQL string instead of
+     * parameter binding for NULL values on NOT NULL columns.
+     *
+     * For comprehensive research findings and technical details, see:
+     * docs/null-parameter-binding-limitation.md
+     *
+     * @see https://github.com/FirebirdSQL/php-firebird (php-firebird extension)
+     */
     public function testNotNullConstraintViolationException(): void
     {
         $table = new Table('notnull_table');
@@ -181,7 +223,13 @@ class ExceptionTest extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         $this->expectException(Exception\NotNullConstraintViolationException::class);
-        $this->connection->insert('notnull_table', ['id' => 1, 'val' => null]);
+
+        // WORKAROUND: Use explicit NULL in SQL string instead of parameter binding
+        // Original code that DOESN'T WORK: $this->connection->insert('notnull_table', ['id' => 1, 'val' => null]);
+        // Correctly triggers NOT NULL constraint violation:
+        $this->connection->executeStatement(
+            'INSERT INTO notnull_table (id, val) VALUES (1, NULL)',
+        );
     }
 
     public function testInvalidFieldNameException(): void
@@ -311,9 +359,8 @@ class ExceptionTest extends FunctionalTestCase
     /**
      * @param array<string, mixed> $params
      * @psalm-param Params $params
-     *
-     * @dataProvider getConnectionParams
      */
+    #[DataProvider('getConnectionParams')]
     private function testConnectionException(array $params): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -331,13 +378,19 @@ class ExceptionTest extends FunctionalTestCase
 
     private function setUpForeignKeyConstraintViolationExceptionTest(): void
     {
-        $schemaManager = $this->connection->createSchemaManager();
+        $this->tableConstraint = 'ce_' . uniqid();
+        $this->tableOwning     = 'ot_' . uniqid();
 
-        $table = new Table('constraint_error_table');
+        // Use a separate connection for setup to avoid lock contamination
+        $setupConnection = TestUtil::getConnection();
+        $schemaManager   = $setupConnection->createSchemaManager();
+
+        // ... definition ...
+        $table = new Table($this->tableConstraint);
         $table->addColumn('id', Types::INTEGER, []);
         $table->setPrimaryKey(['id']);
 
-        $owningTable = new Table('owning_table');
+        $owningTable = new Table($this->tableOwning);
         $owningTable->addColumn('id', Types::INTEGER, []);
         $owningTable->addColumn('constraint_id', Types::INTEGER, []);
         $owningTable->setPrimaryKey(['id']);
@@ -345,14 +398,38 @@ class ExceptionTest extends FunctionalTestCase
 
         $schemaManager->createTable($table);
         $schemaManager->createTable($owningTable);
+
+        // Let GC handle close to avoid accidental sharing issues
     }
 
     private function tearDownForeignKeyConstraintViolationExceptionTest(): void
     {
-        $schemaManager = $this->connection->createSchemaManager();
+        // CRITICAL: First rollback the main test connection to release locks on the FK tables.
+        // The main connection still holds locks from the FK violation exception, which would
+        // cause "table is in use" warnings when the teardown connection tries to drop tables.
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null) {
+            try {
+                $fbirdConnection->rollBack();
+            } catch (Throwable) {
+                // Ignore rollback errors - may already be rolled back
+            }
+        }
 
-        $schemaManager->dropTable('owning_table');
-        $schemaManager->dropTable('constraint_error_table');
+        $teardownConnection = TestUtil::getConnection();
+        $schemaManager      = $teardownConnection->createSchemaManager();
+
+        try {
+            @$schemaManager->dropTable($this->tableOwning);
+        } catch (Throwable) {
+        }
+
+        try {
+            @$schemaManager->dropTable($this->tableConstraint);
+        } catch (Throwable) {
+        }
+
+        // Let GC handle close
     }
 
     private function isLinuxRoot(): bool

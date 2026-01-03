@@ -26,10 +26,7 @@ use function array_merge;
 
 class Firebird3Keywords extends FirebirdKeywords
 {
-    /**
-     * {@inheritDoc}
-     */
-    public function getName()
+    public function getName(): string
     {
         return 'Firebird3';
     }
@@ -39,7 +36,7 @@ class Firebird3Keywords extends FirebirdKeywords
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */
-    protected function getKeywords()
+    protected function getKeywords(): array
     {
         return array_merge(parent::getKeywords(), [
             'BOOLEAN',

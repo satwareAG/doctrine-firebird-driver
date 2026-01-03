@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -14,16 +15,21 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 
 use function assert;
+use function is_string;
 use function preg_match;
 use function version_compare;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
+ *
+ * This driver is version-aware and provides platform instances appropriate
+ * for the connected Firebird server version.
  */
-abstract class FirebirdDriver implements VersionAwarePlatformDriver
+abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
 {
     public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
@@ -31,11 +37,34 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
 
     public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
-     /**
-      * {@inheritDoc}
-      */
-    public function createDatabasePlatformForVersion($version)
+    /**
+     * Retry DML/DDL on lock conflicts (e.g. objects in use) by forcing a full commit
+     */
+    public const ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
+
+    /**
+     * Firebird-specific connection options.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $firebirdOptions = [];
+
+    /**
+     * Factory method for creating the appropriate platform instance for the given version.
+     *
+     * @param mixed $version The platform/server version string to evaluate.
+     *
+     * @throws Exception If the given version string could not be evaluated.
+     */
+    public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {
+        if (! is_string($version)) {
+            throw Exception::invalidPlatformVersionSpecified(
+                (string) $version,
+                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
+            );
+        }
+
         $versionParts = [];
         if (
             preg_match(
@@ -56,13 +85,17 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
         $buildVersion = $versionParts['build'] ?? 0;
         $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
 
-        return match (true) {
+        $platform = match (true) {
             version_compare($version, '6.0', '>=') => new Firebird5Platform(),
             version_compare($version, '5.0', '>=') => new Firebird5Platform(),
             version_compare($version, '4.0', '>=') => new Firebird4Platform(),
             version_compare($version, '3.0', '>=') => new Firebird3Platform(),
             default => new FirebirdPlatform(),
         };
+
+        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
+
+        return $platform;
     }
 
     /**
@@ -70,9 +103,12 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
      *
      * @return FirebirdPlatform
      */
-    public function getDatabasePlatform()
+    public function getDatabasePlatform(): FirebirdPlatform
     {
-        return new FirebirdPlatform();
+        $platform = new FirebirdPlatform();
+        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
+
+        return $platform;
     }
 
     public function getExceptionConverter(): ExceptionConverter
@@ -87,7 +123,7 @@ abstract class FirebirdDriver implements VersionAwarePlatformDriver
      *
      * @return FirebirdSchemaManager
      */
-    public function getSchemaManager(Connection $conn, AbstractPlatform $platform)
+    public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',

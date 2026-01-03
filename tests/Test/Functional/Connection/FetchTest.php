@@ -15,24 +15,6 @@ class FetchTest extends FunctionalTestCase
 {
     private string $query;
 
-    public function setUp(): void
-    {
-        $this->query = TestUtil::generateResultSetQuery([
-            [
-                'a' => 'foo',
-                'b' => 1,
-            ],
-            [
-                'a' => 'bar',
-                'b' => 2,
-            ],
-            [
-                'a' => 'baz',
-                'b' => 3,
-            ],
-        ], $this->connection->getDatabasePlatform());
-    }
-
     public function testFetchNumeric(): void
     {
         self::assertSame(['foo', 1], $this->connection->fetchNumeric($this->query));
@@ -192,5 +174,25 @@ class FetchTest extends FunctionalTestCase
             'bar',
             'baz',
         ], iterator_to_array($this->connection->iterateColumn($this->query)));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->query = TestUtil::generateResultSetQuery([
+            [
+                'a' => 'foo',
+                'b' => 1,
+            ],
+            [
+                'a' => 'bar',
+                'b' => 2,
+            ],
+            [
+                'a' => 'baz',
+                'b' => 3,
+            ],
+        ], $this->connection->getDatabasePlatform());
     }
 }

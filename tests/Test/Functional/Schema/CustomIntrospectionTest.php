@@ -13,6 +13,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use function array_map;
 use function implode;
 use function sprintf;
+use function uniqid;
 
 /**
  * Tests introspection of a custom column type with an underlying decimal column
@@ -20,12 +21,13 @@ use function sprintf;
  */
 class CustomIntrospectionTest extends FunctionalTestCase
 {
+    private string $table;
+
     public function testCustomColumnIntrospection(): void
     {
-        $tableName     = 'test_c_column_introspection';
         $schemaManager = $this->connection->createSchemaManager();
         $schema        = new Schema([], [], $schemaManager->createSchemaConfig());
-        $table         = $schema->createTable($tableName);
+        $table         = $schema->createTable($this->table);
 
         $table->addColumn('id', 'integer');
         $table->addColumn('quantity', 'decimal');
@@ -37,7 +39,8 @@ class CustomIntrospectionTest extends FunctionalTestCase
 
         $this->dropAndCreateTable($table);
 
-        $onlineTable = $schemaManager->introspectTable($tableName);
+        $onlineTable = $schemaManager->introspectTable($this->table);
+        // Online table will have the unique name, so we compare against the table we created (which also has unique name)
         $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
         $changedCols = array_map(
             static function (ColumnDiff $columnDiff): string|null {
@@ -57,5 +60,25 @@ class CustomIntrospectionTest extends FunctionalTestCase
     public static function setUpBeforeClass(): void
     {
         Type::addType('money', MoneyType::class);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'test_c_int_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        try {
+            $this->connection->createSchemaManager()->dropTable($this->table);
+        } catch (Throwable) {
+            // Ignore if table doesn't exist
+        }
+
+        parent::tearDown();
     }
 }

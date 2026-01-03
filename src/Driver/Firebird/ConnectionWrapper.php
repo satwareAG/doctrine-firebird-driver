@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 use function array_key_exists;
@@ -29,6 +30,12 @@ final class ConnectionWrapper extends Connection
 
     public function extractIdentityColumn(string $sql): string
     {
+        $platform = $this->getDatabasePlatform();
+
+        if (! $platform->supportsIdentityColumns() && ! $platform instanceof FirebirdPlatform) {
+            return $sql;
+        }
+
         static $identityColumnTables = [];
         $table                       = $this->getTableNameFromInsert($sql);
         if ($table !== null) {
@@ -39,12 +46,12 @@ final class ConnectionWrapper extends Connection
             if ($identityColumnTables[$table] === null) {
                 $this->addSequenceNameForTable($table);
             }
-        }
 
-        if (isset($identityColumnTables[$table]['id'])) {
-            $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
-            if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
-                $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
+            if (isset($identityColumnTables[$table]['id'])) {
+                $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
+                if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                    $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
+                }
             }
         }
 
@@ -82,7 +89,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
-    public function executeStatement($sql, array $params = [], array $types = [])
+    public function executeStatement($sql, array $params = [], array $types = []): int|string
     {
         $sql = $this->extractIdentityColumn($sql);
 
@@ -93,7 +100,7 @@ final class ConnectionWrapper extends Connection
      * @inheritDoc
      * @psalm-suppress DocblockTypeContradiction
      * */
-    public function lastInsertId($name = null)
+    public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
             throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
@@ -110,10 +117,7 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId($name);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDatabase()
+    public function getDatabase(): string|null
     {
         static $database = null;
         if ($database === null) {

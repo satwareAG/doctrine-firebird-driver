@@ -38,8 +38,12 @@ use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function array_filter;
 use function array_keys;
@@ -49,6 +53,7 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
+use function in_array;
 use function sprintf;
 use function str_starts_with;
 use function strcasecmp;
@@ -59,6 +64,75 @@ use function substr;
 abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 {
     protected AbstractSchemaManager $schemaManager;
+
+    /** @var list<string> List of tables created by schema tests that need cleanup */
+    private static array $schemaTestTables = [
+        // Reserved keyword tables from createReservedKeywordTables()
+        'user',
+        'group',
+        // Common test tables that may be created by various tests
+        'test_table',
+        'list_tables_test',
+        'test_table_for_view',
+        'view_test_table',
+        'test_view',
+        'filter_test_1',
+        'filter_test_2',
+        'old_name',
+        'new_name',
+        'list_table_columns',
+        'test_list_table_fixed_string',
+        'list_table_indexes_test',
+        'test_create_index',
+        'test_unique_constraint',
+        'test_foreign',
+        'test_create_fk',
+        'test_create_fk1',
+        'test_create_fk2',
+        'test_create_fk3',
+        'test_create_fk4',
+        'alter_table',
+        'alter_table_foreign',
+        'testschema.my_table_in_namespace',
+        'my_table_not_in_namespace',
+        'doctrine_test_view',
+        'test_autoincrement',
+        'test_not_autoincrement',
+        'test_fk_base',
+        'test_fk_rename',
+        'test_rename_index_primary',
+        'test_rename_index_foreign',
+        'column_comment_test',
+        'column_comment_test2',
+        'column_dateinterval_comment',
+        'column_def_change_type',
+        'test_blob_table',
+        'col_def_lifecycle',
+        'test_binary_table',
+        'non_existing',
+        'primary_table',
+        'foreign_table',
+        'my_table',
+        'alter_column_comment_test',
+        'test_list_index_impl_primary',
+        'test_list_index_impl_foreign',
+        'json_test',
+        'sequence_auto_detect_test',
+        'test_pk_auto_increment',
+        'test_partial_column_index',
+        'table_with_comment',
+        'test_table_local',
+        'test_table_foreign',
+        'child',
+        'parent',
+        'test_switch_pk_order',
+        'drop_column_with_default',
+        'explicit_db_platform_test',
+        'ddc1372_foobar',
+        't1',
+        't2',
+        'retry_lock_test',
+    ];
 
     public function testCreateSequence(): void
     {
@@ -130,7 +204,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertContains('test_create_database', $databases);
     }
 
-    /** @dataProvider listSchemaNamesMethodProvider */
+    #[DataProvider('listSchemaNamesMethodProvider')]
     public function testListSchemaNames(callable $method): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -180,7 +254,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertNull($view);
     }
 
-    /** @dataProvider tableFilterProvider */
+    #[DataProvider('tableFilterProvider')]
     public function testListTablesWithFilter(string $prefix, int $expectedCount): void
     {
         $this->createTestTable('filter_test_1');
@@ -378,11 +452,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $schemaManager->createTable($table);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testDiffListTableColumns(callable $comparatorFactory): void
     {
         if ($this->connection->getDatabasePlatform() instanceof OraclePlatform) {
@@ -777,11 +848,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($inferredTable->getColumn('id')->getAutoincrement());
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider \Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testUpdateSchemaWithForeignKeyRenaming(callable $comparatorFactory): void
     {
         $table = new Table('test_fk_base');
@@ -823,11 +891,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame(['rename_fk_id'], array_map('strtolower', current($foreignKeys)->getColumns()));
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider \Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testRenameIndexUsedInForeignKeyConstraint(callable $comparatorFactory): void
     {
         $primaryTable = new Table('test_rename_index_primary');
@@ -902,7 +967,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEmpty($columns['id']->getComment());
     }
 
-    /** @psalm-suppress DeprecatedConstant */
+    /**
+     * Tests that Object and Array types automatically append comments.
+     *
+     * Types::OBJECT and Types::ARRAY are deprecated in DBAL 3.x.
+     * This test ensures backward compatibility for users still using these types.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testAutomaticallyAppendCommentOnMarkedColumns(): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -1023,11 +1096,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame(['id', 'other_id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider \Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testColumnDefaultLifecycle(callable $comparatorFactory): void
     {
         $table = new Table('col_def_lifecycle');
@@ -1188,11 +1258,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertStringNotContainsString('unexpected_column_comment', $sql[0]);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider getAlterColumnComment
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProvider('getAlterColumnComment')]
     public function testAlterColumnComment(
         callable $comparatorFactory,
         string|null $comment1,
@@ -1266,11 +1333,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertArrayHasKey('idx_3d6c147fdc58d6c', $indexes);
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider \Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparatorShouldNotAddCommentToJsonTypeSinceItIsTheDefaultNow(callable $comparatorFactory): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -1291,7 +1355,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($tableDiff);
     }
 
-    /** @dataProvider commentsProvider */
+    #[DataProvider('commentsProvider')]
     public function testExtractDoctrineTypeFromComment(string $comment, string $expected, string $currentType): void
     {
         $result = $this->schemaManager->extractDoctrineTypeFromComment($comment, $currentType);
@@ -1351,11 +1415,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame($sequence2InitialValue, $actualSequence2->getInitialValue());
     }
 
-    /**
-     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
-     *
-     * @dataProvider \Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTestUtils::comparatorProvider
-     */
+    /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
+    #[DataProviderExternal(ComparatorTestUtils::class, 'comparatorProvider')]
     public function testComparisonWithAutoDetectedSequenceDefinition(callable $comparatorFactory): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -1668,6 +1729,17 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         }
 
         $this->schemaManager = $this->connection->createSchemaManager();
+
+        // NOTE: Cleanup moved to tearDown() only to follow Doctrine DBAL pattern
+        // Each test is responsible for creating what it needs; tearDown cleans up
+    }
+
+    protected function tearDown(): void
+    {
+        // Clean up schema test tables before calling parent tearDown
+        $this->cleanupSchemaTestTables();
+
+        parent::tearDown();
     }
 
     protected function getCreateExampleViewSql(): void
@@ -1754,6 +1826,141 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         }
 
         return null;
+    }
+
+    /**
+     * Cleanup tables commonly created by schema tests.
+     * This ensures no leftover locks from previous test runs.
+     *
+     * OPTIMIZATION: Query existing tables/views ONCE, then filter to avoid
+     * expensive exception handling for non-existent objects (~60 potential drops).
+     */
+    private function cleanupSchemaTestTables(): void
+    {
+        // First ensure any active transaction is rolled back to release locks
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && $fbirdConnection->isConnectionValid()) {
+            try {
+                @$fbirdConnection->rollBack();
+            } catch (Throwable) {
+                // Ignore rollback errors
+            }
+        }
+
+        // Also try to rollback any DBAL-level transaction
+        try {
+            while ($this->connection->isTransactionActive()) {
+                $this->connection->rollBack();
+            }
+        } catch (Throwable) {
+            // Ignore transaction errors
+        }
+
+        $platform = $this->connection->getDatabasePlatform();
+
+        // OPTIMIZATION: Query existing tables/views once to avoid exception overhead
+        try {
+            $existingTables = array_map('strtolower', $this->schemaManager->listTableNames());
+            $existingViews  = array_map(
+                static fn ($view): string => strtolower($view->getName()),
+                $this->schemaManager->listViews(),
+            );
+        } catch (Throwable) {
+            // If we can't list tables/views, fall back to empty arrays
+            // This means we won't attempt any drops (safe default)
+            $existingTables = [];
+            $existingViews  = [];
+        }
+
+        // Drop tables in dependency order (foreign key constraints)
+        // Tables with foreign keys should be dropped first
+        $orderedTables = [
+            // Foreign key dependent tables first
+            'user',
+            'child',
+            'test_table_foreign',
+            'test_create_fk',
+            'test_create_fk1',
+            'test_fk_rename',
+            'test_rename_index_foreign',
+            'test_list_index_impl_foreign',
+            'foreign_table',
+            // Then referenced tables
+            'group',
+            'parent',
+            'test_table_local',
+            'test_foreign',
+            'test_create_fk2',
+            'test_create_fk3',
+            'test_create_fk4',
+            'test_fk_base',
+            'test_rename_index_primary',
+            'test_list_index_impl_primary',
+            'primary_table',
+            'alter_table_foreign',
+            'alter_table',
+        ];
+
+        // Add remaining tables from static list (order doesn't matter for these)
+        foreach (self::$schemaTestTables as $table) {
+            if (in_array($table, $orderedTables, true)) {
+                continue;
+            }
+
+            $orderedTables[] = $table;
+        }
+
+        // Drop views first (they depend on tables) - only if they exist
+        $viewsToDrop = ['doctrine_test_view', 'test_view'];
+        foreach ($viewsToDrop as $viewName) {
+            if (! in_array(strtolower($viewName), $existingViews, true)) {
+                continue; // Skip non-existent views
+            }
+
+            try {
+                $this->schemaManager->dropView($viewName);
+                $fbirdConnection?->commit();
+            } catch (Throwable) {
+                // View can't be dropped, ignore
+                try {
+                    @$fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+            }
+        }
+
+        // Drop tables - only if they exist
+        foreach ($orderedTables as $tableName) {
+            if (! in_array(strtolower($tableName), $existingTables, true)) {
+                continue; // Skip non-existent tables
+            }
+
+            try {
+                // Quote reserved keyword tables
+                $quotedName = in_array(strtolower($tableName), ['user', 'group'], true)
+                    ? $platform->quoteIdentifier($tableName)
+                    : $tableName;
+
+                $this->dropTableIfExists($quotedName);
+            } catch (Throwable) {
+                // Ignore cleanup errors - table may be locked
+                // Try to rollback to clear any failed transaction state
+                try {
+                    @$fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+            }
+        }
+
+        // Final commit/rollback to ensure clean transaction state
+        try {
+            @$fbirdConnection?->commit();
+        } catch (Throwable) {
+            try {
+                @$fbirdConnection?->rollBack();
+            } catch (Throwable) {
+            }
+        }
     }
 
     /** @param AbstractAsset[] $items */

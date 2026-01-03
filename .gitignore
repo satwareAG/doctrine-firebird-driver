@@ -4,7 +4,6 @@
 /var/
 /vendor/
 /tests/databases/
-/composer.lock
 .phpcs-cache
 
 /tests/.phpunit.result.cache
@@ -14,3 +13,6 @@ vendor-bin/**/vendor
 vendor-bin/**/composer.lock
 .php-cs-fixer.cache
 /tests/var/
+/tests/phpunit.local.xml
+/tests/.phpunit.cache
+/composer.lock

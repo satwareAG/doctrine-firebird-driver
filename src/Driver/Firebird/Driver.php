@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 use SensitiveParameter;
+use Throwable;
 
-use function fbird_close;
 use function fbird_connect;
 use function fbird_errcode;
 use function fbird_errmsg;
@@ -20,7 +22,7 @@ use function fbird_service_detach;
 use function is_resource;
 use function stristr;
 
-use const IBASE_SVC_SERVER_VERSION;
+use const FBIRD_SVC_SERVER_VERSION;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
@@ -34,10 +36,17 @@ final class Driver extends FirebirdDriver
      *
      * @return Connection
      */
+    #[Override]
     public function connect(
         #[SensitiveParameter]
         array $params,
     ): Connection {
+        // Store Firebird-specific options for platform configuration
+        $this->firebirdOptions = $params['firebird'] ?? [];
+
+        // Validate configuration early (fail-fast)
+        new FirebirdPlatformConfiguration($this->firebirdOptions);
+
         $host       = $params['host'] ?? 'localhost';
         $username   = $params['user'] ?? 'SYSDBA';
         $password   = $params['password'] ?? 'masterkey';
@@ -48,29 +57,38 @@ final class Driver extends FirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        $firebirdService = @fbird_service_attach($host, $username, $password);
-        if (! is_resource($firebirdService)) {
-            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+        try {
+            $firebirdService = @fbird_service_attach($host, $username, $password);
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
 
-        $serverVersion = @fbird_server_info($firebirdService, IBASE_SVC_SERVER_VERSION);
-        if (! @fbird_service_detach($firebirdService) || ! @fbird_close($firebirdService)) {
-            throw Exception::fromErrorInfo((string) @fbird_errmsg(), (int) @fbird_errcode());
+        if (! is_resource($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
+        if (! fbird_service_detach($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 
         unset($firebirdService);
 
-        if ($persistent) {
-            $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
-        } else {
-            $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+        try {
+            if ($persistent) {
+                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            } else {
+                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+            }
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
 
         $notFoundException = null;
 
         if ($connection === false) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
             if ($code !== -902 || stristr($msg, 'no such file or directory') === false) {
                 throw Exception::fromErrorInfo($msg, $code);
             }
@@ -82,6 +100,7 @@ final class Driver extends FirebirdDriver
         return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
     }
 
+    #[Override]
     public function getExceptionConverter(): ExceptionConverter
     {
         return new ExceptionConverter();

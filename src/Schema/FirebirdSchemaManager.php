@@ -19,9 +19,11 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Throwable;
 
 use function array_change_key_case;
 use function array_merge;
+use function dirname;
 use function fbird_close;
 use function fbird_connect;
 use function fbird_drop_db;
@@ -39,7 +41,7 @@ use function trim;
 
 use const CASE_LOWER;
 use const CASE_UPPER;
-use const IBASE_CREATE;
+use const FBIRD_CREATE;
 
 /**
  * Firebird Schema Manager.
@@ -48,18 +50,29 @@ use const IBASE_CREATE;
  */
 class FirebirdSchemaManager extends AbstractSchemaManager
 {
-    public const META_FIELD_TYPE_SMALLINT  = 7; // Integer Type
-    public const META_FIELD_TYPE_INTEGER   = 8; // Integer Type
-    public const META_FIELD_TYPE_FLOAT     = 10;
-    public const META_FIELD_TYPE_DATE      = 12;
-    public const META_FIELD_TYPE_TIME      = 13;
-    public const META_FIELD_TYPE_CHAR      = 14;
-    public const META_FIELD_TYPE_BIGINT    = 16; // 64 Bit Integer
-    public const META_FIELD_TYPE_DOUBLE    = 27;
+    public const META_FIELD_TYPE_SMALLINT = 7;
+
+    public const META_FIELD_TYPE_INTEGER = 8;
+
+    public const META_FIELD_TYPE_FLOAT = 10;
+
+    public const META_FIELD_TYPE_DATE = 12;
+
+    public const META_FIELD_TYPE_TIME = 13;
+
+    public const META_FIELD_TYPE_CHAR = 14;
+
+    public const META_FIELD_TYPE_BIGINT = 16;
+
+    public const META_FIELD_TYPE_DOUBLE = 27;
+
     public const META_FIELD_TYPE_TIMESTAMP = 35;
-    public const META_FIELD_TYPE_VARCHAR   = 37;
-    public const META_FIELD_TYPE_CSTRING   = 40; // XXX Does not exist in Firebird 2.5
-    public const META_FIELD_TYPE_BLOB      = 261;
+
+    public const META_FIELD_TYPE_VARCHAR = 37;
+
+    public const META_FIELD_TYPE_CSTRING = 40;
+
+    public const META_FIELD_TYPE_BLOB = 261;
 
     /**
      * @throws Exception
@@ -74,10 +87,16 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+        // Suppress warning since we handle the error explicitly below
+        try {
+            $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
+
         if (! is_resource($connection)) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
             if ($code === -902) {
                 throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
             }
@@ -86,14 +105,19 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         $this->_conn->close();
-        $result = @fbird_drop_db(
-            $connection,
-        );
-        if (! $result) {
-            throw new Exception((string) @fbird_errmsg(), null, (int) @fbird_errcode());
+        try {
+            $result = fbird_drop_db(
+                $connection,
+            );
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
 
-        @fbird_close($connection);
+        if (! $result) {
+            throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
+        }
+
+        fbird_close($connection);
     }
 
     /**
@@ -109,35 +133,51 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      */
     public function createDatabase($database): void
     {
-        $params           = $this->_conn->getParams();
+        $params  = $this->_conn->getParams();
+        $charset = $params['charset'] ?? 'UTF8';
+        $user    = $params['user'] ?? '';
+
+        // If database name is not an absolute path, resolve it relative to the
+        // original database directory to ensure it can be created by Firebird.
+        $originalDbname = $params['dbname'] ?? '';
+        if ($database !== '' && $database[0] !== '/' && ! str_contains($database, ':')) {
+            // Extract directory from original dbname
+            $dir = dirname($originalDbname);
+            if ($dir !== '' && $dir !== '.') {
+                $database = $dir . '/' . $database;
+            }
+        }
+
         $params['dbname'] = $database;
-        $charset          = $params['charset'] ?? 'UTF8';
-        $user             = $params['user'] ?? '';
         $password         = $params['password'] ?? '';
         $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
         /** @psalm-suppress InvalidArgument */
-        $result = @fbird_query(
-            IBASE_CREATE,
-            sprintf(
-                "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
-                $dbname,
-                (int) $pageSize,
-                $user,
-                $password,
-                $charset,
-            ),
-        );
+        try {
+            $result = fbird_query(
+                FBIRD_CREATE,
+                sprintf(
+                    "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
+                    $dbname,
+                    (int) $pageSize,
+                    $user,
+                    $password,
+                    $charset,
+                ),
+            );
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
+        }
 
         if (! is_resource($result)) {
-            $code = (int) @fbird_errcode();
-            $msg  = (string) @fbird_errmsg();
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
 
             throw new Exception($msg, null, $code);
         }
 
-        @fbird_close($result);
+        fbird_close($result);
     }
 
     /**
@@ -157,11 +197,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return $this->doListTableDetails($name);
     }
 
-    /**
-     * @return array<int, string>
-     *
-     * @psalm-suppress
-     */
+    /** @return array<int, string> */
     public static function getFieldTypeIdToColumnTypeMap(): array
     {
         return [

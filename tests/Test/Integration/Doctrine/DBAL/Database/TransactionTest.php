@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database;
 
 use Doctrine\DBAL\ConnectionException;
-use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\ModifyingIntegrationTestCase;
 
 use function array_keys;
 use function implode;
@@ -13,17 +13,17 @@ use function md5;
 use function strtoupper;
 use function substr;
 
-class TransactionTest extends AbstractIntegrationTestCase
+class TransactionTest extends ModifyingIntegrationTestCase
 {
 
     public function testWillAutoCommitBottomLevelTransaction(): void
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
-        $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->close();
-        $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
+        $result = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id = 42");
         $value  = $result->fetchOne();
         self::assertSame(42, $value);
     }
@@ -32,11 +32,11 @@ class TransactionTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
-        $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
+        $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->commit();
-        $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
+        $result = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id = 42");
         $value  = $result->fetchOne();
         self::assertSame(42, $value);
         try {
@@ -50,15 +50,15 @@ class TransactionTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
-        $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->beginTransaction();
-        $connection->exec("UPDATE {$tableName} SET id = 43 WHERE id = 42");
+        $connection->executeStatement("UPDATE {$tableName} SET id = 43 WHERE id = 42");
         $connection->commit();
-        $resultA = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
+        $resultA = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id = 42");
         $valueA  = $resultA->fetchOne();
         self::assertFalse($valueA);
-        $resultB = $connection->query("SELECT id FROM {$tableName} WHERE id = 43");
+        $resultB = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id = 43");
         $valueB  = $resultB->fetchOne();
         self::assertSame(43, $valueB);
         try {
@@ -78,24 +78,24 @@ class TransactionTest extends AbstractIntegrationTestCase
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
-            $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ($id)");
+            $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
             $count  = $result->fetchOne();
             self::assertSame($count, $connection->getTransactionNestingLevel(), 'Count vs expected transaction level');
         }
 
         $connection->commit();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
         self::assertSame(3, $count, 'Count, 3rd');
         $connection->commit();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
         self::assertSame(3, $count, 'Count, 2nd');
         $connection->commit();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
         self::assertSame(3, $count, 'Count, 1st');
@@ -116,33 +116,33 @@ class TransactionTest extends AbstractIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
         }
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAllAssociative());
 
         $expectedTransactionLevel = 0;
         foreach ($map as $idBefore => $idAfter) {
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
+            $connection->executeStatement("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
         }
 
-        $stmt = $connection->query("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', array_keys($map)) . ')');
-        self::assertSame([], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', array_keys($map)) . ')');
+        self::assertSame([], $stmt->fetchAllAssociative());
 
         $expected = [['ID' => 52], ['ID' => 53], ['ID' => 54]]; // We are in inner transaction, so we see them all
 
-        $stmt = $connection->query("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', $map) . ')');
-        self::assertSame($expected, $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', $map) . ')');
+        self::assertSame($expected, $stmt->fetchAllAssociative());
         foreach (array_keys($map) as $idBefore) {
             $connection->commit();
-            $stmt = $connection->query("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', $map) . ')');
-            self::assertSame($expected, $stmt->fetchAll());
+            $stmt = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id IN (" . implode(',', $map) . ')');
+            self::assertSame($expected, $stmt->fetchAllAssociative());
         }
 
         try {
@@ -156,11 +156,11 @@ class TransactionTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
-        $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
+        $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->rollback();
-        $result = $connection->query("SELECT id FROM {$tableName} WHERE id = 42");
+        $result = $connection->executeQuery("SELECT id FROM {$tableName} WHERE id = 42");
         $value  = $result->fetchOne();
         self::assertFalse($value);
         try {
@@ -174,20 +174,20 @@ class TransactionTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
-        $connection->exec("INSERT INTO {$tableName} (id) VALUES (42)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 42]], $stmt->fetchAllAssociative());
 
         $connection->beginTransaction();
-        $connection->exec("UPDATE {$tableName} SET id = 52 WHERE id = 42");
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52]], $stmt->fetchAll());
+        $connection->executeStatement("UPDATE {$tableName} SET id = 52 WHERE id = 42");
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52]], $stmt->fetchAllAssociative());
         $connection->rollback();
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 42]], $stmt->fetchAllAssociative());
 
         try {
             $connection->rollback();
@@ -206,24 +206,24 @@ class TransactionTest extends AbstractIntegrationTestCase
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
-            $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ($id)");
+            $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
             $count  = $result->fetchOne();
             self::assertSame($count, $connection->getTransactionNestingLevel(), 'Count vs expected transaction level');
         }
 
         $connection->rollback();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
         self::assertSame(2, $count, 'Count, 3rd');
         $connection->rollback();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
         self::assertSame(1, $count, 'Count, 2nd');
         $connection->rollback();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
         self::assertSame(0, $count, 'Count, 1st');
@@ -291,29 +291,29 @@ class TransactionTest extends AbstractIntegrationTestCase
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ($id)");
-            $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ($id)");
+            $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
             $count  = $result->fetchOne();
             self::assertSame($count, $connection->getTransactionNestingLevel(), 'Count vs expected transaction level');
         }
 
         $connection->rollback();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(3, $connection->getTransactionNestingLevel(), 'Transaction level, 4th');
         self::assertSame(3, $count, 'Count, 4th');
         $connection->commit();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
         self::assertSame(3, $count, 'Count, 3rd');
         $connection->rollback();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
         self::assertSame(1, $count, 'Count, 2nd');
         $connection->commit();
-        $result = $connection->query("SELECT COUNT(id) FROM {$tableName}");
+        $result = $connection->executeQuery("SELECT COUNT(id) FROM {$tableName}");
         $count  = $result->fetchOne();
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
         self::assertSame(1, $count, 'Count, 1st');
@@ -341,43 +341,43 @@ class TransactionTest extends AbstractIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
         }
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAllAssociative());
 
         $expectedTransactionLevel = 0;
         foreach ($map as $idBefore => $idAfter) {
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
+            $connection->executeStatement("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
         }
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 55]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 55]], $stmt->fetchAllAssociative());
 
         $connection->rollback();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 45]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 45]], $stmt->fetchAllAssociative());
         self::assertSame(3, $connection->getTransactionNestingLevel(), 'Transaction level, 4th');
 
         $connection->commit();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 45]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 54], ['ID' => 45]], $stmt->fetchAllAssociative());
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
 
         $connection->rollback();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAllAssociative());
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
 
         $connection->commit();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAll());
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
+        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44], ['ID' => 45]], $stmt->fetchAllAssociative());
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
 
         try {

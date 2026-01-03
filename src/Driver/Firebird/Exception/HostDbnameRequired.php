@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 
-use Doctrine\DBAL\Driver\AbstractException;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 
 /**
+ * Exception thrown when host and dbname parameters are missing.
+ *
  * @internal
  *
  * @psalm-immutable
  */
-final class HostDbnameRequired extends AbstractException
+final class HostDbnameRequired extends Exception
 {
     public static function invalidPort(): self
     {

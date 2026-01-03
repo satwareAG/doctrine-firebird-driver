@@ -25,6 +25,8 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function implode;
@@ -71,7 +73,7 @@ abstract class PlatformTestCase extends TestCase
         self::assertSame(str_repeat($c, 4), $this->platform->quoteSingleIdentifier($c));
     }
 
-    /** @dataProvider getReturnsForeignKeyReferentialActionSQL */
+    #[DataProvider('getReturnsForeignKeyReferentialActionSQL')]
     public function testReturnsForeignKeyReferentialActionSQL(string $action, string $expectedSQL): void
     {
         self::assertSame($expectedSQL, $this->platform->getForeignKeyReferentialActionSQL($action));
@@ -163,7 +165,15 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
-    /** @psalm-suppress DeprecatedConstant */
+    /**
+     * Tests that commented doctrine mapping types are registered implicitly.
+     *
+     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
+     * compatibility for users still using this type.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testRegistersCommentedDoctrineMappingTypeImplicitly(): void
     {
         $type = Type::getType(Types::ARRAY);
@@ -172,26 +182,21 @@ abstract class PlatformTestCase extends TestCase
         self::assertTrue($this->platform->isCommentedDoctrineType($type));
     }
 
-    /** @dataProvider getIsCommentedDoctrineType */
-    public function testIsCommentedDoctrineType(Type $type, bool $commented): void
+    #[DataProvider('getIsCommentedDoctrineType')]
+    public function testIsCommentedDoctrineType(string $typeName): void
     {
+        $type      = Type::getType($typeName);
+        $commented = $type->requiresSQLCommentHint($this->platform);
         self::assertSame($commented, $this->platform->isCommentedDoctrineType($type));
     }
 
     /** @return mixed[] */
-    public function getIsCommentedDoctrineType(): iterable
+    public static function getIsCommentedDoctrineType(): iterable
     {
-        $this->setUp();
-
         $data = [];
 
         foreach (Type::getTypesMap() as $typeName => $className) {
-            $type = Type::getType($typeName);
-
-            $data[$typeName] = [
-                $type,
-                $type->requiresSQLCommentHint($this->platform),
-            ];
+            $data[$typeName] = [$typeName];
         }
 
         return $data;
@@ -487,11 +492,20 @@ abstract class PlatformTestCase extends TestCase
         self::assertEquals($this->getAlterTableColumnCommentsSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
 
+    /**
+     * Tests column type comments are generated for special types.
+     *
+     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
+     * compatibility for users still using this type.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testCreateTableColumnTypeComments(): void
     {
         $table = new Table('test');
         $table->addColumn('id', Types::INTEGER);
-        /** @psalm-suppress DeprecatedConstant */
+        // Types::ARRAY is deprecated, but we test it for backward compatibility
         $table->addColumn('data', Types::ARRAY);
         $table->setPrimaryKey(['id']);
 
@@ -1092,7 +1106,7 @@ abstract class PlatformTestCase extends TestCase
         ]);
     }
 
-    /** @dataProvider getGeneratesInlineColumnCommentSQL */
+    #[DataProvider('getGeneratesInlineColumnCommentSQL')]
     public function testGeneratesInlineColumnCommentSQL(string $comment, string $expectedSql): void
     {
         if (! $this->platform->supportsInlineColumnComments()) {
@@ -1259,11 +1273,8 @@ abstract class PlatformTestCase extends TestCase
     /** @return string[] */
     abstract protected function getGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): array;
 
-    /**
-     * @param mixed[] $column
-     *
-     * @dataProvider getGeneratesDecimalTypeDeclarationSQL
-     */
+    /** @param mixed[] $column */
+    #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, string $expectedSql): void
     {
         self::assertSame($expectedSql, $this->platform->getDecimalTypeDeclarationSQL($column));
@@ -1280,11 +1291,8 @@ abstract class PlatformTestCase extends TestCase
         yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
-    /**
-     * @param mixed[] $column
-     *
-     * @dataProvider getGeneratesFloatDeclarationSQL
-     */
+    /** @param mixed[] $column */
+    #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, string $expectedSql): void
     {
         self::assertSame($expectedSql, $this->platform->getFloatDeclarationSQL($column));
@@ -1323,11 +1331,8 @@ abstract class PlatformTestCase extends TestCase
         return 'SELECT * FROM user LIMIT 1 OFFSET 2';
     }
 
-    /**
-     * @param array<string, mixed> $column
-     *
-     * @dataProvider asciiStringSqlDeclarationDataProvider
-     */
+    /** @param array<string, mixed> $column */
+    #[DataProvider('asciiStringSqlDeclarationDataProvider')]
     public function testAsciiSQLDeclaration(string $expectedSql, array $column): void
     {
         $declarationSql = $this->platform->getAsciiStringTypeDeclarationSQL($column);

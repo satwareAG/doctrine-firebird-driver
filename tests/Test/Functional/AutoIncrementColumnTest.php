@@ -29,10 +29,10 @@ class AutoIncrementColumnTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        if (! $this->shouldDisableIdentityInsert) {
-            return;
+        if ($this->shouldDisableIdentityInsert) {
+            $this->connection->executeStatement('SET IDENTITY_INSERT auto_increment_table OFF');
         }
 
-        $this->connection->executeStatement('SET IDENTITY_INSERT auto_increment_table OFF');
+        $this->markConnectionNotReusable();
     }
 }

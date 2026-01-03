@@ -5,6 +5,7 @@
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
     findUnusedBaselineEntry="true"
     findUnusedCode="true"
+    errorBaseline="psalm-baseline.xml"
 >
     <projectFiles>
         <directory name="src" />
@@ -15,6 +16,8 @@
     </projectFiles>
     <stubs>
         <file name="vendor/jetbrains/phpstorm-stubs/interbase/interbase.php" />
+        <file name="vendor/satwareag/php-firebird-stubs/firebird-stubs.php" />
+        <file name="vendor/satwareag/php-firebird-stubs/firebird-classes.php" />
     </stubs>
     <issueHandlers>
         <InvalidReturnType>
@@ -22,21 +25,6 @@
                 <file name="src/Driver/Firebird/Connection.php"/>
             </errorLevel>
         </InvalidReturnType>
-        <InvalidReturnStatement>
-            <errorLevel type="suppress">
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </InvalidReturnStatement>
-        <TooManyArguments>
-            <errorLevel type="suppress">
-                <referencedFunction name="fbird_prepare"/>
-            </errorLevel>
-        </TooManyArguments>
-        <InvalidArgument>
-            <errorLevel type="suppress">
-                <referencedFunction name="fbird_prepare"/>
-            </errorLevel>
-        </InvalidArgument>
         <DeprecatedMethod>
             <errorLevel type="suppress">
                 <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::getIdentitySequenceName"/>
@@ -90,12 +78,9 @@
                         name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::assertValidIdentifier"/>
                 <referencedMethod
                         name="Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap"/>
+                <referencedMethod
+                        name="Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform::getTimeTzFormatString"/>
             </errorLevel>
         </PossiblyUnusedMethod>
-        <PossiblyUnusedReturnValue>
-            <errorLevel type="suppress">
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </PossiblyUnusedReturnValue>
     </issueHandlers>
 </psalm>

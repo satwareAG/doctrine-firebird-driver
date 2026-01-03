@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    PHPUnit configuration for running deprecated feature tests
+    
+    These tests verify that deprecated APIs still function correctly for backward compatibility.
+    Deprecation warnings are expected and allowed in this suite.
+    
+    Run with: vendor/bin/phpunit -c tests/phpunit-deprecated.xml
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="phpunit.bootstrap.php"
+         cacheDirectory="var/cache/phpunit-deprecated"
+         executionOrder="depends,defects"
+         colors="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         failOnDeprecation="false"
+         failOnRisky="true"
+         failOnWarning="true">
+
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <ini name="display_errors" value="1"/>
+        <env name="FIREBIRD_HOST" value="fb3-server"/>
+        <env name="FIREBIRD_DATABASE" value="employee"/>
+        <env name="FIREBIRD_USER" value="phpunit"/>
+        <env name="FIREBIRD_PASSWORD" value="phpunit"/>
+    </php>
+
+    <testsuites>
+        <testsuite name="Deprecated Features">
+            <directory>Test</directory>
+        </testsuite>
+    </testsuites>
+
+    <groups>
+        <include>
+            <group>deprecated</group>
+        </include>
+    </groups>
+
+    <source>
+        <include>
+            <directory suffix=".php">../src</directory>
+        </include>
+    </source>
+</phpunit>

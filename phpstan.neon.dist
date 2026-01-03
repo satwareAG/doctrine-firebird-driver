@@ -1,8 +1,14 @@
 parameters:
     level: 8
-    phpVersion: 80300
+    phpVersion: 80100
     paths:
         - src
+    # NOTE: SIGSEGV issue with php-firebird extension was resolved in v7.0.0-rc.37
+    # See: https://github.com/satwareAG/php-firebird/issues/55
+    # See: docs/issues/2025-12-23-phpstan-parallel-segfault-investigation.md
+    stubFiles:
+        - vendor/satwareag/php-firebird-stubs/firebird-stubs.php
+        - vendor/satwareag/php-firebird-stubs/firebird-classes.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false
@@ -24,7 +30,17 @@ parameters:
                 - src/Platforms/*Platform.php
                 - src/Schema/*SchemaManager.php
 
+        -
+            message: '#Used function fbird_set_exception_mode not found#'
+            paths:
+                - src/Driver/Firebird/Connection.php
+        -
+            message: '#Used constant FBIRD_EXCEPTION_MODE_THROW not found#'
+            paths:
+                - src/Driver/Firebird/Connection.php
+
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
     - phpstan-baseline.neon

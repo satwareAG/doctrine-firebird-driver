@@ -72,9 +72,15 @@ class FirebirdPlatform extends AbstractPlatform
      */
     private bool $useSmallIntBoolean = true;
 
+    /**
+     * Platform configuration for customizable parameters
+     */
+    private FirebirdPlatformConfiguration $configuration;
+
     public function __construct()
     {
         Type::overrideType('boolean', FirebirdBooleanType::class);
+        $this->configuration = new FirebirdPlatformConfiguration([]);
     }
 
     public function setCharTrue(string $char): FirebirdPlatform
@@ -96,6 +102,42 @@ class FirebirdPlatform extends AbstractPlatform
         $this->useSmallIntBoolean = $useSmallIntBoolean;
 
         return $this;
+    }
+
+    /**
+     * Sets the platform configuration
+     *
+     * @param FirebirdPlatformConfiguration $configuration Platform configuration
+     *
+     * @return $this
+     */
+    public function setConfiguration(FirebirdPlatformConfiguration $configuration): self
+    {
+        $this->configuration = $configuration;
+
+        return $this;
+    }
+
+    /**
+     * Gets the platform configuration
+     *
+     * @psalm-suppress PossiblyUnusedMethod Used in tests and public API
+     */
+    public function getConfiguration(): FirebirdPlatformConfiguration
+    {
+        return $this->configuration;
+    }
+
+    /**
+     * Returns the maximum VARCHAR length for LIKE column CAST operations
+     *
+     * This value can be configured via the platform configuration.
+     * Default: 255 (backward compatible)
+     * Range: 1-8191 (Firebird VARCHAR limit for UTF-8)
+     */
+    public function getLikeCastLength(): int
+    {
+        return $this->configuration->getLikeCastLength();
     }
 
     /**
@@ -148,10 +190,7 @@ class FirebirdPlatform extends AbstractPlatform
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getRegexpExpression()
+    public function getRegexpExpression(): string
     {
         return 'SIMILAR TO';
     }
@@ -159,7 +198,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getLocateExpression($str, $substr, $startPos = false)
+    public function getLocateExpression($str, $substr, $startPos = false): string
     {
         if ($startPos === false) {
             return 'POSITION (' . $substr . ' in ' . $str . ')';
@@ -171,7 +210,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateAddDaysExpression($date, $days)
+    public function getDateAddDaysExpression($date, $days): string
     {
         return 'DATEADD(' . $days . ' DAY TO ' . $date . ')';
     }
@@ -179,7 +218,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBitAndComparisonExpression($value1, $value2)
+    public function getBitAndComparisonExpression($value1, $value2): string
     {
         return 'BIN_AND (' . $value1 . ', ' . $value2 . ')';
     }
@@ -187,7 +226,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBitOrComparisonExpression($value1, $value2)
+    public function getBitOrComparisonExpression($value1, $value2): string
     {
         return 'BIN_OR (' . $value1 . ', ' . $value2 . ')';
     }
@@ -195,7 +234,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateSubDaysExpression($date, $days)
+    public function getDateSubDaysExpression($date, $days): string
     {
         return 'DATEADD(-' . $days . ' DAY TO ' . $date . ')';
     }
@@ -203,7 +242,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateAddMonthExpression($date, $months)
+    public function getDateAddMonthExpression($date, $months): string
     {
         return 'DATEADD(' . $months . ' MONTH TO ' . $date . ')';
     }
@@ -211,7 +250,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateSubMonthExpression($date, $months)
+    public function getDateSubMonthExpression($date, $months): string
     {
         return 'DATEADD(-' . $months . ' MONTH TO ' . $date . ')';
     }
@@ -219,29 +258,22 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateDiffExpression($date1, $date2)
+    public function getDateDiffExpression($date1, $date2): string
     {
         return 'DATEDIFF(day, ' . $date2 . ',' . $date1 . ')';
     }
 
-    /** @inheritDoc */
-    public function supportsForeignKeyConstraints()
+    public function supportsForeignKeyConstraints(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsSequences()
+    public function supportsSequences(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function usesSequenceEmulatedIdentityColumns()
+    public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return true;
     }
@@ -254,55 +286,37 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->generateIdentifier([$tableName], 'D2IS', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    public function getIdentitySequenceTriggerName(mixed $tableName): string
+    public function getIdentitySequenceTriggerName(string|AbstractAsset $tableName): string
     {
         return $this->generateIdentifier([$tableName], 'D2IT', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsViews()
+    public function supportsViews(): bool
     {
         return true;
     }
 
-     /**
-      * {@inheritDoc}
-      */
-    public function supportsIdentityColumns()
+    public function supportsIdentityColumns(): bool
     {
         return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsInlineColumnComments()
+    public function supportsInlineColumnComments(): bool
     {
         return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsCommentOnStatement()
+    public function supportsCommentOnStatement(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsCreateDropDatabase()
+    public function supportsCreateDropDatabase(): bool
     {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function supportsSavepoints()
+    public function supportsSavepoints(): bool
     {
         return true;
     }
@@ -317,8 +331,7 @@ class FirebirdPlatform extends AbstractPlatform
         return true;
     }
 
-    /** @inheritDoc */
-    public function prefersIdentityColumns()
+    public function prefersIdentityColumns(): bool
     {
         return false;
     }
@@ -525,7 +538,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getBooleanTypeDeclarationSQL(array $column): string
     {
-        return 'SMALLINT';
+        return $this->hasNativeBooleanType ? 'BOOLEAN' : 'SMALLINT';
     }
 
     /**
@@ -611,7 +624,7 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * Taken from the PostgreSql-Driver and adapted for Firebird
      */
-    public function getAlterTableSQL(TableDiff $diff)
+    public function getAlterTableSQL(TableDiff $diff): array
     {
         $sql         = [];
         $commentsSQL = [];
@@ -687,12 +700,13 @@ class FirebirdPlatform extends AbstractPlatform
             }
 
             if ($columnDiff->hasNotNullChanged()) {
-                $newNullFlag = $newColumn->getNotnull() ? 1 : 'NULL';
-                $sql[]       = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' .
-                        $newNullFlag . ' ' .
-                        'WHERE UPPER(RDB$FIELD_NAME) = ' .
-                        'UPPER(\'' . $columnDiff->getOldColumnName()->getName() . '\') AND ' .
-                        'UPPER(RDB$RELATION_NAME) = UPPER(\'' . $diff->getName($this)->getName() . '\')';
+                // Firebird 2.5 requires direct manipulation of system tables for NOT NULL changes
+                // See: https://www.firebirdsql.org/file/documentation/chunk/en/refdocs/fblangref25/fblangref25-ddl-tbl.html
+                // Note: Firebird 3.0+ overrides this method to use ALTER COLUMN ... SET/DROP NOT NULL
+                $newNullFlag = $newColumn->getNotnull() ? '1' : 'NULL';
+                $sql[]       = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' . $newNullFlag .
+                        " WHERE UPPER(RDB\$FIELD_NAME) = UPPER('" . $this->unquotedIdentifierName($oldColumnName) . "')" .
+                        " AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $this->unquotedIdentifierName($diff->getName($this)) . "')";
             }
 
             if ($columnDiff->hasAutoIncrementChanged()) {
@@ -765,7 +779,7 @@ class FirebirdPlatform extends AbstractPlatform
      * Actually Firebird can store up to 32K bytes in a varchar, but we assume UTF8, thus the limit is 8191
      * https://firebirdsql.org/file/documentation/chunk/en/refdocs/fblangref40/fblangref40-datatypes-chartypes.html
      */
-    public function getVarcharMaxLength()
+    public function getVarcharMaxLength(): int
     {
         return $this->getBinaryMaxLength();
     }
@@ -775,7 +789,7 @@ class FirebirdPlatform extends AbstractPlatform
      *
      * Varchars character set binary are used for small blob/binary fields.
      */
-    public function getBinaryMaxLength()
+    public function getBinaryMaxLength(): int
     {
         return 8191;
     }
@@ -783,7 +797,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getSmallIntTypeDeclarationSQL(array $column)
+    public function getSmallIntTypeDeclarationSQL(array $column): string
     {
         return 'SMALLINT';
     }
@@ -804,7 +818,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getBlobTypeDeclarationSQL(array $column)
+    public function getBlobTypeDeclarationSQL(array $column): string
     {
         return 'BLOB';
     }
@@ -812,7 +826,7 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getDateTimeTypeDeclarationSQL(array $column)
+    public function getDateTimeTypeDeclarationSQL(array $column): string
     {
         return 'TIMESTAMP';
     }
@@ -820,13 +834,13 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getTimeTypeDeclarationSQL(array $column)
+    public function getTimeTypeDeclarationSQL(array $column): string
     {
         return 'TIME';
     }
 
     /** @inheritDoc */
-    public function getDateTypeDeclarationSQL(array $column)
+    public function getDateTypeDeclarationSQL(array $column): string
     {
         return 'DATE';
     }
@@ -860,10 +874,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'CREATE GLOBAL TEMPORARY TABLE';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getTemporaryTableSQL()
+    public function getTemporaryTableSQL(): string
     {
         return 'GLOBAL TEMPORARY';
     }
@@ -1168,7 +1179,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    public function convertBooleans($item)
+    public function convertBooleans($item): mixed
     {
         if (is_array($item)) {
             foreach ($item as $k => $value) {
@@ -1209,7 +1220,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    public function convertBooleansToDatabaseValue($item)
+    public function convertBooleansToDatabaseValue($item): mixed
     {
         if ($this->hasNativeBooleanType) {
             return (bool) $item;
@@ -1587,7 +1598,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    protected function getBinaryTypeDeclarationSQLSnippet($length, $fixed)
+    protected function getBinaryTypeDeclarationSQLSnippet($length, $fixed): string
     {
         if ($length > $this->getBinaryMaxLength()) {
             return 'BLOB';
@@ -1607,7 +1618,7 @@ SQL
     /**
      * {@inheritDoc}
      */
-    protected function _getCreateTableSQL($name, array $columns, array $options = [])
+    protected function _getCreateTableSQL($name, array $columns, array $options = []): array
     {
         $this->checkIdentifierLength($name, $this->getMaxIdentifierLength());
 
@@ -1732,13 +1743,13 @@ SQL
 
     protected function getVarcharMaxCastLength(): int
     {
-        return 255;
+        return $this->configuration->getLikeCastLength();
     }
 
-    private function getBooleanDatabaseValue(mixed $value): bool|int|string
+    private function getBooleanDatabaseValue(bool $value): bool|int|string
     {
         if ($this->hasNativeBooleanType) {
-            return (bool) $value;
+            return $value;
         }
 
         return $this->useSmallIntBoolean ? (int) $value : ( $value ? $this->charTrue : $this->charFalse);

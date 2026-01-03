@@ -1,71 +1,295 @@
-name: CI Pipeline with Multiple PHP Versions and Firebird 2.5 to 5
+name: CI (PHP × Firebird Matrix)
 
 on:
   push:
     branches:
-      - 3.0.*
+      - '3.0.*'
+      - '3.10-dev'
+      - 'main'
+      - 'feature/*'
   pull_request:
     branches:
-      - 3.0.*
+      - '3.0.*'
+      - '3.10-dev'
+      - 'main'
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
+  workflow_dispatch: ~
+
+# ==============================================================================
+# PHP VERSION MANAGEMENT - READ BEFORE MODIFYING MATRIX
+# ==============================================================================
+# Before adding a PHP version to the matrix, VERIFY availability:
+#
+# 1. Check php.net/supported-versions.php for release status
+# 2. Verify Docker image exists: docker manifest inspect php:X.Y-cli-bookworm
+# 3. Test locally with: docker pull php:X.Y-cli-bookworm
+#
+# PHP Release Schedule (annual, November):
+# - PHP 8.1: Nov 2021 - Security until Dec 2025 (EOL imminent)
+# - PHP 8.2: Dec 2022 - Security until Dec 2026
+# - PHP 8.3: Nov 2023 - Active until Dec 2025, Security until Dec 2027
+# - PHP 8.4: Nov 2024 - Active until Dec 2026, Security until Dec 2028
+# - PHP 8.5: Nov 2025 - Active until Dec 2027, Security until Dec 2029
+# - PHP 8.6: Expected Nov 2026 (DO NOT ADD until Docker image available)
+#
+# Docker Hub PHP images are published AFTER GA release, not for alpha/beta/RC.
+# ==============================================================================
 
 jobs:
-  build:
+  test:
+    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        php-version: ['8.1', '8.2', '8.3']
-
+    # Use service containers for Firebird instead of IBSurgeon scripts.
+    # Official Firebird Docker images: https://hub.docker.com/r/firebirdsql/firebird
     services:
-      firebird3:
-        image: jacobalberty/firebird:v3
+      firebird:
+        image: firebirdsql/firebird:${{ matrix.firebird.docker-tag }}
         env:
-          ISC_PASSWORD: masterkey
-          TZ: Europe/Berlin
+          FIREBIRD_ROOT_PASSWORD: masterkey
+          FIREBIRD_DATABASE: test.fdb
+          FIREBIRD_DATABASE_DEFAULT_CHARSET: UTF8
+          # Allow connections from any host (needed for service container networking)
+          TZ: UTC
+        ports:
+          - 3050:3050
+        # Health check uses fbsvcmgr (available in firebirdsql/firebird images)
+        # Note: nc/netcat is NOT available in these Alpine-based images
+        options: >-
+          --health-cmd "/opt/firebird/bin/fbsvcmgr localhost:service_mgr user SYSDBA password masterkey info_server_version"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
 
-      firebird4:
-        image: jacobalberty/firebird:v4
-        env:
-          ISC_PASSWORD: masterkey
-          TZ: Europe/Berlin
+    strategy:
+      fail-fast: false
+      matrix:
+        # PHP versions - must be released GA with Docker Hub image available
+        # See header comment for verification steps before adding new versions
+        # PHP 8.5 added provisionally - remove if Docker image unavailable
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        # Firebird configs: [display-version, docker-tag, phpunit-config]
+        firebird:
+          - version: '3.0'
+            docker-tag: '3'
+            config: 'phpunit.xml'
+          - version: '4.0'
+            docker-tag: '4'
+            config: 'phpunit-firebird4.xml'
+          - version: '5.0'
+            docker-tag: '5'
+            config: 'phpunit-firebird5.xml'
 
-      firebird5:
-        image: jacobalberty/firebird:v5
-        env:
-          ISC_PASSWORD: masterkey
-          TZ: Europe/Berlin
-
-      firebird25:
-        image: jacobalberty/firebird:2.5-sc
-        env:
-          ISC_PASSWORD: masterkey
-          TZ: Europe/Berlin
+    env:
+      # Default Firebird credentials
+      ISC_USER: SYSDBA
+      ISC_PASSWORD: masterkey
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image for PHP ${{ matrix.php-version }}
-        run: docker build -t php-dev-${{ matrix.php-version }} --build-arg PHP_VERSION=${{ matrix.php-version }} ./tests/app
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo, mbstring, intl
+          coverage: xdebug
+          tools: composer:v2
 
-      - name: Run tests in Docker for PHP ${{ matrix.php-version }}
+      - name: Wait for Firebird service to be ready
         run: |
-          docker run --rm --network ${{ job.services.firebird3.network }} -v ${{ github.workspace }}:/app -w /app -e XDEBUG_MODE=coverage -e PHP_DISMOD=ioncube php-dev-${{ matrix.php-version }} bash -c "
-          composer install --prefer-dist --no-progress --no-suggest && \
-          ./vendor/bin/phpunit --configuration tests/phpunit.xml --coverage-clover coverage.xml --log-junit junit.xml && \
-          ./vendor/bin/phpunit --configuration tests/phpunit-firebird25.xml && \
-          ./vendor/bin/phpunit --configuration tests/phpunit-firebird4.xml && \
-          ./vendor/bin/phpunit --configuration tests/phpunit-firebird5.xml \
-          "
-      - name: Upload Codecoverage to Codecov
-        uses: codecov/codecov-action@v2
+          set -eu
+          
+          echo "Waiting for Firebird service container..."
+          
+          for i in $(seq 1 60); do
+            if nc -z localhost 3050; then
+              echo "✅ Firebird is ready on localhost:3050 (attempt ${i})"
+              break
+            fi
+            echo "Waiting for Firebird to start (attempt ${i}/60)..."
+            sleep 2
+          done
+          
+          if ! nc -z localhost 3050; then
+            echo "❌ ERROR: Firebird did not start on localhost:3050" >&2
+            exit 1
+          fi
+
+      - name: Install Firebird client libraries
+        run: |
+          set -eu
+          
+          # Install Firebird client libraries for PHP extension compilation
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            firebird-dev \
+            firebird3.0-common \
+            libfbclient2 \
+            netcat-openbsd
+          
+          echo "Firebird client libraries installed"
+
+      - name: Build php-firebird extension from source
+        run: |
+          set -eu
+          
+          # Clone and build php-firebird v7.0.0-rc.28
+          echo "Building php-firebird v7.0.0-rc.28 for PHP ${{ matrix.php-version }}"
+          
+          git clone --depth 1 --branch v7.0.0-rc.28 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          cd /tmp/php-firebird
+          
+          phpize
+          ./configure --with-firebird
+          make -j"$(nproc)"
+          sudo make install
+          
+          # Enable the extension
+          echo "extension=firebird.so" | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-firebird.ini
+          
+          # Verify extension is loaded
+          php -m | grep -i firebird
+          php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: |
+          set -eu
+          
+          # Always ignore ext-firebird platform req in CI because:
+          # 1. We build php-firebird from source (reports version 1.0.0)
+          # 2. composer.json requires ^7.0.0-rc.x (version mismatch)
+          # The extension IS loaded, just version differs from git tag
+          php -m | grep -i firebird && echo "✅ ext-firebird loaded"
+          composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+
+      - name: Prepare PHPUnit configuration for CI
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+        run: |
+          set -eu
+          
+          cd tests
+          
+          # Update PHPUnit config to use localhost (service container networking)
+          # Service containers are accessible via localhost when using ports mapping
+          sed -i 's|firebird[0-9]*/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
+          sed -i 's|firebird25/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
+          
+          # Use /tmp for test databases (default writable location)
+          sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"
+          
+          echo "Modified PHPUnit config (${PHPUNIT_CONFIG}):"
+          grep -E 'db_host|db_dbname' "${PHPUNIT_CONFIG}" || true
+
+      - name: Run PHPUnit tests
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+        run: |
+          set -eu
+          
+          cd tests
+          
+          # Run tests without coverage (--no-coverage prevents "No coverage driver" warning)
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage
+
+      - name: Run PHPUnit tests with coverage
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+          XDEBUG_MODE: coverage
+        run: |
+          set -eu
+          
+          cd tests
+          
+          # Run tests with coverage
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
+            --coverage-clover ../coverage.xml \
+            --log-junit ../junit.xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0' && !cancelled()
         uses: codecov/test-results-action@v1
         with:
           files: ./junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # Static analysis job (separate from test matrix)
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, mbstring, intl
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=512M
+
+  # Summary job for CI dashboard
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [test, static-analysis]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.static-analysis.result }}" == "success" ]; then
+            echo "✅ All PHP × Firebird matrix tests and static analysis passed!"
+            exit 0
+          else
+            echo "❌ Some jobs failed. Check individual job logs."
+            echo "  - Test matrix: ${{ needs.test.result }}"
+            echo "  - Static analysis: ${{ needs.static-analysis.result }}"
+            exit 1
+          fi

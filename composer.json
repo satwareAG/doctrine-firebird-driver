@@ -33,6 +33,9 @@
         "source": "https://github.com/satwareAG/doctrine-firebird-driver"
     },
     "config": {
+        "platform": {
+            "php": "8.1"
+        },
         "sort-packages": true,
         "allow-plugins": {
             "bamarni/composer-bin-plugin": true,
@@ -43,7 +46,10 @@
     "autoload": {
         "psr-4": {
             "Satag\\DoctrineFirebirdDriver\\": "src/"
-        }
+        },
+        "files": [
+            "src/Compat/Compat.php"
+        ]
     },
     "extra": {
         "bamarni-bin": {
@@ -58,28 +64,34 @@
     },
     "require": {
         "php": "^8.1",
-        "ext-interbase": "*",
-        "ext-pdo": "*",
+        "ext-firebird": "^7.0.0-rc.35",
         "composer-runtime-api": "^2",
-        "doctrine/dbal": "^3.8"
+        "doctrine/dbal": "^3.10",
+        "symfony/polyfill-php82": "^1.31",
+        "symfony/polyfill-php83": "^1.31",
+        "symfony/polyfill-php84": "^1.31",
+        "symfony/polyfill-php85": "^1.31"
     },
     "require-dev": {
         "ext-posix": "*",
         "bamarni/composer-bin-plugin": "^1.8",
+        "satwareag/php-firebird-stubs": "^7.0.0-rc.41",
         "dg/bypass-finals": "^1.8",
-        "doctrine/coding-standard": "12.0.0",
+        "doctrine/coding-standard": "^14.0.0",
         "doctrine/deprecations": "^0.5.3|^1",
-        "doctrine/orm": "^3.0",
+        "doctrine/orm": "^3.5",
         "fig/log-test": "^1",
-        "jetbrains/phpstorm-stubs": "2024.2",
+        "jetbrains/phpstorm-stubs": "2024.3",
         "monolog/monolog": "^3.7",
-        "phpstan/phpstan": "1.12.5",
+        "phpstan/phpstan": "^1.12",
+        "phpstan/phpstan-deprecation-rules": "^1.2",
         "phpstan/phpstan-doctrine": "^1.5",
         "phpstan/phpstan-strict-rules": "^1.6",
-        "phpunit/phpunit": "9.6.20",
-        "psalm/plugin-phpunit": "0.19.0",
-        "slevomat/coding-standard": "8.15.0",
-        "squizlabs/php_codesniffer": "3.10.3",
+        "phpunit/phpunit": "^10.5",
+        "psalm/plugin-phpunit": "^0.18",
+        "react/child-process": "^0.6",
+        "slevomat/coding-standard": "^8.23",
+        "squizlabs/php_codesniffer": "^4.0",
         "symfony/cache": "^5.4|^6.0|^7.0",
         "symfony/console": "^4.4|^5.4|^6.0|^7.0",
         "vimeo/psalm": "^5.0"

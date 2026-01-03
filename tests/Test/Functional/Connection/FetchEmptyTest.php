@@ -12,15 +12,6 @@ final class FetchEmptyTest extends FunctionalTestCase
 {
     private string $query;
 
-    public function setUp(): void
-    {
-        $this->query = sprintf(
-            'SELECT * FROM (%s) t WHERE 1 = 0',
-            $this->connection->getDatabasePlatform()
-                ->getDummySelectSQL('1 c'),
-        );
-    }
-
     public function testFetchAssociative(): void
     {
         self::assertFalse($this->connection->fetchAssociative($this->query));
@@ -49,5 +40,16 @@ final class FetchEmptyTest extends FunctionalTestCase
     public function testFetchFirstColumn(): void
     {
         self::assertSame([], $this->connection->fetchFirstColumn($this->query));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->query = sprintf(
+            'SELECT * FROM (%s) t WHERE 1 = 0',
+            $this->connection->getDatabasePlatform()
+                ->getDummySelectSQL('1 c'),
+        );
     }
 }

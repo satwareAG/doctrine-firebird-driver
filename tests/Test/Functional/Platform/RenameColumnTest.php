@@ -7,17 +7,21 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function array_keys;
 use function strtolower;
+use function uniqid;
 
 class RenameColumnTest extends FunctionalTestCase
 {
-    /** @dataProvider columnNameProvider */
+    private string $table;
+
+    #[DataProvider('columnNameProvider')]
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void
     {
-        $table = new Table('test_rename');
+        $table = new Table($this->table);
         $table->addColumn($columnName, Types::STRING);
         $table->addColumn('c2', Types::INTEGER);
 
@@ -28,12 +32,12 @@ class RenameColumnTest extends FunctionalTestCase
 
         $sm         =  $this->connection->createSchemaManager();
         $comparator = new Comparator();
-        $diff       = $comparator->diffTable($sm->introspectTable('test_rename'), $table);
+        $diff       = $comparator->diffTable($sm->introspectTable($this->table), $table);
 
         self::assertNotFalse($diff);
         $sm->alterTable($diff);
 
-        $table = $sm->introspectTable('test_rename');
+        $table = $sm->introspectTable($this->table);
         self::assertSame([strtolower($newColumnName), 'c2'], array_keys($table->getColumns()));
     }
 
@@ -43,5 +47,19 @@ class RenameColumnTest extends FunctionalTestCase
         yield ['c1', 'c1_x'];
         yield ['C1', 'c1_x'];
         yield ['importantColumn', 'veryImportantColumn'];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->table = 'test_rename_' . uniqid();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
     }
 }

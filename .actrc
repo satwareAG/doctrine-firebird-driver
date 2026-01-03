@@ -1,0 +1,12 @@
+# act (local GitHub Actions runner) configuration
+# https://github.com/nektos/act
+
+# Use catthehacker's ubuntu image for better compatibility with GitHub Actions
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Force a single concurrent job to avoid port conflicts with service containers
+# All Firebird service containers bind to port 3050
+--concurrent-jobs 1
+
+# Enable artifact server for caching support
+--artifact-server-path /tmp/act-artifacts

@@ -16,8 +16,10 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
 use function sprintf;
 use function strtoupper;
@@ -26,7 +28,7 @@ use function uniqid;
 /** @extends PlatformTestCase<FirebirdPlatform> */
 class FirebirdPlatformTest extends PlatformTestCase
 {
-    /** @dataProvider dataValidIdentifiers */
+    #[DataProvider('dataValidIdentifiers')]
     public function testValidIdentifiers(string $identifier): void
     {
         $platform = $this->createPlatform();
@@ -35,7 +37,7 @@ class FirebirdPlatformTest extends PlatformTestCase
         $this->expectNotToPerformAssertions();
     }
 
-    /** @dataProvider dataInvalidIdentifiers */
+    #[DataProvider('dataInvalidIdentifiers')]
     public function testInvalidIdentifiers(string $identifier): void
     {
         $this->expectException(Exception::class);
@@ -141,11 +143,8 @@ END
         return 'CREATE UNIQUE INDEX index_name ON test (test, test2)';
     }
 
-    /**
-     * @param mixed[] $options
-     *
-     * @dataProvider getGeneratesAdvancedForeignKeyOptionsSQLData
-     */
+    /** @param mixed[] $options */
+    #[DataProvider('getGeneratesAdvancedForeignKeyOptionsSQLData')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL(array $options, string $expectedSql): void
     {
         $foreignKey = new ForeignKeyConstraint(['foo'], 'foreign_table', ['bar'], null, $options);
@@ -293,11 +292,13 @@ SQL
             ['notnull'],
         );
 
+        // Firebird 2.5 uses UPDATE RDB$RELATION_FIELDS for NOT NULL changes
+        // Firebird 3.0+ uses ALTER COLUMN ... SET/DROP NOT NULL (see Firebird3PlatformTest)
         $expectedSql = [
             0 => 'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
             1 => 'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
-            2 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = 1 WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'bar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
-            3 => 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = NULL WHERE UPPER(RDB$FIELD_NAME) = UPPER(\'metar\') AND UPPER(RDB$RELATION_NAME) = UPPER(\'mytable\')',
+            2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
+            3 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
         ];
 
         self::assertSame($expectedSql, $this->platform->getAlterTableSQL($tableDiff));
@@ -328,7 +329,7 @@ SQL
         self::assertSame('"mytable_D2IS"', $this->platform->getIdentitySequenceName('"mytable"', '"mycolumn"'));
     }
 
-    /** @dataProvider dataCreateSequenceWithCache */
+    #[DataProvider('dataCreateSequenceWithCache')]
     public function testCreateSequenceWithCache(int $cacheSize, string $expectedSql): void
     {
         if (! ($this->platform instanceof Firebird3Platform)) {
@@ -352,11 +353,8 @@ SQL
         return ['ALTER TABLE foo ALTER COLUMN bar TO baz'];
     }
 
-    /**
-     * @param string|string[] $expectedSql
-     *
-     * @dataProvider getReturnsDropAutoincrementSQL
-     */
+    /** @param string|string[] $expectedSql */
+    #[DataProvider('getReturnsDropAutoincrementSQL')]
     public function testReturnsDropAutoincrementSQL(string $table, string|array $expectedSql): void
     {
         $resultSql = $this->platform->getDropAutoincrementSql($table);
@@ -405,7 +403,7 @@ EOD;
         self::assertSame($createTriggerStatement, $sql[2]);
     }
 
-    /** @dataProvider getReturnsGetListTableColumnsSQL */
+    #[DataProvider('getReturnsGetListTableColumnsSQL')]
     public function testReturnsGetListTableColumnsSQL(string|null $database, string $expectedSql): void
     {
         // note: this assertion is a bit strict, as it compares a full SQL string.
@@ -437,6 +435,78 @@ EOD;
     public function createPlatform(): AbstractPlatform
     {
         return new FirebirdPlatform();
+    }
+
+    public function testSupportsColumnCollation(): void
+    {
+        // FirebirdPlatform should support column collation
+        self::assertTrue($this->platform->supportsColumnCollation());
+    }
+
+    public function testGetNowExpression(): void
+    {
+        self::assertSame('CURRENT_TIMESTAMP', $this->platform->getNowExpression());
+    }
+
+    public function testGetCurrentDatabaseExpression(): void
+    {
+        self::assertSame(
+            "rdb\$get_context('SYSTEM', 'DB_NAME')",
+            $this->platform->getCurrentDatabaseExpression(),
+        );
+    }
+
+    public function testGetEmptyIdentityInsertSQL(): void
+    {
+        self::assertSame(
+            'INSERT INTO test_table DEFAULT VALUES',
+            $this->platform->getEmptyIdentityInsertSQL('test_table', 'id'),
+        );
+    }
+
+    public function testGetAlterSequenceSQL(): void
+    {
+        $sequence = new Sequence('my_sequence', 1, 100);
+        self::assertStringContainsString(
+            'ALTER SEQUENCE',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+        self::assertStringContainsString(
+            'my_sequence',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+        self::assertStringContainsString(
+            'RESTART',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+    }
+
+    public function testCreateSelectSQLBuilder(): void
+    {
+        $builder = $this->platform->createSelectSQLBuilder();
+        self::assertInstanceOf(
+            FirebirdSelectSQLBuilder::class,
+            $builder,
+        );
+    }
+
+    public function testConvertBooleans(): void
+    {
+        // Test true value conversion
+        self::assertSame(1, $this->platform->convertBooleans(true));
+        // Test false value conversion
+        self::assertSame(0, $this->platform->convertBooleans(false));
+        // Test null passes through
+        self::assertNull($this->platform->convertBooleans(null));
+        // Test integer passes through
+        self::assertSame(1, $this->platform->convertBooleans(1));
+        self::assertSame(0, $this->platform->convertBooleans(0));
+    }
+
+    #[DataProvider('convertBooleansMultipleProvider')]
+    public function testConvertBooleansMultiple(mixed $input, mixed $expected): void
+    {
+        self::assertSame($expected, $this->platform->convertBooleans($input));
     }
 
     /** @return mixed[][] */
@@ -562,6 +632,19 @@ SQL
     {
         yield ['VARCHAR(12)', ['length' => 12]];
         yield ['CHAR(12)', ['length' => 12, 'fixed' => true]];
+    }
+
+    /** @return array<string, array{mixed, mixed}> */
+    public static function convertBooleansMultipleProvider(): array
+    {
+        return [
+            'true to 1' => [true, 1],
+            'false to 0' => [false, 0],
+            'null to null' => [null, null],
+            'integer 1' => [1, 1],
+            'integer 0' => [0, 0],
+            'string passes through' => ['yes', 'yes'],
+        ];
     }
 
     protected function supportsCommentOnStatement(): bool
@@ -703,4 +786,8 @@ SQL
     {
         return 'SELECT * FROM user ROWS 3 TO 3';
     }
+
+    // ==========================================================================
+    // Additional tests for 100% method coverage
+    // ==========================================================================
 }

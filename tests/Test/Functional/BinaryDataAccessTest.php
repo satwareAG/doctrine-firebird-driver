@@ -21,6 +21,11 @@ use const CASE_LOWER;
 
 class BinaryDataAccessTest extends FunctionalTestCase
 {
+    public function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+    }
+
     public function testPrepareWithBindValue(): void
     {
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
