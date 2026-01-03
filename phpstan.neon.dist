@@ -3,11 +3,23 @@ parameters:
     phpVersion: 80300
     paths:
         - src
-    # WORKAROUND: Disable parallel processing to avoid segmentation faults with php-firebird extension
-    # The extension is not fork-safe - child processes inherit the parent's Firebird client library state,
-    # but when they exit, destructors run and corrupt shared memory causing SIGSEGV in remaining workers.
-    # This affects PHPStan, Psalm, and any tool using pcntl_fork() when ext-firebird is loaded.
-    # See: https://github.com/satwareAG/php-firebird/issues/22
+    # KNOWN ISSUE: PHP crashes with SIGSEGV after PHPStan completes when php-firebird extension is loaded.
+    #
+    # Root Cause: The ext-firebird extension has a shutdown bug triggered when PHPStan uses reflection
+    # to analyze classes that reference Firebird types. The crash occurs AFTER analysis completes,
+    # during PHP's RSHUTDOWN/MSHUTDOWN phase. This is NOT solely a fork-safety issue - it also
+    # crashes in single-threaded mode (--debug flag).
+    #
+    # Analysis completes successfully and outputs "[OK] No errors" before the crash,
+    # so the analysis results are valid.
+    #
+    # WORKAROUND OPTIONS:
+    # 1. Run PHPStan in a PHP environment WITHOUT ext-firebird:
+    #    docker run --rm -v "$(pwd):/app" -w /app php:8.1-cli vendor/bin/phpstan analyse
+    # 2. Accept exit code 139 in CI (analysis completes before crash)
+    # 3. Use maximumNumberOfProcesses: 1 to reduce crash frequency (doesn't prevent it)
+    #
+    # See: https://github.com/satwareAG/php-firebird/issues/55
     # See: docs/issues/2025-12-23-phpstan-parallel-segfault-investigation.md
     parallel:
         maximumNumberOfProcesses: 1
@@ -47,4 +59,5 @@ parameters:
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
     - phpstan-baseline.neon

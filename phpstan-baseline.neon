@@ -31,6 +31,15 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
+			message: """
+				#^Class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection implements deprecated interface Doctrine\\\\DBAL\\\\Driver\\\\ServerInfoAwareConnection\\:
+				The methods defined in this interface will be made part of the \\{@see Driver\\} interface
+				in the next major release\\.$#
+			"""
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
 			message: "#^Constant FBIRD_COMMITTED not found\\.$#"
 			count: 2
 			path: src/Driver/Firebird/Connection.php
@@ -261,6 +270,11 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
+			message: "#^Call to deprecated method getIdentitySequenceName\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\.$#"
+			count: 2
+			path: src/Driver/Firebird/ConnectionWrapper.php
+
+		-
 			message: "#^Constant FBIRD_SVC_SERVER_VERSION not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Driver.php
@@ -269,31 +283,6 @@ parameters:
 			message: "#^Used constant FBIRD_SVC_SERVER_VERSION not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Driver.php
-
-		-
-			message: "#^Call to method getCode\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Exception.php
-
-		-
-			message: "#^Call to method getMessage\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Exception.php
-
-		-
-			message: "#^Call to method getSqlState\\(\\) on an unknown class Firebird\\\\Exception\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Exception.php
-
-		-
-			message: "#^Parameter \\#4 \\$previous of class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Exception constructor expects Throwable\\|null, Firebird\\\\Exception given\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Exception.php
-
-		-
-			message: "#^Parameter \\$exception of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Exception\\:\\:fromFirebirdException\\(\\) has invalid type Firebird\\\\Exception\\.$#"
-			count: 2
-			path: src/Driver/Firebird/Exception.php
 
 		-
 			message: "#^Used function fbird_sqlstate not found\\.$#"
@@ -324,6 +313,107 @@ parameters:
 			message: "#^Used constant FBIRD_FETCH_DATE_OBJ not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Result.php
+
+		-
+			message: """
+				#^Class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\FirebirdDriver implements deprecated interface Doctrine\\\\DBAL\\\\VersionAwarePlatformDriver\\:
+				All drivers will have to be aware of the server version in the next major release\\.$#
+			"""
+			count: 1
+			path: src/Driver/FirebirdDriver.php
+
+		-
+			message: """
+				#^Call to deprecated method getColumnComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 2
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Call to deprecated method getOldColumnName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\ColumnDiff\\:
+				Use \\{@see \\$fromColumn\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/Firebird3Platform.php
+
+		-
+			message: """
+				#^Access to deprecated property \\$name of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getBinaryMaxLength\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getColumnComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getDoctrineTypeComment\\(\\) of class Doctrine\\\\DBAL\\\\Platforms\\\\AbstractPlatform\\:
+				This method will be removed without replacement\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getIdentitySequenceName\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 3
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\TableDiff\\:
+				Use \\{@see getOldTable\\(\\)\\} instead\\.$#
+			"""
+			count: 5
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getName\\(\\) of class Doctrine\\\\DBAL\\\\Types\\\\Type\\:
+				this method will be removed in Doctrine DBAL 4\\.0,
+				            use \\{@see TypeRegistry\\:\\:lookupName\\(\\)\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: """
+				#^Call to deprecated method getOldColumnName\\(\\) of class Doctrine\\\\DBAL\\\\Schema\\\\ColumnDiff\\:
+				Use \\{@see \\$fromColumn\\} instead\\.$#
+			"""
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getTemporaryTableSQL\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
+
+		-
+			message: "#^Call to deprecated method getVarcharMaxLength\\(\\) of class Satag\\\\DoctrineFirebirdDriver\\\\Platforms\\\\FirebirdPlatform\\.$#"
+			count: 1
+			path: src/Platforms/FirebirdPlatform.php
 
 		-
 			message: "#^Constant FBIRD_CREATE not found\\.$#"

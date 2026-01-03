@@ -54,6 +54,11 @@
       <directory>Test/Functional</directory>
     </testsuite>
   </testsuites>
+  <groups>
+    <exclude>
+      <group>deprecated</group>
+    </exclude>
+  </groups>
   <source>
     <include>
       <directory>../src</directory>

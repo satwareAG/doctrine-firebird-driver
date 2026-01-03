@@ -40,6 +40,7 @@ use Doctrine\DBAL\Types\Types;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
@@ -962,7 +963,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEmpty($columns['id']->getComment());
     }
 
-    /** @psalm-suppress DeprecatedConstant */
+    /**
+     * Tests that Object and Array types automatically append comments.
+     *
+     * Types::OBJECT and Types::ARRAY are deprecated in DBAL 3.x.
+     * This test ensures backward compatibility for users still using these types.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testAutomaticallyAppendCommentOnMarkedColumns(): void
     {
         $platform = $this->connection->getDatabasePlatform();

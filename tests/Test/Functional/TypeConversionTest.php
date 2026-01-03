@@ -8,8 +8,10 @@ use DateTime;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use stdClass;
@@ -18,6 +20,8 @@ use function str_repeat;
 
 class TypeConversionTest extends FunctionalTestCase
 {
+    use VerifyDeprecations;
+
     private static int $typeCounter = 0;
 
     #[DataProvider('booleanProvider')]
@@ -56,18 +60,42 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
+    /**
+     * Tests deprecated array type conversion.
+     *
+     * The Types::ARRAY constant and ArrayType class are deprecated in DBAL 3.x.
+     * Use Types::JSON instead in new code.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     #[DataProvider('toArrayProvider')]
     public function testIdempotentConversionToArray(string $type, mixed $originalValue): void
     {
+        // ArrayType triggers deprecation when used
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5509');
+
         $dbValue = $this->processValue($type, $originalValue);
 
         self::assertIsArray($dbValue);
         self::assertEquals($originalValue, $dbValue);
     }
 
+    /**
+     * Tests deprecated object type conversion.
+     *
+     * The Types::OBJECT constant and ObjectType class are deprecated in DBAL 3.x.
+     * Use Types::JSON instead in new code.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     #[DataProvider('toObjectProvider')]
     public function testIdempotentConversionToObject(string $type, mixed $originalValue): void
     {
+        // ObjectType triggers deprecation when used
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5509');
+
         $dbValue = $this->processValue($type, $originalValue);
 
         self::assertIsObject($dbValue);
@@ -128,20 +156,20 @@ class TypeConversionTest extends FunctionalTestCase
     }
 
     /**
-     * @return mixed[][]
+     * Provides deprecated array type test data.
      *
-     * @psalm-suppress DeprecatedConstant
+     * @return mixed[][]
      */
     public static function toArrayProvider(): Iterator
     {
+        // Types::ARRAY is deprecated, but we test it for backward compatibility
         yield 'array' => [Types::ARRAY, ['foo' => 'bar']];
-        yield 'json' => [Types::JSON, ['foo' => 'bar']];
     }
 
     /**
-     * @return mixed[][]
+     * Provides deprecated object type test data.
      *
-     * @psalm-suppress DeprecatedConstant
+     * @return mixed[][]
      */
     public static function toObjectProvider(): Iterator
     {
@@ -149,6 +177,7 @@ class TypeConversionTest extends FunctionalTestCase
         $obj->foo = 'bar';
         $obj->bar = 'baz';
 
+        // Types::OBJECT is deprecated, but we test it for backward compatibility
         yield 'object' => [Types::OBJECT, $obj];
     }
 
@@ -161,7 +190,6 @@ class TypeConversionTest extends FunctionalTestCase
         yield 'time' => [Types::TIME_MUTABLE, new DateTime('1970-01-01 10:10:10')];
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     protected function setUp(): void
     {
         $table = new Table('type_conversion');

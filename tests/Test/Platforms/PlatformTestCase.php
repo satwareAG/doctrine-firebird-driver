@@ -26,6 +26,7 @@ use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 use function implode;
@@ -164,7 +165,15 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
-    /** @psalm-suppress DeprecatedConstant */
+    /**
+     * Tests that commented doctrine mapping types are registered implicitly.
+     *
+     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
+     * compatibility for users still using this type.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testRegistersCommentedDoctrineMappingTypeImplicitly(): void
     {
         $type = Type::getType(Types::ARRAY);
@@ -483,11 +492,20 @@ abstract class PlatformTestCase extends TestCase
         self::assertEquals($this->getAlterTableColumnCommentsSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
 
+    /**
+     * Tests column type comments are generated for special types.
+     *
+     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
+     * compatibility for users still using this type.
+     *
+     * @see https://github.com/doctrine/dbal/pull/5509
+     */
+    #[Group('deprecated')]
     public function testCreateTableColumnTypeComments(): void
     {
         $table = new Table('test');
         $table->addColumn('id', Types::INTEGER);
-        /** @psalm-suppress DeprecatedConstant */
+        // Types::ARRAY is deprecated, but we test it for backward compatibility
         $table->addColumn('data', Types::ARRAY);
         $table->setPrimaryKey(['id']);
 

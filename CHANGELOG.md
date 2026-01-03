@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **PHPStan SIGSEGV Resolved** (requires php-firebird v7.0.0-rc.37+)
+  - Root cause: Invalid `IS_RESOURCE` type hints in php-firebird arginfo caused `zend_type_to_string()` to return NULL
+  - Fix: php-firebird v7.0.0-rc.37 removes problematic type hints
+  - PHPStan, Psalm, and all static analysis tools now work correctly with ext-firebird loaded
+  - Updated test environment Dockerfile to use v7.0.0-rc.37
+  - Condensed investigation docs from 1352 to 99 lines (removed obsolete debug scripts)
 - **PHP 8.4 Quality Improvements**
   - Fixed PHPCS error in `DataAccessTest.php` (heredoc tab indentation)
   - Suppressed Psalm `E_STRICT` deprecation warnings on PHP 8.4+ in CQC pipeline
-  - Updated PHPStan segfault investigation (confirmed UAF issue in php-firebird extension)
 - **CI Test Fixes for php-firebird Exception Mode**
   - Wrapped all `fbird_*` function calls in try-catch blocks to handle `Firebird\Exception` when Exception Mode is enabled
   - Updated `Statement::execute()`, `Result::fetch()`, and `Connection` destructor with proper exception handling

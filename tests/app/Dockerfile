@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v7.0.0-rc.34), pcov (fast coverage)
+# Extensions: firebird (php-firebird v7.0.0-rc.37), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -28,9 +28,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (includes MSHUTDOWN fix for #50, #51)
+# Install php-firebird extension from source (includes Issue #55 IS_RESOURCE arginfo fix for PHPStan SIGSEGV)
 RUN docker-php-source extract \
-    && git clone --branch v7.0.0-rc.34 --depth 1 \
+    && git clone --branch v7.0.0-rc.37 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && docker-php-ext-install firebird pcntl \
@@ -46,7 +46,7 @@ RUN pecl install pcov \
 # -----------------------------------------------------------------------------
 FROM php:${PHP_VERSION}-cli AS runtime
 
-# Install runtime dependencies only (smaller final image)
+# Install runtime dependencies + debugging tools
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -56,6 +56,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         git \
         zip \
         unzip \
+        strace \
+        gdb \
+        procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy PHP extensions from builder stage
