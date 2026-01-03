@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.34 to v7.0.0-rc.37
+  - Final fix for SIGSEGV issues in PHPStan/Psalm parallel mode
+  - Removed `maximumNumberOfProcesses: 1` workaround from phpstan.neon.dist
+  - All static analysis tools now run with full parallel processing
+- **Deprecated API Isolation** - Tests using deprecated DBAL APIs are now properly isolated
+  - Added `tests/phpunit-deprecated.xml` for backward compatibility tests
+  - Main test suite (`tests/phpunit.xml`) excludes deprecated API tests
+  - Tests marked with `#[Group('deprecated')]` for explicit deprecation handling
+  - Installed `phpstan-deprecation-rules` for CI/CD deprecation detection
+- **Test Suite Performance Optimizations**
+  - Renamed all legacy `ibase_`/`interbase` references to `fbird_`/`firebird`
+  - Removed 5 duplicate Statement tests from Integration suite (already covered in Functional)
+  - Removed duplicate HostDbnameRequired exception test
+  - Moved `installFirebirdDatabase()` to `setUpBeforeClass()` for one-time setup
+  - Optimized `cleanupSchemaTestTables()` with existence checks
+  - Removed redundant cleanup from `setUp()` in SchemaManagerFunctionalTestCase
+
 ### Fixed
 - **PHPStan SIGSEGV Resolved** (requires php-firebird v7.0.0-rc.37+)
   - Root cause: Invalid `IS_RESOURCE` type hints in php-firebird arginfo caused `zend_type_to_string()` to return NULL
