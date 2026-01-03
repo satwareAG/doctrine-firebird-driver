@@ -110,7 +110,7 @@ services:
     user: "${CURRENT_UID:-1000}:${CURRENT_GID:-1000}"
     working_dir: /app
     volumes:
-      - ./../:/app:cached
+      - ./../:/app
     depends_on:
       firebird25:
         condition: service_healthy
