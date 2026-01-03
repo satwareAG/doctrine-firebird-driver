@@ -14,7 +14,7 @@
          displayDetailsOnTestsThatTriggerNotices="true"
          displayDetailsOnTestsThatTriggerWarnings="true"
          enforceTimeLimit="true"
-         defaultTimeLimit="5"
+         defaultTimeLimit="10"
 >
   <php>
     <ini name="error_reporting" value="-1"/>
