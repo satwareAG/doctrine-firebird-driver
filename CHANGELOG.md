@@ -55,8 +55,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Moved `installFirebirdDatabase()` to `setUpBeforeClass()` for one-time setup
   - Optimized `cleanupSchemaTestTables()` with existence checks
   - Removed redundant cleanup from `setUp()` in SchemaManagerFunctionalTestCase
+  - Removed 2 duplicate Transaction tests (`TransactionTest::testBeginTransactionCommit`, `TransactionNestingTest::testNestedStructureSuccess`)
+  - Optimized schema test cleanup by adding missing tables to `SchemaManagerFunctionalTestCase::$schemaTestTables` (`ddc1372_foobar`, `t1`, `t2`, `retry_lock_test`)
+  - Added explicit table cleanup to `CustomIntrospectionTest`
 
 ### Fixed
+- **CQC Pipeline Segfault Handling** - Updated `docker-cqc.sh` to gracefully handle exit code 139/134 (SIGSEGV/SIGABRT)
+  - Detects if tests passed despite the post-execution crash
+  - Allows CI pipeline to pass when tests are successful
+  - Workaround for php-firebird issue #56 until fully resolved in all PHP versions
 - **PHPStan SIGSEGV Resolved** (requires php-firebird v7.0.0-rc.37+)
   - Root cause: Invalid `IS_RESOURCE` type hints in php-firebird arginfo caused `zend_type_to_string()` to return NULL
   - Fix: php-firebird v7.0.0-rc.37 removes problematic type hints
