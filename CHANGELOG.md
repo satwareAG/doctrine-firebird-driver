@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Psalm PossiblyUnusedMethod Suppression** - Added `Firebird4Platform::getTimeTzFormatString()` to suppression list
+  - Method is a public API tested in unit tests but Psalm only scans `src/` not `tests/`
+  - Follows existing pattern for other public API methods (setCharTrue, setCharFalse, etc.)
+- **CQC Test Suite Fixes** (2026-01-03)
+  - Fixed PHPUnit unit tests: `ExceptionConverterTest`, `Firebird4PlatformTest`, `DriverTest`, `VersionAwarePlatformDriverTest`
+  - Created missing test exceptions and mock classes
+  - All 977 PHPUnit tests passing, 53 PHPCS checks, PHPStan Level 8 clean, Psalm clean
+- **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.37 to v7.0.0-rc.42
+  - Includes ongoing SIGSEGV investigation fixes for ServiceManager::detach()
+  - See: `docs/issues/2026-01-03-segfault-investigation-servicemanager-detach.md`
 - **TypeConversionTest Deprecation Fix** - Removed incorrect deprecation expectations from array/object type tests
   - The DBAL PR #5509 deprecation only triggers on `requiresSQLCommentHint()`, not during `convertTo*Value()` operations
   - Removed `VerifyDeprecations` trait usage since no deprecation warnings are expected in the test's code path

@@ -29,6 +29,15 @@ class Firebird4Platform extends Firebird3Platform
     }
 
     /**
+     * Firebird 4 returns TIME WITH TIME ZONE values as
+     * "H:i:s <TimezoneIdentifier>" (example: "10:10:10 Europe/Berlin").
+     */
+    public function getTimeTzFormatString(): string
+    {
+        return 'H:i:s e';
+    }
+
+    /**
      * {@inheritDoc}
      *
      * @param array<array-key, mixed> $column

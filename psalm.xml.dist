@@ -78,6 +78,8 @@
                         name="Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::assertValidIdentifier"/>
                 <referencedMethod
                         name="Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap"/>
+                <referencedMethod
+                        name="Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform::getTimeTzFormatString"/>
             </errorLevel>
         </PossiblyUnusedMethod>
     </issueHandlers>

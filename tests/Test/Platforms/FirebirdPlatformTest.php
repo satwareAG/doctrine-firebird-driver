@@ -19,6 +19,7 @@ use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
 use function sprintf;
 use function strtoupper;
@@ -436,6 +437,78 @@ EOD;
         return new FirebirdPlatform();
     }
 
+    public function testSupportsColumnCollation(): void
+    {
+        // FirebirdPlatform should support column collation
+        self::assertTrue($this->platform->supportsColumnCollation());
+    }
+
+    public function testGetNowExpression(): void
+    {
+        self::assertSame('CURRENT_TIMESTAMP', $this->platform->getNowExpression());
+    }
+
+    public function testGetCurrentDatabaseExpression(): void
+    {
+        self::assertSame(
+            "rdb\$get_context('SYSTEM', 'DB_NAME')",
+            $this->platform->getCurrentDatabaseExpression(),
+        );
+    }
+
+    public function testGetEmptyIdentityInsertSQL(): void
+    {
+        self::assertSame(
+            'INSERT INTO test_table DEFAULT VALUES',
+            $this->platform->getEmptyIdentityInsertSQL('test_table', 'id'),
+        );
+    }
+
+    public function testGetAlterSequenceSQL(): void
+    {
+        $sequence = new Sequence('my_sequence', 1, 100);
+        self::assertStringContainsString(
+            'ALTER SEQUENCE',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+        self::assertStringContainsString(
+            'my_sequence',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+        self::assertStringContainsString(
+            'RESTART',
+            $this->platform->getAlterSequenceSQL($sequence),
+        );
+    }
+
+    public function testCreateSelectSQLBuilder(): void
+    {
+        $builder = $this->platform->createSelectSQLBuilder();
+        self::assertInstanceOf(
+            FirebirdSelectSQLBuilder::class,
+            $builder,
+        );
+    }
+
+    public function testConvertBooleans(): void
+    {
+        // Test true value conversion
+        self::assertSame(1, $this->platform->convertBooleans(true));
+        // Test false value conversion
+        self::assertSame(0, $this->platform->convertBooleans(false));
+        // Test null passes through
+        self::assertNull($this->platform->convertBooleans(null));
+        // Test integer passes through
+        self::assertSame(1, $this->platform->convertBooleans(1));
+        self::assertSame(0, $this->platform->convertBooleans(0));
+    }
+
+    #[DataProvider('convertBooleansMultipleProvider')]
+    public function testConvertBooleansMultiple(mixed $input, mixed $expected): void
+    {
+        self::assertSame($expected, $this->platform->convertBooleans($input));
+    }
+
     /** @return mixed[][] */
     public static function dataValidIdentifiers(): Iterator
     {
@@ -559,6 +632,19 @@ SQL
     {
         yield ['VARCHAR(12)', ['length' => 12]];
         yield ['CHAR(12)', ['length' => 12, 'fixed' => true]];
+    }
+
+    /** @return array<string, array{mixed, mixed}> */
+    public static function convertBooleansMultipleProvider(): array
+    {
+        return [
+            'true to 1' => [true, 1],
+            'false to 0' => [false, 0],
+            'null to null' => [null, null],
+            'integer 1' => [1, 1],
+            'integer 0' => [0, 0],
+            'string passes through' => ['yes', 'yes'],
+        ];
     }
 
     protected function supportsCommentOnStatement(): bool
@@ -700,4 +786,8 @@ SQL
     {
         return 'SELECT * FROM user ROWS 3 TO 3';
     }
+
+    // ==========================================================================
+    // Additional tests for 100% method coverage
+    // ==========================================================================
 }

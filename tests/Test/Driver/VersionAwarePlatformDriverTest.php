@@ -10,6 +10,7 @@ use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
@@ -24,6 +25,14 @@ class VersionAwarePlatformDriverTest extends TestCase
     public function testFirebird(string $version, string $expectedClass): void
     {
         $this->assertDriverInstantiatesDatabasePlatform(new Driver(), $version, $expectedClass);
+    }
+
+    public function testGetExceptionConverter(): void
+    {
+        $driver    = new Driver();
+        $converter = $driver->getExceptionConverter();
+
+        self::assertInstanceOf(ExceptionConverter::class, $converter);
     }
 
     /**
