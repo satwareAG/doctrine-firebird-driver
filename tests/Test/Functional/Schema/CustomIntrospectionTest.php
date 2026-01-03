@@ -73,6 +73,12 @@ class CustomIntrospectionTest extends FunctionalTestCase
     {
         $this->markConnectionNotReusable();
 
+        try {
+            $this->connection->createSchemaManager()->dropTable($this->table);
+        } catch (Throwable) {
+            // Ignore if table doesn't exist
+        }
+
         parent::tearDown();
     }
 }

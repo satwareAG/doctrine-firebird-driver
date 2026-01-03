@@ -128,6 +128,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         'test_switch_pk_order',
         'drop_column_with_default',
         'explicit_db_platform_test',
+        'ddc1372_foobar',
+        't1',
+        't2',
+        'retry_lock_test',
     ];
 
     public function testCreateSequence(): void
