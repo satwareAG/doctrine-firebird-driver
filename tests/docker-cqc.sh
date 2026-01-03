@@ -221,7 +221,8 @@ run_in_docker() {
     # Use -T to disable pseudo-TTY allocation (prevents hangs in scripts)
     # Use timeout command to prevent infinite hangs
     # Use < /dev/null to close stdin (prevents hangs with stdin_open: true)
-    if timeout "$timeout" docker compose run --rm -T app bash -c "$cmd" < /dev/null; then
+    # Use 'set -o pipefail' to ensure pipeline failures are captured when using | tee
+    if timeout "$timeout" docker compose run --rm -T app bash -c "set -o pipefail; $cmd" < /dev/null; then
         return 0
     else
         local exit_code=$?
