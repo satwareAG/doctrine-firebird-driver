@@ -16,8 +16,8 @@
     </projectFiles>
     <stubs>
         <file name="vendor/jetbrains/phpstorm-stubs/interbase/interbase.php" />
-        <file name="stubs/FirebirdStub.php" />
-        <file name="stubs/FirebirdOO.php" />
+        <file name="vendor/satwareag/php-firebird-stubs/firebird-stubs.php" />
+        <file name="vendor/satwareag/php-firebird-stubs/firebird-classes.php" />
     </stubs>
     <issueHandlers>
         <InvalidReturnType>

@@ -31,16 +31,21 @@ use function version_compare;
  */
 abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
 {
-    public const string ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
+    /** @var string */
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
-    public const string ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
+    /** @var string */
+    public const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
 
-    public const string ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
+    /** @var string */
+    public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
     /**
      * Retry DML/DDL on lock conflicts (e.g. objects in use) by forcing a full commit
+     *
+     * @var string
      */
-    public const string ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
+    public const ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
 
     /**
      * Firebird-specific connection options.

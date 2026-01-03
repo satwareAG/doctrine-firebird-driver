@@ -17,20 +17,15 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
-    <InvalidArgument>
-      <code><![CDATA[$params]]></code>
-    </InvalidArgument>
-    <InvalidReturnStatement>
-      <code><![CDATA[$result]]></code>
-    </InvalidReturnStatement>
     <MismatchingDocblockParamType>
       <code><![CDATA[Transaction|resource|null]]></code>
     </MismatchingDocblockParamType>
     <PossiblyNullArgument>
-      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$params]]></code>
       <code><![CDATA[$this->connection]]></code>
     </PossiblyNullArgument>
     <PossiblyUnusedMethod>
+      <code><![CDATA[createBatch]]></code>
       <code><![CDATA[createIndependentTransaction]]></code>
       <code><![CDATA[dropTableForce]]></code>
       <code><![CDATA[executeAuto]]></code>
@@ -44,9 +39,37 @@
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
+    <UndefinedClass>
+      <code><![CDATA[Batch]]></code>
+      <code><![CDATA[BatchResult]]></code>
+      <code><![CDATA[Database]]></code>
+      <code><![CDATA[DbInfo|array|false]]></code>
+      <code><![CDATA[TBuilder]]></code>
+      <code><![CDATA[Transaction|null]]></code>
+      <code><![CDATA[Transaction|resource|null]]></code>
+    </UndefinedClass>
+    <UndefinedDocblockClass>
+      <code><![CDATA[Transaction|resource|null]]></code>
+      <code><![CDATA[resource|Transaction]]></code>
+    </UndefinedDocblockClass>
+    <UnusedParam>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$rows]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+    </UnusedParam>
     <UnusedVariable>
       <code><![CDATA[$success]]></code>
     </UnusedVariable>
+  </file>
+  <file src="src/Driver/Firebird/Driver.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[$serverVersion]]></code>
+    </PossiblyFalseArgument>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
     <PossiblyInvalidArgument>
@@ -56,12 +79,27 @@
       <code><![CDATA[fromFirebirdException]]></code>
     </PossiblyUnusedMethod>
   </file>
+  <file src="src/Driver/Firebird/ExceptionConverter.php">
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[$sqlState !== null]]></code>
+    </RedundantConditionGivenDocblockType>
+  </file>
   <file src="src/Driver/Firebird/Result.php">
+    <FalsableReturnStatement>
+      <code><![CDATA[fbird_num_fields($this->firebirdResultResource)]]></code>
+    </FalsableReturnStatement>
+    <InvalidFalsableReturnType>
+      <code><![CDATA[int]]></code>
+    </InvalidFalsableReturnType>
     <PossiblyUnusedMethod>
       <code><![CDATA[fetchAllAssociativeWithDateObjects]]></code>
       <code><![CDATA[fetchNumericWithDateObjects]]></code>
       <code><![CDATA[isDateObjectFetchAvailable]]></code>
     </PossiblyUnusedMethod>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $key]]></code>
+      <code><![CDATA[(string) $key]]></code>
+    </RedundantCastGivenDocblockType>
     <UnusedProperty>
       <code><![CDATA[$statement]]></code>
     </UnusedProperty>
@@ -70,18 +108,12 @@
     <PossiblyFalseArgument>
       <code><![CDATA[$callArgs]]></code>
     </PossiblyFalseArgument>
-    <PossiblyInvalidArgument>
-      <code><![CDATA[$key]]></code>
-      <code><![CDATA[$key]]></code>
-    </PossiblyInvalidArgument>
     <RedundantCondition>
       <code><![CDATA[$fbirdResultRc === true]]></code>
+      <code><![CDATA[$returnedRow !== false && is_array($returnedRow)]]></code>
+      <code><![CDATA[is_array($returnedRow)]]></code>
       <code><![CDATA[is_resource($variable)]]></code>
       <code><![CDATA[is_resource($variable)]]></code>
     </RedundantCondition>
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$returnedRow !== false && is_array($returnedRow)]]></code>
-      <code><![CDATA[is_array($returnedRow)]]></code>
-    </RedundantConditionGivenDocblockType>
   </file>
 </files>

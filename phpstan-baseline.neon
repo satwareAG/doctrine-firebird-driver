@@ -40,87 +40,12 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Constant FBIRD_COMMITTED not found\\.$#"
-			count: 2
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_CONCURRENCY not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_CONSISTENCY not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_NOWAIT not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_REC_VERSION not found\\.$#"
-			count: 2
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_WAIT not found\\.$#"
-			count: 2
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Constant FBIRD_WRITE not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_drop_table_force not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_execute_auto not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_kill_attachment not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_list_table_blockers not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
 			message: "#^Function fbird_prepare invoked with 3 parameters, 1 required\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
 			message: "#^Function fbird_query_params_tx not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_release_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_rollback_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Function fbird_trans_start not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
@@ -160,6 +85,16 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
+			message: "#^Parameter \\#1 \\$link_identifier of function fbird_trans_start expects resource, resource\\|null given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: "#^Parameter \\#3 \\$params of function fbird_execute_auto expects array, array\\|null given\\.$#"
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
 			message: "#^Parameter \\$transaction of method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection\\:\\:createBatch\\(\\) has invalid type Firebird\\\\Transaction\\.$#"
 			count: 2
 			path: src/Driver/Firebird/Connection.php
@@ -175,97 +110,7 @@ parameters:
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: "#^Used constant FBIRD_COMMITTED not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_CONCURRENCY not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_CONSISTENCY not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_NOWAIT not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_REC_VERSION not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_WAIT not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used constant FBIRD_WRITE not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_connection_info not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_drop_table_force not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_execute_auto not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_get_limbo_transactions not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_kill_attachment not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_list_table_blockers not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
 			message: "#^Used function fbird_query_params_tx not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_reconnect_transaction not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_release_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_rollback_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_savepoint not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: "#^Used function fbird_trans_start not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
@@ -275,19 +120,9 @@ parameters:
 			path: src/Driver/Firebird/ConnectionWrapper.php
 
 		-
-			message: "#^Constant FBIRD_SVC_SERVER_VERSION not found\\.$#"
+			message: "#^Parameter \\#2 \\$serverVersion of class Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Connection constructor expects string, string\\|false given\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Driver.php
-
-		-
-			message: "#^Used constant FBIRD_SVC_SERVER_VERSION not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Driver.php
-
-		-
-			message: "#^Used function fbird_sqlstate not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Exception.php
 
 		-
 			message: "#^Call to function method_exists\\(\\) with Doctrine\\\\DBAL\\\\Driver\\\\Exception&Firebird\\\\Exception and 'getSqlState' will always evaluate to true\\.$#"
@@ -295,22 +130,17 @@ parameters:
 			path: src/Driver/Firebird/ExceptionConverter.php
 
 		-
-			message: "#^Constant FBIRD_FETCH_BLOBS not found\\.$#"
-			count: 4
+			message: "#^Strict comparison using \\!\\=\\= between string and null will always evaluate to true\\.$#"
+			count: 1
+			path: src/Driver/Firebird/ExceptionConverter.php
+
+		-
+			message: "#^Method Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:columnCount\\(\\) should return int but returns int\\|false\\.$#"
+			count: 1
 			path: src/Driver/Firebird/Result.php
 
 		-
 			message: "#^Property Satag\\\\DoctrineFirebirdDriver\\\\Driver\\\\Firebird\\\\Result\\:\\:\\$statement is never read, only written\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Result.php
-
-		-
-			message: "#^Used constant FBIRD_FETCH_BLOBS not found\\.$#"
-			count: 1
-			path: src/Driver/Firebird/Result.php
-
-		-
-			message: "#^Used constant FBIRD_FETCH_DATE_OBJ not found\\.$#"
 			count: 1
 			path: src/Driver/Firebird/Result.php
 
@@ -416,11 +246,6 @@ parameters:
 			path: src/Platforms/FirebirdPlatform.php
 
 		-
-			message: "#^Constant FBIRD_CREATE not found\\.$#"
-			count: 1
-			path: src/Schema/FirebirdSchemaManager.php
-
-		-
 			message: "#^Offset 'password' does not exist on array\\{application_name\\?\\: string, charset\\?\\: string, dbname\\: string, defaultTableOptions\\?\\: array\\<string, mixed\\>, default_dbname\\?\\: string, driver\\?\\: 'ibm_db2'\\|'mysqli'\\|'oci8'\\|'pdo_mysql'\\|'pdo_oci'\\|'pdo_pgsql'\\|'pdo_sqlite'\\|'pdo_sqlsrv'\\|'pgsql'\\|'sqlite3'\\|'sqlsrv', driverClass\\?\\: class\\-string\\<Doctrine\\\\DBAL\\\\Driver\\>, driverOptions\\?\\: array, \\.\\.\\.\\}\\.$#"
 			count: 1
 			path: src/Schema/FirebirdSchemaManager.php
@@ -431,6 +256,6 @@ parameters:
 			path: src/Schema/FirebirdSchemaManager.php
 
 		-
-			message: "#^Used constant FBIRD_CREATE not found\\.$#"
+			message: "#^Parameter \\#1 \\$link_identifier of function fbird_query expects resource\\|string\\|null, int given\\.$#"
 			count: 1
 			path: src/Schema/FirebirdSchemaManager.php
