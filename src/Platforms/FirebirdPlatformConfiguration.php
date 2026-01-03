@@ -23,15 +23,11 @@ final class FirebirdPlatformConfiguration
      *
      * Historical default: 255 characters
      * Maximum allowed: 8191 characters (Firebird UTF8 varchar limit)
-     *
-     * @var int
      */
     private const DEFAULT_LIKE_CAST_LENGTH = 255;
 
     /**
      * Minimum allowed CAST length.
-     *
-     * @var int
      */
     private const MIN_LIKE_CAST_LENGTH = 1;
 
@@ -39,8 +35,6 @@ final class FirebirdPlatformConfiguration
      * Maximum allowed CAST length (Firebird UTF8 varchar limit).
      *
      * @link https://firebirdsql.org/file/documentation/chunk/en/refdocs/fblangref40/fblangref40-datatypes-chartypes.html
-     *
-     * @var int
      */
     private const MAX_LIKE_CAST_LENGTH = 8191;
 
