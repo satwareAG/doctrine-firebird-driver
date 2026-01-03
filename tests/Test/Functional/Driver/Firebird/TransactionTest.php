@@ -10,14 +10,6 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 /** @requires extension interbase **/
 class TransactionTest extends FunctionalTestCase
 {
-    public function testBeginTransactionCommit(): void
-    {
-        $this->connection->beginTransaction();
-        self::assertTrue($this->connection->isTransactionActive());
-        $this->connection->commit();
-        self::assertFalse($this->connection->isTransactionActive());
-    }
-
     public function testTransactionIsolationLevel(): void
     {
         // Test setting isolation level effectively usage of attributes

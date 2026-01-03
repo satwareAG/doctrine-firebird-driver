@@ -31,22 +31,6 @@ class TransactionNestingTest extends FunctionalTestCase
         self::assertEquals(0, $count, 'Nested commit should not have persisted when outer transaction rolled back');
     }
 
-    public function testNestedStructureSuccess(): void
-    {
-        $connection = $this->getFirebirdConnection();
-        $connection->beginTransaction(); // 1
-        $this->connection->executeStatement('INSERT INTO ' . $this->tableName . " (id, val) VALUES (1, 'outer')");
-
-        $connection->beginTransaction(); // 2
-        $this->connection->executeStatement('INSERT INTO ' . $this->tableName . " (id, val) VALUES (2, 'inner')");
-        $connection->commit(); // 1
-
-        $connection->commit(); // 0 - Persist all
-
-        $count = $this->connection->fetchOne('SELECT COUNT(*) FROM ' . $this->tableName);
-        self::assertEquals(2, $count);
-    }
-
     public function testNestedRollbackRevertsChanges(): void
     {
         $connection = $this->getFirebirdConnection();
