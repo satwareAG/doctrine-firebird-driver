@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **PHP 8.1 Compatibility** - Removed PHP 8.3 typed constants for PHP 8.1 support
+  - Converted `public const string/int` to `public const` with `@var` docblocks
+  - Affected files: `Connection.php`, `FirebirdDriver.php`, `FirebirdPlatformConfiguration.php`, `FirebirdSchemaManager.php`
+  - Test files: `ConnectionTest.php`, `MoneyType.php`
+  - PHPStan `phpVersion` set to `80100` for accurate analysis
+
 ### Changed
+- **External Stubs Package** - Integrated `satwareag/php-firebird-stubs:v7.0.0-rc.41`
+  - Removed local `stubs/` directory (~1,600 lines)
+  - PHPStan baseline reduced from 79 to 66 errors (17% reduction)
+  - Psalm baseline regenerated (119 lines)
+- **Shell Script Bug Fixes** (docker-cqc.sh, cqc.sh)
+  - Fixed critical bug where pipeline exit codes were incorrectly reported as success
+  - Now uses `${PIPESTATUS[0]}` to capture actual command exit codes when piping to `tee`
 - **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.34 to v7.0.0-rc.37
   - Final fix for SIGSEGV issues in PHPStan/Psalm parallel mode
   - Removed `maximumNumberOfProcesses: 1` workaround from phpstan.neon.dist
