@@ -15,8 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed PHPUnit unit tests: `ExceptionConverterTest`, `Firebird4PlatformTest`, `DriverTest`, `VersionAwarePlatformDriverTest`
   - Created missing test exceptions and mock classes
   - All 977 PHPUnit tests passing, 53 PHPCS checks, PHPStan Level 8 clean, Psalm clean
-- **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.37 to v7.0.0-rc.42
-  - Includes ongoing SIGSEGV investigation fixes for ServiceManager::detach()
+- **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.37 to v7.0.0-rc.43
+  - **v7.0.0-rc.43**: Fixes SIGSEGV in `fb::Connection::detachNoThrow()` during PHP shutdown (Issue #56)
+  - PHP 8.4: ✅ Exit code 0 (no crash) - SIGSEGV fully resolved
+  - PHP 8.1: ⚠️ Exit code 139 - Known issue, PHP 8.1 reaches EOL soon
   - See: `docs/issues/2026-01-03-segfault-investigation-servicemanager-detach.md`
 - **TypeConversionTest Deprecation Fix** - Removed incorrect deprecation expectations from array/object type tests
   - The DBAL PR #5509 deprecation only triggers on `requiresSQLCommentHint()`, not during `convertTo*Value()` operations

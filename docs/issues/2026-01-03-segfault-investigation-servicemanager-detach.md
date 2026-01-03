@@ -1,9 +1,9 @@
 # Segfault and Memory Corruption Investigation: php-firebird Extension
 
 **Date**: 2026-01-03
-**Status**: ✅ FIXED in v7.0.0-rc.42 (PHP 8.4+)
+**Status**: ✅ FIXED in v7.0.0-rc.43 (PHP 8.4+)
 **Issue**: https://github.com/satwareAG/php-firebird/issues/56
-**Last Updated**: 2026-01-03 (v7.0.0-rc.42 verified to fix PHP 8.4 segfault)
+**Last Updated**: 2026-01-03 (v7.0.0-rc.43 verified to fix PHP 8.4 segfault)
 
 ## Summary
 
@@ -27,9 +27,14 @@ Both errors occur during PHP's resource cleanup phase (`zend_shutdown_executor_v
 | Version | PHP 8.4 | PHP 8.1 |
 |---------|---------|---------|
 | v7.0.0-rc.37 | ❌ Exit 139 (SIGSEGV) | ❌ Exit 139 |
-| **v7.0.0-rc.42** | ✅ **Exit 0** | ❌ Exit 139 |
+| v7.0.0-rc.42 | ✅ Exit 0 | ❌ Exit 139 |
+| **v7.0.0-rc.43** | ✅ **Exit 0** | ❌ Exit 139 |
 
-**v7.0.0-rc.42 fixes the segfault on PHP 8.4.** PHP 8.1 may require additional fixes or is approaching EOL support.
+**v7.0.0-rc.43 fixes the segfault on PHP 8.4.** The fix in rc.43 specifically addresses `fb::Connection::detachNoThrow()` which was using an invalid stored `master_` pointer during PHP shutdown. PHP 8.1 may require additional fixes or is approaching EOL support.
+
+### v7.0.0-rc.43 Fix Details
+
+The fix changes `detachNoThrow()` to call `getMaster()` (which returns the current `IBG(master_instance)` global) instead of using the stored `master_` pointer. If `getMaster()` returns NULL (Firebird already shut down), the detach operation is safely skipped.
 
 ## Error Manifestations
 
