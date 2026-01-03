@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **TypeConversionTest Deprecation Fix** - Removed incorrect deprecation expectations from array/object type tests
+  - The DBAL PR #5509 deprecation only triggers on `requiresSQLCommentHint()`, not during `convertTo*Value()` operations
+  - Removed `VerifyDeprecations` trait usage since no deprecation warnings are expected in the test's code path
+  - Tests still validate that deprecated `Types::ARRAY` and `Types::OBJECT` work correctly for backward compatibility
+  - Fixes test failure: "Expected deprecation with identifier 'https://github.com/doctrine/dbal/pull/5509' was not triggered"
 - **PHP 8.1 Compatibility** - Removed PHP 8.3 typed constants for PHP 8.1 support
   - Converted `public const string/int` to `public const` with `@var` docblocks
   - Affected files: `Connection.php`, `FirebirdDriver.php`, `FirebirdPlatformConfiguration.php`, `FirebirdSchemaManager.php`

@@ -8,7 +8,6 @@ use DateTime;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -20,8 +19,6 @@ use function str_repeat;
 
 class TypeConversionTest extends FunctionalTestCase
 {
-    use VerifyDeprecations;
-
     private static int $typeCounter = 0;
 
     #[DataProvider('booleanProvider')]
@@ -66,15 +63,15 @@ class TypeConversionTest extends FunctionalTestCase
      * The Types::ARRAY constant and ArrayType class are deprecated in DBAL 3.x.
      * Use Types::JSON instead in new code.
      *
+     * Note: The deprecation from PR #5509 is only triggered when requiresSQLCommentHint()
+     * is called from outside DBAL, not during normal convertTo*Value() operations.
+     *
      * @see https://github.com/doctrine/dbal/pull/5509
      */
     #[Group('deprecated')]
     #[DataProvider('toArrayProvider')]
     public function testIdempotentConversionToArray(string $type, mixed $originalValue): void
     {
-        // ArrayType triggers deprecation when used
-        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5509');
-
         $dbValue = $this->processValue($type, $originalValue);
 
         self::assertIsArray($dbValue);
@@ -87,15 +84,15 @@ class TypeConversionTest extends FunctionalTestCase
      * The Types::OBJECT constant and ObjectType class are deprecated in DBAL 3.x.
      * Use Types::JSON instead in new code.
      *
+     * Note: The deprecation from PR #5509 is only triggered when requiresSQLCommentHint()
+     * is called from outside DBAL, not during normal convertTo*Value() operations.
+     *
      * @see https://github.com/doctrine/dbal/pull/5509
      */
     #[Group('deprecated')]
     #[DataProvider('toObjectProvider')]
     public function testIdempotentConversionToObject(string $type, mixed $originalValue): void
     {
-        // ObjectType triggers deprecation when used
-        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5509');
-
         $dbValue = $this->processValue($type, $originalValue);
 
         self::assertIsObject($dbValue);
