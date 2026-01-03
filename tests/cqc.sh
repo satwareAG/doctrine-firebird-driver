@@ -133,9 +133,9 @@ main() {
         local stan_start
         stan_start=$(date +%s)
         
-        # Use PHPSTAN_WORKERS=1 to disable parallel mode - workaround for php-firebird SIGSEGV
-        # See: https://github.com/satwareAG/php-firebird/issues/50
-        if PHPSTAN_WORKERS=1 vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt; then
+        # NOTE: SIGSEGV issue fixed in php-firebird v7.0.0-rc.37
+        # See: https://github.com/satwareAG/php-firebird/issues/55
+        if vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt; then
             print_success "PHPStan Level 8: PASSED"
         else
             print_error "PHPStan Level 8: FAILED"
