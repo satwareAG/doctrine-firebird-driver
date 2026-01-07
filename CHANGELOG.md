@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.10.0-rc.1] - 2026-01-07
+
+### Changed
+- **php-firebird Extension Upgrade** - Updated CI/Docker from v7.0.0-rc.44 to v7.0.0-rc.47
+  - **v7.0.0-rc.47**: Latest stable release candidate with SIGSEGV fixes for PHP shutdown handling
+  - **Improvements**: Enhanced stability during test runs and PHP process termination
+  - Updated Docker test environment to use rc.47 tag from satwareAG/php-firebird repository
+
+### Added
+- **Docker BuildKit Documentation** - Comprehensive setup guide for Arch Linux
+  - Installation via pacman (`docker-buildx` package)
+  - BuildKit configuration and environment setup (`DOCKER_BUILDKIT=1`)
+  - Builder instance management (`docker buildx create`, `docker buildx use`)
+  - Troubleshooting common issues (builder not found, permission errors)
+  - Build performance benefits (parallel builds, layer caching)
+  - Project-specific notes for php-firebird extension compilation
+  - Location: `docs/tech/docker-buildkit-arch-linux-setup.md`
+
 ### Fixed
 - **PHP 8.1 Compatibility** - Removed PHP 8.3 typed constants for PHP 8.1 support
   - Converted `public const string/int` to `public const` with `@var` docblocks
@@ -153,4 +171,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...HEAD
+[3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0...v3.10.0-rc.1

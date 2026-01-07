@@ -64,7 +64,7 @@
     },
     "require": {
         "php": "^8.1",
-        "ext-firebird": "^7.0.0-rc.35",
+        "ext-firebird": "^7.0.0-rc.47",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^3.10",
         "symfony/polyfill-php82": "^1.31",
