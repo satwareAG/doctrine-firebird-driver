@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v7.0.0-rc.44), pcov (fast coverage)
+# Extensions: firebird (php-firebird v7.0.0-rc.47), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -28,9 +28,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v7.0.0-rc.44 includes SIGSEGV fix for shutdown)
+# Install php-firebird extension from source (v7.0.0-rc.47 includes SIGSEGV fix for shutdown)
 RUN docker-php-source extract \
-    && git clone --branch v7.0.0-rc.44 --depth 1 \
+    && git clone --branch v7.0.0-rc.47 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && docker-php-ext-install firebird pcntl \
