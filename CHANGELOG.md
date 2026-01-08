@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.49
+  - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.49
+  - GitHub Actions CI workflow builds v7.0.0-rc.49 from source
+  - Updated `satwareag/php-firebird-stubs` to ^7.0.0-rc.49 for PHPStan compatibility
+  - All static analysis (PHPStan Level 8, Psalm) passing with updated stubs
+  - Closes #52 (SIGSEGV exit 139 fix) and #39 (PHPStan segfault fix)
+
+### Fixed
+- **PHPCS Configuration** - Excluded `tests/debug/` from coding standards checks
+  - Debug scripts are development tools, not production code
+  - Prevents false positives on quick debug shell scripts
+
 ## [3.10.0-rc.1] - 2026-01-07
 
 ### Changed

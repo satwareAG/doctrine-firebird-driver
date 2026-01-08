@@ -11,7 +11,7 @@ To utilize this library in your application code, the following is required:
 
 - Firebird Client for Server version 2.5, 3, 4 or 5
 - PHP >= 8.1
-- [fbird/ibase interbase](http://php.net/manual/en/book.ibase.php) firebird driver 
+- [php-firebird extension](https://github.com/satwareAG/php-firebird) v7.0.0-rc.49+ (fork with enhanced features)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
 
 # License & Disclaimer
