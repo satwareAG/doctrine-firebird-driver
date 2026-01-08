@@ -209,7 +209,34 @@ jobs:
           cd tests
           
           # Run tests without coverage (--no-coverage prevents "No coverage driver" warning)
-          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage
+          # Handle exit code 139 (SIGSEGV) gracefully - known php-firebird extension bug
+          # during persistent connection cleanup (see docs/issues/2025-01-02-schema-test-timeout-segfault.md)
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage 2>&1)
+          EXIT_CODE=$?
+          set -e
+          
+          echo "$OUTPUT"
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ PHPUnit tests passed"
+          elif [ $EXIT_CODE -eq 139 ]; then
+            # Exit 139 = SIGSEGV (128 + 11)
+            # Check if PHPUnit reported success before the crash
+            if echo "$OUTPUT" | grep -qE '^OK'; then
+              echo ""
+              echo "⚠️  WARNING: PHP process crashed with SIGSEGV (exit 139) during shutdown"
+              echo "   This is a known php-firebird extension bug during persistent connection cleanup."
+              echo "   PHPUnit reported success before crash - treating as success."
+              echo ""
+            else
+              echo "❌ PHPUnit tests failed with SIGSEGV (exit 139)"
+              exit 139
+            fi
+          else
+            echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: Run PHPUnit tests with coverage
         if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
@@ -222,9 +249,35 @@ jobs:
           cd tests
           
           # Run tests with coverage
-          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
+          # Handle exit code 139 (SIGSEGV) gracefully - known php-firebird extension bug
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
             --coverage-clover ../coverage.xml \
-            --log-junit ../junit.xml
+            --log-junit ../junit.xml 2>&1)
+          EXIT_CODE=$?
+          set -e
+          
+          echo "$OUTPUT"
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ PHPUnit tests with coverage passed"
+          elif [ $EXIT_CODE -eq 139 ]; then
+            # Exit 139 = SIGSEGV (128 + 11)
+            # Check if PHPUnit reported success and coverage files were generated
+            if echo "$OUTPUT" | grep -qE '^OK' && [ -f ../coverage.xml ]; then
+              echo ""
+              echo "⚠️  WARNING: PHP process crashed with SIGSEGV (exit 139) during shutdown"
+              echo "   This is a known php-firebird extension bug during persistent connection cleanup."
+              echo "   PHPUnit reported success and coverage was generated - treating as success."
+              echo ""
+            else
+              echo "❌ PHPUnit tests failed with SIGSEGV (exit 139)"
+              exit 139
+            fi
+          else
+            echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: Upload coverage to Codecov
         if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
