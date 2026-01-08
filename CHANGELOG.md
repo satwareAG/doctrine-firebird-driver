@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Known Issues
+- **PHPStan Static Analysis CI Failing** - php-firebird-stubs package missing v7.0.0-rc.49 symbols
+  - 12 new functions and 11 new constants not yet in stubs
+  - Tracking issue: [satwareAG/php-firebird-stubs#2](https://github.com/satwareAG/php-firebird-stubs/issues/2)
+  - Local analysis works with docker-cqc.sh (extension loaded provides symbols)
+
 ### Changed
 - **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.49
   - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.49
