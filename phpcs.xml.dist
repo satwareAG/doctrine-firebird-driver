@@ -97,4 +97,7 @@
     <exclude-pattern>tests/Test/Unit/*</exclude-pattern>
     <exclude-pattern>tests/Test/Integration/*</exclude-pattern>
     <exclude-pattern>tests/Test/Resource/*</exclude-pattern>
+
+    <!-- Debug scripts (not production code) -->
+    <exclude-pattern>tests/debug/*</exclude-pattern>
 </ruleset>
