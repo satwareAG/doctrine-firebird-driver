@@ -301,7 +301,7 @@ class Statement implements StatementInterface
                             throw Exception::fromThrowable($e);
                         }
 
-                        if ($returnedRow !== false && is_array($returnedRow)) {
+                        if ($returnedRow !== false) {
                             // Look for identity column value in returned row
                             // ConnectionWrapper sets connectionInsertColumn when RETURNING is added
                             $identityColumn = $this->connection->getConnectionInsertColumn();
