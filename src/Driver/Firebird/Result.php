@@ -40,11 +40,11 @@ final class Result implements ResultInterface
      *
      * @throws Exception
      *
-     * @phpstan-ignore property.onlyWritten (Required for GC: keeps Statement alive during Result iteration)
      */
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
+        /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly Statement|null $statement = null,
     ) {
         // If no insert column is expected (normal query), return early to allow user to fetch results.
@@ -194,7 +194,7 @@ final class Result implements ResultInterface
     public function columnCount(): int
     {
         if (is_resource($this->firebirdResultResource)) {
-            return fbird_num_fields($this->firebirdResultResource);
+            return (int) fbird_num_fields($this->firebirdResultResource);
         }
 
         return 0;

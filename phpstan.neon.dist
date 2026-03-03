@@ -9,6 +9,9 @@ parameters:
     stubFiles:
         - vendor/satwareag/php-firebird-stubs/firebird-stubs.php
         - vendor/satwareag/php-firebird-stubs/firebird-classes.php
+    scanFiles:
+        - stubs/firebird-userland-classes.php
+        - stubs/firebird-global-functions.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false
@@ -38,6 +41,37 @@ parameters:
             message: '#Used constant FBIRD_EXCEPTION_MODE_THROW not found#'
             paths:
                 - src/Driver/Firebird/Connection.php
+
+        # Deprecated DBAL methods called intentionally for backward compatibility
+        # These will be updated when we drop support for the current DBAL version
+        -
+            message: '#Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\TableDiff#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getColumnComment\(\) of class Doctrine\\DBAL\\Platforms\\AbstractPlatform#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getOldColumnName\(\) of class Doctrine\\DBAL\\Schema\\ColumnDiff#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getVarcharMaxLength\(\) of class#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getIdentitySequenceName\(\) of class#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getBinaryMaxLength\(\) of class#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method getTemporaryTableSQL\(\) of class#'
+            paths:
+                - src/Platforms/
 
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon

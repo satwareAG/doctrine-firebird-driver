@@ -29,7 +29,7 @@ use function version_compare;
  * This driver is version-aware and provides platform instances appropriate
  * for the connected Firebird server version.
  */
-abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
+abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @phpstan-ignore-line classImplements.deprecated
 {
     public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 

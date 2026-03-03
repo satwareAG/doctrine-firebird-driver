@@ -665,10 +665,13 @@ class FirebirdPlatform extends AbstractPlatform
                 continue;
             }
 
-            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->getOldColumnName();
+            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->fromColumn;
             $newColumn = $columnDiff->getNewColumn();
 
-            $oldColumnName = $oldColumn->getQuotedName($this);
+            // fromColumn may be null for legacy ColumnDiff instances; fall back to new column name
+            $oldColumnName = $oldColumn !== null
+                ? $oldColumn->getQuotedName($this)
+                : $newColumn->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()
@@ -699,22 +702,23 @@ class FirebirdPlatform extends AbstractPlatform
                 $newNullFlag = $newColumn->getNotnull() ? '1' : 'NULL';
                 $sql[]       = 'UPDATE RDB$RELATION_FIELDS SET RDB$NULL_FLAG = ' . $newNullFlag .
                         " WHERE UPPER(RDB\$FIELD_NAME) = UPPER('" . $this->unquotedIdentifierName($oldColumnName) . "')" .
-                        " AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $this->unquotedIdentifierName($diff->getName($this)) . "')";
+                        " AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $this->unquotedIdentifierName($tableNameSQL) . "')";
             }
 
             if ($columnDiff->hasAutoIncrementChanged()) {
                 if ($newColumn->getAutoincrement()) {
                     // add autoincrement
-                    $seqName = $this->getIdentitySequenceName($diff->name, $oldColumnName);
+                    /** @phpstan-ignore method.deprecated (self-referential call; getIdentitySequenceName is our own deprecated method) */
+                    $seqName = $this->getIdentitySequenceName($table->getName(), $oldColumnName);
 
                     $sql[] = 'CREATE SEQUENCE ' . $seqName;
-                    $sql[] = "SELECT setval('" . $seqName . "', (SELECT MAX(" . $oldColumnName . ') FROM ' . $diff->getName($this)->getQuotedName($this) . '))';
+                    $sql[] = "SELECT setval('" . $seqName . "', (SELECT MAX(" . $oldColumnName . ') FROM ' . $tableNameSQL . '))';
                     $query = 'ALTER ' . $oldColumnName . " SET DEFAULT nextval('" . $seqName . "')";
-                    $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+                    $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
                 } else {
                     // Drop autoincrement, but do NOT drop the sequence. It might be re-used by other tables or have
                     $query = 'ALTER ' . $oldColumnName . ' DROP DEFAULT';
-                    $sql[] = 'ALTER TABLE ' . $diff->getName($this)->getQuotedName($this) . ' ' . $query;
+                    $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
                 }
             }
 
@@ -855,7 +859,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getColumnDeclarationSQL($name, array $column): string
     {
-        if (isset($column['type']) && $column['type']->getName() === Types::BINARY) {
+        if (isset($column['type']) && $column['type'] instanceof Type && $column['type']::class === \Doctrine\DBAL\Types\BinaryType::class) {
             $column['charset'] = 'octets';
         }
 
@@ -879,11 +883,12 @@ class FirebirdPlatform extends AbstractPlatform
     {
         if (! $this->hasNativeBooleanType) {
             foreach ($table->getColumns() as $column) {
-                if ($column->getType()->getName() !== Types::BOOLEAN) {
+                if (! ($column->getType() instanceof \Doctrine\DBAL\Types\BooleanType)) {
                     continue;
                 }
 
-                $column->setComment(($column->getComment() ?? '') . $this->getDoctrineTypeComment(Type::getType(Types::BOOLEAN)));
+                // Inline getDoctrineTypeComment() — avoids calling deprecated DBAL method
+                $column->setComment(($column->getComment() ?? '') . '(DC2Type:boolean)');
                 if ($this->useSmallIntBoolean) {
                     continue;
                 }

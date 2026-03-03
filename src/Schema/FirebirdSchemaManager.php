@@ -89,7 +89,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
         // Suppress warning since we handle the error explicitly below
         try {
-            $connection = @fbird_connect($dbname, $params['user'], $params['password']);
+            $connection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
@@ -156,7 +156,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         /** @psalm-suppress InvalidArgument */
         try {
             $result = fbird_query(
-                FBIRD_CREATE,
+                FBIRD_CREATE, // @phpstan-ignore-line argument.type
                 sprintf(
                     "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
                     $dbname,

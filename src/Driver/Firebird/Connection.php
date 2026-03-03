@@ -82,7 +82,7 @@ use const FBIRD_WRITE;
  * Based on https://github.com/helicon-os/doctrine-dbal
  * and Doctrine\DBAL\Driver\OCI8\Connection
  */
-final class Connection implements ServerInfoAwareConnection
+final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
 {
     /**
      * Valid resource types for Firebird connection.
@@ -299,6 +299,7 @@ final class Connection implements ServerInfoAwareConnection
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
+            /** @phpstan-ignore arguments.count */
             $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
 
             if ($stmt === false) {
@@ -844,7 +845,7 @@ final class Connection implements ServerInfoAwareConnection
             throw new DriverException('No active connection.');
         }
 
-        $result = fbird_execute_auto($this->connection, $sql, $params);
+        $result = fbird_execute_auto($this->connection, $sql, $params ?? []);
 
         if ($result === false) {
             $this->checkLastApiCall();
@@ -965,7 +966,7 @@ final class Connection implements ServerInfoAwareConnection
      *   echo "Inserted: " . $result->count() . " rows";
      *
      * @param string                    $sql         INSERT statement with placeholders
-     * @param Transaction|resource|null $transaction Optional transaction (uses active if null)
+     * @param Transaction|null $transaction Optional transaction (uses active if null)
      *
      * @return Batch Batch object for adding rows and executing
      *
@@ -1199,6 +1200,7 @@ final class Connection implements ServerInfoAwareConnection
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
+            /** @phpstan-ignore argument.type */
             $result = fbird_trans_start($this->connection, $options);
 
             if (! is_resource($result)) {

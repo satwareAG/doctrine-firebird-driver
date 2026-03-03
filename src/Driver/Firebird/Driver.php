@@ -66,6 +66,10 @@ final class Driver extends FirebirdDriver
         }
 
         $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
+        if ($serverVersion === false) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
         if (! fbird_service_detach($firebirdService)) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }

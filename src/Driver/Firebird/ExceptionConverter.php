@@ -42,11 +42,9 @@ final class ExceptionConverter implements ExceptionConverterInterface
         // When Firebird\Exception is thrown with Exception Mode enabled, we can use
         // the standardized SQLSTATE codes for more accurate error classification
         if (class_exists(\Firebird\Exception::class, false)) {
-            /** @phpstan-ignore class.notFound */
-            if ($exception instanceof \Firebird\Exception && method_exists($exception, 'getSqlState')) {
-                /** @phpstan-ignore method.nonObject */
+            if ($exception instanceof \Firebird\Exception) {
                 $sqlState = $exception->getSqlState();
-                if ($sqlState !== null && $sqlState !== '') {
+                if ($sqlState !== '') {
                     $result = $this->convertBySqlState($sqlState, $exception, $query);
                     if ($result !== null) {
                         return $result;

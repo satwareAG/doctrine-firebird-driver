@@ -158,6 +158,7 @@ final class ConnectionWrapper extends Connection
         if (! array_key_exists($tableName, $tableSequences)) {
             $schemaManager = $this->createSchemaManager();
             // Get the columns for the table
+            /** @phpstan-ignore method.deprecated */
             $sequenceForTable      = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
             $sequences             = $schemaManager->listSequences();
             $_identitySequenceName = null;
@@ -166,6 +167,7 @@ final class ConnectionWrapper extends Connection
                     continue;
                 }
 
+                /** @phpstan-ignore method.deprecated */
                 $_identitySequenceName    = $this->getDatabasePlatform()->getIdentitySequenceName($tableName, '');
                 $this->lastInsertSequence = $_identitySequenceName;
             }
