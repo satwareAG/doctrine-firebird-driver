@@ -140,11 +140,6 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->configuration->getLikeCastLength();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @return string
-     */
     public function getName(): string
     {
         Deprecation::triggerIfCalledFromOutside(
@@ -498,8 +493,6 @@ class FirebirdPlatform extends AbstractPlatform
      * {@inheritDoc}
      *
      * @param string $sequence
-     *
-     * @return string
      */
     public function getSequenceNextValSQL($sequence): string
     {

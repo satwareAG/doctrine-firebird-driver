@@ -33,8 +33,6 @@ final class Driver extends FirebirdDriver
 {
     /**
      * {@inheritDoc}
-     *
-     * @return Connection
      */
     #[Override]
     public function connect(

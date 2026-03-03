@@ -98,11 +98,6 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
         return $platform;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @return FirebirdPlatform
-     */
     public function getDatabasePlatform(): FirebirdPlatform
     {
         $platform = new FirebirdPlatform();
@@ -120,8 +115,6 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver
      * {@inheritDoc}
      *
      * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
-     *
-     * @return FirebirdSchemaManager
      */
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {

@@ -8,11 +8,6 @@ use Doctrine\Deprecations\Deprecation;
 
 class Firebird5Platform extends Firebird4Platform
 {
-    /**
-     * {@inheritDoc}
-     *
-     * @return string
-     */
     public function getName(): string
     {
         Deprecation::triggerIfCalledFromOutside(
