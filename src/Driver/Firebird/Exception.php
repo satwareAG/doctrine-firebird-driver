@@ -107,18 +107,6 @@ class Exception extends BaseException implements DriverException
     }
 
     /**
-     * Create exception from Firebird\Exception (Exception Mode API).
-     *
-     * @deprecated Use fromThrowable() instead for PHPStan compatibility
-     *
-     * @param Throwable $exception The native Firebird exception
-     */
-    public static function fromFirebirdException(Throwable $exception): Exception
-    {
-        return self::fromThrowable($exception);
-    }
-
-    /**
      * Get the SQLSTATE error code.
      *
      * Returns a 5-character SQLSTATE code if available, or null if:
