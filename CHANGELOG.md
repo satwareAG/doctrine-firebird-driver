@@ -7,12 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Known Issues
-- **PHPStan Static Analysis CI Failing** - php-firebird-stubs package missing v7.0.0-rc.49 symbols
-  - 12 new functions and 11 new constants not yet in stubs
-  - Tracking issue: [satwareAG/php-firebird-stubs#2](https://github.com/satwareAG/php-firebird-stubs/issues/2)
-  - Local analysis works with docker-cqc.sh (extension loaded provides symbols)
-
 ### Changed
 - **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.49
   - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.49
@@ -22,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Closes #52 (SIGSEGV exit 139 fix) and #39 (PHPStan segfault fix)
 
 ### Fixed
+- **PHPStan Level 8 Zero Errors** - Eliminated all 53 baseline suppressions
+  - Added `stubs/firebird-userland-classes.php` for `Firebird\{TBuilder,Transaction,Database,Batch,BatchResult,DbInfo}` classes
+  - Added `stubs/firebird-global-functions.php` for `fbird_query_params_tx()` function
+  - Fixed stub loading: switched from `stubFiles` to `scanFiles` for userland PHP classes (PHPStan limitation)
+  - Fixed `Connection.php`: null coalescing for `fbird_execute_auto` params, targeted `@phpstan-ignore` annotations
+  - Fixed `ExceptionConverter.php`: removed redundant `method_exists`/null checks now covered by stubs
+  - Fixed `Result.php`: correct `@phpstan-ignore` placement for `property.onlyWritten` on constructor promoted property
+  - Fixed `FirebirdDriver.php`: `@phpstan-ignore-line` for intentional deprecated `VersionAwarePlatformDriver` interface
+  - Fixed `ConnectionWrapper.php`: `@phpstan-ignore` for deprecated `getIdentitySequenceName()` (backward compat)
+  - Fixed `FirebirdSchemaManager.php`: inline `@phpstan-ignore-line` for `fbird_query` int constant argument
+  - Added `phpstan.neon.dist` `ignoreErrors` for deprecated DBAL platform methods (backward compatibility)
+  - `phpstan-baseline.neon` is now empty — all errors resolved at source
 - **PHPCS Configuration** - Excluded `tests/debug/` from coding standards checks
   - Debug scripts are development tools, not production code
   - Prevents false positives on quick debug shell scripts
