@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.49
-  - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.49
-  - GitHub Actions CI workflow builds v7.0.0-rc.49 from source
-  - Updated `satwareag/php-firebird-stubs` to ^7.0.0-rc.49 for PHPStan compatibility
-  - All static analysis (PHPStan Level 8, Psalm) passing with updated stubs
-  - Closes #52 (SIGSEGV exit 139 fix) and #39 (PHPStan segfault fix)
+- **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.52
+  - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.52
+  - GitHub Actions CI workflow builds v7.0.0-rc.52 from source
+  - Updated `satwareag/php-firebird-stubs` to ^7.0.0-rc.52 for PHPStan compatibility
+  - Removed local `stubs/firebird-global-functions.php` stub for `fbird_execute_auto` — now provided by official stubs in v7.0.0-rc.52 (resolves satwareAG/php-firebird#83)
+  - `fbird_query_params_tx` stub retained in local stubs (PHP namespace function, not a C extension function — no official stub needed)
+  - All static analysis (PHPStan Level 8) passing with zero errors
+  - Fixes SIGSEGV in resource destructors (`fbird_service.c`, `fbird_blobs.c`) — resolves satwareAG/php-firebird#82
 
 ### Fixed
 - **PHPStan Level 8 Zero Errors** - Eliminated all 53 baseline suppressions

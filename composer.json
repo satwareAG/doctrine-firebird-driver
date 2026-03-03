@@ -75,7 +75,7 @@
     "require-dev": {
         "ext-posix": "*",
         "bamarni/composer-bin-plugin": "^1.8",
-        "satwareag/php-firebird-stubs": "^7.0.0-rc.49",
+        "satwareag/php-firebird-stubs": "^7.0.0-rc.52",
         "dg/bypass-finals": "^1.8",
         "doctrine/coding-standard": "^14.0.0",
         "doctrine/deprecations": "^0.5.3|^1",
