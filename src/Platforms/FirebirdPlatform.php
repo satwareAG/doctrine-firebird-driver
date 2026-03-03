@@ -859,7 +859,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getColumnDeclarationSQL($name, array $column): string
     {
-        if (isset($column['type']) && $column['type'] instanceof Type && $column['type']::class === BinaryType::class) {
+        if (isset($column['type']) && $column['type'] instanceof BinaryType) {
             $column['charset'] = 'octets';
         }
 

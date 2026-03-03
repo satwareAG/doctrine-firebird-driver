@@ -281,6 +281,11 @@ SQL
                 ['default' => 'bla', 'notnull' => true],
             ),
             ['type', 'notnull'],
+            new Column(
+                'bar',
+                Type::getType(Types::STRING),
+                ['default' => 'bla', 'notnull' => false],
+            ),
         );
         $tableDiff->changedColumns['metar'] = new ColumnDiff(
             'metar',

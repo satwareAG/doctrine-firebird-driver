@@ -10,6 +10,7 @@ use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\BinaryType;
 use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\Type;
@@ -825,7 +826,7 @@ END
     public function testGetColumnDeclarationSQL(): void
     {
         $type = $this
-            ->getMockBuilder(StringType::class)
+            ->getMockBuilder(BinaryType::class)
             ->disableOriginalConstructor()
             ->getMock();
         $type
