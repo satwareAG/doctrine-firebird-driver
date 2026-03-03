@@ -17,6 +17,8 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\TransactionIsolationLevel;
+use Doctrine\DBAL\Types\BinaryType;
+use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
@@ -669,9 +671,7 @@ class FirebirdPlatform extends AbstractPlatform
             $newColumn = $columnDiff->getNewColumn();
 
             // fromColumn may be null for legacy ColumnDiff instances; fall back to new column name
-            $oldColumnName = $oldColumn !== null
-                ? $oldColumn->getQuotedName($this)
-                : $newColumn->getQuotedName($this);
+            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $newColumn->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()
@@ -859,7 +859,7 @@ class FirebirdPlatform extends AbstractPlatform
      */
     public function getColumnDeclarationSQL($name, array $column): string
     {
-        if (isset($column['type']) && $column['type'] instanceof Type && $column['type']::class === \Doctrine\DBAL\Types\BinaryType::class) {
+        if (isset($column['type']) && $column['type'] instanceof Type && $column['type']::class === BinaryType::class) {
             $column['charset'] = 'octets';
         }
 
@@ -883,7 +883,7 @@ class FirebirdPlatform extends AbstractPlatform
     {
         if (! $this->hasNativeBooleanType) {
             foreach ($table->getColumns() as $column) {
-                if (! ($column->getType() instanceof \Doctrine\DBAL\Types\BooleanType)) {
+                if (! ($column->getType() instanceof BooleanType)) {
                     continue;
                 }
 

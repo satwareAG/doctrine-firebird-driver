@@ -965,7 +965,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *   $result = $batch->execute();
      *   echo "Inserted: " . $result->count() . " rows";
      *
-     * @param string                    $sql         INSERT statement with placeholders
+     * @param string           $sql         INSERT statement with placeholders
      * @param Transaction|null $transaction Optional transaction (uses active if null)
      *
      * @return Batch Batch object for adding rows and executing

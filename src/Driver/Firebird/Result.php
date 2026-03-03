@@ -39,7 +39,6 @@ final class Result implements ResultInterface
      * Statement, invalidating the underlying Firebird result resource.
      *
      * @throws Exception
-     *
      */
     public function __construct(
         private mixed $firebirdResultResource,

@@ -24,7 +24,6 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
 
 use function class_exists;
-use function method_exists;
 use function str_contains;
 use function strtolower;
 use function substr;
