@@ -1,6 +1,22 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (v3.10.0 stable released — CHANGELOG updated, tag pushed, GitHub release created, issue #58 closed)
+**Last session:** 2026-03-04 (issue #82 fixed — CI matrix version parsing, PR #83 open, all 6 matrix jobs green)
+**Branch:** `fix/ci-matrix-version-parsing` → PR #83 → `3.0.x` | **Tag:** `v3.10.0` ✅
+
+## 🔴 Immediate — Merge PR #83 then PR #81
+
+| PR | Title | Status |
+|----|-------|--------|
+| #83 | fix(driver): accept plain numeric version strings from Firebird Docker images | ✅ CI green — **needs review + merge** |
+| #81 | feat: php-firebird v7.2.0 compatibility | ⏳ Blocked by #83 — unblocks after #83 merges |
+
+**After merging #83**: Re-run CI on PR #81 to confirm it passes on the fixed base branch.
+
+**AppVeyor note**: AppVeyor checks fail on both PRs — this is a pre-existing legacy CI infrastructure issue on `3.0.x` unrelated to our changes. AppVeyor is not a required check for merge.
+
+---
+
+**Previous session:** 2026-03-04 (v3.10.0 stable released — CHANGELOG updated, tag pushed, GitHub release created, issue #58 closed)
 **Branch:** `3.0.x` | **Tag:** `v3.10.0` ✅ | **Commit:** `315b7e0`
 
 ---

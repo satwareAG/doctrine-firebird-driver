@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **`src/Driver/FirebirdDriver.php`** — Accept plain numeric version strings (e.g. `"5.0.3.1683"`)
+  returned by newer `firebirdsql/firebird` Docker images in addition to the legacy
+  `"LI|WI-V<major>.<minor>.<patch>.<build>"` format. Fixes all CI matrix jobs failing with
+  `Invalid platform version` exceptions (#82)
+
 ## [3.10.0] - 2026-03-04
 
 ### Added
