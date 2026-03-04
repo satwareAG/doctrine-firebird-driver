@@ -1,0 +1,104 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Satag\DoctrineFirebirdDriver\Test\Functional;
+
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Satag\DoctrineFirebirdDriver\Test\TestUtil;
+use Throwable;
+
+use function uniqid;
+
+/**
+ * Standalone DBAL-pattern test for FK constraint violations.
+ *
+ * Validates end-to-end: Firebird FK violation → ExceptionConverter → ForeignKeyConstraintViolationException.
+ * Mirrors the DBAL 3.10.x Functional/ForeignKeyConstraintViolationsTest pattern.
+ *
+ * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/59
+ */
+class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
+{
+    private string $tableParent = '';
+    private string $tableChild  = '';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->tableParent = 'fkv_parent_' . uniqid();
+        $this->tableChild  = 'fkv_child_' . uniqid();
+
+        $setupConn    = TestUtil::getConnection();
+        $schemaManager = $setupConn->createSchemaManager();
+
+        $parent = new Table($this->tableParent);
+        $parent->addColumn('id', Types::INTEGER);
+        $parent->setPrimaryKey(['id']);
+
+        $child = new Table($this->tableChild);
+        $child->addColumn('id', Types::INTEGER);
+        $child->addColumn('parent_id', Types::INTEGER);
+        $child->setPrimaryKey(['id']);
+        $child->addForeignKeyConstraint($parent, ['parent_id'], ['id']);
+
+        $schemaManager->createTable($parent);
+        $schemaManager->createTable($child);
+    }
+
+    public function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        $teardownConn  = TestUtil::getConnection();
+        $schemaManager = $teardownConn->createSchemaManager();
+
+        try {
+            @$schemaManager->dropTable($this->tableChild);
+        } catch (Throwable) {
+        }
+
+        try {
+            @$schemaManager->dropTable($this->tableParent);
+        } catch (Throwable) {
+        }
+    }
+
+    public function testInsertForeignKeyConstraintViolation(): void
+    {
+        // Insert valid parent row first
+        $this->connection->insert($this->tableParent, ['id' => 1]);
+
+        $this->expectException(ForeignKeyConstraintViolationException::class);
+
+        // Insert child row referencing non-existent parent id=99
+        $this->connection->insert($this->tableChild, ['id' => 1, 'parent_id' => 99]);
+    }
+
+    public function testUpdateForeignKeyConstraintViolation(): void
+    {
+        // Set up valid parent + child
+        $this->connection->insert($this->tableParent, ['id' => 1]);
+        $this->connection->insert($this->tableChild, ['id' => 1, 'parent_id' => 1]);
+
+        $this->expectException(ForeignKeyConstraintViolationException::class);
+
+        // Update parent id — child still references old id=1
+        $this->connection->update($this->tableParent, ['id' => 2], ['id' => 1]);
+    }
+
+    public function testDeleteForeignKeyConstraintViolation(): void
+    {
+        // Set up valid parent + child
+        $this->connection->insert($this->tableParent, ['id' => 1]);
+        $this->connection->insert($this->tableChild, ['id' => 1, 'parent_id' => 1]);
+
+        $this->expectException(ForeignKeyConstraintViolationException::class);
+
+        // Delete parent while child still references it
+        $this->connection->delete($this->tableParent, ['id' => 1]);
+    }
+}
