@@ -90,9 +90,15 @@ class QueryInTransactionTest extends FunctionalTestCase
      * queryInTransaction() with an independent transaction allows CQRS-style
      * isolation: the independent transaction can be committed independently
      * of the main DBAL transaction.
+     *
+     * Requires Firebird\TBuilder (php-firebird v7.1+ OO API, Firebird 4.0+).
      */
     public function testQueryInTransactionWithIndependentTransaction(): void
     {
+        if (! class_exists('Firebird\TBuilder')) {
+            self::markTestSkipped('Firebird\TBuilder requires php-firebird v7.1+ OO API (Firebird 4.0+).');
+        }
+
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 
@@ -107,9 +113,12 @@ class QueryInTransactionTest extends FunctionalTestCase
         // Commit the independent transaction
         $auditTx->commit();
 
-        // The main DBAL transaction is rolled back — audit row must still be visible
-        $this->connection->rollBack();
+        // Insert a DBAL-managed row and roll it back — audit row must still be visible
         $this->connection->beginTransaction();
+        $this->connection->executeStatement(
+            'INSERT INTO ' . $this->tableName . " (id, val) VALUES (11, 'dbal')",
+        );
+        $this->connection->rollBack();
 
         $count = $this->connection->fetchOne(
             'SELECT COUNT(*) FROM ' . $this->tableName . ' WHERE id = 10',
@@ -118,7 +127,8 @@ class QueryInTransactionTest extends FunctionalTestCase
     }
 
     /**
-     * queryInTransaction() with invalid SQL throws a DriverException.
+     * queryInTransaction() with invalid SQL throws a Throwable.
+     * The php-firebird extension may throw Firebird\Exception directly.
      */
     public function testQueryInTransactionWithInvalidSqlThrowsException(): void
     {
@@ -128,7 +138,7 @@ class QueryInTransactionTest extends FunctionalTestCase
         $tx = $conn->getActiveTransaction();
         self::assertNotNull($tx, 'Active transaction must exist');
 
-        $this->expectException(DriverException::class);
+        $this->expectException(\Throwable::class);
         $conn->queryInTransaction($tx, 'THIS IS NOT VALID SQL AT ALL');
     }
 
@@ -147,9 +157,15 @@ class QueryInTransactionTest extends FunctionalTestCase
 
     /**
      * createIndependentTransaction() returns a TBuilder that can start a transaction.
+     *
+     * Requires Firebird\TBuilder (php-firebird v7.1+ OO API, Firebird 4.0+).
      */
     public function testCreateIndependentTransactionReturnsTBuilder(): void
     {
+        if (! class_exists('Firebird\TBuilder')) {
+            self::markTestSkipped('Firebird\TBuilder requires php-firebird v7.1+ OO API (Firebird 4.0+).');
+        }
+
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 

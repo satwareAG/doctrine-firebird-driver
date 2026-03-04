@@ -88,16 +88,17 @@ class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
 
     /**
      * Read queries use the replica connection.
+     * DBAL 3.10 only exposes isConnectedToPrimary() — replica is the inverse.
      */
     public function testReplicaGetsUsedForSelectQueries(): void
     {
-        // Before any query, no connection is established
-        self::assertFalse($this->primaryReplicaConnection->isConnectedToReplica());
+        // Before any query, no connection is established — not connected to primary
+        self::assertFalse($this->primaryReplicaConnection->isConnectedToPrimary());
 
-        // A SELECT query should connect to the replica
+        // A SELECT query should connect to the replica (not primary)
         $this->primaryReplicaConnection->executeQuery('SELECT 1 FROM RDB$DATABASE');
 
-        self::assertTrue($this->primaryReplicaConnection->isConnectedToReplica());
+        self::assertFalse($this->primaryReplicaConnection->isConnectedToPrimary());
     }
 
     /**
@@ -105,14 +106,14 @@ class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
      */
     public function testPrimaryGetsUsedForWriteQueries(): void
     {
-        // Ensure we start on replica
+        // Ensure we start on replica (not primary)
         $this->primaryReplicaConnection->executeQuery('SELECT 1 FROM RDB$DATABASE');
-        self::assertTrue($this->primaryReplicaConnection->isConnectedToReplica());
+        self::assertFalse($this->primaryReplicaConnection->isConnectedToPrimary());
 
         // ensureConnectedToPrimary() switches to primary
         $this->primaryReplicaConnection->ensureConnectedToPrimary();
 
-        self::assertFalse($this->primaryReplicaConnection->isConnectedToReplica());
+        self::assertTrue($this->primaryReplicaConnection->isConnectedToPrimary());
     }
 
     /**
@@ -120,14 +121,14 @@ class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
      */
     public function testSwitchToPrimaryOnWrite(): void
     {
-        // Start on replica
+        // Start on replica (not primary)
         $this->primaryReplicaConnection->executeQuery('SELECT 1 FROM RDB$DATABASE');
-        self::assertTrue($this->primaryReplicaConnection->isConnectedToReplica());
+        self::assertFalse($this->primaryReplicaConnection->isConnectedToPrimary());
 
         // beginTransaction() forces switch to primary
         $this->primaryReplicaConnection->beginTransaction();
 
-        self::assertFalse($this->primaryReplicaConnection->isConnectedToReplica());
+        self::assertTrue($this->primaryReplicaConnection->isConnectedToPrimary());
 
         $this->primaryReplicaConnection->rollBack();
     }

@@ -96,9 +96,10 @@ final class FirebirdComparator extends BaseComparator
         }
 
         // Normalise default value: trim whitespace and uppercase NULL sentinel
+        // getDefault() is typed string|null but can return int in practice (e.g. integer column defaults)
         $default = $column->getDefault();
         if ($default !== null) {
-            $trimmed = trim($default);
+            $trimmed = trim((string) $default);
             if (strtoupper($trimmed) === 'NULL') {
                 // Firebird sometimes returns 'NULL' as a default string; treat as no default
                 $column->setDefault(null);

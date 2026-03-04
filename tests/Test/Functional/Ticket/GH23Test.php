@@ -48,11 +48,14 @@ class GH23Test extends FunctionalTestCase
 
         self::assertIsArray($row);
 
+        // Firebird returns uppercase column names — normalise to lowercase for comparison
+        $row = array_change_key_case($row, CASE_LOWER);
+
         // Keys must be exact — no trailing spaces
         self::assertArrayHasKey('id', $row, 'Key "id" must exist without padding');
         self::assertArrayHasKey('name', $row, 'Key "name" must exist without padding');
 
-        // Verify no padded variants exist
+        // Verify no padded variants exist (after normalisation)
         foreach (array_keys($row) as $key) {
             self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
         }
@@ -68,6 +71,10 @@ class GH23Test extends FunctionalTestCase
         );
 
         self::assertIsArray($row);
+
+        // Firebird returns uppercase aliases — normalise to lowercase for comparison
+        $row = array_change_key_case($row, CASE_LOWER);
+
         self::assertArrayHasKey('my_alias', $row, 'Alias key must exist without padding');
 
         foreach (array_keys($row) as $key) {

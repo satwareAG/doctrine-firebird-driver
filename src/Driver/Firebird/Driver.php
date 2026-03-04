@@ -70,6 +70,12 @@ final class Driver extends FirebirdDriver
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 
+        // fbird_server_info() returns e.g. "LI-V3.0.13.33818 Firebird 3.0" or "WI-V4.0.0.2496 Firebird 4.0"
+        // Extract the numeric version (major.minor.patch) for DBAL compatibility.
+        if (preg_match('/V(\d+\.\d+(?:\.\d+)*)/', $serverVersion, $matches) === 1) {
+            $serverVersion = $matches[1];
+        }
+
         if (! fbird_service_detach($firebirdService)) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
