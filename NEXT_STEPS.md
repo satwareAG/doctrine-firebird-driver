@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (Sprint 4 complete — ConnectionLost detection, ExceptionConverter tests, FirebirdDriverMiddleware)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `b7c82d0`
+**Last session:** 2026-03-04 (Sprint 5 complete — SQL/ParserTest, PrimaryReadReplicaConnectionTest, Ticket/ regression dir, DSN/RetryOnLock docs)
+**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `f303b2e`
 
 ---
 
@@ -87,13 +87,32 @@ All 3 Sprint 4 issues (#72–#74) implemented and closed:
 
 ---
 
-## Priority 2 — Sprint 5 DBAL Gap Issues
+## ✅ Sprint 5 — COMPLETE (2026-03-04)
 
-Sprint 5 open issues (#75–#79):
+All 5 Sprint 5 issues (#75–#79) implemented and closed:
 
-```bash
-gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-5" --state open
-```
+| Issue | Implementation | Status |
+|-------|---------------|--------|
+| #75 | `tests/Test/Functional/SQL/ParserTest.php` — SQL tokenization, named params, Firebird DDL | ✅ Closed |
+| #76 | `tests/Test/Functional/PrimaryReadReplicaConnectionTest.php` — read/write split pattern | ✅ Closed |
+| #77 | `tests/Test/Functional/Ticket/` — GH22/GH23/GH50 regression tests | ✅ Closed |
+| #78 | DBAL 4.x forward-compat tracking — documented in issue, no code changes needed yet | ✅ Closed |
+| #79 | `docs/RETRY_ON_LOCK.md`, `docs/DSN.md`, extended `DsnParserTest` (5 tests) | ✅ Closed |
+
+New files:
+- `tests/Test/Functional/SQL/ParserTest.php` — 5 parser tests
+- `tests/Test/Functional/PrimaryReadReplicaConnectionTest.php` — 3 tests (skip if no replica)
+- `tests/Test/Functional/Ticket/.gitkeep` — regression directory
+- `tests/Test/Functional/Ticket/GH22Test.php` — 3 reconnect regression tests
+- `tests/Test/Functional/Ticket/GH23Test.php` — 3 padded-key regression tests
+- `tests/Test/Functional/Ticket/GH50Test.php` — 3 deadlock regression tests
+- `docs/RETRY_ON_LOCK.md` — RetryOnLock feature documentation
+- `docs/DSN.md` — DSN format reference (URL + array + connect string)
+- `tests/Test/Tools/DsnParserTest.php` — extended with 4 new DSN variant tests (5 total)
+
+---
+
+## Priority 2 — Promote RC.2 → Full Release
 
 ---
 
