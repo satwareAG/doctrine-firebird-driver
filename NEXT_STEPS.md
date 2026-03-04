@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (Sprint 1 test fixes, CI matrix stabilized)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.1` | **Commit:** `36e2eee`
+**Last session:** 2026-03-04 (Sprint 3 coverage tests added, v3.10.0-RC.2 tagged)
+**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `da85397`
 
 ---
 
@@ -44,9 +44,9 @@ docker compose exec app php -d pcov.enabled=1 \
 - `Firebird3Platform` / `Firebird4Platform` / `Firebird5Platform` edge cases
 
 ### New test classes to create:
-- `tests/Test/Functional/Connection/ExecuteAutoTest.php`
-- `tests/Test/Functional/Connection/QueryInTransactionTest.php`
-- `tests/Test/Functional/Connection/ConnectionInfoTest.php`
+- ✅ `tests/Test/Functional/Connection/ExecuteAutoTest.php` — commit `da85397`
+- ✅ `tests/Test/Functional/Connection/QueryInTransactionTest.php` — commit `da85397`
+- ✅ `tests/Test/Functional/Connection/ConnectionInfoTest.php` — commit `da85397`
 
 ---
 
