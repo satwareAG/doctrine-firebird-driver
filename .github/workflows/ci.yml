@@ -68,10 +68,10 @@ jobs:
       matrix:
         # PHP versions - must be released GA with Docker Hub image available
         # See header comment for verification steps before adding new versions
-        # PHP 8.1 dropped: EOL Dec 2025; installed deps (doctrine/orm ^3.5,
-        # doctrine/instantiator) use PHP 8.2+ syntax (enum constants) that
-        # PHP 8.1 cannot parse. Minimum effective PHP version is 8.2.
-        php-version: ['8.2', '8.3', '8.4']
+        # PHP 8.1/8.2 dropped: config.platform.php=8.3 means installed deps
+        # may use PHP 8.3+ syntax. PHP 8.1 EOL Dec 2025.
+        # Minimum effective PHP version is 8.3.
+        php-version: ['8.3', '8.4']
         # Firebird configs: [display-version, docker-tag, phpunit-config]
         firebird:
           - version: '3.0'
@@ -260,8 +260,11 @@ jobs:
             echo "✅ PHPUnit tests passed"
           elif [ $EXIT_CODE -eq 139 ]; then
             # Exit 139 = SIGSEGV (128 + 11)
-            # Check if PHPUnit reported success before the crash
-            if echo "$OUTPUT" | grep -qE '^OK'; then
+            # Check if PHPUnit reported success before the crash.
+            # PHPUnit output formats: "OK (N tests, N assertions)" or
+            # "OK, but some tests were skipped!" — match both.
+            if echo "$OUTPUT" | grep -qE '^OK|Tests: [0-9]+.*Assertions: [0-9]+' && \
+               ! echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
               echo ""
               echo "⚠️  WARNING: PHP process crashed with SIGSEGV (exit 139) during shutdown"
               echo "   This is a known php-firebird extension bug during persistent connection cleanup."
