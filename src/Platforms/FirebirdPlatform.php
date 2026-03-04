@@ -960,6 +960,9 @@ class FirebirdPlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
+     *
+     * @param mixed       $table
+     * @param string|null $database
      */
     public function getListTableColumnsSQL($table, $database = null): string
     {
@@ -1050,6 +1053,9 @@ ___query___;
      * {@inheritDoc}
      *
      * @link http://ezcomponents.org/docs/api/trunk/DatabaseSchema/ezcDbSchemaOracleReader.html
+     *
+     * @param mixed       $table
+     * @param string|null $database
      */
     public function getListTableIndexesSQL($table, $database = null): string
     {

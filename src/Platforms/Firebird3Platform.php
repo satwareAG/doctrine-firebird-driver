@@ -208,6 +208,9 @@ class Firebird3Platform extends FirebirdPlatform
 
     /**
      * {@inheritDoc}
+     *
+     * @param mixed       $table
+     * @param string|null $database
      */
     public function getListTableColumnsSQL($table, $database = null): string
     {

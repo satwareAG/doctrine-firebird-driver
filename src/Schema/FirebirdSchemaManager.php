@@ -418,6 +418,9 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<mixed> $tableIndexes
+     * @param string|null  $tableName
      */
     protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array
     {
