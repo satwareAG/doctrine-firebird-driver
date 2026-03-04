@@ -1,6 +1,6 @@
 parameters:
     level: 8
-    phpVersion: 80100
+    phpVersion: 80300
     paths:
         - src
     # NOTE: SIGSEGV issue with php-firebird extension was resolved in v7.0.0-rc.37

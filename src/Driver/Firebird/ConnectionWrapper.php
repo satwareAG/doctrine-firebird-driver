@@ -25,6 +25,7 @@ use function strtoupper;
 /** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection
 {
+    /** @phpstan-ignore property.unusedType (int is assigned via parent::setLastInsertId() path in future use) */
     private int|null $lastInsertIdentityId  = null;
     private string|null $lastInsertSequence = null;
 

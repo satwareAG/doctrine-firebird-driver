@@ -889,6 +889,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Invalid transaction resource.');
         }
 
+        // isConnectionValid() above guarantees $this->connection is a valid resource.
+        assert(is_resource($this->connection));
         $result = fbird_query_params_tx($this->connection, $transResource, $sql, $params);
 
         if ($result === false) {

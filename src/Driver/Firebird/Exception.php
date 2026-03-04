@@ -37,7 +37,7 @@ class Exception extends BaseException implements DriverException
      *   - '08006' = Connection failure
      *   - 'HY000' = General error (when no specific code applies)
      */
-    private string|null $sqlState = null;
+    private string|null $sqlState;
 
     /**
      * @param string         $message  The driver error message.
