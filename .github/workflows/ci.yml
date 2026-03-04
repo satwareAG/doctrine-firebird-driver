@@ -68,8 +68,10 @@ jobs:
       matrix:
         # PHP versions - must be released GA with Docker Hub image available
         # See header comment for verification steps before adding new versions
-        # PHP 8.5 added provisionally - remove if Docker image unavailable
-        php-version: ['8.1', '8.2', '8.3', '8.4']
+        # PHP 8.1 dropped: EOL Dec 2025; installed deps (doctrine/orm ^3.5,
+        # doctrine/instantiator) use PHP 8.2+ syntax (enum constants) that
+        # PHP 8.1 cannot parse. Minimum effective PHP version is 8.2.
+        php-version: ['8.2', '8.3', '8.4']
         # Firebird configs: [display-version, docker-tag, phpunit-config]
         firebird:
           - version: '3.0'
