@@ -96,7 +96,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $introspected = $schemaManager->introspectTable(self::TABLE);
         self::assertTrue($introspected->hasColumn('id'));
         self::assertTrue($introspected->hasColumn('name'));
-        self::assertTrue($introspected->hasColumn('value'));
+        self::assertTrue($introspected->hasColumn('val_col'));
     }
 
     public function testDropTable(): void
@@ -137,7 +137,7 @@ class SchemaManagerTest extends FunctionalTestCase
 
         self::assertArrayHasKey('id', $columns);
         self::assertArrayHasKey('name', $columns);
-        self::assertArrayHasKey('value', $columns);
+        self::assertArrayHasKey('val_col', $columns);
 
         self::assertTrue($columns['id']->getNotnull());
         self::assertSame(255, $columns['name']->getLength());
@@ -205,14 +205,14 @@ class SchemaManagerTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->dropColumn('value');
+        $newTable->dropColumn('val_col');
 
         $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
         self::assertNotFalse($diff);
         $schemaManager->alterTable($diff);
 
         $introspected = $schemaManager->introspectTable(self::TABLE);
-        self::assertFalse($introspected->hasColumn('value'));
+        self::assertFalse($introspected->hasColumn('val_col'));
     }
 
     public function testAlterTableModifyColumnDefault(): void
@@ -223,14 +223,14 @@ class SchemaManagerTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('value', ['default' => 42]);
+        $newTable->changeColumn('val_col', ['default' => 42]);
 
         $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
         self::assertNotFalse($diff);
         $schemaManager->alterTable($diff);
 
         $columns = $schemaManager->listTableColumns(self::TABLE);
-        self::assertSame('42', $columns['value']->getDefault());
+        self::assertSame('42', $columns['val_col']->getDefault());
     }
 
     // =========================================================================
@@ -422,7 +422,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $table = new Table(self::TABLE);
         $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $table->addColumn('name', Types::STRING, ['length' => 255, 'notnull' => false]);
-        $table->addColumn('value', Types::INTEGER, ['notnull' => false]);
+        $table->addColumn('val_col', Types::INTEGER, ['notnull' => false]);
         $table->setPrimaryKey(['id']);
 
         return $table;
