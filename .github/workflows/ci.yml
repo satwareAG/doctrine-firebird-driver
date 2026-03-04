@@ -149,8 +149,13 @@ jobs:
           make -j"$(nproc)"
           sudo make install
           
-          # Enable the extension (registered as 'interbase' in PHP module list)
-          echo "extension=firebird.so" | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-firebird.ini
+          # Enable the extension using the actual PHP ini scan dir (setup-php may differ from /etc/php)
+          # php --ini shows the loaded ini file; derive the conf.d from it
+          PHP_INI_DIR="$(php -r 'echo dirname(php_ini_loaded_file());')"
+          PHP_SCAN_DIR="${PHP_INI_DIR}/conf.d"
+          sudo mkdir -p "${PHP_SCAN_DIR}"
+          echo "extension=firebird.so" | sudo tee "${PHP_SCAN_DIR}/99-firebird.ini"
+          echo "Wrote extension ini to: ${PHP_SCAN_DIR}/99-firebird.ini"
           
           # Verify extension is loaded — php-firebird registers as 'interbase' in PHP
           php -m | grep -i interbase
@@ -329,7 +334,8 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+        # Also ignore php platform req: vimeo/psalm ^5.0 caps at ~8.3.0, incompatible with PHP 8.4
+        run: composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird --ignore-platform-req=php
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=512M
