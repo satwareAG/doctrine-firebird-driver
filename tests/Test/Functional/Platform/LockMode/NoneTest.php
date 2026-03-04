@@ -43,7 +43,9 @@ class NoneTest extends FunctionalTestCase
         $result   = $this->connection->fetchAllAssociative('SELECT id, val FROM ' . $sql);
 
         self::assertNotEmpty($result);
-        self::assertSame(1, (int) $result[0]['id']);
+        // Firebird returns column names in uppercase; use array_change_key_case for portability
+        $row = array_change_key_case($result[0], CASE_LOWER);
+        self::assertSame(1, (int) $row['id']);
     }
 
     public function testLockModeNoneGeneratesNoLockClause(): void

@@ -101,8 +101,11 @@ class NewPrimaryKeyWithNewAutoIncrementColumnTest extends FunctionalTestCase
         );
 
         self::assertCount(2, $rows);
+        // Firebird returns column names in uppercase; normalize for portability
+        $row0 = array_change_key_case($rows[0], CASE_LOWER);
+        $row1 = array_change_key_case($rows[1], CASE_LOWER);
         // IDs should be sequential positive integers
-        self::assertGreaterThan(0, (int) $rows[0]['id']);
-        self::assertGreaterThan((int) $rows[0]['id'], (int) $rows[1]['id']);
+        self::assertGreaterThan(0, (int) $row0['id']);
+        self::assertGreaterThan((int) $row0['id'], (int) $row1['id']);
     }
 }

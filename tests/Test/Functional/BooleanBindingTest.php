@@ -117,8 +117,13 @@ class BooleanBindingTest extends FunctionalTestCase
 
         self::assertCount(2, $rows);
 
-        $platform = $this->connection->getDatabasePlatform();
-        self::assertTrue($platform->convertFromBoolean($rows[0]['flag']));
-        self::assertFalse($platform->convertFromBoolean($rows[1]['flag']));
+        // Firebird returns column names in uppercase; normalize for portability
+        $row0 = array_change_key_case($rows[0], CASE_LOWER);
+        $row1 = array_change_key_case($rows[1], CASE_LOWER);
+
+        // Use convertToPHPValue (not convertFromBoolean) to handle raw DB values
+        // Firebird may return "1"/"0" or true/false depending on driver version
+        self::assertTrue($this->connection->convertToPHPValue($row0['flag'], Types::BOOLEAN));
+        self::assertFalse($this->connection->convertToPHPValue($row1['flag'], Types::BOOLEAN));
     }
 }
