@@ -1,0 +1,102 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Satag\DoctrineFirebirdDriver\Test\Functional\Ticket;
+
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+
+/**
+ * Regression test for GH-23: Padded alias keys in fetchAssociative.
+ *
+ * Firebird's fbird_fetch_assoc() returns column names padded with spaces to
+ * their declared length. The driver must normalize these keys so that
+ * `$row['col']` works instead of `$row['col   ']`.
+ *
+ * Fixed in commits 9820738 and 6ce5051.
+ *
+ * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/23
+ */
+class GH23Test extends FunctionalTestCase
+{
+    private const TABLE = 'gh23_regression';
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE);
+        parent::tearDown();
+    }
+
+    /**
+     * Column keys in fetchAssociative must not be padded with trailing spaces.
+     */
+    public function testFetchAssociativeReturnsUnpaddedKeys(): void
+    {
+        $table = new Table(self::TABLE);
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('name', Types::STRING, ['length' => 50]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
+        $this->connection->insert(self::TABLE, ['id' => 1, 'name' => 'test']);
+
+        $row = $this->connection->fetchAssociative(
+            'SELECT id, name FROM ' . self::TABLE . ' WHERE id = 1',
+        );
+
+        self::assertIsArray($row);
+
+        // Keys must be exact — no trailing spaces
+        self::assertArrayHasKey('id', $row, 'Key "id" must exist without padding');
+        self::assertArrayHasKey('name', $row, 'Key "name" must exist without padding');
+
+        // Verify no padded variants exist
+        foreach (array_keys($row) as $key) {
+            self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
+        }
+    }
+
+    /**
+     * Column aliases in SELECT must also be returned without padding.
+     */
+    public function testFetchAssociativeReturnsUnpaddedAliasKeys(): void
+    {
+        $row = $this->connection->fetchAssociative(
+            "SELECT 42 AS my_alias FROM RDB\$DATABASE",
+        );
+
+        self::assertIsArray($row);
+        self::assertArrayHasKey('my_alias', $row, 'Alias key must exist without padding');
+
+        foreach (array_keys($row) as $key) {
+            self::assertSame(trim($key), $key, "Alias key '$key' must not have trailing spaces");
+        }
+    }
+
+    /**
+     * fetchAllAssociative must also return unpadded keys for all rows.
+     */
+    public function testFetchAllAssociativeReturnsUnpaddedKeys(): void
+    {
+        $table = new Table(self::TABLE);
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('val', Types::STRING, ['length' => 20]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
+        $this->connection->insert(self::TABLE, ['id' => 1, 'val' => 'a']);
+        $this->connection->insert(self::TABLE, ['id' => 2, 'val' => 'b']);
+
+        $rows = $this->connection->fetchAllAssociative('SELECT id, val FROM ' . self::TABLE);
+
+        self::assertCount(2, $rows);
+
+        foreach ($rows as $row) {
+            foreach (array_keys($row) as $key) {
+                self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
+            }
+        }
+    }
+}
