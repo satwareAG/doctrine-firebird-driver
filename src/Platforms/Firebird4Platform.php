@@ -16,6 +16,7 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * arising from decoding and encoding them.
  */
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 
 class Firebird4Platform extends Firebird3Platform
 {
@@ -61,6 +62,11 @@ class Firebird4Platform extends Firebird3Platform
     public function getTimeTzTypeDeclarationSQL(array $column): string
     {
         return 'TIME WITH TIME ZONE';
+    }
+
+    protected function getReservedKeywordsClass(): string
+    {
+        return Firebird4Keywords::class;
     }
 
     protected function initializeDoctrineTypeMappings(): void

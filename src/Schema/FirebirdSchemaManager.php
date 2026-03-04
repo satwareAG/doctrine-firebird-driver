@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Schema;
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
@@ -195,6 +196,11 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         );
 
         return $this->doListTableDetails($name);
+    }
+
+    public function createComparator(): Comparator
+    {
+        return new FirebirdComparator($this->_platform);
     }
 
     /** @return array<int, string> */

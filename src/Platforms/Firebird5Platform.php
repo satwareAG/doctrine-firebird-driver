@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\Deprecations\Deprecation;
+use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
 
 class Firebird5Platform extends Firebird4Platform
 {
@@ -17,5 +18,10 @@ class Firebird5Platform extends Firebird4Platform
         );
 
         return 'Firebird5';
+    }
+
+    protected function getReservedKeywordsClass(): string
+    {
+        return Firebird5Keywords::class;
     }
 }
