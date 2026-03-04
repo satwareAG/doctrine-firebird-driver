@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (Sprint 3 coverage tests added, v3.10.0-RC.2 tagged)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `da85397`
+**Last session:** 2026-03-04 (Sprint 3 architecture complete — FirebirdComparator, SchemaManagerFactory, Firebird4/5Keywords)
+**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `ca4ffb3`
 
 ---
 
@@ -50,22 +50,46 @@ docker compose exec app php -d pcov.enabled=1 \
 
 ---
 
-## Priority 2 — Sprint 2 DBAL Gap Issues
+## ✅ Sprint 2 — COMPLETE (2026-03-04)
 
-Sprint 2 open issues (verified 2026-03-04):
+All 4 Sprint 2 issues (#65–#68) implemented and closed:
+
+| Issue | Test File | Status |
+|-------|-----------|--------|
+| #65 | `Functional/TransactionTest.php` | ✅ Closed (commit `4ba732d`) |
+| #66 | `Functional/Schema/DefaultValueTest.php` | ✅ Closed (commit `4ba732d`) |
+| #67 | `Functional/Schema/ComparatorTest.php` | ✅ Closed (commit `4ba732d`) |
+| #68 | `Functional/Schema/SchemaManagerTest.php` + `SchemaTest.php` | ✅ Closed (commit `4ba732d`) |
+
+---
+
+## ✅ Sprint 3 — COMPLETE (2026-03-04)
+
+All 3 Sprint 3 architecture issues (#69–#71) implemented and closed:
+
+| Issue | Implementation | Status |
+|-------|---------------|--------|
+| #69 | `src/Schema/FirebirdComparator.php` — prevents false-positive schema diffs | ✅ Closed (commit `ca4ffb3`) |
+| #70 | `src/Schema/FirebirdSchemaManagerFactory.php` — DBAL 3.6+/4.x factory | ✅ Closed (commit `ca4ffb3`) |
+| #71 | `src/Platforms/Keywords/Firebird4Keywords.php` + `Firebird5Keywords.php` | ✅ Closed (commit `ca4ffb3`) |
+
+---
+
+## Priority 2 — Sprint 4 DBAL Gap Issues
+
+Sprint 4 open issues:
 
 | Issue | Title | Labels |
 |-------|-------|--------|
-| #65 | Add TransactionTest — beginTransaction, commit, rollBack, savepoints, isolation levels | sprint-2, high-priority, tdd |
-| #66 | Add DefaultValueTest — schema default values survive create/introspect/compare roundtrip | sprint-2, tdd |
-| #67 | Add ComparatorTest — schema diff functional correctness | sprint-2, tdd |
-| #68 | Add SchemaManagerTest and SchemaTest — full schema lifecycle coverage | sprint-2, tdd |
+| #72 | ConnectionLost exception detection — map GDS codes 335544721/723/726 | sprint-4, tdd |
+| #73 | Driver Middleware support — FirebirdDriver implements Middleware contract | sprint-4 |
+| #74 | Add ConnectionLostTest — functional test for connection drop detection | sprint-4, tdd |
 
 ```bash
-gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-2" --state open
+gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-4" --state open
 ```
 
-Sprint 3 (#69–#71), Sprint 4 (#72–#74), Sprint 5 (#75–#79) also open.
+Sprint 5 (#75–#79) also open.
 
 ---
 
