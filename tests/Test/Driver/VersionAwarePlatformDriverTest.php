@@ -42,6 +42,7 @@ class VersionAwarePlatformDriverTest extends TestCase
      */
     public static function firebirdVersionProvider(): Iterator
     {
+        // Legacy "LI|WI-V..." format (older Firebird installations)
         yield ['WI-V2.1.4.18393', FirebirdPlatform::class];
         yield ['LI-V2.1.4.18393', FirebirdPlatform::class];
         yield ['LI-V2.999.999.99999', FirebirdPlatform::class];
@@ -50,6 +51,12 @@ class VersionAwarePlatformDriverTest extends TestCase
         yield ['LI-V4.1.2.34567', Firebird4Platform::class];
         yield ['LI-V5.1.2.34567', Firebird5Platform::class];
         yield ['LI-V6.1.2.34567', Firebird5Platform::class];
+        // Plain numeric format returned by newer Firebird Docker images (firebirdsql/firebird:3, :4, :5)
+        yield ['2.5.9.27139', FirebirdPlatform::class];
+        yield ['3.0.13.33818', Firebird3Platform::class];
+        yield ['4.0.5.3116', Firebird4Platform::class];
+        yield ['5.0.3.1683', Firebird5Platform::class];
+        yield ['6.0.0.1', Firebird5Platform::class];
     }
 
     /**

@@ -52,6 +52,9 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
     /**
      * Factory method for creating the appropriate platform instance for the given version.
      *
+     * Accepts both the legacy Firebird version string format ("LI|WI-V<major>.<minor>.<patch>.<build>")
+     * and the plain numeric format returned by newer Firebird Docker images ("<major>.<minor>.<patch>.<build>").
+     *
      * @param mixed $version The platform/server version string to evaluate.
      *
      * @throws Exception If the given version string could not be evaluated.
@@ -66,24 +69,39 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
         }
 
         $versionParts = [];
+
+        // Accept legacy format: "LI-V3.0.13.33818", "WI-V4.0.5.3116", "LI-T3.0.0.29316"
         if (
             preg_match(
                 '/^(LI|WI)-([VT])(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?/',
                 $version,
                 $versionParts,
-            ) !== 1
+            ) === 1
         ) {
+            $majorVersion = $versionParts['major'];
+            $minorVersion = $versionParts['minor'] ?? 0;
+            $patchVersion = $versionParts['patch'] ?? 0;
+            $buildVersion = $versionParts['build'] ?? 0;
+        } elseif (
+            // Accept plain numeric format returned by newer Firebird Docker images: "5.0.3.1683", "3.0.13.33818"
+            preg_match(
+                '/^(?P<major>\d+)(?:\.(?P<minor>\d+)(?:\.(?P<patch>\d+)(?:\.(?P<build>\d+))?)?)?$/',
+                $version,
+                $versionParts,
+            ) === 1
+        ) {
+            $majorVersion = $versionParts['major'];
+            $minorVersion = $versionParts['minor'] ?? 0;
+            $patchVersion = $versionParts['patch'] ?? 0;
+            $buildVersion = $versionParts['build'] ?? 0;
+        } else {
             throw Exception::invalidPlatformVersionSpecified(
                 $version,
                 'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
             );
         }
 
-        $majorVersion = $versionParts['major'];
-        $minorVersion = $versionParts['minor'] ?? 0;
-        $patchVersion = $versionParts['patch'] ?? 0;
-        $buildVersion = $versionParts['build'] ?? 0;
-        $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
+        $version = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
 
         $platform = match (true) {
             version_compare($version, '6.0', '>=') => new Firebird5Platform(),
