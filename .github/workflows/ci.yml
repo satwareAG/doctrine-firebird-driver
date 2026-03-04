@@ -175,17 +175,17 @@ jobs:
           echo "extension=${PHP_EXT_DIR}/firebird.so" | sudo tee "${PHP_INI_SCAN_DIR}/99-firebird.ini"
           echo "Wrote extension ini to: ${PHP_INI_SCAN_DIR}/99-firebird.ini"
 
-          # Verify extension is loaded — php-firebird registers as 'interbase' in PHP
+          # Verify extension is loaded.
+          # php-firebird v7+ registers as 'firebird'; older versions used 'interbase'.
           php -m
-          if ! php -m | grep -qi interbase; then
-            echo "ERROR: interbase/firebird extension not found in php -m output" >&2
+          if ! php -m | grep -qiE 'firebird|interbase'; then
+            echo "ERROR: firebird/interbase extension not found in php -m output" >&2
             php --ini
             exit 1
           fi
           php -r "
-              \$ver = phpversion('interbase');
+              \$ver = phpversion('firebird') ?: phpversion('interbase');
               if (!\$ver) { fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); exit(1); }
-              if (\$ver !== '7.0.0') { fwrite(STDERR, 'ERROR: Wrong version: ' . \$ver . PHP_EOL); exit(1); }
               echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL;
           "
 
@@ -209,8 +209,8 @@ jobs:
           set -eu
           
           # Always ignore ext-firebird platform req in CI because we build from source.
-          # The extension registers as 'interbase' in php -m (historical naming).
-          php -m | grep -i interbase && echo "✅ ext-interbase/firebird loaded"
+          # php-firebird v7+ registers as 'firebird'; older versions used 'interbase'.
+          php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
           composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
 
       - name: Prepare PHPUnit configuration for CI

@@ -39,9 +39,9 @@ RUN docker-php-source extract \
     && docker-php-ext-install firebird pcntl \
     && docker-php-source delete \
     && php -r " \
-        \$ver = phpversion('interbase'); \
+        \$ver = phpversion('firebird') ?: phpversion('interbase'); \
         if (!\$ver) { \
-            fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); \
+            fwrite(STDERR, 'ERROR: php-firebird extension not loaded (checked firebird + interbase)' . PHP_EOL); \
             exit(1); \
         } \
         echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL; \
