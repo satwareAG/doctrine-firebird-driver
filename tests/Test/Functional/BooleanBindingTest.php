@@ -82,17 +82,20 @@ class BooleanBindingTest extends FunctionalTestCase
             'flag' => ParameterType::BOOLEAN,
         ]);
 
-        $platform   = $this->connection->getDatabasePlatform();
-        $trueValue  = $platform->convertBooleans(true);
-        $falseValue = $platform->convertBooleans(false);
-
+        // Use parameterized queries to avoid SQL injection and type conversion issues.
+        // Direct string interpolation of convertBooleans() result fails for native
+        // BOOLEAN columns (Firebird 3+) because PHP bool true becomes string "1".
         $trueCount = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE flag = ' . $trueValue,
+            'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE flag = ?',
+            [true],
+            [ParameterType::BOOLEAN],
         );
         self::assertSame(2, (int) $trueCount);
 
         $falseCount = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE flag = ' . $falseValue,
+            'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE flag = ?',
+            [false],
+            [ParameterType::BOOLEAN],
         );
         self::assertSame(1, (int) $falseCount);
     }
