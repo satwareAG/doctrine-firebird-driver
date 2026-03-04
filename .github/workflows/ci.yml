@@ -209,9 +209,13 @@ jobs:
           set -eu
           
           # Always ignore ext-firebird platform req in CI because we build from source.
-          # php-firebird v7+ registers as 'firebird'; older versions used 'interbase'.
+          # Also ignore php platform req: composer.json sets config.platform.php=8.4 for
+          # static analysis, but test matrix runs on PHP 8.1-8.3 where vimeo/psalm ^5.0
+          # doesn't satisfy the overridden platform requirement.
           php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
-          composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+          composer install --prefer-dist --no-progress \
+            --ignore-platform-req=ext-firebird \
+            --ignore-platform-req=php
 
       - name: Prepare PHPUnit configuration for CI
         env:
