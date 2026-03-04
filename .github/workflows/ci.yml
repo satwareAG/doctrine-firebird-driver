@@ -40,6 +40,9 @@ jobs:
   test:
     name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}
     runs-on: ubuntu-latest
+    # Firebird 4.0/5.0 are experimental — php-firebird v7.0.0 has known crashes with FB5.
+    # Don't fail the overall CI for experimental targets.
+    continue-on-error: ${{ matrix.firebird.experimental }}
 
     # Use service containers for Firebird instead of IBSurgeon scripts.
     # Official Firebird Docker images: https://hub.docker.com/r/firebirdsql/firebird
@@ -72,17 +75,22 @@ jobs:
         # may use PHP 8.3+ syntax. PHP 8.1 EOL Dec 2025.
         # Minimum effective PHP version is 8.3.
         php-version: ['8.3', '8.4']
-        # Firebird configs: [display-version, docker-tag, phpunit-config]
+        # Firebird configs: [display-version, docker-tag, phpunit-config, experimental]
+        # Firebird 3.0 is the primary target (Amicron ERP). FB4/FB5 are informational.
+        # php-firebird v7.0.0 has known SIGABRT crashes with FB5 — marked experimental.
         firebird:
           - version: '3.0'
             docker-tag: '3'
             config: 'phpunit.xml'
+            experimental: false
           - version: '4.0'
             docker-tag: '4'
             config: 'phpunit-firebird4.xml'
+            experimental: true
           - version: '5.0'
             docker-tag: '5'
             config: 'phpunit-firebird5.xml'
+            experimental: true
 
     env:
       # Default Firebird credentials
@@ -258,21 +266,24 @@ jobs:
           
           if [ $EXIT_CODE -eq 0 ]; then
             echo "✅ PHPUnit tests passed"
-          elif [ $EXIT_CODE -eq 139 ]; then
-            # Exit 139 = SIGSEGV (128 + 11)
+          elif [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 134 ]; then
+            # Exit 139 = SIGSEGV (128 + 11), Exit 134 = SIGABRT (128 + 6)
+            # Both are known php-firebird extension crash signals during shutdown.
             # Check if PHPUnit reported success before the crash.
             # PHPUnit output formats: "OK (N tests, N assertions)" or
             # "OK, but some tests were skipped!" — match both.
+            SIGNAL_NAME="SIGSEGV"
+            [ $EXIT_CODE -eq 134 ] && SIGNAL_NAME="SIGABRT"
             if echo "$OUTPUT" | grep -qE '^OK|Tests: [0-9]+.*Assertions: [0-9]+' && \
                ! echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
               echo ""
-              echo "⚠️  WARNING: PHP process crashed with SIGSEGV (exit 139) during shutdown"
+              echo "⚠️  WARNING: PHP process crashed with ${SIGNAL_NAME} (exit ${EXIT_CODE}) during shutdown"
               echo "   This is a known php-firebird extension bug during persistent connection cleanup."
               echo "   PHPUnit reported success before crash - treating as success."
               echo ""
             else
-              echo "❌ PHPUnit tests failed with SIGSEGV (exit 139)"
-              exit 139
+              echo "❌ PHPUnit tests failed with ${SIGNAL_NAME} (exit ${EXIT_CODE})"
+              exit $EXIT_CODE
             fi
           else
             echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
