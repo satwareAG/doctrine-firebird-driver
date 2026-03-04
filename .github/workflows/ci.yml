@@ -137,28 +137,49 @@ jobs:
       - name: Build php-firebird extension from source
         run: |
           set -eu
-          
+
           # Clone and build php-firebird v7.0.0
           echo "Building php-firebird v7.0.0 for PHP ${{ matrix.php-version }}"
-          
+
           git clone --depth 1 --branch v7.0.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
-          
+
           phpize
           ./configure --with-firebird
           make -j"$(nproc)"
           sudo make install
-          
-          # Enable the extension using the actual PHP ini scan dir (setup-php may differ from /etc/php)
-          # php --ini shows the loaded ini file; derive the conf.d from it
-          PHP_INI_DIR="$(php -r 'echo dirname(php_ini_loaded_file());')"
-          PHP_SCAN_DIR="${PHP_INI_DIR}/conf.d"
-          sudo mkdir -p "${PHP_SCAN_DIR}"
-          echo "extension=firebird.so" | sudo tee "${PHP_SCAN_DIR}/99-firebird.ini"
-          echo "Wrote extension ini to: ${PHP_SCAN_DIR}/99-firebird.ini"
-          
+
+          # Determine where PHP actually looks for extensions and ini files.
+          # shivammathur/setup-php installs PHP to a non-standard prefix, so we
+          # must ask PHP itself rather than assuming /etc/php/X.Y paths.
+          PHP_EXT_DIR="$(php -r 'echo ini_get("extension_dir");')"
+          PHP_INI_SCAN_DIR="$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
+
+          echo "PHP extension dir: ${PHP_EXT_DIR}"
+          echo "PHP ini scan dir:  ${PHP_INI_SCAN_DIR}"
+
+          # make install puts firebird.so into the phpize extension dir.
+          # If that differs from PHP's runtime extension_dir, copy it there.
+          PHPIZE_EXT_DIR="$(php-config --extension-dir)"
+          echo "phpize extension dir: ${PHPIZE_EXT_DIR}"
+
+          if [ "${PHPIZE_EXT_DIR}" != "${PHP_EXT_DIR}" ]; then
+            echo "Copying firebird.so from ${PHPIZE_EXT_DIR} to ${PHP_EXT_DIR}"
+            sudo cp "${PHPIZE_EXT_DIR}/firebird.so" "${PHP_EXT_DIR}/firebird.so"
+          fi
+
+          # Write the ini using the full absolute path to avoid any search-path issues
+          sudo mkdir -p "${PHP_INI_SCAN_DIR}"
+          echo "extension=${PHP_EXT_DIR}/firebird.so" | sudo tee "${PHP_INI_SCAN_DIR}/99-firebird.ini"
+          echo "Wrote extension ini to: ${PHP_INI_SCAN_DIR}/99-firebird.ini"
+
           # Verify extension is loaded — php-firebird registers as 'interbase' in PHP
-          php -m | grep -i interbase
+          php -m
+          if ! php -m | grep -qi interbase; then
+            echo "ERROR: interbase/firebird extension not found in php -m output" >&2
+            php --ini
+            exit 1
+          fi
           php -r "
               \$ver = phpversion('interbase');
               if (!\$ver) { fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); exit(1); }
