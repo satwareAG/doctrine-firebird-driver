@@ -52,12 +52,20 @@ docker compose exec app php -d pcov.enabled=1 \
 
 ## Priority 2 — Sprint 2 DBAL Gap Issues
 
-Check open Sprint 2 issues:
+Sprint 2 open issues (verified 2026-03-04):
+
+| Issue | Title | Labels |
+|-------|-------|--------|
+| #65 | Add TransactionTest — beginTransaction, commit, rollBack, savepoints, isolation levels | sprint-2, high-priority, tdd |
+| #66 | Add DefaultValueTest — schema default values survive create/introspect/compare roundtrip | sprint-2, tdd |
+| #67 | Add ComparatorTest — schema diff functional correctness | sprint-2, tdd |
+| #68 | Add SchemaManagerTest and SchemaTest — full schema lifecycle coverage | sprint-2, tdd |
 
 ```bash
 gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-2" --state open
-gh milestone list --repo satwareAG/doctrine-firebird-driver
 ```
+
+Sprint 3 (#69–#71), Sprint 4 (#72–#74), Sprint 5 (#75–#79) also open.
 
 ---
 
