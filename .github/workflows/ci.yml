@@ -143,6 +143,8 @@ jobs:
 
           git clone --depth 1 --branch v7.0.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
+          # Fetch tags so git describe works (needed for config.m4 version detection)
+          git fetch --tags --depth 1
 
           phpize
           ./configure --with-firebird

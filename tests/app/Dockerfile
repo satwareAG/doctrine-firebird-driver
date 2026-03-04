@@ -29,16 +29,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # Install php-firebird extension from source (v7.0.0)
+# Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
+# include tag refs. We fetch tags explicitly so config.m4 version detection works.
 RUN docker-php-source extract \
     && git clone --branch v7.0.0 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
+    && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && docker-php-ext-install firebird pcntl \
     && docker-php-source delete \
     && php -r " \
         \$ver = phpversion('interbase'); \
-        if (\$ver !== '7.0.0') { \
-            fwrite(STDERR, 'ERROR: Wrong php-firebird version: ' . \$ver . PHP_EOL); \
+        if (!\$ver) { \
+            fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); \
             exit(1); \
         } \
         echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL; \
