@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (Sprint 5 complete — SQL/ParserTest, PrimaryReadReplicaConnectionTest, Ticket/ regression dir, DSN/RetryOnLock docs)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `f303b2e`
+**Last session:** 2026-03-04 (v3.10.0 stable released — CHANGELOG updated, tag pushed, GitHub release created, issue #58 closed)
+**Branch:** `3.0.x` | **Tag:** `v3.10.0` ✅ | **Commit:** `315b7e0`
 
 ---
 
