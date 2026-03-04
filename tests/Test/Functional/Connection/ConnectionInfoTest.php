@@ -190,6 +190,10 @@ class ConnectionInfoTest extends FunctionalTestCase
 
     /**
      * getServerVersion() returns a non-empty version string.
+     *
+     * fbird_server_info() returns the raw Firebird version string in the format:
+     * "LI-V3.0.13.33818 Firebird 3.0" (Linux) or "WI-V4.0.0.2496 Firebird 4.0" (Windows).
+     * This is the format expected by DBAL's VersionAwarePlatformDriver.
      */
     public function testGetServerVersionReturnsNonEmptyString(): void
     {
@@ -199,10 +203,13 @@ class ConnectionInfoTest extends FunctionalTestCase
         $version = $conn->getServerVersion();
 
         self::assertNotEmpty($version, 'getServerVersion() must return a non-empty string');
+
+        // Raw format: "LI-V3.0.13.33818 Firebird 3.0" or "WI-V4.0.0.2496 Firebird 4.0"
+        // Must contain a version number somewhere in the string
         self::assertMatchesRegularExpression(
-            '/^\d+\.\d+/',
+            '/\d+\.\d+/',
             $version,
-            'getServerVersion() must return a version string starting with major.minor',
+            'getServerVersion() must contain a version number (e.g. "LI-V3.0.13.33818 Firebird 3.0")',
         );
     }
 }
