@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (Sprint 3 architecture complete — FirebirdComparator, SchemaManagerFactory, Firebird4/5Keywords)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `ca4ffb3`
+**Last session:** 2026-03-04 (Sprint 4 complete — ConnectionLost detection, ExceptionConverter tests, FirebirdDriverMiddleware)
+**Branch:** `3.0.x` | **Tag:** `v3.10.0-RC.2` | **Commit:** `b7c82d0`
 
 ---
 
@@ -75,21 +75,25 @@ All 3 Sprint 3 architecture issues (#69–#71) implemented and closed:
 
 ---
 
-## Priority 2 — Sprint 4 DBAL Gap Issues
+## ✅ Sprint 4 — COMPLETE (2026-03-04)
 
-Sprint 4 open issues:
+All 3 Sprint 4 issues (#72–#74) implemented and closed:
 
-| Issue | Title | Labels |
-|-------|-------|--------|
-| #72 | ConnectionLost exception detection — map GDS codes 335544721/723/726 | sprint-4, tdd |
-| #73 | Driver Middleware support — FirebirdDriver implements Middleware contract | sprint-4 |
-| #74 | Add ConnectionLostTest — functional test for connection drop detection | sprint-4, tdd |
+| Issue | Implementation | Status |
+|-------|---------------|--------|
+| #72 | `src/Driver/Firebird/ExceptionConverter.php` — GDS 335544721/723/726 → `ConnectionLost` | ✅ Closed (commit `6509746`) |
+| #73 | `src/Driver/Firebird/FirebirdDriverMiddleware.php` — implements `Driver\Middleware` | ✅ Closed (commit `b7c82d0`) |
+| #74 | `tests/Test/Unit/Driver/ExceptionConverterTest.php` — 7 new `ConnectionLost` test cases | ✅ Closed (commit `b05ae52`) |
+
+---
+
+## Priority 2 — Sprint 5 DBAL Gap Issues
+
+Sprint 5 open issues (#75–#79):
 
 ```bash
-gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-4" --state open
+gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-5" --state open
 ```
-
-Sprint 5 (#75–#79) also open.
 
 ---
 
