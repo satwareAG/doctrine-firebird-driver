@@ -1,0 +1,14 @@
+title = "doctrine-firebird-driver gitleaks config"
+
+[extend]
+# Use the default gitleaks ruleset as base
+useDefault = true
+
+[[allowlists]]
+description = "Vendor binaries — phpstan.phar sodium stub function names are false positives"
+paths = [
+    '''vendor/.*\.phar$''',
+    '''vendor-bin/.*\.phar$''',
+    '''vendor/''',
+    '''vendor-bin/''',
+]
