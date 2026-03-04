@@ -7,15 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.10.0-RC.1] - 2026-03-04
+
+### Added
+- **`docs/EXAMPLES.md`** — Comprehensive PHP 8.4 + Firebird 3.0 usage examples including:
+  Standalone and Symfony connection setup, explicit/nested transactions, named parameters,
+  BLOB handling, Exception Mode, `executeAuto()` autonomous transactions, CQRS/audit pattern
+  with `queryInTransaction()`, `getConnectionInfo()` diagnostics, Amicron ERP entity
+  example, and IBatch bulk INSERT (FB4+ only, version-guarded)
+- **`docs/PERFORMANCE.md`** — Performance guide covering PCOV vs Xdebug, prepared statement
+  reuse, FB3 batch insert strategies, IBatch API (FB4+ benchmarks), BLOB streaming,
+  connection pooling, `DateTimeImmutable` return from `FBIRD_FETCH_DATE_OBJ`, LIKE
+  optimization, and `getConnectionInfo()` query profiling
+- **README.md version compatibility matrix** — Full feature table for FB2.5–5.0 documenting
+  which features are available per server version (IBatch, Exception Mode, savepoints, etc.)
+
 ### Changed
-- **php-firebird Extension Upgrade** - Updated to v7.0.0-rc.52
-  - Docker test environment (`tests/app/Dockerfile`) now builds v7.0.0-rc.52
-  - GitHub Actions CI workflow builds v7.0.0-rc.52 from source
-  - Updated `satwareag/php-firebird-stubs` to ^7.0.0-rc.52 for PHPStan compatibility
-  - Removed local `stubs/firebird-global-functions.php` stub for `fbird_execute_auto` — now provided by official stubs in v7.0.0-rc.52 (resolves satwareAG/php-firebird#83)
-  - `fbird_query_params_tx` stub retained in local stubs (PHP namespace function, not a C extension function — no official stub needed)
-  - All static analysis (PHPStan Level 8) passing with zero errors
-  - Fixes SIGSEGV in resource destructors (`fbird_service.c`, `fbird_blobs.c`) — resolves satwareAG/php-firebird#82
+- **php-firebird Extension: v7.0.0-rc.52 → v7.0.0 (stable GA)** released 2026-03-04
+  - `tests/app/Dockerfile` builds `--branch v7.0.0` with build-time version assertion
+  - `composer.json`: `ext-firebird "^7.0.0"`, `satwareag/php-firebird-stubs "^7.0.0"`
+  - All 85 `fbird_*` functions available in stable stubs
+  - IBatch API (`fbird_batch_*`) — confirmed Firebird 4.0+ server requirement, version-guarded
+  - Exception Mode (`FBIRD_EXCEPTION_MODE_THROW`) — confirmed FB3.0+ compatible
+  - `fbird_execute_auto()` / `fbird_connection_info()` — confirmed FB3.0+ compatible
+- **`composer.json` platform.php: `8.1` → `8.4`** — primary optimization target aligned
+  with `satag/amicron-entity-bundle` which requires `php: ^8.4`
+- **GitHub Actions CI** — PCOV coverage driver; coverage upload on PHP 8.4 + FB3 only
+  (primary target); `static-analysis` job uses `coverage: none` for faster execution;
+  extension check via `phpversion('interbase')` with strict version assertion
+
+### Fixed
+- **`Connection::executeAuto()` return type** — corrected from `int|false` to `mixed`
+  matching v7.0.0 stub signature (`resource|int|false`)
+- **PHPStan Level 8: 0 errors** — stale `ignoreErrors` entries removed from
+  `phpstan.neon.dist` (now properly defined in v7.0.0 vendor stubs)
+
+### Tests
+- **+8 new unit tests** in `ConnectionTest` covering previously untested paths:
+  `autoCommit()` early-return conditions, nested `beginTransaction()`/`commit()`/`rollBack()`
+  with savepoint delegation, IBatch guard, `getConnectionInfo()`, `getLimboTransactions()`,
+  `reconnectLimboTransaction()`, `createIndependentTransaction()`, `queryInTransaction()`
+- **Unit suite: 61/61 passing** (1 skipped — `fbird_errcode` not loaded outside Docker)
+
+### Changed
+- **php-firebird Extension Upgrade** — Updated to v7.0.0 GA (from v7.0.0-rc.52)
+  - Fixes SIGSEGV in resource destructors (`fbird_service.c`, `fbird_blobs.c`)
+  - `fbird_query_params_tx` stub retained in local stubs (PHP namespace function)
 
 ### Fixed
 - **PHPStan Level 8 Zero Errors** - Eliminated all 53 baseline suppressions
@@ -198,5 +235,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...HEAD
-[3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0...v3.10.0-rc.1
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.1...HEAD
+[3.10.0-RC.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...v3.10.0-RC.1
+[3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v3.10.0-rc.1
