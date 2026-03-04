@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Driver;
 
 use Doctrine\DBAL\Exception\ConnectionException;
+use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\DriverException as DBALDriverException;
@@ -102,11 +103,29 @@ class ExceptionConverterTest extends TestCase
             // Connection error (-902 general)
             'connection error 902' => [-902, 'Unable to connect', ConnectionException::class],
 
+            // ConnectionLost — GDS 335544721: net write error (broken pipe)
+            'connection lost net write error' => [-902, 'net write error', ConnectionLost::class],
+
+            // ConnectionLost — GDS 335544726: net read error
+            'connection lost net read error' => [-902, 'net read error', ConnectionLost::class],
+
+            // ConnectionLost — GDS 335544723: lost remote part of database
+            'connection lost remote part' => [-902, 'lost remote part of database', ConnectionLost::class],
+
+            // ConnectionLost — broken pipe (OS-level)
+            'connection lost broken pipe' => [-902, 'broken pipe', ConnectionLost::class],
+
+            // ConnectionLost — via -901 (general engine error with network message)
+            'connection lost via 901' => [-901, 'net write error', ConnectionLost::class],
+
             // Deadlock (-913)
             'deadlock' => [-913, 'Deadlock detected', DeadlockException::class],
 
-            // Connection error (-922)
+            // Connection error (-922 general — no network-loss message)
             'connection error 922' => [-922, 'Connection refused', ConnectionException::class],
+
+            // ConnectionLost — GDS 335544723 arriving as -922
+            'connection lost via 922' => [-922, 'lost remote part of database', ConnectionLost::class],
 
             // Default fallback (unknown code)
             'unknown error' => [-999999, 'Unknown error', DBALDriverException::class],
@@ -143,5 +162,34 @@ class ExceptionConverterTest extends TestCase
         $result = $this->converter->convert($exception, $query);
 
         self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    /**
+     * ConnectionLost must extend ConnectionException so existing catch(ConnectionException)
+     * blocks continue to work after the #72 change.
+     */
+    public function testConnectionLostIsSubclassOfConnectionException(): void
+    {
+        $exception = new TestDriverException('net write error', -902);
+        $query     = new Query('SELECT 1', [], []);
+
+        $result = $this->converter->convert($exception, $query);
+
+        self::assertInstanceOf(ConnectionLost::class, $result);
+        self::assertInstanceOf(ConnectionException::class, $result, 'ConnectionLost must extend ConnectionException');
+    }
+
+    /**
+     * Verify "connection lost to database" message variant maps to ConnectionLost.
+     * Covers GDS 335544723 alternate message text.
+     */
+    public function testConnectionLostToDatabase(): void
+    {
+        $exception = new TestDriverException('connection lost to database', -902);
+        $query     = new Query('SELECT 1', [], []);
+
+        $result = $this->converter->convert($exception, $query);
+
+        self::assertInstanceOf(ConnectionLost::class, $result);
     }
 }
