@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\API\ExceptionConverter as ExceptionConverterInterface;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Exception\ConnectionException;
+use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Exception\DatabaseObjectExistsException;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
@@ -123,12 +124,35 @@ final class ExceptionConverter implements ExceptionConverterInterface
                     return new DeadlockException($exception, $query);
                 }
 
+                // GDS codes 335544721 (net write error), 335544723 (database connection lost),
+                // 335544726 (net read error) — connection dropped mid-session
+                if ($this->exceptionContains($exception, [
+                    'net write error',
+                    'net read error',
+                    'lost remote part of database',
+                    'connection lost to database',
+                    'broken pipe',
+                ])) {
+                    return new ConnectionLost($exception, $query);
+                }
+
                 return new ConnectionException($exception, $query);
 
             case -913: // Deadlock detected.
                 return new DeadlockException($exception, $query);
 
             case -922: // Database connection error.
+                // GDS 335544723: database connection lost — arrives as -922 in some Firebird versions
+                if ($this->exceptionContains($exception, [
+                    'net write error',
+                    'net read error',
+                    'lost remote part of database',
+                    'connection lost to database',
+                    'broken pipe',
+                ])) {
+                    return new ConnectionLost($exception, $query);
+                }
+
                 return new ConnectionException($exception, $query);
 
             case -955: // Object already exists. Happens during attempts to create an object that duplicates an existing one.
@@ -176,7 +200,11 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
         return match ($class) {
             // Class 08: Connection Exception
-            '08' => new ConnectionException($exception, $query),
+            // 08006 = connection failure, 08007 = transaction resolution unknown — both indicate lost connection
+            '08' => match ($sqlState) {
+                '08006', '08007' => new ConnectionLost($exception, $query),
+                default          => new ConnectionException($exception, $query),
+            },
 
             // Class 21: Cardinality Violation
             '21' => new DriverException($exception, $query),
