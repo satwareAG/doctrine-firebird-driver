@@ -9,28 +9,30 @@ Doctrine Firebird driver
 
 To utilize this library in your application code, the following is required:
 
-- **Firebird Server**: 3.0 (primary/production target), 2.5, 4.0, or 5.0
-- **PHP**: >= 8.1 (**8.4 recommended** — primary optimization target for Amicron ERP integration)
-- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.0.0** (satwareAG fork with IBatch, Exception Mode, OO API)
+- **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
+- **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
+- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.2.0** (satwareAG fork with IBatch, Exception Mode, OO API)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
 
 ## Version Compatibility Matrix
 
-| Feature | FB 2.5 | FB 3.0 | FB 4.0 | FB 5.0 |
-|---------|--------|--------|--------|--------|
-| Basic DBAL (queries, transactions) | ✅ | ✅ | ✅ | ✅ |
-| Schema introspection | ✅ | ✅ | ✅ | ✅ |
-| Named parameters | ✅ | ✅ | ✅ | ✅ |
-| BLOB support | ✅ | ✅ | ✅ | ✅ |
-| Exception Mode (`Firebird\Exception`) | ❌ | ✅ | ✅ | ✅ |
-| `fbird_execute_auto()` auto-commit | ❌ | ✅ | ✅ | ✅ |
-| `fbird_connection_info()` / `DbInfo` | ❌ | ✅ | ✅ | ✅ |
-| Savepoints (nested transactions) | ❌ | ✅ | ✅ | ✅ |
-| IBatch API (bulk INSERT 10-12×) | ❌ | ❌ | ✅ | ✅ |
-| `RETURNING` multi-row | ❌ | ❌ | ✅ | ✅ |
-| `SCROLL` cursors | ❌ | ❌ | ✅ | ✅ |
-| `DECFLOAT` type | ❌ | ❌ | ✅ | ✅ |
-| `TIME ZONE` / `TIMESTAMP TZ` | ❌ | ❌ | ✅ | ✅ |
+| Feature | FB 3.0 | FB 4.0 | FB 5.0 |
+|---------|--------|--------|--------|
+| Basic DBAL (queries, transactions) | ✅ | ✅ | ✅ |
+| Schema introspection | ✅ | ✅ | ✅ |
+| Named parameters | ✅ | ✅ | ✅ |
+| BLOB support | ✅ | ✅ | ✅ |
+| Exception Mode (`Firebird\Exception`) | ✅ | ✅ | ✅ |
+| `fbird_execute_auto()` auto-commit | ✅ | ✅ | ✅ |
+| `fbird_connection_info()` / `DbInfo` | ✅ | ✅ | ✅ |
+| Savepoints (nested transactions) | ✅ | ✅ | ✅ |
+| IBatch API (bulk INSERT 10-12×) | ❌ | ✅ | ✅ |
+| `RETURNING` multi-row | ❌ | ✅ | ✅ |
+| `SCROLL` cursors | ❌ | ✅ | ✅ |
+| `DECFLOAT` type | ❌ | ✅ | ✅ |
+| `TIME ZONE` / `TIMESTAMP TZ` | ❌ | ✅ | ✅ |
+
+> **Breaking change (php-firebird v7.2.0):** Firebird 2.5 support dropped. Minimum server version is **3.0**.
 
 > **Note:** Firebird **3.0 is the primary production target** (Amicron ERP). Features marked ❌ for FB3
 > are either absent on the server or require Firebird 4.0+. Feature detection is automatic —
@@ -68,7 +70,7 @@ Firebird has a known issue where `LIKE` parameters longer than a column’s `VAR
 - Validate parameter length at the application layer when appropriate.
 - See our [Best Practices Guide](docs/firebird-like-best-practices.md) for detailed strategies and examples.
 
-**Validated across:** Firebird 2.5, 3.0, 4.0, 5.0 (24/24 tests passing)
+**Validated across:** Firebird 3.0, 4.0, 5.0 (24/24 tests passing)
 
 ## Configuration
 
@@ -201,7 +203,7 @@ doctrine:
 
 # Testing
 
-The project includes comprehensive test coverage across **Firebird 2.5, 3.0, 4.0, and 5.0** with unit, functional, and integration tests.
+The project includes comprehensive test coverage across **Firebird 3.0, 4.0, and 5.0** with unit, functional, and integration tests.
 
 ## Quick Test Commands
 
@@ -209,7 +211,7 @@ The project includes comprehensive test coverage across **Firebird 2.5, 3.0, 4.0
 # Run all tests for all Firebird versions
 cd tests && ./phpunit-all.sh
 
-# Run tests for Firebird 2.5 only
+# Run tests for Firebird 3.0 only
 cd tests && ./phpunit.sh
 
 # Run specific test suite
@@ -220,7 +222,7 @@ php vendor/bin/phpunit tests/Test/Functional/
 ## Test Coverage
 
 - **1255+ tests** (unit, functional, integration)
-- **100% pass rate** across all Firebird versions (2.5, 3.0, 4.0, 5.0)
+- **100% pass rate** across all Firebird versions (3.0, 4.0, 5.0)
 - PHPUnit 10.5, PHPStan Level 8, Psalm static analysis
 
 ## Documentation
@@ -244,7 +246,7 @@ php vendor/bin/phpunit tests/Test/Functional/
 ## Test Requirements
 
 - **Docker & Docker Compose** - For running test environment
-- **PHP 8.1+** with `ext-interbase`
+- **PHP 8.2+** with `ext-firebird` (php-firebird v7.2.0+)
 - **Composer dependencies** - `composer install`
 
 All tests run in Docker containers to ensure consistent environments across Firebird versions. See [TESTING.md](docs/TESTING.md) for detailed setup instructions.
@@ -287,7 +289,7 @@ The main resource for Firebird documentation, syntax, downloads, etc.
 
 As an AI specialized in coding, your task is to support me, Michael Wegener, to improve the PHP Doctrine DBAL driver for the Firebird SQL Server
 for which I am the current maintainer.
-The Driver is not based on Firebird PDO, it is based on PHP Firebird Extension interbase.so (using fbird_* function aliases for ibase_* functions). 
+The Driver is not based on Firebird PDO, it is based on the PHP Firebird Extension (fbird_* functions; ibase_* aliases removed in php-firebird v7.2.0). 
 You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branches  
@@ -302,5 +304,5 @@ You can reference the following resources for guidance:
 - [German Firebird Forum](https://www.firebirdforum.de/)
 -  You can download all given resources for reference.
 
-The PHP Driver is implemented for PHP 8.1+ and should be covered with PHP Unit and Integration Tests against all Firebird Server Versions.
+The PHP Driver is implemented for PHP 8.2+ and should be covered with PHP Unit and Integration Tests against all supported Firebird Server Versions (3.0+).
 Have an eye on modern development principles, performance and security.

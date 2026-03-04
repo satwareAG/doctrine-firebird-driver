@@ -7,55 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **`src/Driver/FirebirdDriver.php`** — Accept plain numeric version strings (e.g. `"5.0.3.1683"`)
-  returned by newer `firebirdsql/firebird` Docker images in addition to the legacy
-  `"LI|WI-V<major>.<minor>.<patch>.<build>"` format. Fixes all CI matrix jobs failing with
-  `Invalid platform version` exceptions (#82)
+## [3.10.1] - 2026-03-04
 
-## [3.10.0] - 2026-03-04
+### Changed
+- **php-firebird Extension: v7.1.0 → v7.2.0** — Bumped minimum required extension version
+  - `composer.json`: `ext-firebird "^7.2.0"`, `satwareag/php-firebird-stubs "^7.2.0"`
+  - CI workflow now builds `--branch v7.2.0` from source
+  - Minimum PHP version: **8.2** (PHP 8.1 dropped upstream in php-firebird v7.2.0)
+  - Minimum Firebird server: **3.0** (Firebird 2.5 dropped upstream in php-firebird v7.2.0)
+  - `ibase_*` function aliases fully removed upstream — driver already uses `fbird_*` exclusively
 
-### Added
-- **`src/Schema/FirebirdComparator.php`** — Firebird-specific schema comparator that prevents
-  false-positive schema diffs caused by Firebird's uppercase column name normalization and
-  platform-specific default value formatting (#69)
-- **`src/Schema/FirebirdSchemaManagerFactory.php`** — DBAL 3.6+/4.x compatible schema manager
-  factory implementing `SchemaManagerFactory` interface for proper DI integration (#70)
-- **`src/Platforms/Keywords/Firebird4Keywords.php`** + **`Firebird5Keywords.php`** — Reserved
-  keyword lists for Firebird 4.0 and 5.0 server versions, extending `Firebird3Keywords` (#71)
-- **`src/Driver/Firebird/ExceptionConverter.php`** — Maps Firebird GDS network-loss error codes
-  (335544721, 335544723, 335544726) to DBAL `ConnectionLost` exception for automatic reconnect
-  support (#72)
-- **`src/Driver/Firebird/FirebirdDriverMiddleware.php`** — Implements DBAL `Driver\Middleware`
-  interface enabling middleware stack integration (logging, retry, metrics) (#73)
-- **`tests/Test/Functional/SQL/ParserTest.php`** — 5 SQL tokenization tests verifying named
-  parameter parsing, Firebird DDL/DML syntax, and `ConvertNamedToPositionalPlaceholders` (#75)
-- **`tests/Test/Functional/PrimaryReadReplicaConnectionTest.php`** — 3 tests for read/write
-  split pattern using DBAL's `PrimaryReadReplicaConnection` with Firebird (#76)
-- **`tests/Test/Functional/Ticket/`** — Regression test directory with GH22 (connection
-  resource invalidation), GH23 (padded CHAR key comparison), GH50 (deadlock retry) (#77)
-- **`docs/RETRY_ON_LOCK.md`** — RetryOnLock feature documentation covering configuration,
-  use cases, and `ATTR_DOCTRINE_RETRY_ON_LOCK` constant (#79)
-- **`docs/DSN.md`** — DSN format reference covering URL format, array format, and Firebird
-  connect string variants with examples (#79)
-- **`tests/Test/Tools/DsnParserTest.php`** — Extended with 5 DSN variant tests covering
-  URL, array, and connect string formats (#79)
-- **`tests/Test/Functional/Connection/ExecuteAutoTest.php`** — Functional tests for
-  `Connection::executeAuto()` autonomous transaction pattern
-- **`tests/Test/Functional/Connection/QueryInTransactionTest.php`** — Functional tests for
-  `Connection::queryInTransaction()` CQRS pattern
-- **`tests/Test/Functional/Connection/ConnectionInfoTest.php`** — Functional tests for
-  `Connection::getConnectionInfo()` diagnostics
-
-### Fixed
-- **`ExceptionConverter`** — GDS codes 335544721/723/726 now correctly map to `ConnectionLost`
-  enabling DBAL's automatic reconnect on network-loss scenarios (#72)
-
-### Tests
-- **`tests/Test/Unit/Driver/ExceptionConverterTest.php`** — 7 new `ConnectionLost` test cases
-  covering all mapped GDS error codes and unmapped codes (#74)
-- **Sprint 3 coverage tests** — `ExecuteAutoTest`, `QueryInTransactionTest`, `ConnectionInfoTest`
-  added for previously untested `Connection` paths
+### Removed
+- **Firebird 2.5 support** — php-firebird v7.2.0 drops FB2.5 server support; updated README,
+  version compatibility matrix, and test documentation accordingly
 
 ## [3.10.0-RC.1] - 2026-03-04
 
@@ -285,8 +249,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0...HEAD
-[3.10.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.2...v3.10.0
-[3.10.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.1...v3.10.0-RC.2
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.1...HEAD
 [3.10.0-RC.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...v3.10.0-RC.1
 [3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v3.10.0-rc.1
