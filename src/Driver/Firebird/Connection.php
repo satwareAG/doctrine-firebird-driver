@@ -835,11 +835,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * @param string            $sql    SQL statement to execute
      * @param array<mixed>|null $params Optional array of bind parameters
      *
-     * @return int|false Number of affected rows for DML, or false on failure
+     * @return resource|int|false Result resource for SELECT, affected-row count for DML, or false on failure
      *
      * @throws DriverException
      */
-    public function executeAuto(string $sql, array|null $params = null): int|false
+    public function executeAuto(string $sql, array|null $params = null): mixed
     {
         if (! is_resource($this->connection)) {
             throw new DriverException('No active connection.');

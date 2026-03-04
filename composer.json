@@ -34,7 +34,7 @@
     },
     "config": {
         "platform": {
-            "php": "8.1"
+            "php": "8.4"
         },
         "sort-packages": true,
         "allow-plugins": {
@@ -64,7 +64,7 @@
     },
     "require": {
         "php": "^8.1",
-        "ext-firebird": "^7.0.0-rc.47",
+        "ext-firebird": "^7.0.0",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^3.10",
         "symfony/polyfill-php82": "^1.31",
@@ -75,7 +75,7 @@
     "require-dev": {
         "ext-posix": "*",
         "bamarni/composer-bin-plugin": "^1.8",
-        "satwareag/php-firebird-stubs": "^7.0.0-rc.52",
+        "satwareag/php-firebird-stubs": "^7.0.0",
         "dg/bypass-finals": "^1.8",
         "doctrine/coding-standard": "^14.0.0",
         "doctrine/deprecations": "^0.5.3|^1",

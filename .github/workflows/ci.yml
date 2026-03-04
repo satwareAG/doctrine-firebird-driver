@@ -96,7 +96,8 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           extensions: pdo, mbstring, intl
-          coverage: xdebug
+          # pcov: near-zero overhead when not actively collecting; much faster than xdebug
+          coverage: pcov
           tools: composer:v2
 
       - name: Wait for Firebird service to be ready
@@ -137,10 +138,10 @@ jobs:
         run: |
           set -eu
           
-          # Clone and build php-firebird v7.0.0-rc.52
-          echo "Building php-firebird v7.0.0-rc.52 for PHP ${{ matrix.php-version }}"
+          # Clone and build php-firebird v7.0.0
+          echo "Building php-firebird v7.0.0 for PHP ${{ matrix.php-version }}"
           
-          git clone --depth 1 --branch v7.0.0-rc.52 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          git clone --depth 1 --branch v7.0.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           
           phpize
@@ -148,12 +149,17 @@ jobs:
           make -j"$(nproc)"
           sudo make install
           
-          # Enable the extension
+          # Enable the extension (registered as 'interbase' in PHP module list)
           echo "extension=firebird.so" | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-firebird.ini
           
-          # Verify extension is loaded
-          php -m | grep -i firebird
-          php -r "echo 'Firebird extension version: ' . phpversion('firebird') . PHP_EOL;"
+          # Verify extension is loaded — php-firebird registers as 'interbase' in PHP
+          php -m | grep -i interbase
+          php -r "
+              \$ver = phpversion('interbase');
+              if (!\$ver) { fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); exit(1); }
+              if (\$ver !== '7.0.0') { fwrite(STDERR, 'ERROR: Wrong version: ' . \$ver . PHP_EOL); exit(1); }
+              echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL;
+          "
 
       - name: Validate Composer configuration
         run: composer validate --strict
@@ -174,11 +180,9 @@ jobs:
         run: |
           set -eu
           
-          # Always ignore ext-firebird platform req in CI because:
-          # 1. We build php-firebird from source (reports version 1.0.0)
-          # 2. composer.json requires ^7.0.0-rc.x (version mismatch)
-          # The extension IS loaded, just version differs from git tag
-          php -m | grep -i firebird && echo "✅ ext-firebird loaded"
+          # Always ignore ext-firebird platform req in CI because we build from source.
+          # The extension registers as 'interbase' in php -m (historical naming).
+          php -m | grep -i interbase && echo "✅ ext-interbase/firebird loaded"
           composer install --prefer-dist --no-progress --ignore-platform-req=ext-firebird
 
       - name: Prepare PHPUnit configuration for CI
@@ -239,10 +243,11 @@ jobs:
           fi
 
       - name: Run PHPUnit tests with coverage
-        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
+        if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
-          XDEBUG_MODE: coverage
+          # PCOV: set source root for accurate coverage measurement
+          PCOV_DIRECTORY: ../src
         run: |
           set -eu
           
@@ -280,7 +285,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0'
+        if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
@@ -288,7 +293,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload test results to Codecov
-        if: matrix.php-version == '8.3' && matrix.firebird.version == '5.0' && !cancelled()
+        if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0' && !cancelled()
         uses: codecov/test-results-action@v1
         with:
           files: ./junit.xml
@@ -308,6 +313,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo, mbstring, intl
+          coverage: none
           tools: composer:v2
 
       - name: Get Composer cache directory

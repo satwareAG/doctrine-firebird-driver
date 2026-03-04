@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v7.0.0-rc.52), pcov (fast coverage)
+# Extensions: firebird (php-firebird v7.0.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -28,13 +28,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v7.0.0-rc.52)
+# Install php-firebird extension from source (v7.0.0)
 RUN docker-php-source extract \
-    && git clone --branch v7.0.0-rc.52 --depth 1 \
+    && git clone --branch v7.0.0 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && docker-php-ext-install firebird pcntl \
-    && docker-php-source delete
+    && docker-php-source delete \
+    && php -r " \
+        \$ver = phpversion('interbase'); \
+        if (\$ver !== '7.0.0') { \
+            fwrite(STDERR, 'ERROR: Wrong php-firebird version: ' . \$ver . PHP_EOL); \
+            exit(1); \
+        } \
+        echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL; \
+    "
 
 # Install PCOV for fast code coverage (2-5x faster than Xdebug)
 # Reference: https://github.com/krakjoe/pcov

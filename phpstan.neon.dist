@@ -35,15 +35,6 @@ parameters:
                 - src/Platforms/*Platform.php
                 - src/Schema/*SchemaManager.php
 
-        -
-            message: '#Used function fbird_set_exception_mode not found#'
-            paths:
-                - src/Driver/Firebird/Connection.php
-        -
-            message: '#Used constant FBIRD_EXCEPTION_MODE_THROW not found#'
-            paths:
-                - src/Driver/Firebird/Connection.php
-
         # Deprecated DBAL methods called intentionally for backward compatibility
         # These will be updated when we drop support for the current DBAL version
         -

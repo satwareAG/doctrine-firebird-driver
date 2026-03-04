@@ -9,10 +9,32 @@ Doctrine Firebird driver
 
 To utilize this library in your application code, the following is required:
 
-- Firebird Client for Server version 2.5, 3, 4 or 5
-- PHP >= 8.1
-- [php-firebird extension](https://github.com/satwareAG/php-firebird) v7.0.0-rc.49+ (fork with enhanced features)
+- **Firebird Server**: 3.0 (primary/production target), 2.5, 4.0, or 5.0
+- **PHP**: >= 8.1 (**8.4 recommended** — primary optimization target for Amicron ERP integration)
+- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.0.0** (satwareAG fork with IBatch, Exception Mode, OO API)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
+
+## Version Compatibility Matrix
+
+| Feature | FB 2.5 | FB 3.0 | FB 4.0 | FB 5.0 |
+|---------|--------|--------|--------|--------|
+| Basic DBAL (queries, transactions) | ✅ | ✅ | ✅ | ✅ |
+| Schema introspection | ✅ | ✅ | ✅ | ✅ |
+| Named parameters | ✅ | ✅ | ✅ | ✅ |
+| BLOB support | ✅ | ✅ | ✅ | ✅ |
+| Exception Mode (`Firebird\Exception`) | ❌ | ✅ | ✅ | ✅ |
+| `fbird_execute_auto()` auto-commit | ❌ | ✅ | ✅ | ✅ |
+| `fbird_connection_info()` / `DbInfo` | ❌ | ✅ | ✅ | ✅ |
+| Savepoints (nested transactions) | ❌ | ✅ | ✅ | ✅ |
+| IBatch API (bulk INSERT 10-12×) | ❌ | ❌ | ✅ | ✅ |
+| `RETURNING` multi-row | ❌ | ❌ | ✅ | ✅ |
+| `SCROLL` cursors | ❌ | ❌ | ✅ | ✅ |
+| `DECFLOAT` type | ❌ | ❌ | ✅ | ✅ |
+| `TIME ZONE` / `TIMESTAMP TZ` | ❌ | ❌ | ✅ | ✅ |
+
+> **Note:** Firebird **3.0 is the primary production target** (Amicron ERP). Features marked ❌ for FB3
+> are either absent on the server or require Firebird 4.0+. Feature detection is automatic —
+> no manual configuration is needed.
 
 # License & Disclaimer
 
