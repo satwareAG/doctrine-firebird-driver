@@ -86,7 +86,7 @@ abstract class FunctionalTestCase extends TestCase
                     $fbirdConnection?->rollBack();
                 } catch (Throwable) {
                     try {
-                        @$fbirdConnection?->commit();
+                        @$fbirdConnection->commit();
                     } catch (Throwable) {
                         // Ignore commit errors during cleanup
                     }
@@ -163,11 +163,17 @@ abstract class FunctionalTestCase extends TestCase
 
     public function getFirebirdConnection(): FirebirdConnection|null
     {
-        // With v7 Exception Mode, we don't need this deep unwrapping
-        // DBAL manages the connection cleanly
-        $wrapped = $this->connection->getNativeConnection();
-        if ($wrapped instanceof FirebirdConnection) {
-            return $wrapped;
+        // Traverse DBAL middleware layers to find the underlying FirebirdConnection object.
+        // getNativeConnection() returns the raw Firebird resource (not the FirebirdConnection
+        // class), so we must walk the getWrappedConnection() chain in DBAL 3.x to reach the
+        // driver-level object that provides isConnectionValid(), dropTableForce(), etc.
+        $connection = $this->connection;
+        while (method_exists($connection, 'getWrappedConnection')) {
+            // @phpstan-ignore-next-line (getWrappedConnection() is deprecated but required to traverse DBAL 3.x middleware to reach FirebirdConnection)
+            $connection = $connection->getWrappedConnection();
+            if ($connection instanceof FirebirdConnection) {
+                return $connection;
+            }
         }
 
         return null;
@@ -192,17 +198,20 @@ abstract class FunctionalTestCase extends TestCase
         // Check if existing shared connection's underlying Firebird connection is still valid
         if (! $needNewConnection) {
             $fbirdConn = null;
-            if (method_exists(self::$sharedConnection, 'getNativeConnection')) {
-                $wrapped = self::$sharedConnection->getNativeConnection();
-                if ($wrapped instanceof FirebirdConnection) {
-                    $fbirdConn = $wrapped;
+            $conn      = self::$sharedConnection;
+            while (method_exists($conn, 'getWrappedConnection')) {
+                // @phpstan-ignore-next-line (getWrappedConnection() is deprecated but required to traverse DBAL 3.x middleware to reach FirebirdConnection)
+                $conn = $conn->getWrappedConnection();
+                if ($conn instanceof FirebirdConnection) {
+                    $fbirdConn = $conn;
+                    break;
                 }
             }
 
             if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
                 // Connection resource is invalid - need to reconnect
                 try {
-                    self::$sharedConnection->close();
+                    self::$sharedConnection?->close();
                 } catch (Throwable) {
                     // Ignore close errors on invalid connection
                 }
@@ -216,6 +225,7 @@ abstract class FunctionalTestCase extends TestCase
             self::$sharedConnection = TestUtil::getConnection();
         }
 
+        assert(self::$sharedConnection instanceof Connection);
         $this->connection = self::$sharedConnection;
     }
 

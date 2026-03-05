@@ -1,27 +1,82 @@
 ---
-description: DBAL connection wrapper prevents native connection resource validation
-tags: [dbal, testing, firebird]
+description: DBAL 3.x middleware chain prevents getNativeConnection() from returning FirebirdConnection object
+tags: [dbal, testing, firebird, middleware]
 last_updated: 2026-03-05
 ---
 
-# DBAL Connection Wrapper Validation Bug
+# DBAL 3.x Middleware Chain - getNativeConnection() vs getWrappedConnection()
 
 ## Problem
-In DBAL 3.x, `getNativeConnection()` on a DBAL `Connection` wrapper does not return the raw extension resource (like the Firebird link identifier). Instead, it returns the driver-specific Connection implementation (e.g. `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection`).
 
-When a test runner attempts to check `isConnectionValid()` using this wrapper, it may incorrectly report the connection as valid even if the underlying resource has been closed by a database error.
+In DBAL 3.x with middleware (e.g. `CharsetMiddleware`, `FirebirdDriverMiddleware`), calling
+`$dbalConnection->getNativeConnection()` traverses the middleware chain and returns the **raw
+Firebird PHP resource** (the native database link handle), NOT the `FirebirdConnection` driver
+class that wraps it.
 
-## Implication for Test Suites
-This causes cascade failures in test suites:
-1. Test A triggers a database error that closes the connection (e.g. "object is in use")
-2. Test harness catches exception and attempts teardown
-3. Test harness checks `isConnectionValid()` on the DBAL wrapper, which returns `true` because it doesn't correctly interrogate the raw resource.
-4. Test harness reuses the dead connection for Test B
+This means `instanceof FirebirdConnection` checks on the result of `getNativeConnection()` always
+return `false`, causing `getFirebirdConnection()` to return `null` instead of the actual object.
+
+## Cascade Failure Pattern
+
+When the test harness uses `getNativeConnection()` to get the `FirebirdConnection`:
+
+1. Test A triggers a database error that invalidates the connection resource
+2. `getFirebirdConnection()` returns `null` (because `instanceof FirebirdConnection` fails)
+3. All validity checks (`isConnectionValid()`) are skipped (null-guarded)
+4. Dead connection is reused for Test B
 5. Test B fails with "Connection is not valid or has been closed"
-6. This repeats for all subsequent tests.
+6. All 213+ subsequent tests fail in a cascade
 
-## Solution
-When simplifying test suites, you cannot rely solely on the DBAL wrapper for connection validity. You must either:
-a) Ensure `isConnectionValid()` deep-inspects the native resource type
-b) Provide a deep unwrap utility in the test case to get the raw resource before calling `isConnectionValid()`
-c) Use a ping query (`SELECT 1 FROM RDB$DATABASE`) to guarantee validity.
+## Root Cause in PR #85
+
+The simplification replaced the `getWrappedConnection()` traversal loop with `getNativeConnection()`:
+
+```php
+// Wrong: returns raw Firebird resource, not FirebirdConnection object
+$wrapped = $this->connection->getNativeConnection();
+if ($wrapped instanceof FirebirdConnection) { // always false through middleware
+    return $wrapped;
+}
+```
+
+## Correct Solution
+
+Use the deprecated (but functional in DBAL 3.x) `getWrappedConnection()` chain to traverse the
+middleware stack layer by layer until the `FirebirdConnection` object is found:
+
+```php
+// Correct: walks DBAL 3.x middleware layers to reach FirebirdConnection object
+$connection = $this->connection;
+while (method_exists($connection, 'getWrappedConnection')) {
+    // @phpstan-ignore-next-line
+    $connection = $connection->getWrappedConnection();
+    if ($connection instanceof FirebirdConnection) {
+        return $connection;
+    }
+}
+```
+
+## Why getNativeConnection() Behaves This Way
+
+The DBAL 3.x middleware chain is:
+
+```text
+DBAL Connection (ConnectionWrapper)
+  -> CharsetConnectionMiddleware
+    -> FirebirdDriverMiddleware MiddlewareConnection
+      -> FirebirdConnection (driver object with isConnectionValid(), dropTableForce(), etc.)
+        -> raw PHP Firebird resource (link handle)
+```
+
+`getNativeConnection()` is designed to return the **resource** at the bottom of the chain (the
+raw database link), which is what application code needs for raw DB operations.
+
+`getWrappedConnection()` unwraps one middleware layer at a time, allowing test infrastructure to
+reach the `FirebirdConnection` driver object that provides the higher-level methods needed for
+test lifecycle management.
+
+## Migration Note for DBAL 4.x
+
+`getWrappedConnection()` is removed in DBAL 4.x. When upgrading, the test harness will need a
+different mechanism to reach the `FirebirdConnection` object (e.g. a dedicated method on the
+`ConnectionWrapper` class, or storing a reference to the driver connection during construction).
