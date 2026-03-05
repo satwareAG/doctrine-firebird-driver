@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.10.1] - 2026-03-04
+## [3.10.1] - 2026-03-05
+
+### Fixed
+- **CI matrix version parsing** — Fixed all CI matrix jobs failing with 'Invalid platform version'
+  when using newer firebirdsql/firebird Docker images that return plain numeric version strings
+  (e.g. '5.0.3.1683') instead of the legacy 'LI|WI-V...' format (#82, #83)
 
 ### Changed
 - **php-firebird Extension: v7.1.0 → v7.2.0** — Bumped minimum required extension version
