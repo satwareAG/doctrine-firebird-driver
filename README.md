@@ -201,6 +201,67 @@ doctrine:
 - Type mismatch (non-integer values)
 - Out of range (<1 or >8191)
 
+### CharsetMiddleware - Transparent Charset Conversion
+
+Many Firebird databases use a non-UTF-8 wire charset (e.g. `ISO8859_1` / `WIN1252`). The `CharsetMiddleware` converts string values transparently between your PHP application encoding and the Firebird wire encoding at the DBAL driver level - no manual `iconv`/`mb_convert_encoding` calls needed in application code.
+
+**Defaults:** `databaseEncoding: 'Windows-1252'` and `phpEncoding: 'UTF-8'` covers the most common case (Amicron ERP and other WIN1252 Firebird databases).
+
+#### Symfony Configuration (DoctrineBundle service)
+
+```xml
+<!-- config/services.xml -->
+<service id="Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware">
+    <tag name="doctrine.middleware"/>
+</service>
+```
+
+```yaml
+# config/services.yaml
+Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware:
+    tags:
+        - { name: doctrine.middleware }
+```
+
+#### Standalone PHP Configuration
+
+```php
+use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\DriverManager;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware;
+
+$config = new Configuration();
+$config->setMiddlewares([
+    new CharsetMiddleware(), // defaults: WIN1252 → UTF-8
+]);
+
+$connection = DriverManager::getConnection([
+    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'host'         => 'localhost',
+    'dbname'       => '/path/to/database.fdb',
+    'user'         => 'SYSDBA',
+    'password'     => 'masterkey',
+    'charset'      => 'WIN1252',
+], $config);
+```
+
+#### Custom Encoding Pair
+
+```php
+// ISO-8859-1 database, UTF-8 application
+$middleware = new CharsetMiddleware(databaseEncoding: 'ISO-8859-1', phpEncoding: 'UTF-8');
+
+// UTF-8 database (no conversion needed - use identity pair)
+$middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF-8');
+```
+
+**How it works:**
+- `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird
+- `fetch*()` results: database encoding → PHP encoding after receiving from Firebird
+- Non-string values (int, float, null, bool) pass through unchanged
+
+**Requires:** `ext-mbstring` (declared in `composer.json`)
+
 # Testing
 
 The project includes comprehensive test coverage across **Firebird 3.0, 4.0, and 5.0** with unit, functional, and integration tests.

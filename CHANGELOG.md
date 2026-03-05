@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`CharsetMiddleware`** — transparent charset conversion middleware for non-UTF-8 Firebird databases
+  - `src/Driver/Firebird/Middleware/CharsetMiddleware` — top-level DBAL middleware (implements `Doctrine\DBAL\Driver\Middleware`)
+  - `src/Driver/Firebird/Middleware/CharsetConnectionMiddleware` — encodes query-level string parameters (PHP→DB)
+  - `src/Driver/Firebird/Middleware/CharsetStatementMiddleware` — encodes `bindValue()` and execute params (PHP→DB); wraps Result
+  - `src/Driver/Firebird/Middleware/CharsetResultMiddleware` — decodes all `fetch*()` string results (DB→PHP)
+  - Default encodings: `databaseEncoding: 'Windows-1252'`, `phpEncoding: 'UTF-8'` (covers WIN1252/ISO8859_1 Firebird databases)
+  - Custom encoding pairs supported (e.g. `ISO-8859-1`/`UTF-8`)
+  - Ported and generalized from `satag-amicron-entity-bundle` for all Firebird users
+- **`ext-mbstring`** added to `require` (`mb_convert_encoding` dependency)
+- **`tests/Test/Unit/Driver/Middleware/CharsetMiddlewareTest`** — 15 unit tests, 36 assertions
+
 ## [3.10.1] - 2026-03-05
 
 ### Fixed
