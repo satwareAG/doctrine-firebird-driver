@@ -1,6 +1,6 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-05 (PR #85 merged; issue #47 closed; test suite simplified)
+**Last session:** 2026-03-05 (AppVeyor removed; Windows CI research completed)
 **Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
 
 ---
@@ -65,6 +65,7 @@ See `docs/BRANCHING.md` for the full `4.0.x` strategy.
 
 | Item | Date | Notes |
 |------|------|-------|
+| AppVeyor CI removed | 2026-03-05 | No Windows DLLs for ext-firebird v7.x; follows Doctrine pattern; research: `docs/research/2026-03-05-windows-ci-removal-decision.md` |
 | PR #85 merged + issue #47 closed | 2026-03-05 | Test suite simplified; Firebird cursor-lock fix |
 | Project cleanup: archive docs/issues/ + plans/ | 2026-03-05 | 17 resolved issue docs archived |
 | Delete stale feat/charset-middleware branch | 2026-03-05 | Merged in v3.11.0 |
