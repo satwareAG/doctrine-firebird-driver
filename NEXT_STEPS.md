@@ -1,40 +1,11 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-05 (PR #85 cursor-lock fix; project cleanup + branching strategy)
+**Last session:** 2026-03-05 (PR #85 merged; issue #47 closed; test suite simplified)
 **Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
 
 ---
 
-## 🟡 Priority 1 — Merge PR #85 after CI passes (Issue #47 test suite simplification)
-
-| PR | Title | State | CI |
-|----|-------|-------|----|
-| **#85** | fix(test): Issue #47 test suite simplification - fix connection cascade failures | Ready | ⏳ CI running |
-
-**Two fixes applied in this session:**
-
-**Fix 1** (commit `c4b4715`): Restored `getWrappedConnection()` traversal in `getFirebirdConnection()`
-and `connect()`. Root cause: `getNativeConnection()` returns the raw PHP Firebird resource, NOT
-the `FirebirdConnection` object, when DBAL 3.x middleware layers are present. Without the traversal,
-`getFirebirdConnection()` always returned `null`, disabling all connection validity checks.
-Result: 213 cascade `DriverException: Connection is not valid or has been closed` failures.
-
-**Fix 2** (commit `537e298`): Added `gc_collect_cycles()` at the top of `dropTableIfExists()`.
-Root cause: PHPUnit runs test `tearDown()` BEFORE `@after disconnect()`. Statement/Result objects
-from test bodies hold Firebird cursor locks. Without GC, `DROP TABLE` in tearDown fails with
-"object TABLE X is in use". See `docs/learnings/2026-03-05-firebird-cursor-lock-teardown.md`.
-
-**Next action**: Wait for CI (8 jobs: PHP 8.3/8.4 x FB3/FB4/FB5 + Static Analysis + Summary).
-If all green:
-
-```bash
-gh pr merge 85 --repo satwareAG/doctrine-firebird-driver --squash --delete-branch
-gh issue close 47 --repo satwareAG/doctrine-firebird-driver
-```
-
----
-
-## 🟡 Priority 2 — GitLab MRs (unblocked by v3.10.1)
+## 🟡 Priority 1 — GitLab MRs (unblocked by v3.10.1)
 
 Both were waiting for doctrine-firebird-driver v3.10.1 - now released.
 
@@ -56,7 +27,7 @@ Both were waiting for doctrine-firebird-driver v3.10.1 - now released.
 
 ---
 
-## 🟢 Priority 3 — Coverage ≥90% on PHP 8.4 + FB3
+## 🟢 Priority 2 — Coverage ≥90% on PHP 8.4 + FB3
 
 Current baseline: **~82.84%** | Target: **≥90%**
 
@@ -75,7 +46,7 @@ docker compose exec app php -d pcov.enabled=1 \
 
 ---
 
-## 🔵 Priority 4 — DBAL 4.x Migration Planning
+## 🔵 Priority 3 — DBAL 4.x Migration Planning
 
 `getWrappedConnection()` is deprecated in DBAL 3.x and **removed in DBAL 4.x**. Current
 usage in `FunctionalTestCase::getFirebirdConnection()` and `connect()` will break.
@@ -94,6 +65,7 @@ See `docs/BRANCHING.md` for the full `4.0.x` strategy.
 
 | Item | Date | Notes |
 |------|------|-------|
+| PR #85 merged + issue #47 closed | 2026-03-05 | Test suite simplified; Firebird cursor-lock fix |
 | Project cleanup: archive docs/issues/ + plans/ | 2026-03-05 | 17 resolved issue docs archived |
 | Delete stale feat/charset-middleware branch | 2026-03-05 | Merged in v3.11.0 |
 | Branching strategy documented | 2026-03-05 | `docs/BRANCHING.md` created |
@@ -111,8 +83,6 @@ See `docs/BRANCHING.md` for the full `4.0.x` strategy.
 ```bash
 cd /home/mw/external/doctrine-firebird-driver
 git fetch --all
-gh pr checks 85 --repo satwareAG/doctrine-firebird-driver
-# If all green:
-gh pr merge 85 --repo satwareAG/doctrine-firebird-driver --squash --delete-branch
-gh issue close 47 --repo satwareAG/doctrine-firebird-driver
+# GitLab MRs: !25 (satag-amicron-entity-bundle) → !116 (amicron-platform)
+# Coverage: docker compose up -d fb3 app && run phpunit with pcov
 ```
