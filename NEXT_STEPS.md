@@ -1,27 +1,28 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-05 (v3.11.0 released — CharsetMiddleware)
+**Last session:** 2026-03-05 (v3.11.0 released — CharsetMiddleware; PR #85 fixed)
 **Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
 
 ---
 
-## 🔴 Priority 1 — Fix PR #85 CI failure (Issue #47 test suite simplification)
+## 🟡 Priority 1 — Merge PR #85 after CI passes (Issue #47 test suite simplification)
 
 | PR | Title | State | CI |
 |----|-------|-------|----|
-| **#85** | wip: Issue #47 test suite simplification (Blocked by #84) | DRAFT | ❌ 213 errors on FB4 |
+| **#85** | fix(test): Issue #47 test suite simplification - fix connection cascade failures | Ready | ⏳ CI running |
 
-**Root cause** (identified 2026-03-05 morning): 213 `DriverException: Connection is not valid or has been closed` on PHP 8.4 / Firebird 4.0. The simplification broke connection lifecycle in the test suite. First error cascades to all subsequent tests.
+**Root cause** (identified + fixed 2026-03-05): `getNativeConnection()` in DBAL 3.x returns the raw
+Firebird PHP resource, NOT the `FirebirdConnection` object, when middleware layers are present. The
+`instanceof FirebirdConnection` check always returned `false`, causing `getFirebirdConnection()` to
+return `null`, silently disabling all connection validity checks. Dead connections were reused → 213
+cascade failures.
 
-**Investigate**:
+**Fix applied** (commit `c4b4715`): Restored `getWrappedConnection()` traversal loop in
+`getFirebirdConnection()` and `connect()`. Branch rebased onto `3.0.x` (includes CharsetMiddleware).
+PHPStan Level 8 passes. PR converted from DRAFT to Ready for Review.
 
-```bash
-git fetch origin feat/issue-47-simplify-test-suite
-git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/FunctionalTestCase.php
-git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/TestUtil.php
-```
-
-**Likely fix**: Connection teardown/setup in `FunctionalTestCase::setUp()` / `tearDown()` was removed or changed during simplification. Restore proper connection reset between tests.
+**Next action**: Wait for CI to pass (8 jobs: PHP 8.3/8.4 × FB3/FB4/FB5 + Static Analysis + Summary),
+then squash-merge to `3.0.x`.
 
 ---
 
@@ -86,7 +87,7 @@ docker compose exec app php -d pcov.enabled=1 \
 ```bash
 cd /home/mw/external/doctrine-firebird-driver
 git log --oneline -5
-gh pr view 85 --repo satwareAG/doctrine-firebird-driver
-git fetch origin feat/issue-47-simplify-test-suite
-git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/FunctionalTestCase.php
+gh pr checks 85 --repo satwareAG/doctrine-firebird-driver
+# If CI passes: squash-merge PR #85, close #47
+gh pr merge 85 --repo satwareAG/doctrine-firebird-driver --squash --delete-branch
 ```
