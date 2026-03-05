@@ -1,7 +1,7 @@
 {
     "name": "satag/doctrine-firebird-driver",
     "type": "library",
-    "description": "Doctrine DBAL/ORM driver for Firebird SQL 2.5 and newer",
+    "description": "Doctrine DBAL/ORM driver for Firebird SQL 3.0 and newer",
     "license": "MIT",
     "keywords": [
         "firebird",
@@ -64,7 +64,7 @@
     },
     "require": {
         "php": "^8.2",
-        "ext-firebird": "^7.1.0",
+        "ext-firebird": "^7.2.0",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^3.10",
         "symfony/polyfill-php82": "^1.31",
@@ -89,7 +89,7 @@
         "phpunit/phpunit": "^11.0",
         "psalm/plugin-phpunit": "^0.19",
         "react/child-process": "^0.6",
-        "satwareag/php-firebird-stubs": "^7.1.0",
+        "satwareag/php-firebird-stubs": "^7.2.0",
         "slevomat/coding-standard": "^8.23",
         "squizlabs/php_codesniffer": "^4.0",
         "symfony/cache": "^5.4|^6.0|^7.0",
