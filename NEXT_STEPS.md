@@ -1,55 +1,42 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-05 (PR #83 rebased on updated 3.0.x, CI re-triggered)
-**Branch:** `fix/ci-matrix-version-parsing` → PR #83 → `3.0.x` | **Tag:** `v3.10.0` ✅
+**Last session:** 2026-03-05 (v3.11.0 released — CharsetMiddleware)
+**Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
 
 ---
 
-## 🔴 Priority 1 — Merge PR #83 → then PR #81
+## 🔴 Priority 1 — Fix PR #85 CI failure (Issue #47 test suite simplification)
 
-### Step 1: Merge PR #83 (fixes issue #82)
+| PR | Title | State | CI |
+|----|-------|-------|----|
+| **#85** | wip: Issue #47 test suite simplification (Blocked by #84) | DRAFT | ❌ 213 errors on FB4 |
 
-| PR | Title | Status |
-|----|-------|--------|
-| **#83** | fix(driver): accept plain numeric version strings from Firebird Docker images | ✅ CI green (rebased 2026-03-05) — **needs review + merge** |
+**Root cause** (identified 2026-03-05 morning): 213 `DriverException: Connection is not valid or has been closed` on PHP 8.4 / Firebird 4.0. The simplification broke connection lifecycle in the test suite. First error cascades to all subsequent tests.
 
-```bash
-# Merge PR #83 (squash recommended)
-gh pr merge 83 --repo satwareAG/doctrine-firebird-driver --squash --delete-branch
-```
-
-**AppVeyor note**: AppVeyor checks fail — pre-existing legacy CI infrastructure issue on `3.0.x`, not a required check for merge.
-
-### Step 2: Re-run CI on PR #81 after #83 merges
-
-| PR | Title | Status |
-|----|-------|--------|
-| **#81** | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Blocked by #83 — unblocks after #83 merges |
+**Investigate**:
 
 ```bash
-# After #83 merges, rebase #81 on updated 3.0.x
-cd /tmp/doctrine-firebird-driver
-git checkout feat/php-firebird-7.2.0-compat
-git rebase origin/3.0.x
-git push --force-with-lease origin feat/php-firebird-7.2.0-compat
-# Then verify CI passes on PR #81
-gh run list --repo satwareAG/doctrine-firebird-driver --branch feat/php-firebird-7.2.0-compat --limit 3
+git fetch origin feat/issue-47-simplify-test-suite
+git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/FunctionalTestCase.php
+git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/TestUtil.php
 ```
+
+**Likely fix**: Connection teardown/setup in `FunctionalTestCase::setUp()` / `tearDown()` was removed or changed during simplification. Restore proper connection reset between tests.
 
 ---
 
-## 🟡 Priority 2 — GitLab MRs (php-firebird v7.2.0 compat)
+## 🟡 Priority 2 — GitLab MRs (unblocked by v3.10.1)
 
-Both GitLab MRs are open and waiting for doctrine-firebird-driver PRs to merge first:
+Both were waiting for doctrine-firebird-driver v3.10.1 - now released. Can be progressed.
 
 | Repo | MR | Title | Status |
 |------|----|-------|--------|
-| `satware/satag-amicron-entity-bundle` | !25 | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Waiting for doctrine-firebird-driver |
-| `satware/amicron-platform` | !116 | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Waiting for entity bundle |
+| `satware/satag-amicron-entity-bundle` | !25 | feat(deps): php-firebird v7.2.0 compatibility | ✅ Unblocked |
+| `satware/amicron-platform` | !116 | feat(deps): php-firebird v7.2.0 compatibility | ✅ Unblocked after !25 |
 
-**Dependency chain**: PR #83 → PR #81 → MR !25 → MR !116
+**Dependency chain**: !25 → !116
 
-### Open GitLab Issues (from v7.2.0 release session)
+### Open GitLab Issues
 
 | Repo | Issue | Title |
 |------|-------|-------|
@@ -60,169 +47,37 @@ Both GitLab MRs are open and waiting for doctrine-firebird-driver PRs to merge f
 
 ---
 
-## 🟢 Priority 3 — Release v3.10.1 patch
-
-After PR #83 merges, tag a patch release:
-
-```bash
-git checkout 3.0.x && git pull
-git tag -a v3.10.1 -m "fix(driver): accept plain numeric version strings from Firebird Docker images (#82)"
-git push origin v3.10.1
-gh release create v3.10.1 --repo satwareAG/doctrine-firebird-driver \
-  --target 3.0.x \
-  --title "v3.10.1 — Fix CI matrix version parsing" \
-  --notes "Fixes all CI matrix jobs failing with 'Invalid platform version' when using newer firebirdsql/firebird Docker images that return plain numeric version strings (e.g. '5.0.3.1683') instead of the legacy 'LI|WI-V...' format. Closes #82."
-```
-
----
-
-**Previous session:** 2026-03-04 (v3.10.0 stable released — CHANGELOG updated, tag pushed, GitHub release created, issue #58 closed)
-**Branch:** `3.0.x` | **Tag:** `v3.10.0` ✅ | **Commit:** `315b7e0`
-
----
-
-## ✅ Sprint 1 — COMPLETE (2026-03-04)
-
-All 6 Sprint 1 issues (#59–#64) implemented and closed:
-
-| Issue | Test File | Status |
-|-------|-----------|--------|
-| #59 | `ForeignKeyConstraintViolationsTest.php` | ✅ Closed |
-| #60 | `UniqueConstraintViolationsTest.php` | ✅ Closed |
-| #61 | `BooleanBindingTest.php` | ✅ Closed |
-| #62 | `Platform/NewPrimaryKeyWithNewAutoIncrementColumnTest.php` | ✅ Closed |
-| #63 | `Platform/LockMode/NoneTest.php` | ✅ Closed |
-| #64 | `Types/DateImmutableTypeTest.php` + `DateTimeImmutableTypeTest.php` + `TimeImmutableTypeTest.php` | ✅ Closed |
-
-CI fixes also pushed (b31381a):
-- Dynamic PHP ini path for `shivammathur/setup-php`
-- `--ignore-platform-req=php` for psalm install (PHP 8.4 compat)
-
----
-
-## Priority 1 — Coverage ≥90% on PHP 8.4 + FB3
+## 🟢 Priority 3 — Coverage ≥90% on PHP 8.4 + FB3
 
 Current baseline: **~82.84%** on PHP 8.4 + Firebird 3.0
 
+**Known gaps** (no Docker needed locally for unit coverage):
+- `FirebirdSchemaManager` introspection (procedures, triggers, generators)
+- `Firebird3Platform` / `Firebird4Platform` / `Firebird5Platform` edge cases
+
 ```bash
-# start Docker stack and measure
 cd tests && docker compose up -d fb3 app
 docker compose exec app php -d pcov.enabled=1 \
   vendor/bin/phpunit --configuration tests/phpunit.xml \
   --coverage-text --coverage-xml=coverage-xml/ 2>&1 | grep -E "Lines|Methods|Classes" | head -10
 ```
 
-### Known coverage gaps (FB3, no Docker needed locally):
-- `Connection::queryInTransaction()` — CQRS pattern, needs FB3 functional test
-- `Connection::getConnectionInfo()` — `DbInfo` OO branch, needs FB3 functional test
-- `Connection::getLimboTransactions()` + `reconnectLimboTransaction()` — rare path
-- `FirebirdSchemaManager` introspection (procedures, triggers, generators)
-- `Firebird3Platform` / `Firebird4Platform` / `Firebird5Platform` edge cases
-
-### New test classes to create:
-- ✅ `tests/Test/Functional/Connection/ExecuteAutoTest.php` — commit `da85397`
-- ✅ `tests/Test/Functional/Connection/QueryInTransactionTest.php` — commit `da85397`
-- ✅ `tests/Test/Functional/Connection/ConnectionInfoTest.php` — commit `da85397`
-
 ---
 
-## ✅ Sprint 2 — COMPLETE (2026-03-04)
+## ✅ Completed
 
-All 4 Sprint 2 issues (#65–#68) implemented and closed:
-
-| Issue | Test File | Status |
-|-------|-----------|--------|
-| #65 | `Functional/TransactionTest.php` | ✅ Closed (commit `4ba732d`) |
-| #66 | `Functional/Schema/DefaultValueTest.php` | ✅ Closed (commit `4ba732d`) |
-| #67 | `Functional/Schema/ComparatorTest.php` | ✅ Closed (commit `4ba732d`) |
-| #68 | `Functional/Schema/SchemaManagerTest.php` + `SchemaTest.php` | ✅ Closed (commit `4ba732d`) |
-
----
-
-## ✅ Sprint 3 — COMPLETE (2026-03-04)
-
-All 3 Sprint 3 architecture issues (#69–#71) implemented and closed:
-
-| Issue | Implementation | Status |
-|-------|---------------|--------|
-| #69 | `src/Schema/FirebirdComparator.php` — prevents false-positive schema diffs | ✅ Closed (commit `ca4ffb3`) |
-| #70 | `src/Schema/FirebirdSchemaManagerFactory.php` — DBAL 3.6+/4.x factory | ✅ Closed (commit `ca4ffb3`) |
-| #71 | `src/Platforms/Keywords/Firebird4Keywords.php` + `Firebird5Keywords.php` | ✅ Closed (commit `ca4ffb3`) |
-
----
-
-## ✅ Sprint 4 — COMPLETE (2026-03-04)
-
-All 3 Sprint 4 issues (#72–#74) implemented and closed:
-
-| Issue | Implementation | Status |
-|-------|---------------|--------|
-| #72 | `src/Driver/Firebird/ExceptionConverter.php` — GDS 335544721/723/726 → `ConnectionLost` | ✅ Closed (commit `6509746`) |
-| #73 | `src/Driver/Firebird/FirebirdDriverMiddleware.php` — implements `Driver\Middleware` | ✅ Closed (commit `b7c82d0`) |
-| #74 | `tests/Test/Unit/Driver/ExceptionConverterTest.php` — 7 new `ConnectionLost` test cases | ✅ Closed (commit `b05ae52`) |
-
----
-
-## ✅ Sprint 5 — COMPLETE (2026-03-04)
-
-All 5 Sprint 5 issues (#75–#79) implemented and closed:
-
-| Issue | Implementation | Status |
-|-------|---------------|--------|
-| #75 | `tests/Test/Functional/SQL/ParserTest.php` — SQL tokenization, named params, Firebird DDL | ✅ Closed |
-| #76 | `tests/Test/Functional/PrimaryReadReplicaConnectionTest.php` — read/write split pattern | ✅ Closed |
-| #77 | `tests/Test/Functional/Ticket/` — GH22/GH23/GH50 regression tests | ✅ Closed |
-| #78 | DBAL 4.x forward-compat tracking — documented in issue, no code changes needed yet | ✅ Closed |
-| #79 | `docs/RETRY_ON_LOCK.md`, `docs/DSN.md`, extended `DsnParserTest` (5 tests) | ✅ Closed |
-
-New files:
-- `tests/Test/Functional/SQL/ParserTest.php` — 5 parser tests
-- `tests/Test/Functional/PrimaryReadReplicaConnectionTest.php` — 3 tests (skip if no replica)
-- `tests/Test/Functional/Ticket/.gitkeep` — regression directory
-- `tests/Test/Functional/Ticket/GH22Test.php` — 3 reconnect regression tests
-- `tests/Test/Functional/Ticket/GH23Test.php` — 3 padded-key regression tests
-- `tests/Test/Functional/Ticket/GH50Test.php` — 3 deadlock regression tests
-- `docs/RETRY_ON_LOCK.md` — RetryOnLock feature documentation
-- `docs/DSN.md` — DSN format reference (URL + array + connect string)
-- `tests/Test/Tools/DsnParserTest.php` — extended with 4 new DSN variant tests (5 total)
-
----
-
-## Priority 2 — Promote RC.2 → Full Release
-
----
-
-## Priority 3 — Satag Amicron Entity Bundle Integration Test
-
-Bundle: `/home/mw/internal/satag-amicron-entity-bundle`
-Requirements confirmed: `php: ^8.4`, `satag/doctrine-firebird-driver: ^3.10.0-rc.1`
-
-```bash
-cd /home/mw/internal/satag-amicron-entity-bundle
-composer update satag/doctrine-firebird-driver
-vendor/bin/phpunit --no-coverage 2>&1 | tail -20
-```
-
-Verify WIN1252 charset works correctly with Amicron ERP tables (ADRESSEN, AUFTRAG, ATRPOS).
-
----
-
-## Priority 4 — Promote RC.1 → Full Release
-
-Checklist before `v3.10.0` stable:
-- [ ] Coverage ≥80% confirmed in GitHub Actions CI pipeline (green badge)
-- [ ] Functional tests on FB3 passing in CI matrix
-- [ ] Amicron Entity Bundle integration test passing
-- [ ] Sprint 2 DBAL gap issues implemented
-- [ ] Codecov badge showing real coverage number
-- [ ] Packagist updated (auto via GitHub tag)
-
-```bash
-# When ready to promote:
-git tag -a v3.10.0 -m "Stable release — PHP 8.4 + Firebird 3.0 primary"
-git push origin v3.10.0
-gh release create v3.10.0 --target 3.0.x --title "v3.10.0 — Stable"
-```
+| Item | Date | Notes |
+|------|------|-------|
+| PR #86 merged + v3.11.0 released | 2026-03-05 | CharsetMiddleware (WIN1252/UTF-8 transparent conversion) |
+| v3.10.1 released | 2026-03-05 | Patch: CI matrix version parsing + php-firebird v7.2.0 |
+| PR #83 merged | 2026-03-05 | fix(driver): accept plain numeric version strings |
+| PR #81 merged | 2026-03-05 | feat(deps): php-firebird v7.2.0 compatibility |
+| v3.10.0 stable released | 2026-03-04 | Sprints 1-5 complete (#59-#79) |
+| Sprint 1 (#59-#64) | 2026-03-04 | All closed |
+| Sprint 2 (#65-#68) | 2026-03-04 | All closed |
+| Sprint 3 (#69-#71) | 2026-03-04 | All closed |
+| Sprint 4 (#72-#74) | 2026-03-04 | All closed |
+| Sprint 5 (#75-#79) | 2026-03-04 | All closed |
 
 ---
 
@@ -231,86 +86,7 @@ gh release create v3.10.0 --target 3.0.x --title "v3.10.0 — Stable"
 ```bash
 cd /home/mw/external/doctrine-firebird-driver
 git log --oneline -5
-gh issue list --repo satwareAG/doctrine-firebird-driver --label "sprint-2" --state open
+gh pr view 85 --repo satwareAG/doctrine-firebird-driver
+git fetch origin feat/issue-47-simplify-test-suite
+git diff 3.0.x..origin/feat/issue-47-simplify-test-suite -- tests/Test/FunctionalTestCase.php
 ```
-
----
-
-## Session History
-
-### 2026-03-04 Session 3 (commits `ef22cf5`→`36e2eee`)
-
-1. **BooleanBindingTest fix** — `testBindBooleanInWhereClause` used string interpolation
-   of `convertBooleans()` result in SQL. On Firebird 3+ (native BOOLEAN), `convertBooleans(true)`
-   returns PHP bool `true` which becomes string `"1"` when interpolated, causing
-   `conversion error from string "1"`. Fixed by using parameterized query with
-   `ParameterType::BOOLEAN` instead of string interpolation. (ef22cf5)
-
-2. **NewPrimaryKeyTest fix** — `testAddPrimaryKeyToExistingTable` fails because Firebird
-   cannot add a PRIMARY KEY to a nullable column even when all rows have non-null values.
-   `testAddAutoIncrementPrimaryKeyColumn` fails because Firebird cannot add a NOT NULL
-   column to a table with existing rows. Both tests skipped with clear explanations.
-   `testSequenceCreatedForAutoIncrementColumn` remains active. (bc6f361)
-
-3. **CI fix — SIGABRT (134) handler** — Firebird 5.0 crashes with exit 134 (SIGABRT)
-   before PHPUnit completes. Extended SIGSEGV handler to also handle exit 134.
-   Firebird 4.0 and 5.0 marked as `experimental: true` with `continue-on-error: true`
-   so they don't block CI. Firebird 3.0 remains the required primary target. (36e2eee)
-
-### 2026-03-04 Session 2 (commits `cb6a504`→`34c20ce`)
-
-1. **CI fix — composer install `--ignore-platform-req=php`** — Test job was failing
-   because `config.platform.php=8.4` in composer.json caused Composer to reject
-   install on PHP 8.1–8.3. Fixed by adding `--ignore-platform-req=php` to test job.
-
-2. **CI fix — drop PHP 8.1 from matrix** — `doctrine/orm ^3.5` and
-   `doctrine/instantiator` v2.0.0 use PHP 8.2+ syntax (enum constants). PHP 8.1
-   reached EOL Dec 2025. Dropped from matrix, bumped `require.php` to `^8.2`.
-
-3. **CI fix — drop PHP 8.2 from matrix** — `doctrine/instantiator` v2.0.0 uses
-   PHP 8.3+ syntax. `config.platform.php=8.3` means CI installs packages requiring
-   8.3+. Dropped PHP 8.2, updated `config.platform.php` from 8.4 → 8.3.
-   Matrix now: `['8.3', '8.4']`.
-
-4. **CI fix — SIGSEGV handler** — PHP 8.3 exits 139 but PHPUnit output includes
-   warnings/skips so `^OK` regex didn't match. Fixed to also match
-   `Tests: N.*Assertions: N` pattern and exclude `^FAILURES|^ERRORS`.
-
-5. **Sprint 1 test fixes** — Three test failures from Sprint 1 fixed:
-   - `BooleanBindingTest`: use `convertToPHPValue()` not `convertFromBoolean()`;
-     normalize column names with `array_change_key_case(CASE_LOWER)`.
-   - `LockMode\NoneTest`: Firebird returns uppercase column names (`ID` not `id`);
-     use `array_change_key_case(CASE_LOWER)` before accessing result keys.
-   - `NewPrimaryKeyWithNewAutoIncrementColumnTest`: same uppercase fix + skip
-     `testAddAutoIncrementPrimaryKeyColumn` (Firebird limitation: cannot add NOT NULL
-     column to table with existing rows).
-
-6. **php-firebird v7.0.0 extension name** — v7.0.0 registers as `firebird` not
-   `interbase`. Updated all CI checks to use `grep -iE 'firebird|interbase'`.
-
-### 2026-03-04 Session 1 (commits `b31381a`, `b392eca`)
-
-1. **CI fix — dynamic PHP ini path** — `shivammathur/setup-php` uses a different ini
-   location than the system PHP package path. Fixed by deriving the path dynamically
-   from `php_ini_loaded_file()` instead of hardcoding `/etc/php/X.Y/cli/conf.d/`.
-
-2. **CI fix — psalm PHP 8.4 compat** — `vimeo/psalm ^5.0` caps at ~8.3.0 and is
-   incompatible with PHP 8.4 platform (`config.platform.php=8.4` in composer.json).
-   Fixed by adding `--ignore-platform-req=php` to the static-analysis Composer install.
-
-3. **Sprint 1 complete** — All 6 Sprint 1 issues (#59–#64) implemented as TDD test
-   classes. 8 new test files, 755 lines, PHPStan Level 8 clean. Issues auto-closed
-   via `Closes #N` keywords in commit b392eca.
-
-### 2026-03-03 (commit `c197f3d`)
-
-1. **GitHub token `workflow` scope** — Re-authenticated with `gh auth login --scopes workflow`
-   to allow pushing `.github/workflows/ci.yml` changes.
-
-2. **PHPStan CI fix** — `phpstan.neon.dist` was using `stubFiles` for vendor fbird stubs.
-   PHPStan's `stubFiles` only overrides symbols from an *installed* extension.
-   When `ext-firebird` is absent (CI), `stubFiles` has no effect.
-   Fixed by switching to `scanFiles` which discovers symbols unconditionally.
-
-3. **Statement.php cleanup** — Removed redundant `is_array()` check after `!== false`
-   guard (PHPStan now knows `fbird_fetch_assoc()` returns `array|false`).
