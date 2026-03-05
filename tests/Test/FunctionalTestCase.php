@@ -43,6 +43,11 @@ abstract class FunctionalTestCase extends TestCase
      */
     public function dropTableIfExists(string $name): void
     {
+        // Force GC before any drop attempt: test statements/result-sets hold Firebird cursor locks
+        // on the same connection. Without GC, tearDown() calls arrive before disconnect() @after
+        // runs, leaving PHP objects that keep the table "in use" in Firebird.
+        gc_collect_cycles();
+
         // Early return if connection is not available or closed
         $fbirdConnection = $this->getFirebirdConnection();
         if ($fbirdConnection !== null && ! $fbirdConnection->isConnectionValid()) {
