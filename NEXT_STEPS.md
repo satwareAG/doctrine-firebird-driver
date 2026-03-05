@@ -1,18 +1,78 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-04 (issue #82 fixed — CI matrix version parsing, PR #83 open, all 6 matrix jobs green)
+**Last session:** 2026-03-05 (PR #83 rebased on updated 3.0.x, CI re-triggered)
 **Branch:** `fix/ci-matrix-version-parsing` → PR #83 → `3.0.x` | **Tag:** `v3.10.0` ✅
 
-## 🔴 Immediate — Merge PR #83 then PR #81
+---
+
+## 🔴 Priority 1 — Merge PR #83 → then PR #81
+
+### Step 1: Merge PR #83 (fixes issue #82)
 
 | PR | Title | Status |
 |----|-------|--------|
-| #83 | fix(driver): accept plain numeric version strings from Firebird Docker images | ✅ CI green — **needs review + merge** |
-| #81 | feat: php-firebird v7.2.0 compatibility | ⏳ Blocked by #83 — unblocks after #83 merges |
+| **#83** | fix(driver): accept plain numeric version strings from Firebird Docker images | ✅ CI green (rebased 2026-03-05) — **needs review + merge** |
 
-**After merging #83**: Re-run CI on PR #81 to confirm it passes on the fixed base branch.
+```bash
+# Merge PR #83 (squash recommended)
+gh pr merge 83 --repo satwareAG/doctrine-firebird-driver --squash --delete-branch
+```
 
-**AppVeyor note**: AppVeyor checks fail on both PRs — this is a pre-existing legacy CI infrastructure issue on `3.0.x` unrelated to our changes. AppVeyor is not a required check for merge.
+**AppVeyor note**: AppVeyor checks fail — pre-existing legacy CI infrastructure issue on `3.0.x`, not a required check for merge.
+
+### Step 2: Re-run CI on PR #81 after #83 merges
+
+| PR | Title | Status |
+|----|-------|--------|
+| **#81** | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Blocked by #83 — unblocks after #83 merges |
+
+```bash
+# After #83 merges, rebase #81 on updated 3.0.x
+cd /tmp/doctrine-firebird-driver
+git checkout feat/php-firebird-7.2.0-compat
+git rebase origin/3.0.x
+git push --force-with-lease origin feat/php-firebird-7.2.0-compat
+# Then verify CI passes on PR #81
+gh run list --repo satwareAG/doctrine-firebird-driver --branch feat/php-firebird-7.2.0-compat --limit 3
+```
+
+---
+
+## 🟡 Priority 2 — GitLab MRs (php-firebird v7.2.0 compat)
+
+Both GitLab MRs are open and waiting for doctrine-firebird-driver PRs to merge first:
+
+| Repo | MR | Title | Status |
+|------|----|-------|--------|
+| `satware/satag-amicron-entity-bundle` | !25 | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Waiting for doctrine-firebird-driver |
+| `satware/amicron-platform` | !116 | feat(deps): php-firebird v7.2.0 compatibility | ⏳ Waiting for entity bundle |
+
+**Dependency chain**: PR #83 → PR #81 → MR !25 → MR !116
+
+### Open GitLab Issues (from v7.2.0 release session)
+
+| Repo | Issue | Title |
+|------|-------|-------|
+| amicron-platform | #75 | chore(ci): replace composer -q with proper error handling |
+| amicron-platform | #76 | chore(deps): upgrade satag/doctrine-firebird-driver to ^3.10 when entity bundle allows it |
+| amicron-platform | #77 | chore(ci): document CI image upgrade from PHP 8.1 to 8.2 |
+| satag-amicron-entity-bundle | #51 | chore(deps): relax satag/doctrine-firebird-driver constraint to allow ^3.10 |
+
+---
+
+## 🟢 Priority 3 — Release v3.10.1 patch
+
+After PR #83 merges, tag a patch release:
+
+```bash
+git checkout 3.0.x && git pull
+git tag -a v3.10.1 -m "fix(driver): accept plain numeric version strings from Firebird Docker images (#82)"
+git push origin v3.10.1
+gh release create v3.10.1 --repo satwareAG/doctrine-firebird-driver \
+  --target 3.0.x \
+  --title "v3.10.1 — Fix CI matrix version parsing" \
+  --notes "Fixes all CI matrix jobs failing with 'Invalid platform version' when using newer firebirdsql/firebird Docker images that return plain numeric version strings (e.g. '5.0.3.1683') instead of the legacy 'LI|WI-V...' format. Closes #82."
+```
 
 ---
 
