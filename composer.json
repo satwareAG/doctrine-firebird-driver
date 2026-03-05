@@ -1,6 +1,5 @@
 {
     "name": "satag/doctrine-firebird-driver",
-    "version": "3.10.1",
     "type": "library",
     "description": "Doctrine DBAL/ORM driver for Firebird SQL 3.0 and newer",
     "license": "MIT",
