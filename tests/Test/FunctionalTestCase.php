@@ -43,11 +43,6 @@ abstract class FunctionalTestCase extends TestCase
      */
     public function dropTableIfExists(string $name): void
     {
-        // Force GC before any drop attempt: test statements/result-sets hold Firebird cursor locks
-        // on the same connection. Without GC, tearDown() calls arrive before disconnect() @after
-        // runs, leaving PHP objects that keep the table "in use" in Firebird.
-        gc_collect_cycles();
-
         // Early return if connection is not available or closed
         $fbirdConnection = $this->getFirebirdConnection();
         if ($fbirdConnection !== null && ! $fbirdConnection->isConnectionValid()) {
@@ -130,6 +125,13 @@ abstract class FunctionalTestCase extends TestCase
         }
 
         if (! $success && isset($e)) {
+            // "in use" / deadlock errors are non-fatal in tearDown context - the table will be
+            // dropped in the next test's setUp() after disconnect() @after has run gc_collect_cycles()
+            // and released all cursor locks held by this connection's PHP objects.
+            if (str_contains($e->getMessage(), 'in use') || str_contains($e->getMessage(), 'deadlock')) {
+                return;
+            }
+
             throw $e;
         }
     }
