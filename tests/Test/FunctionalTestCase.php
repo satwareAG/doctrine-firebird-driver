@@ -63,101 +63,69 @@ abstract class FunctionalTestCase extends TestCase
             $existenceUnknown = true;
         }
 
-        try {
-            if ($existenceUnknown) {
-                // Suppress warnings when we couldn't verify existence - table may not exist
-                @$schemaManager->dropTable($name);
-            } else {
-                $schemaManager->dropTable($name);
-            }
+        // Optimization: Try to force drop using driver native function to kill blocking attachments
+        // We only try this once - if it fails, we fall back to standard drop
+        if ($fbirdConnection !== null) {
+            try {
+                if ($fbirdConnection->dropTableForce($name)) {
+                    $fbirdConnection->commit();
 
-            $fbirdConnection?->commit();
-        } catch (DatabaseObjectNotFoundException) {
-            // Table doesn't exist, which is fine for dropTableIfExists
-        } catch (Throwable $e) {
-            // Ignore "does not exist" errors when existence was unknown
-            if ($existenceUnknown && str_contains($e->getMessage(), 'does not exist')) {
-                return;
+                    return;
+                }
+            } catch (Throwable) {
+                // Ignore force drop errors and fall back to standard drop with retry
             }
+        }
 
-            // If table is in use, try to force rollback/commit to release locks and retry
-            if (! str_contains($e->getMessage(), 'in use')) {
-                throw $e;
-            }
-
-            // Optimization: Try to force drop using driver native function to kill blocking attachments
-            if ($fbirdConnection !== null) {
+        // Try up to 3 times with delay to handle "object is in use" errors
+        $success = false;
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                // Try rollback first to clear pending failed transaction
                 try {
-                    // Try to use fbird_drop_table_force if available
-                    // We remove quotes if present because the API might expect raw name,
-                    // or simply pass as is. Let's pass as is first.
-                    // Actually, checking if function exists or method works.
-                    // Connection::dropTableForce uses fbird_drop_table_force.
-
-                    // Unquote name for specialized driver call if it starts/ends with quotes
-                    // The driver function likely expects the name as used in metadata usually (e.g. UPPERCASE if unquoted)
-                    // If $name is quoted "TABLE", we might need to be careful.
-                    // But lets try passing it directly.
-
-                    if ($fbirdConnection->dropTableForce($name)) {
-                        $fbirdConnection->commit();
-
-                        return;
-                    }
+                    $fbirdConnection?->rollBack();
                 } catch (Throwable) {
-                    // Ignore force drop errors and fall back to retry loop
-                }
-            }
-
-            // Try up to 3 times with delay
-            $success = false;
-            for ($i = 0; $i < 3; $i++) {
-                try {
-                    // Try rollback first to clear pending failed transaction
                     try {
-                        $fbirdConnection?->rollBack();
+                        @$fbirdConnection?->commit();
                     } catch (Throwable) {
-                        try {
-                            @$fbirdConnection?->commit();
-                        } catch (Throwable) {
-                            // Ignore commit errors during cleanup
-                        }
+                        // Ignore commit errors during cleanup
                     }
-
-                    // Wait for server to release locks
-                    if ($i > 0) {
-                        usleep(50000); // 50ms wait
-                    }
-
-                    if ($existenceUnknown) {
-                        @$schemaManager->dropTable($name);
-                    } else {
-                        $schemaManager->dropTable($name);
-                    }
-
-                    $fbirdConnection?->commit();
-                    $success = true;
-                    break;
-                } catch (DatabaseObjectNotFoundException) {
-                    $success = true;
-                    break;
-                } catch (Throwable $e2) {
-                    if (! str_contains($e2->getMessage(), 'in use') && ! str_contains($e2->getMessage(), 'deadlock')) {
-                        // Allow "does not exist" errors when existence was unknown
-                        if ($existenceUnknown && str_contains($e2->getMessage(), 'does not exist')) {
-                            $success = true;
-                            break;
-                        }
-
-                        throw $e2;
-                    }
-                    // Continue loop if lock error
                 }
-            }
 
-            if (! $success) {
-                throw $e;
+                // Wait for server to release locks on retry
+                if ($i > 0) {
+                    usleep(50000); // 50ms wait
+                }
+
+                if ($existenceUnknown) {
+                    @$schemaManager->dropTable($name);
+                } else {
+                    $schemaManager->dropTable($name);
+                }
+
+                $fbirdConnection?->commit();
+                $success = true;
+                break;
+            } catch (DatabaseObjectNotFoundException) {
+                // Table doesn't exist, which is fine
+                $success = true;
+                break;
+            } catch (Throwable $e) {
+                if (! str_contains($e->getMessage(), 'in use') && ! str_contains($e->getMessage(), 'deadlock')) {
+                    // Allow "does not exist" errors when existence was unknown
+                    if ($existenceUnknown && str_contains($e->getMessage(), 'does not exist')) {
+                        $success = true;
+                        break;
+                    }
+
+                    throw $e;
+                }
+                // Continue loop if lock/deadlock error
             }
+        }
+
+        if (! $success && isset($e)) {
+            throw $e;
         }
     }
 
@@ -195,12 +163,11 @@ abstract class FunctionalTestCase extends TestCase
 
     public function getFirebirdConnection(): FirebirdConnection|null
     {
-        $connection = $this->connection;
-        while (method_exists($connection, 'getWrappedConnection')) {
-            $connection = $connection->getWrappedConnection();
-            if ($connection instanceof FirebirdConnection) {
-                return $connection;
-            }
+        // With v7 Exception Mode, we don't need this deep unwrapping
+        // DBAL manages the connection cleanly
+        $wrapped = $this->connection->getNativeConnection();
+        if ($wrapped instanceof FirebirdConnection) {
+            return $wrapped;
         }
 
         return null;
@@ -223,15 +190,12 @@ abstract class FunctionalTestCase extends TestCase
         $needNewConnection = ! self::$sharedConnection instanceof Connection;
 
         // Check if existing shared connection's underlying Firebird connection is still valid
-        // This handles cases where php-firebird v7 Exception Mode or GC has invalidated the connection
         if (! $needNewConnection) {
             $fbirdConn = null;
-            $conn      = self::$sharedConnection;
-            while (method_exists($conn, 'getWrappedConnection')) {
-                $conn = $conn->getWrappedConnection();
-                if ($conn instanceof FirebirdConnection) {
-                    $fbirdConn = $conn;
-                    break;
+            if (method_exists(self::$sharedConnection, 'getNativeConnection')) {
+                $wrapped = self::$sharedConnection->getNativeConnection();
+                if ($wrapped instanceof FirebirdConnection) {
+                    $fbirdConn = $wrapped;
                 }
             }
 
