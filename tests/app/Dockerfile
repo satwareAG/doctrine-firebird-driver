@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v7.0.0), pcov (fast coverage)
+# Extensions: firebird (php-firebird v7.2.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -28,11 +28,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v7.0.0)
+# Install php-firebird extension from source (v7.2.0)
 # Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
 # include tag refs. We fetch tags explicitly so config.m4 version detection works.
 RUN docker-php-source extract \
-    && git clone --branch v7.0.0 --depth 1 \
+    && git clone --branch v7.2.0 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
