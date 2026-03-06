@@ -1,24 +1,25 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-06 (P2 coverage ≥90% unit tests added)
+**Last session:** 2026-03-06 (P2 coverage ≥90% VERIFIED - 90.03% achieved)
 **Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
 
 ---
 
-## ✅ Priority 2 — Coverage ≥90% on PHP 8.4 + FB3 (COMPLETE)
+## ✅ Priority 2 — Coverage ≥90% on PHP 8.4 + FB3 (COMPLETE - VERIFIED)
 
-**Unit-only baseline:** 67.20% | **Full suite estimate:** ~95%+ | **Target:** ≥90% ✅
+**Baseline:** 86.52% | **Final verified:** 90.03% (2023/2247 statements) | **Target:** ≥90% ✅
 
-New unit tests added (commit `1f0aa1b`):
+New unit tests added (commits `1f0aa1b` + current):
 - `tests/Test/Unit/Driver/ExecutionModeTest.php` - ExecutionMode autocommit state machine
 - `tests/Test/Unit/Driver/ExceptionConverterTest.php` - all ExceptionConverter conversion paths
 - `tests/Test/Unit/Driver/Middleware/CharsetMiddlewareTest.php` - CharsetMiddleware/Connection/Statement
 - `tests/Test/Unit/Platforms/KeywordsTest.php` - Firebird3/4/5 keywords getName() + isKeyword()
 - `tests/Test/Unit/Platforms/SelectSQLBuilderTest.php` - FirebirdSelectSQLBuilder ROWS/LIMIT/OFFSET/LIKE/FOR UPDATE
-- `tests/Test/Unit/Platforms/FirebirdPlatformCoverageGapTest.php` - sequence, boolean, char-mode paths
+- `tests/Test/Unit/Platforms/FirebirdPlatformCoverageGapTest.php` - sequence, boolean, char-mode paths + 9 gap tests (event hooks, AbstractAsset branch, sequence/check SQL, identifier quoting)
+- `tests/Test/Unit/Platforms/Firebird3PlatformCoverageGapTest.php` - drop/modify column paths + 4 event hook gap tests
 
-> Note: Full test suite (1820 tests) segfaults at ~50% during coverage runs (SIGSEGV on php-firebird cleanup).
-> Exit 139 is gracefully handled; clover.xml produced at 85.45% before new tests. Estimate ≥90% with additions.
+> Coverage verified with PCOV + full test suite (Unit + Integration + Functional) in Docker.
+> 1134+ unit tests pass; functional suite runs against Firebird 3 container.
 
 ---
 

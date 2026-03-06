@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
+use Doctrine\Common\EventManager;
+use Doctrine\DBAL\Event\SchemaAlterTableAddColumnEventArgs;
+use Doctrine\DBAL\Event\SchemaAlterTableChangeColumnEventArgs;
+use Doctrine\DBAL\Event\SchemaAlterTableRemoveColumnEventArgs;
+use Doctrine\DBAL\Event\SchemaAlterTableRenameColumnEventArgs;
+use Doctrine\DBAL\Events;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
@@ -432,7 +438,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         // getQuotedNameOf() is protected; call via ReflectionMethod.
         // When given a plain string (not an AbstractAsset), it wraps it in an Identifier.
-        // This covers line 1711: $id = new Identifier($name);
         $method = new ReflectionMethod(FirebirdPlatform::class, 'getQuotedNameOf');
         $method->setAccessible(true);
 
@@ -440,5 +445,257 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
         self::assertIsString($result);
         self::assertStringContainsStringIgnoringCase('my_table_name', $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // getQuotedNameOf — AbstractAsset input path (line 1711)
+    // -------------------------------------------------------------------------
+
+    public function testGetQuotedNameOfWithIdentifierObjectCoversAbstractAssetBranch(): void
+    {
+        // When an Identifier (which extends AbstractAsset) is passed, line 1711 is hit:
+        //   return $name->getQuotedName($this);
+        $method = new ReflectionMethod(FirebirdPlatform::class, 'getQuotedNameOf');
+        $method->setAccessible(true);
+
+        $id     = new Identifier('my_table_name'); // Identifier extends AbstractAsset
+        $result = $method->invoke($this->platform, $id);
+
+        self::assertIsString($result);
+        self::assertStringContainsStringIgnoringCase('my_table_name', $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // getDropSequenceIfExistsPSql — non-inBlock path (line 1532)
+    // -------------------------------------------------------------------------
+
+    public function testGetDropSequenceIfExistsPSqlNonBlock(): void
+    {
+        // getDropSequenceIfExistsPSql($aSequence, $inBlock = false) → line 1532: return $result;
+        $method = new ReflectionMethod(FirebirdPlatform::class, 'getDropSequenceIfExistsPSql');
+        $method->setAccessible(true);
+
+        /** @var string $result */
+        $result = $method->invoke($this->platform, 'MY_SEQ', false);
+
+        self::assertIsString($result);
+        self::assertStringContainsString('IF (EXISTS', $result);
+        self::assertStringContainsString('MY_SEQ', $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // _getCreateTableSQL — check constraint path (line 1654)
+    // -------------------------------------------------------------------------
+
+    public function testCreateTableSQLWithCheckConstraint(): void
+    {
+        // _getCreateTableSQL() with a column that has a 'check' option covers line 1654:
+        //   $query .= ', ' . $check;
+        $method = new ReflectionMethod(FirebirdPlatform::class, '_getCreateTableSQL');
+        $method->setAccessible(true);
+
+        $columnData = [
+            'name'             => 'qty',
+            'type'             => Type::getType(Types::INTEGER),
+            'notnull'          => true,
+            'default'          => null,
+            'autoincrement'    => false,
+            'comment'          => null,
+            'length'           => null,
+            'precision'        => 10,
+            'scale'            => 0,
+            'unsigned'         => false,
+            'fixed'            => false,
+            'check'            => 'qty > 0',
+            'columnDefinition' => null,
+        ];
+
+        /** @var string[] $sql */
+        $sql = $method->invoke($this->platform, 'check_tbl', ['qty' => $columnData], []);
+
+        $ddl = implode(' ', $sql);
+        self::assertStringContainsString('check_tbl', $ddl);
+        self::assertStringContainsString('qty > 0', $ddl);
+    }
+
+    // -------------------------------------------------------------------------
+    // _getCreateTableSQL — sequence column path (line 1670)
+    // -------------------------------------------------------------------------
+
+    public function testCreateTableSQLWithSequenceColumn(): void
+    {
+        // _getCreateTableSQL() with a column that has a 'sequence' option covers line 1670:
+        //   $sql[] = $this->getCreateSequenceSQL($column['sequence']);
+        $method = new ReflectionMethod(FirebirdPlatform::class, '_getCreateTableSQL');
+        $method->setAccessible(true);
+
+        $seq        = new Sequence('MY_SEQ');
+        $columnData = [
+            'name'             => 'id',
+            'type'             => Type::getType(Types::INTEGER),
+            'notnull'          => true,
+            'default'          => null,
+            'autoincrement'    => false,
+            'comment'          => null,
+            'length'           => null,
+            'precision'        => 10,
+            'scale'            => 0,
+            'unsigned'         => false,
+            'fixed'            => false,
+            'columnDefinition' => null,
+            'sequence'         => $seq,
+        ];
+
+        /** @var string[] $sql */
+        $sql = $method->invoke($this->platform, 'seq_tbl', ['id' => $columnData], []);
+
+        $ddl = implode(' ', $sql);
+        self::assertStringContainsString('seq_tbl', $ddl);
+        // The sequence CREATE SEQUENCE statement should be present
+        self::assertStringContainsString('MY_SEQ', $ddl);
+    }
+
+    // -------------------------------------------------------------------------
+    // generateIdentifier — second quoted prefix triggers continue (line 1279)
+    // -------------------------------------------------------------------------
+
+    public function testGenerateIdentifierWithMultipleQuotedPrefixesCoversContinue(): void
+    {
+        // generateIdentifier() iterates over prefix array.
+        // When needQuote is already true, line 1279 (continue;) is hit.
+        // Trigger: pass [QuotedIdentifier, UnquotedIdentifier] as prefix array.
+        $method = new ReflectionMethod(FirebirdPlatform::class, 'generateIdentifier');
+        $method->setAccessible(true);
+
+        // '"quoted"' creates a quoted Identifier (isQuoted() = true)
+        // On the second prefix, needQuote is already true → continue; at line 1279
+        $prefixes = [
+            new Identifier('"first_quoted"'),   // isQuoted() = true → sets needQuote = true
+            new Identifier('second_plain'),      // needQuote already true → line 1279 continue
+        ];
+
+        /** @var Identifier $result */
+        $result = $method->invoke($this->platform, $prefixes, 'IDX', 30);
+
+        self::assertInstanceOf(Identifier::class, $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAlterTableSQL — deprecated schema event hook continue paths (lines 633, 658, 667, 749)
+    // -------------------------------------------------------------------------
+
+    public function testGetAlterTableSQLAddColumnEventPreventsDefault(): void
+    {
+        // Registers an EventManager listener that calls preventDefault() for
+        // onSchemaAlterTableAddColumn → the `continue;` at line 633 is executed.
+        $em = new EventManager();
+        $em->addEventListener(
+            Events::onSchemaAlterTableAddColumn,
+            new class {
+                public function onSchemaAlterTableAddColumn(SchemaAlterTableAddColumnEventArgs $e): void
+                {
+                    $e->preventDefault();
+                }
+            },
+        );
+
+        $platform = new FirebirdPlatform();
+        $platform->setEventManager($em);
+
+        $fromTable = new Table('evt_tbl');
+        $newTable  = new Table('evt_tbl');
+        $newTable->addColumn('new_col', Types::STRING, ['length' => 10]);
+
+        $comparator = new Comparator($platform);
+        $diff       = $comparator->compareTables($fromTable, $newTable);
+        // Event prevents ADD COLUMN SQL; no exception should be thrown
+        $sql = $platform->getAlterTableSQL($diff);
+        // The event prevented default so ADD COLUMN SQL should be suppressed
+        $allSql = implode(' ', $sql);
+        self::assertStringNotContainsStringIgnoringCase('ADD', $allSql);
+    }
+
+    public function testGetAlterTableSQLDropColumnEventPreventsDefault(): void
+    {
+        // Registers listener for onSchemaAlterTableRemoveColumn → line 658.
+        $em = new EventManager();
+        $em->addEventListener(
+            Events::onSchemaAlterTableRemoveColumn,
+            new class {
+                public function onSchemaAlterTableRemoveColumn(SchemaAlterTableRemoveColumnEventArgs $e): void
+                {
+                    $e->preventDefault();
+                }
+            },
+        );
+
+        $platform = new FirebirdPlatform();
+        $platform->setEventManager($em);
+
+        $fromTable = new Table('evt_tbl2');
+        $fromTable->addColumn('col_to_drop', Types::STRING, ['length' => 10]);
+        $newTable = new Table('evt_tbl2');
+
+        $comparator = new Comparator($platform);
+        $diff       = $comparator->compareTables($fromTable, $newTable);
+        $sql        = $platform->getAlterTableSQL($diff);
+        $allSql     = implode(' ', $sql);
+        self::assertStringNotContainsStringIgnoringCase('DROP', $allSql);
+    }
+
+    public function testGetAlterTableSQLChangeColumnEventPreventsDefault(): void
+    {
+        // Registers listener for onSchemaAlterTableChangeColumn → line 667.
+        $em = new EventManager();
+        $em->addEventListener(
+            Events::onSchemaAlterTableChangeColumn,
+            new class {
+                public function onSchemaAlterTableChangeColumn(SchemaAlterTableChangeColumnEventArgs $e): void
+                {
+                    $e->preventDefault();
+                }
+            },
+        );
+
+        $platform = new FirebirdPlatform();
+        $platform->setEventManager($em);
+
+        $fromTable = new Table('evt_tbl3');
+        $fromTable->addColumn('col1', Types::STRING, ['length' => 10]);
+        $newTable = new Table('evt_tbl3');
+        $newTable->addColumn('col1', Types::STRING, ['length' => 20]);
+
+        $comparator = new Comparator($platform);
+        $diff       = $comparator->compareTables($fromTable, $newTable);
+        $sql        = $platform->getAlterTableSQL($diff);
+        // Change was suppressed - no ALTER TYPE statement
+        $allSql = implode(' ', $sql);
+        self::assertStringNotContainsStringIgnoringCase('ALTER COLUMN', $allSql);
+    }
+
+    public function testGetAlterTableSQLRenameColumnEventPreventsDefault(): void
+    {
+        // Registers listener for onSchemaAlterTableRenameColumn → line 749.
+        $em = new EventManager();
+        $em->addEventListener(
+            Events::onSchemaAlterTableRenameColumn,
+            new class {
+                public function onSchemaAlterTableRenameColumn(SchemaAlterTableRenameColumnEventArgs $e): void
+                {
+                    $e->preventDefault();
+                }
+            },
+        );
+
+        $platform = new FirebirdPlatform();
+        $platform->setEventManager($em);
+
+        $renamedCol = new Column('new_name', Type::getType(Types::STRING), ['length' => 10]);
+        // @phpstan-ignore argument.type
+        $diff = new TableDiff('evt_tbl4', [], [], [], [], [], [], null, [], [], [], ['old_name' => $renamedCol]);
+        $sql  = $platform->getAlterTableSQL($diff);
+        // Rename was suppressed
+        $allSql = implode(' ', $sql);
+        self::assertStringNotContainsString('new_name', $allSql);
     }
 }
