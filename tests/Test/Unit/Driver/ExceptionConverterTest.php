@@ -4,33 +4,29 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Driver;
 
+use Doctrine\DBAL\Driver\Exception as DriverException;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\DBAL\Exception\ConnectionLost;
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Exception\DatabaseObjectExistsException;
+use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\DriverException as DBALDriverException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
-use Doctrine\DBAL\Exception\NonUniqueFieldNameException;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Query;
-use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 
 /**
- * Unit tests for ExceptionConverter class.
- *
- * Tests the conversion of Firebird-specific error codes to
- * Doctrine DBAL exception types.
+ * Unit tests for ExceptionConverter - covers SQLCODE-based and SQLSTATE-based exception mapping.
  */
-#[CoversClass(ExceptionConverter::class)]
-class ExceptionConverterTest extends TestCase
+final class ExceptionConverterTest extends TestCase
 {
     private ExceptionConverter $converter;
 
@@ -39,157 +35,429 @@ class ExceptionConverterTest extends TestCase
         $this->converter = new ExceptionConverter();
     }
 
-    /**
-     * @param class-string $expectedExceptionClass
-     */
-    #[DataProvider('exceptionConversionProvider')]
-    public function testExceptionConversion(int $errorCode, string $message, string $expectedExceptionClass): void
+    /** Create a DriverException stub with given code and message via anonymous class. */
+    private function makeException(int $code, string $message = ''): DriverException
     {
-        $exception = new TestDriverException($message, $errorCode);
-        $query = new Query('SELECT 1', [], []);
+        return new class ($code, $message) extends \RuntimeException implements DriverException {
+            public function __construct(int $code, string $message)
+            {
+                parent::__construct($message, $code);
+            }
 
-        $result = $this->converter->convert($exception, $query);
-
-        self::assertInstanceOf($expectedExceptionClass, $result);
+            public function getSQLState(): ?string
+            {
+                return null;
+            }
+        };
     }
 
-    /**
-     * Provides Firebird SQLCODE values for exception conversion testing.
-     *
-     * Firebird uses negative SQLCODE values (-104, -204, etc.) not ISC error codes.
-     * Some codes require specific message text for proper classification.
-     *
-     * @return array<string, array{int, string, class-string}>
-     */
-    public static function exceptionConversionProvider(): array
+    // -------------------------------------------------------------------------
+    // SQLCODE-based paths (switch statement in convert())
+    // -------------------------------------------------------------------------
+
+    public function testConvertSyntaxError(): void
     {
-        return [
-            // Syntax errors (-104)
-            'syntax error' => [-104, 'Syntax error in SQL statement', SyntaxErrorException::class],
-
-            // Table not found (-204 with "table unknown" in message)
-            'table not found' => [-204, 'Table unknown: TEST_TABLE', TableNotFoundException::class],
-
-            // Ambiguous field name (-204 with "ambiguous field name")
-            'ambiguous field name' => [-204, 'Ambiguous field name between tables', NonUniqueFieldNameException::class],
-
-            // Invalid field name (-206 with "column unknown")
-            'invalid field name' => [-206, 'Column unknown: INVALID_COL', InvalidFieldNameException::class],
-
-            // Foreign key violation (-530)
-            'foreign key violation' => [-530, 'Foreign key constraint violation', ForeignKeyConstraintViolationException::class],
-
-            // Table exists (-607 with "already exist")
-            'table exists' => [-607, 'Table TEST already exists', TableExistsException::class],
-
-            // Table not found (-607 with "does not exist")
-            'table does not exist' => [-607, 'Table does not exist', TableNotFoundException::class],
-
-            // Not null constraint (-625 with specific message)
-            'not null constraint' => [-625, 'validation error for column, value "*** null ***"', NotNullConstraintViolationException::class],
-
-            // Unique constraint violation (-803)
-            'unique constraint' => [-803, 'Unique constraint violation', UniqueConstraintViolationException::class],
-
-            // Not null from -804
-            'not null from 804' => [-804, 'Null value not allowed', NotNullConstraintViolationException::class],
-
-            // Database not found (-902 with "no such file")
-            'database not found' => [-902, 'No such file or directory', DatabaseDoesNotExist::class],
-
-            // Deadlock (-902 with "transaction deadlock")
-            'deadlock from 902' => [-902, 'Transaction deadlock detected', DeadlockException::class],
-
-            // Connection error (-902 general)
-            'connection error 902' => [-902, 'Unable to connect', ConnectionException::class],
-
-            // ConnectionLost — GDS 335544721: net write error (broken pipe)
-            'connection lost net write error' => [-902, 'net write error', ConnectionLost::class],
-
-            // ConnectionLost — GDS 335544726: net read error
-            'connection lost net read error' => [-902, 'net read error', ConnectionLost::class],
-
-            // ConnectionLost — GDS 335544723: lost remote part of database
-            'connection lost remote part' => [-902, 'lost remote part of database', ConnectionLost::class],
-
-            // ConnectionLost — broken pipe (OS-level)
-            'connection lost broken pipe' => [-902, 'broken pipe', ConnectionLost::class],
-
-            // ConnectionLost — via -901 (general engine error with network message)
-            'connection lost via 901' => [-901, 'net write error', ConnectionLost::class],
-
-            // Deadlock (-913)
-            'deadlock' => [-913, 'Deadlock detected', DeadlockException::class],
-
-            // Connection error (-922 general — no network-loss message)
-            'connection error 922' => [-922, 'Connection refused', ConnectionException::class],
-
-            // ConnectionLost — GDS 335544723 arriving as -922
-            'connection lost via 922' => [-922, 'lost remote part of database', ConnectionLost::class],
-
-            // Default fallback (unknown code)
-            'unknown error' => [-999999, 'Unknown error', DBALDriverException::class],
-        ];
-    }
-
-    public function testConvertWithNullQuery(): void
-    {
-        // -104 is Firebird SQLCODE for syntax error
-        $exception = new TestDriverException('Syntax error in statement', -104);
-
-        $result = $this->converter->convert($exception, null);
-
+        $result = $this->converter->convert($this->makeException(-104), null);
         self::assertInstanceOf(SyntaxErrorException::class, $result);
     }
 
-    public function testConvertUnknownErrorFallsBackToDriverException(): void
+    public function testConvertTableNotFoundException(): void
     {
-        // Unknown error code should fall back to generic DriverException
-        $exception = new TestDriverException('Unknown error occurred', -12345);
-        $query = new Query('INSERT INTO test VALUES (1)', [], []);
+        $result = $this->converter->convert($this->makeException(-204, 'table unknown: MYTABLE'), null);
+        self::assertInstanceOf(TableNotFoundException::class, $result);
+    }
 
-        $result = $this->converter->convert($exception, $query);
+    public function testConvertNonUniqueFieldNameException(): void
+    {
+        $result = $this->converter->convert($this->makeException(-204, 'ambiguous field name'), null);
+        self::assertInstanceOf(\Doctrine\DBAL\Exception\NonUniqueFieldNameException::class, $result);
+    }
 
+    public function testConvertDatabaseObjectNotFoundException(): void
+    {
+        $result = $this->converter->convert($this->makeException(-204, 'procedure unknown'), null);
+        self::assertInstanceOf(DatabaseObjectNotFoundException::class, $result);
+    }
+
+    public function testConvertInvalidFieldNameException(): void
+    {
+        $result = $this->converter->convert($this->makeException(-206, 'column unknown: BADCOL'), null);
+        self::assertInstanceOf(InvalidFieldNameException::class, $result);
+    }
+
+    public function testConvertCode206FallsThrough(): void
+    {
+        // -206 without 'column unknown' falls through to generic DriverException
+        $result = $this->converter->convert($this->makeException(-206, 'some other -206 error'), null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+        self::assertNotInstanceOf(InvalidFieldNameException::class, $result);
+    }
+
+    /** @return array<string, array{int, class-string}> */
+    public static function foreignKeyCodeProvider(): array
+    {
+        return [
+            'arithmetic exception -303' => [-303, ForeignKeyConstraintViolationException::class],
+            'cannot change datatype -315' => [-315, ForeignKeyConstraintViolationException::class],
+            'subscript -406' => [-406, ForeignKeyConstraintViolationException::class],
+            'conversion error -413' => [-413, ForeignKeyConstraintViolationException::class],
+            'subscript -501' => [-501, ForeignKeyConstraintViolationException::class],
+            'foreign key violation -530' => [-530, ForeignKeyConstraintViolationException::class],
+        ];
+    }
+
+    #[DataProvider('foreignKeyCodeProvider')]
+    public function testConvertForeignKeyVariants(int $code, string $expectedClass): void
+    {
+        $result = $this->converter->convert($this->makeException($code), null);
+        self::assertInstanceOf($expectedClass, $result);
+    }
+
+    public function testConvertTableExistsException(): void
+    {
+        $result = $this->converter->convert($this->makeException(-607, 'already exist'), null);
+        self::assertInstanceOf(TableExistsException::class, $result);
+    }
+
+    public function testConvertTableNotFoundOn607(): void
+    {
+        $result = $this->converter->convert($this->makeException(-607, 'does not exist'), null);
+        self::assertInstanceOf(TableNotFoundException::class, $result);
+    }
+
+    public function testConvertDatabaseObjectNotFoundOn607(): void
+    {
+        $result = $this->converter->convert($this->makeException(-607, 'not found'), null);
+        self::assertInstanceOf(DatabaseObjectNotFoundException::class, $result);
+    }
+
+    public function testConvert607FallsThrough(): void
+    {
+        $result = $this->converter->convert($this->makeException(-607, 'some unknown code 607 error'), null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+        self::assertNotInstanceOf(TableExistsException::class, $result);
+        self::assertNotInstanceOf(TableNotFoundException::class, $result);
+    }
+
+    public function testConvertNotNullOn625(): void
+    {
+        $result = $this->converter->convert($this->makeException(-625, 'value "*** null ***" in column'), null);
+        self::assertInstanceOf(NotNullConstraintViolationException::class, $result);
+    }
+
+    public function testConvert625FallsThrough(): void
+    {
+        $result = $this->converter->convert($this->makeException(-625, 'other validation error'), null);
         self::assertInstanceOf(DBALDriverException::class, $result);
     }
 
-    public function testConvertDataTypeUnknownError(): void
+    public function testConvertUniqueConstraintViolation(): void
     {
-        // -804 with "data type unknown" message should return DriverException
-        $exception = new TestDriverException('data type unknown', -804);
-        $query = new Query('SELECT * FROM test', [], []);
+        $result = $this->converter->convert($this->makeException(-803), null);
+        self::assertInstanceOf(UniqueConstraintViolationException::class, $result);
+    }
 
-        $result = $this->converter->convert($exception, $query);
-
+    public function testConvertDataTypeUnknownOn804(): void
+    {
+        $result = $this->converter->convert($this->makeException(-804, 'data type unknown'), null);
         self::assertInstanceOf(DBALDriverException::class, $result);
     }
 
-    /**
-     * ConnectionLost must extend ConnectionException so existing catch(ConnectionException)
-     * blocks continue to work after the #72 change.
-     */
-    public function testConnectionLostIsSubclassOfConnectionException(): void
+    public function testConvertNotNullOn804(): void
     {
-        $exception = new TestDriverException('net write error', -902);
-        $query     = new Query('SELECT 1', [], []);
-
-        $result = $this->converter->convert($exception, $query);
-
-        self::assertInstanceOf(ConnectionLost::class, $result);
-        self::assertInstanceOf(ConnectionException::class, $result, 'ConnectionLost must extend ConnectionException');
+        $result = $this->converter->convert($this->makeException(-804, 'null constraint violation'), null);
+        self::assertInstanceOf(NotNullConstraintViolationException::class, $result);
     }
 
-    /**
-     * Verify "connection lost to database" message variant maps to ConnectionLost.
-     * Covers GDS 335544723 alternate message text.
-     */
-    public function testConnectionLostToDatabase(): void
+    public function testConvertDatabaseDoesNotExist(): void
     {
-        $exception = new TestDriverException('connection lost to database', -902);
-        $query     = new Query('SELECT 1', [], []);
+        $result = $this->converter->convert($this->makeException(-902, 'no such file or directory'), null);
+        self::assertInstanceOf(\Doctrine\DBAL\Exception\DatabaseDoesNotExist::class, $result);
+    }
 
-        $result = $this->converter->convert($exception, $query);
+    public function testConvertTransactionDeadlockOn901(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'transaction deadlock'), null);
+        self::assertInstanceOf(DeadlockException::class, $result);
+    }
 
+    public function testConvertConnectionLostOn901NetWrite(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'net write error'), null);
         self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionLostOn901NetRead(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'net read error'), null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionLostOn901LostRemote(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'lost remote part of database'), null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionLostOn901BrokenPipe(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'broken pipe'), null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionExceptionOn901(): void
+    {
+        $result = $this->converter->convert($this->makeException(-901, 'general engine error'), null);
+        self::assertInstanceOf(ConnectionException::class, $result);
+    }
+
+    public function testConvertConnectionExceptionOn902(): void
+    {
+        $result = $this->converter->convert($this->makeException(-902, 'database connection error'), null);
+        self::assertInstanceOf(ConnectionException::class, $result);
+    }
+
+    public function testConvertConnectionLostOn922NetWrite(): void
+    {
+        $result = $this->converter->convert($this->makeException(-922, 'net write error'), null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionLostOn922NetRead(): void
+    {
+        $result = $this->converter->convert($this->makeException(-922, 'net read error'), null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertConnectionExceptionOn922(): void
+    {
+        $result = $this->converter->convert($this->makeException(-922, 'general connection error'), null);
+        self::assertInstanceOf(ConnectionException::class, $result);
+    }
+
+    public function testConvertDeadlockOn913(): void
+    {
+        $result = $this->converter->convert($this->makeException(-913), null);
+        self::assertInstanceOf(DeadlockException::class, $result);
+    }
+
+    public function testConvertDatabaseObjectExistsOn955(): void
+    {
+        $result = $this->converter->convert($this->makeException(-955, 'already exists'), null);
+        self::assertInstanceOf(DatabaseObjectExistsException::class, $result);
+    }
+
+    public function testConvert955FallsThrough(): void
+    {
+        $result = $this->converter->convert($this->makeException(-955, 'other error'), null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+        self::assertNotInstanceOf(DatabaseObjectExistsException::class, $result);
+    }
+
+    public function testConvertLockWaitTimeoutOn979(): void
+    {
+        $result = $this->converter->convert($this->makeException(-979), null);
+        self::assertInstanceOf(LockWaitTimeoutException::class, $result);
+    }
+
+    public function testConvertUnknownCodeReturnsDriverException(): void
+    {
+        $result = $this->converter->convert($this->makeException(-999), null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // SQLSTATE-based paths via \Firebird\Exception (requires php-firebird 7.x)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Create a stub that is both \Firebird\Exception AND Doctrine\DBAL\Driver\Exception.
+     * Returns null if the \Firebird\Exception class is not available (extension not loaded).
+     *
+     * The anonymous class extends \Firebird\Exception (so instanceof checks pass in convert())
+     * AND implements DriverException so it satisfies the convert() parameter type.
+     */
+    private function makeFirebirdException(string $sqlState, int $code = 0, string $message = ''): ?DriverException
+    {
+        if (!class_exists(\Firebird\Exception::class)) {
+            return null;
+        }
+
+        // \Firebird\Exception implements Throwable+Stringable. PHP method names are
+        // case-insensitive, so getSqlState() satisfies DriverException::getSQLState().
+        // We add explicit "implements DriverException" and override getSqlState() only.
+        return new class ($sqlState) extends \Firebird\Exception implements DriverException {
+            private string $testSqlState;
+
+            public function __construct(string $sqlState)
+            {
+                $this->testSqlState = $sqlState;
+                // Do NOT call parent::__construct
+            }
+
+            public function getSqlState(): string
+            {
+                return $this->testSqlState;
+            }
+            // getSQLState() is satisfied case-insensitively by getSqlState() above
+        };
+    }
+
+    public function testConvertBySqlState_08006_ConnectionLost(): void
+    {
+        $e = $this->makeFirebirdException('08006');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertBySqlState_08007_ConnectionLost(): void
+    {
+        $e = $this->makeFirebirdException('08007');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(ConnectionLost::class, $result);
+    }
+
+    public function testConvertBySqlState_08000_ConnectionException(): void
+    {
+        $e = $this->makeFirebirdException('08000');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(ConnectionException::class, $result);
+    }
+
+    public function testConvertBySqlState_21000_DriverException(): void
+    {
+        $e = $this->makeFirebirdException('21000');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    public function testConvertBySqlState_22000_DriverException(): void
+    {
+        $e = $this->makeFirebirdException('22001');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    public function testConvertBySqlState_23502_NotNullViolation(): void
+    {
+        $e = $this->makeFirebirdException('23502');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(NotNullConstraintViolationException::class, $result);
+    }
+
+    public function testConvertBySqlState_23503_ForeignKeyViolation(): void
+    {
+        $e = $this->makeFirebirdException('23503');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(ForeignKeyConstraintViolationException::class, $result);
+    }
+
+    public function testConvertBySqlState_23505_UniqueViolation(): void
+    {
+        $e = $this->makeFirebirdException('23505');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(UniqueConstraintViolationException::class, $result);
+    }
+
+    public function testConvertBySqlState_23000_GenericConstraintViolation(): void
+    {
+        $e = $this->makeFirebirdException('23000');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        // 23000 is generic - maps to base DriverException (not a specific subtype)
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    public function testConvertBySqlState_28000_AuthorizationException(): void
+    {
+        $e = $this->makeFirebirdException('28000');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(ConnectionException::class, $result);
+    }
+
+    public function testConvertBySqlState_40001_Deadlock(): void
+    {
+        $e = $this->makeFirebirdException('40001');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DeadlockException::class, $result);
+    }
+
+    public function testConvertBySqlState_42000_SyntaxError(): void
+    {
+        $e = $this->makeFirebirdException('42000');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(SyntaxErrorException::class, $result);
+    }
+
+    public function testConvertBySqlState_HY000_FallsBackToSqlCode(): void
+    {
+        // HY class falls back to SQLCODE; with code 0, returns generic DriverException
+        $e = $this->makeFirebirdException('HY000', 0);
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
+    }
+
+    public function testConvertBySqlState_UnknownClass_FallsBackToSqlCode(): void
+    {
+        // Unknown SQLSTATE class → convertBySqlState returns null → falls back to SQLCODE
+        // Anonymous stub has getCode()=0 (no parent::__construct) → generic DriverException
+        $e = $this->makeFirebirdException('99999');
+        if ($e === null) {
+            self::markTestSkipped('\Firebird\Exception not available');
+        }
+
+        $result = $this->converter->convert($e, null);
+        self::assertInstanceOf(DBALDriverException::class, $result);
     }
 }
