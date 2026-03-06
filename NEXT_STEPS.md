@@ -1,7 +1,16 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-06 (Branching strategy transition to 3.10.x / 3.10.x-dev)
+**Last session:** 2026-03-06 (DBAL 4.x migration preparation)
 **Branch:** `3.10.x-dev` | **Tag:** `v3.11.0` ✅
+
+---
+
+## ✅ DBAL 4.x Migration Preparation (Issue #78)
+
+Successfully prepared the driver for DBAL 4.x by refactoring deprecated API usages:
+- Refactored `ConnectionWrapper` to use `introspectTable()` instead of `listTableColumns()`.
+- Updated `FirebirdSchemaManager` to delegate `listTableDetails()` to `introspectTable()`.
+- Audited `ServerInfoAwareConnection` and `VersionAwarePlatformDriver` for removal in 4.x.
 
 ---
 

@@ -138,7 +138,7 @@ final class ConnectionWrapper extends Connection
         $schemaManager = $this->createSchemaManager();
 
         // Get the columns for the table
-        $columns = $schemaManager->listTableColumns($tableName);
+        $columns = $schemaManager->introspectTable($tableName)->getColumns();
 
         foreach ($columns as $column) {
             if ($column->getAutoincrement()) {

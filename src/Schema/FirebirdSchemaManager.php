@@ -195,7 +195,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             __METHOD__,
         );
 
-        return $this->doListTableDetails($name);
+        return $this->introspectTable($name);
     }
 
     public function createComparator(): Comparator
