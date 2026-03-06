@@ -6,8 +6,13 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnDiff;
+use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -290,5 +295,150 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         self::assertStringContainsString('param1 INTEGER', $result);
         self::assertStringContainsString('param2 VARCHAR(100)', $result);
         self::assertStringContainsString('SELECT 1 FROM RDB$DATABASE', $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAlterTableSQL — hasDefaultChanged paths (lines 691-695)
+    // -------------------------------------------------------------------------
+
+    public function testGetAlterTableSQLWithDefaultChanged(): void
+    {
+        // Old: VARCHAR(50) DEFAULT 'old_val' → New: VARCHAR(50) DEFAULT 'new_val'
+        // Drives hasDefaultChanged() = true → SET DEFAULT branch (lines 691-695)
+        $old = new Table('alter_tbl');
+        $old->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'old_val']);
+
+        $new = new Table('alter_tbl');
+        $new->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'new_val']);
+
+        $comparator = new Comparator($this->platform);
+        $diff       = $comparator->compareTables($old, $new);
+        $sql        = $this->platform->getAlterTableSQL($diff);
+
+        self::assertNotEmpty($sql);
+        $allSql = implode(' ', $sql);
+        self::assertStringContainsStringIgnoringCase('SET DEFAULT', $allSql);
+    }
+
+    public function testGetAlterTableSQLWithDefaultDropped(): void
+    {
+        // Old: VARCHAR(50) DEFAULT 'old_val' → New: VARCHAR(50) no default
+        // Drives hasDefaultChanged() = true → DROP DEFAULT branch (line 692)
+        $old = new Table('alter_tbl2');
+        $old->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'old_val']);
+
+        $new = new Table('alter_tbl2');
+        $new->addColumn('col1', Types::STRING, ['length' => 50]);
+
+        $comparator = new Comparator($this->platform);
+        $diff       = $comparator->compareTables($old, $new);
+        $sql        = $this->platform->getAlterTableSQL($diff);
+
+        self::assertNotEmpty($sql);
+        $allSql = implode(' ', $sql);
+        self::assertStringContainsStringIgnoringCase('DROP DEFAULT', $allSql);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAlterTableSQL — hasAutoIncrementChanged paths (lines 709-721)
+    // -------------------------------------------------------------------------
+
+    public function testGetAlterTableSQLWithAutoIncrementAdded(): void
+    {
+        // Old: INTEGER not autoincrement → New: INTEGER autoincrement
+        // Drives hasAutoIncrementChanged() = true, newColumn->getAutoincrement() = true
+        // Covers lines 709, 712, 714-717
+        // The Comparator does not detect autoincrement changes, so we build the diff manually.
+        $intType = Type::getType(Types::INTEGER);
+
+        $oldCol = new Column('id', $intType);
+        // autoincrement defaults to false
+
+        $newCol = new Column('id', $intType);
+        $newCol->setAutoincrement(true);
+
+        // changedProperties drives hasAutoIncrementChanged() = true
+        $colDiff = new ColumnDiff('id', $newCol, ['autoincrement'], $oldCol);
+
+        $fromTable = new Table('autoinc_tbl');
+        $fromTable->addColumn('id', Types::INTEGER);
+
+        // @phpstan-ignore argument.type (deprecated TableDiff constructor, but correct for DBAL 3.x)
+        $diff = new TableDiff('autoinc_tbl', [], [$colDiff], [], [], [], [], $fromTable);
+        $sql  = $this->platform->getAlterTableSQL($diff);
+
+        // When autoincrement is added, a CREATE SEQUENCE statement is generated
+        $allSql = implode(' ', $sql);
+        self::assertStringContainsStringIgnoringCase('SEQUENCE', $allSql);
+    }
+
+    public function testGetAlterTableSQLWithAutoIncrementDropped(): void
+    {
+        // Old: INTEGER autoincrement → New: INTEGER not autoincrement
+        // Drives hasAutoIncrementChanged() = true, newColumn->getAutoincrement() = false
+        // Covers lines 720-721 (DROP DEFAULT path)
+        // The Comparator does not detect autoincrement changes, so we build the diff manually.
+        $intType = Type::getType(Types::INTEGER);
+
+        $oldCol = new Column('id', $intType);
+        $oldCol->setAutoincrement(true);
+
+        $newCol = new Column('id', $intType);
+        // autoincrement defaults to false → DROP DEFAULT path
+
+        // changedProperties drives hasAutoIncrementChanged() = true
+        $colDiff = new ColumnDiff('id', $newCol, ['autoincrement'], $oldCol);
+
+        $fromTable = new Table('autoinc_drop_tbl');
+        $fromTable->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+
+        // @phpstan-ignore argument.type (deprecated TableDiff constructor, but correct for DBAL 3.x)
+        $diff = new TableDiff('autoinc_drop_tbl', [], [$colDiff], [], [], [], [], $fromTable);
+        $sql  = $this->platform->getAlterTableSQL($diff);
+
+        $allSql = implode(' ', $sql);
+        self::assertStringContainsStringIgnoringCase('DROP DEFAULT', $allSql);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAlterTableSQL — hasLengthChanged path (lines 742-744)
+    // -------------------------------------------------------------------------
+
+    public function testGetAlterTableSQLWithLengthChanged(): void
+    {
+        // Old: VARCHAR(50) → New: VARCHAR(200)
+        // Drives hasLengthChanged() = true → covers the ALTER TYPE block at 742-744
+        $old = new Table('len_tbl');
+        $old->addColumn('col1', Types::STRING, ['length' => 50]);
+
+        $new = new Table('len_tbl');
+        $new->addColumn('col1', Types::STRING, ['length' => 200]);
+
+        $comparator = new Comparator($this->platform);
+        $diff       = $comparator->compareTables($old, $new);
+        $sql        = $this->platform->getAlterTableSQL($diff);
+
+        self::assertNotEmpty($sql);
+        $allSql = implode(' ', $sql);
+        // The length-change ALTER produces a TYPE declaration with 200
+        self::assertStringContainsString('200', $allSql);
+    }
+
+    // -------------------------------------------------------------------------
+    // getQuotedNameOf — string input path (line 1711)
+    // -------------------------------------------------------------------------
+
+    public function testGetQuotedNameOfWithStringInput(): void
+    {
+        // getQuotedNameOf() is protected; call via ReflectionMethod.
+        // When given a plain string (not an AbstractAsset), it wraps it in an Identifier.
+        // This covers line 1711: $id = new Identifier($name);
+        $method = new ReflectionMethod(FirebirdPlatform::class, 'getQuotedNameOf');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->platform, 'my_table_name');
+
+        self::assertIsString($result);
+        self::assertStringContainsStringIgnoringCase('my_table_name', $result);
     }
 }

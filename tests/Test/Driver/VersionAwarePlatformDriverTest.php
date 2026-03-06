@@ -9,6 +9,7 @@ use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -30,6 +31,36 @@ class VersionAwarePlatformDriverTest extends TestCase
     public function testGetExceptionConverter(): void
     {
         $driver    = new Driver();
+        $converter = $driver->getExceptionConverter();
+
+        self::assertInstanceOf(ExceptionConverter::class, $converter);
+    }
+
+    /**
+     * Covers FirebirdDriver::createDatabasePlatformForVersion() non-string branch (lines 64-68).
+     * The concrete Driver inherits this method without overriding it.
+     */
+    public function testFirebirdDriverThrowsOnNonStringVersion(): void
+    {
+        $driver = new Driver();
+        $this->expectException(\Exception::class);
+        // @phpstan-ignore argument.type
+        $driver->createDatabasePlatformForVersion(42);
+    }
+
+    /**
+     * Covers FirebirdDriver::getExceptionConverter() line 129 via an anonymous subclass
+     * that does NOT override the parent method (unlike Firebird\Driver which does override it).
+     */
+    public function testAbstractFirebirdDriverGetExceptionConverterMethod(): void
+    {
+        $driver = new class extends FirebirdDriver {
+            public function connect(array $params): DriverConnection
+            {
+                throw new \RuntimeException('Not implemented in test stub');
+            }
+        };
+
         $converter = $driver->getExceptionConverter();
 
         self::assertInstanceOf(ExceptionConverter::class, $converter);
