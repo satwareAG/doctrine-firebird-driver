@@ -16,3 +16,8 @@ vendor-bin/**/composer.lock
 /tests/phpunit.local.xml
 /tests/.phpunit.cache
 /composer.lock
+
+# Coverage output
+coverage-xml/
+tests/var/coverage-full.xml
+tests/var/coverage/
