@@ -187,4 +187,16 @@ class SelectSQLBuilderTest extends TestCase
         $sql     = $builder->buildSQL($query);
         self::assertStringContainsString('CAST(col AS VARCHAR(4000)) LIKE ?', $sql);
     }
+
+    public function testSelectSkipLockedWhenSupported(): void
+    {
+        // Builder with non-null skipLockedSQL covers line 92 (the $sql .= ' ' . $this->skipLockedSQL path)
+        $builder   = new FirebirdSelectSQLBuilder($this->platform, 'WITH LOCK', 'SKIP LOCKED');
+        $forUpdate = new ForUpdate(ConflictResolutionMode::SKIP_LOCKED);
+        $query     = $this->makeQuery(columns: ['id'], from: ['users'], forUpdate: $forUpdate);
+        $sql       = $builder->buildSQL($query);
+
+        self::assertStringContainsString('WITH LOCK', $sql);
+        self::assertStringContainsString('SKIP LOCKED', $sql);
+    }
 }

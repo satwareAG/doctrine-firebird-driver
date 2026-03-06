@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
+use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 
 /**
  * Unit tests for Firebird keyword lists.
@@ -65,5 +68,25 @@ class KeywordsTest extends TestCase
     {
         $keywords = new Firebird3Keywords();
         self::assertSame('Firebird3', $keywords->getName());
+    }
+
+    public function testFirebirdKeywordsBaseGetName(): void
+    {
+        $keywords = new FirebirdKeywords();
+        self::assertSame('Firebird', $keywords->getName());
+    }
+
+    public function testFirebird4PlatformGetReservedKeywordsClass(): void
+    {
+        $platform = new Firebird4Platform();
+        $list     = $platform->getReservedKeywordsList();
+        self::assertInstanceOf(Firebird4Keywords::class, $list);
+    }
+
+    public function testFirebird5PlatformGetReservedKeywordsClass(): void
+    {
+        $platform = new Firebird5Platform();
+        $list     = $platform->getReservedKeywordsList();
+        self::assertInstanceOf(Firebird5Keywords::class, $list);
     }
 }

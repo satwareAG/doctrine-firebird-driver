@@ -9,8 +9,11 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 /**
@@ -248,5 +251,44 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         $sql = $this->platform->getDropTableSQL('my_table');
         self::assertStringContainsString('MY_TABLE', $sql);
         self::assertStringContainsString('DROP TABLE', $sql);
+    }
+
+    public function testGetDropTableSQLThrowsOnInvalidArgument(): void
+    {
+        // getDropTableSQL() with a non-string, non-Table argument hits the
+        // InvalidArgumentException branch (lines 575-577 in FirebirdPlatform).
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('expects $table parameter to be string or');
+
+        // @phpstan-ignore argument.type
+        $this->platform->getDropTableSQL(42);
+    }
+
+    public function testNativeBooleanPlatformConvertsBooleansPassThrough(): void
+    {
+        // Firebird3Platform has $hasNativeBooleanType = true, so getBooleanDatabaseValue()
+        // takes the native-bool branch (line 1756: return $value) instead of SMALLINT.
+        $platform = new Firebird3Platform();
+        self::assertTrue($platform->convertBooleans(true));
+        self::assertFalse($platform->convertBooleans(false));
+    }
+
+    public function testGetExecuteBlockSqlWithBlockParams(): void
+    {
+        // getExecuteBlockSql() is protected; use Reflection to call it with blockParams
+        // to cover lines 1420-1429 (the blockParams loop in EXECUTE BLOCK header).
+        $method = new ReflectionMethod(FirebirdPlatform::class, 'getExecuteBlockSql');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->platform, [
+            'blockParams' => ['param1' => 'INTEGER', 'param2' => 'VARCHAR(100)'],
+            'statements'  => ['SELECT 1 FROM RDB$DATABASE'],
+            'formatLineBreak' => false,
+        ]);
+
+        self::assertStringContainsString('EXECUTE BLOCK', $result);
+        self::assertStringContainsString('param1 INTEGER', $result);
+        self::assertStringContainsString('param2 VARCHAR(100)', $result);
+        self::assertStringContainsString('SELECT 1 FROM RDB$DATABASE', $result);
     }
 }
