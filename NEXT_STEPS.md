@@ -1,7 +1,17 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-06 (P2 coverage ≥90% VERIFIED - 90.03% achieved)
-**Branch:** `3.0.x` | **Tag:** `v3.11.0` ✅
+**Last session:** 2026-03-06 (Branching strategy transition to 3.10.x / 3.10.x-dev)
+**Branch:** `3.10.x-dev` | **Tag:** `v3.11.0` ✅
+
+---
+
+## ✅ Branching Transition (3.10.x Strategy)
+
+The repository has transitioned to a new branching scheme aligned with Doctrine DBAL 3.10.x.
+
+- **Stable Branch:** `3.10.x` (protected, source of truth for stable releases)
+- **Development Branch:** `3.10.x-dev` (default branch, target for all PRs)
+- **Legacy Maintenance:** `3.0.x`
 
 ---
 
@@ -63,6 +73,7 @@ See `docs/BRANCHING.md` for the full `4.0.x` strategy.
 ```bash
 cd /home/mw/external/doctrine-firebird-driver
 git fetch --all
+# Working on 3.10.x-dev branch
 # P2: Coverage ≥90% — docker compose up -d fb3 app && run phpunit with pcov
-# P3: DBAL 4.x — create 4.0.x branch, research getWrappedConnection() replacement
+# P3: DBAL 4.x — research getWrappedConnection() replacement
 ```

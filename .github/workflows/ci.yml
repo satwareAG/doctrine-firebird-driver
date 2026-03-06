@@ -3,14 +3,16 @@ name: CI (PHP × Firebird Matrix)
 on:
   push:
     branches:
+      - '3.10.x'
+      - '3.10.x-dev'
       - '3.0.*'
-      - '3.10-dev'
       - 'main'
       - 'feature/*'
   pull_request:
     branches:
+      - '3.10.x'
+      - '3.10.x-dev'
       - '3.0.*'
-      - '3.10-dev'
       - 'main'
   schedule:
     - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
