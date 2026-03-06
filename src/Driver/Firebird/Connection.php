@@ -40,6 +40,7 @@ use function fbird_connection_info;
 use function fbird_drop_table_force;
 use function fbird_errcode;
 use function fbird_errmsg;
+use function fbird_escape_string;
 use function fbird_execute_auto;
 use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
@@ -340,6 +341,10 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         if (! is_scalar($value)) {
             throw new InvalidArgumentException('Given value is not scalar.');
+        }
+
+        if (function_exists('fbird_escape_string')) {
+            return "'" . fbird_escape_string((string) $value) . "'";
         }
 
         $value = str_replace("'", "''", (string) $value);
