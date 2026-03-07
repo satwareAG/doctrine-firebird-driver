@@ -15,6 +15,9 @@
          displayDetailsOnTestsThatTriggerWarnings="true"
          enforceTimeLimit="true"
          defaultTimeLimit="10"
+         timeoutForSmallTests="10"
+         timeoutForMediumTests="30"
+         timeoutForLargeTests="120"
 >
   <php>
     <ini name="error_reporting" value="-1"/>

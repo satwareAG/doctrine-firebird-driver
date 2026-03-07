@@ -5,8 +5,6 @@
          bootstrap="phpunit.bootstrap.php"
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
-         requireCoverageMetadata="false"
-         beStrictAboutCoverageMetadata="false"
          failOnRisky="true"
          failOnWarning="true"
          failOnDeprecation="true"
@@ -22,28 +20,17 @@
     <var name="db_host" value="firebird4/3050"/>
     <var name="db_user" value="sysdba"/>
     <var name="db_password" value="masterkey"/>
-    <var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>
+    <var name="db_dbname" value="/firebird/data/test.fdb"/>
     <var name="db_charset" value="UTF8" />
     <var name="db_test_logging" value="0" />
     <var name="PHP_IDE_CONFIG" value="serverName=phpconsole" />
     <ini name="memory_limit" value="4G"/>
   </php>
-
   <testsuites>
-    <testsuite name="Unit">
-      <directory>Test/Unit</directory>
-      <directory>Test/Platforms</directory>
-      <directory>Test/Tools</directory>
-    </testsuite>
-    <testsuite name="Integration">
-      <directory>Test/Integration</directory>
-      <directory>Test/Driver</directory>
-    </testsuite>
     <testsuite name="Functional">
       <directory>Test/Functional</directory>
     </testsuite>
   </testsuites>
-
   <source>
     <include>
       <directory>../src</directory>

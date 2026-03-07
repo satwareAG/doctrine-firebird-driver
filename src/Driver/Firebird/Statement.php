@@ -221,8 +221,9 @@ class Statement implements StatementInterface
                     continue;
                 }
 
-                // Workaround for php-firebird 6.2.0+ segfault:
-                // Read stream into memory and pass as string.
+                // Workaround for php-firebird 6.2.0+ stability:
+                // Read stream into memory and pass as string. Tested with php-firebird 7.3.0
+                // which still requires this as it doesn't natively consume stream resources.
                 $content = stream_get_contents($variable);
                 if (is_resource($variable)) {
                     fclose($variable);
@@ -389,8 +390,9 @@ class Statement implements StatementInterface
 
         if ($type === ParameterType::LARGE_OBJECT) {
             if ($variable !== null && is_resource($variable)) {
-                // Workaround for php-firebird 6.2.0+ segfault:
-                // Read stream into memory and pass as string.
+                // Workaround for php-firebird 6.2.0+ stability:
+                // Read stream into memory and pass as string. Tested with php-firebird 7.3.0
+                // which still requires this as it doesn't natively consume stream resources.
                 // This avoids fbird_blob_create/add/close which seem to cause instability.
                 $content = stream_get_contents($variable);
                 if (is_resource($variable)) {
@@ -415,9 +417,11 @@ class Statement implements StatementInterface
      */
     private function detectDmlStatement(string $sql): bool
     {
-        // Match DML keywords directly, skipping optional block comments and WITH clauses
+        // Match DML and DDL keywords directly, skipping optional block comments and WITH clauses.
+        // We include DDL (CREATE|ALTER|DROP) because Firebird metadata changes must be
+        // committed to release system table locks and be visible to subsequent operations.
         return (bool) preg_match(
-            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(INSERT|UPDATE|DELETE|MERGE|EXECUTE)\b/is',
+            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(INSERT|UPDATE|DELETE|MERGE|EXECUTE|CREATE|ALTER|DROP)\b/is',
             trim($sql),
         );
     }

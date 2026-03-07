@@ -1,0 +1,58 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ "3.10.x", "3.10.x-dev" ]
+  pull_request:
+    branches: [ "3.10.x", "3.10.x-dev" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, mbstring
+          coverage: none
+
+      - name: Install Firebird
+        run: |
+          choco install firebird --version=4.0.6 -y
+          echo "C:\Program Files\Firebird\Firebird_4_0" >> $GITHUB_PATH
+
+      - name: Download php-firebird DLL
+        shell: powershell
+        run: |
+          $phpVer = "${{ matrix.php }}"
+          # Map PHP version to DLL name format
+          $dllName = "php_firebird-v7.3.0-$phpVer-nts-vs"
+          if ($phpVer -ge "8.4") { $dllName += "17-x64.zip" } else { $dllName += "16-x64.zip" }
+          
+          $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.3.0/$dllName"
+          Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+          Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp"
+          
+          $phpPath = (Get-Command php).Source
+          $phpDir = Split-Path -Parent $phpPath
+          $extDir = "$phpDir\ext"
+          
+          Copy-Item "ext_temp\php_firebird.dll" -Destination "$extDir\php_firebird.dll"
+          Add-Content -Path "$phpDir\php.ini" -Value "extension=firebird"
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Run Unit Tests
+        run: vendor/bin/phpunit --testsuite Unit

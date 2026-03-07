@@ -19,8 +19,21 @@ use function method_exists;
  * the internal AbstractException class (which is deprecated for external use).
  *
  * Enhanced in php-firebird v7.0.0+ with native SQLSTATE support via fbird_sqlstate().
- * SQLSTATE codes provide standardized (SQL:2003) error classification for better
- * error handling across different database systems.
+ * SQLSTATE codes provide SQL:2003 standard error classification:
+ *
+ * Class 08: Connection Exception
+ * Class 21: Cardinality Violation
+ * Class 22: Data Exception
+ * Class 23: Integrity Constraint Violation
+ *   - 23502: NOT NULL violation
+ *   - 23503: Foreign key violation
+ *   - 23505: Unique constraint violation
+ * Class 28: Invalid Authorization
+ * Class 40: Transaction Rollback
+ * Class 42: Syntax Error or Access Violation
+ *
+ * @link https://en.wikipedia.org/wiki/SQLSTATE
+ * @link https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-appx02-sqlstates
  *
  * @psalm-immutable
  */

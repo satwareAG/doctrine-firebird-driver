@@ -171,10 +171,20 @@ abstract class FunctionalTestCase extends TestCase
     public function getFirebirdConnection(): FirebirdConnection|null
     {
         // Traverse DBAL middleware layers to find the underlying FirebirdConnection object.
-        // getNativeConnection() returns the raw Firebird resource (not the FirebirdConnection
-        // class), so we must walk the getWrappedConnection() chain in DBAL 3.x to reach the
+        // In DBAL 3.x, we must walk the getWrappedConnection() chain to reach the
         // driver-level object that provides isConnectionValid(), dropTableForce(), etc.
         $connection = $this->connection;
+
+        // Try to get the driver connection directly if it's already unwrapped
+        try {
+            $driverConn = $connection->getNativeConnection();
+            if ($driverConn instanceof FirebirdConnection) {
+                return $driverConn;
+            }
+        } catch (Throwable) {
+            // getNativeConnection might fail or return a resource
+        }
+
         while (method_exists($connection, 'getWrappedConnection')) {
             // @phpstan-ignore-next-line (getWrappedConnection() is deprecated but required to traverse DBAL 3.x middleware to reach FirebirdConnection)
             $connection = $connection->getWrappedConnection();

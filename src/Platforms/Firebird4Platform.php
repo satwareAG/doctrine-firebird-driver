@@ -75,5 +75,11 @@ class Firebird4Platform extends Firebird3Platform
 
         $this->doctrineTypeMapping['timestamp with time zone'] = Types::DATETIMETZ_MUTABLE;
         $this->doctrineTypeMapping['time with time zone']      = Types::TIME_MUTABLE;
+
+        // Firebird 4.0+ high-precision numeric types
+        $this->doctrineTypeMapping['int128']       = Types::BIGINT;
+        $this->doctrineTypeMapping['decfloat']     = Types::DECIMAL;
+        $this->doctrineTypeMapping['decfloat(16)'] = Types::DECIMAL;
+        $this->doctrineTypeMapping['decfloat(34)'] = Types::DECIMAL;
     }
 }
