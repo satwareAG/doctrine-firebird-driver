@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0-RC.2] - 2026-03-09
+
+### Fixed
+- **Metadata Lock Mitigation** — Ensure DDL statements (CREATE, ALTER, DROP, RECREATE) trigger auto-commit to release system table locks, especially on Firebird 3.0 (#90)
+- **CI Stability (SIGSEGV/SIGABRT)** — Implemented robust signal handling for exit codes 139 (SIGSEGV) and 134 (SIGABRT); CI now passes if PHPUnit output confirms successful test completion despite post-shutdown crashes (#90)
+- **Statement Detection** — Refactored `detectDmlStatement` regex to more reliably identify DDL commands and metadata changes (#90)
+- **Windows CI** — Fixed DLL search and installation script in `windows.yml` to handle recursive ZIP extraction and versioned filenames (#90)
+
+### Changed
+- **`IBatch` API Build Flag** — Docker-based test environment now compiles `ext-firebird` with `FB_API_VER=40` by default to enable Firebird 4.0+ batch operations (#91)
+- **CI Debugging** — Added automated upload of `isql` and PHP debug artifacts on job failure (#90)
+
 ## [3.11.0-RC.2] - 2026-03-09
 
 ### Added
@@ -290,7 +302,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...HEAD
+[3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2
 [3.11.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.11.0-RC.2
 [3.11.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.11.0
 [3.10.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.10.2
