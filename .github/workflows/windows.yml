@@ -37,11 +37,21 @@ jobs:
         run: |
           $phpVer = "${{ matrix.php }}"
           # Map PHP version to DLL name format
+          # Release v7.3.0 uses 'php_firebird-v7.3.0-...'
           $dllName = "php_firebird-v7.3.0-$phpVer-nts-vs"
           if ($phpVer -ge "8.4") { $dllName += "17-x86_64.zip" } else { $dllName += "16-x86_64.zip" }
           
           $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.3.0/$dllName"
-          Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+          echo "Downloading $url"
+          try {
+              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+          } catch {
+              # Fallback to v7.2.1 if v7.3.0 is missing for this version
+              $dllName = "php_firebird-7.2.1-$phpVer-vs16-x86_64.zip"
+              $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.2.1/$dllName"
+              echo "Falling back to $url"
+              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+          }
           Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp"
           
           $phpPath = (Get-Command php).Source
