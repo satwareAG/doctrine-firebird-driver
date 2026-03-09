@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.11.0-RC.2] - 2026-03-09
+
+### Added
+- **`CharsetMiddleware` Charset Transparency** — Improved support for BLOBs and large objects (#89)
+  - PHP resource streams are now automatically extracted and transcoded in `CharsetResultMiddleware`
+  - `CharsetStatementMiddleware` now transcodes parameters bound with `ParameterType::LARGE_OBJECT`
+  - Added 100% unit test coverage for the charset middleware stack
+
+### Fixed
+- **Charset Transparency for BLOBs** — Fixed issue where resource streams bypassed transcoding in the middleware stack (#89)
+
 ## [3.10.2] - 2026-03-06
 
 ### Changed
@@ -279,9 +290,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.2...HEAD
-[3.10.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.10.2
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...HEAD
+[3.11.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.11.0-RC.2
 [3.11.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.11.0
+[3.10.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.10.2
 [3.10.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.1...v3.10.1
 [3.10.0-RC.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...v3.10.0-RC.1
 [3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v3.10.0-rc.1

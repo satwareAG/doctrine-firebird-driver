@@ -11,8 +11,10 @@ use Override;
 use function array_map;
 use function array_values;
 use function is_array;
+use function is_resource;
 use function is_string;
 use function mb_convert_encoding;
+use function stream_get_contents;
 
 /**
  * Decodes all string values returned from Firebird (database encoding) to the
@@ -114,9 +116,18 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     /**
      * Decode a single value from database encoding to PHP encoding if it is a string.
      * Non-string values (int, float, null, bool, objects) pass through unchanged.
+     *
+     * For TEXT BLOB columns, Firebird returns stream resources. These are extracted
+     * and transcoded in-place, returning the decoded string directly.
      */
     private function decodeValue(mixed $value): mixed
     {
+        if (is_resource($value)) {
+            $buffer = stream_get_contents($value);
+
+            return mb_convert_encoding($buffer, $this->phpEncoding, $this->databaseEncoding);
+        }
+
         if (! is_string($value)) {
             return $value;
         }

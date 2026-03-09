@@ -288,11 +288,15 @@ $middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF
 ```
 
 **How it works:**
-- `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird
-- `fetch*()` results: database encoding → PHP encoding after receiving from Firebird
-- Non-string values (int, float, null, bool) pass through unchanged
+- `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird.
+- `fetch*()` results: database encoding → PHP encoding after receiving from Firebird.
+- **BLOB Transparency:** PHP resource streams are automatically extracted and transcoded.
+- **`LARGE_OBJECT` support:** Parameters bound with `ParameterType::LARGE_OBJECT` are transcoded.
+- Non-string values (int, float, null, bool, objects) pass through unchanged.
 
 **Requires:** `ext-mbstring` (declared in `composer.json`)
+>>>>+++ REPLACE
+
 
 # Testing
 
