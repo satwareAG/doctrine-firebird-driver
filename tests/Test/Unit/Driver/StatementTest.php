@@ -317,13 +317,28 @@ class StatementTest extends TestCase
             'insert lowercase' => ['insert into test values (1)', true],
             'insert mixed case' => ['InSeRt INTO test VALUES (1)', true],
             'with clause insert' => ['WITH cte AS (SELECT 1) INSERT INTO test SELECT * FROM cte', true],
-            
+            'create table' => ['CREATE TABLE test (id INT)', true],
+            'drop table' => ['DROP TABLE test', true],
+            'alter table' => ['ALTER TABLE test ADD col INT', true],
+            'recreate table' => ['RECREATE TABLE test (id INT)', true],
+
+            // DDL statements (should return true for metadata commit)
+            'create index' => ['CREATE INDEX idx_test ON test (id)', true],
+            'drop index' => ['DROP INDEX idx_test', true],
+            'create view' => ['CREATE VIEW v_test AS SELECT * FROM test', true],
+            'drop view' => ['DROP VIEW v_test', true],
+            'create procedure' => ['CREATE PROCEDURE p_test AS BEGIN END', true],
+            'drop procedure' => ['DROP PROCEDURE p_test', true],
+            'create trigger' => ['CREATE TRIGGER t_test FOR test BEFORE INSERT AS BEGIN END', true],
+            'drop trigger' => ['DROP TRIGGER t_test', true],
+            'create generator' => ['CREATE GENERATOR gen_test', true],
+            'drop generator' => ['DROP GENERATOR gen_test', true],
+            'create domain' => ['CREATE DOMAIN d_test AS INT', true],
+            'drop domain' => ['DROP DOMAIN d_test', true],
+
             // Non-DML statements (should return false)
             'select' => ['SELECT * FROM test', false],
             'select with subquery insert' => ['SELECT * FROM (INSERT INTO test VALUES (1))', false],
-            'create table' => ['CREATE TABLE test (id INT)', false],
-            'drop table' => ['DROP TABLE test', false],
-            'alter table' => ['ALTER TABLE test ADD col INT', false],
             'empty string' => ['', false],
             'whitespace only' => ['   ', false],
         ];
