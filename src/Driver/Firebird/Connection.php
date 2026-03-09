@@ -99,37 +99,51 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             return;
         }
 
-        // Try standard install path from Dockerfile
-        $path = '/usr/local/lib/php/Firebird';
-        if (file_exists($path)) {
-            $files = [
-                'functions.php',
-                'EventPollerInterface.php',
-                'EventPoller.php',
-                'PcntlEventPoller.php',
-                'FiberEventPoller.php',
-                'ProcessEventPoller.php',
-                'BlobId.php',
-                'DbInfo.php',
-                'Transaction.php',
-                'TBuilder.php',
-                'Database.php',
-                'BatchError.php',
-                'BatchResult.php',
-                'Batch.php',
-            ];
+        self::$ooApiLoaded = true;
+
+        // Try standard install path from Dockerfile and source build
+        $paths = [
+            '/usr/local/lib/php/Firebird',
+            '/usr/lib/php/Firebird',
+            '/tmp/php-firebird/src/Firebird', // Source build check
+        ];
+
+        $files = [
+            'functions.php',
+            'EventPollerInterface.php',
+            'EventPoller.php',
+            'PcntlEventPoller.php',
+            'FiberEventPoller.php',
+            'ProcessEventPoller.php',
+            'BlobId.php',
+            'DbInfo.php',
+            'Transaction.php',
+            'TBuilder.php',
+            'Database.php',
+            'BatchError.php',
+            'BatchResult.php',
+            'Batch.php',
+        ];
+
+        foreach ($paths as $path) {
+            if (! file_exists($path) || ! is_dir($path)) {
+                continue;
+            }
 
             foreach ($files as $file) {
                 $fullPath = $path . '/' . $file;
-                if (! file_exists($fullPath)) {
+                if (! file_exists($fullPath) || is_dir($fullPath)) {
                     continue;
                 }
 
-                require_once $fullPath;
+                try {
+                    /** @phpstan-ignore-next-line */
+                    require_once $fullPath;
+                } catch (Throwable) {
+                    // Ignore load errors for OO API
+                }
             }
         }
-
-        self::$ooApiLoaded = true;
     }
 
     /**

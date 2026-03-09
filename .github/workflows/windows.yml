@@ -24,7 +24,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, mbstring
+          extensions: pdo, mbstring, intl
           coverage: none
 
       - name: Install Firebird
@@ -38,7 +38,7 @@ jobs:
           $phpVer = "${{ matrix.php }}"
           # Map PHP version to DLL name format
           $dllName = "php_firebird-v7.3.0-$phpVer-nts-vs"
-          if ($phpVer -ge "8.4") { $dllName += "17-x64.zip" } else { $dllName += "16-x64.zip" }
+          if ($phpVer -ge "8.4") { $dllName += "17-x86_64.zip" } else { $dllName += "16-x86_64.zip" }
           
           $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.3.0/$dllName"
           Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
