@@ -58,7 +58,14 @@ jobs:
           $phpDir = Split-Path -Parent $phpPath
           $extDir = "$phpDir\ext"
           
-          Copy-Item "ext_temp\php_firebird.dll" -Destination "$extDir\php_firebird.dll"
+          # Use recursive copy or check path because zip structure might contain subfolders
+          $dllPath = Get-ChildItem -Path "ext_temp" -Filter "php_firebird.dll" -Recurse | Select-Object -First 1
+          if ($dllPath) {
+              Copy-Item $dllPath.FullName -Destination "$extDir\php_firebird.dll"
+          } else {
+              Write-Error "php_firebird.dll not found in extracted archive"
+              exit 1
+          }
           Add-Content -Path "$phpDir\php.ini" -Value "extension=firebird"
 
       - name: Install dependencies
