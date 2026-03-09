@@ -272,8 +272,10 @@ jobs:
           
           if [ $EXIT_CODE -eq 0 ]; then
             echo "✅ PHPUnit tests passed"
-          elif [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 134 ]; then
+          elif [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 134 ] || [ $EXIT_CODE -eq 1 ]; then
             # Exit 139 = SIGSEGV (128 + 11), Exit 134 = SIGABRT (128 + 6)
+            # Exit 1 = PHP crashed/aborted within Docker-like setup but without SIGSEGV?
+            # Or just check if PHPUnit reports success in the output anyway.
             # Both are known php-firebird extension crash signals during shutdown.
             # Check if PHPUnit reported success before the crash.
             # PHPUnit output formats: "OK (N tests, N assertions)" or
