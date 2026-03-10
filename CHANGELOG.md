@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0-RC.3] - 2026-03-10
+
+### Tests
+- **Charset Middleware Round-Trip Coverage** — Added `CharsetEncodingRoundTripTest` with 70 new
+  test cases (339 total assertions) verifying real Windows-1252 byte encoding through the full
+  middleware stack (#89)
+  - All six fetch methods (`fetchOne`, `fetchAssociative`, `fetchNumeric`, `fetchAllAssociative`,
+    `fetchAllNumeric`, `fetchFirstColumn`) tested with actual WIN1252 bytes — not just UTF-8→UTF-8
+    identity encoding
+  - BLOB TEXT stream resources decoded via all six fetch methods with WIN1252 bytes from
+    `php://temp` streams
+  - Full encode→decode round-trip test for seven real Amicron special-character strings:
+    `Faßbrause für 30€?`, `Ärger mit Öl`, `Straße 123`, `Müller & Söhne`, `€uro`, `äöüÄÖÜß`,
+    `Grüner Tee 500g` — each verified byte-identical after WIN1252↔UTF-8 conversion
+  - LIKE / search parameter encoding verified for all seven special-char strings via `bindValue()`
+    and inline `execute()` — confirms WHERE clause transparency
+  - `Connection::quote()` encoding path verified with special characters
+  - Zero PHPStan Level 8 errors; PHPCS clean; no PHPUnit deprecations (migrated to
+    `#[DataProvider]` PHP 8 attributes)
+
+### Docs
+- **`specs/001-charset-transparency-middleware/spec.md`** — New driver-level feature spec with
+  5 user stories, 7 functional requirements, 4 NFRs, and 5 measurable success criteria documenting
+  the charset transparency contract for `satag-amicron-entity-bundle` consumers
+
 ## [3.12.0-RC.2] - 2026-03-09
 
 ### Fixed
@@ -302,7 +327,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.3...HEAD
+[3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
 [3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2
 [3.11.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.11.0-RC.2
 [3.11.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.11.0

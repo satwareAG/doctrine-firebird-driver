@@ -17,7 +17,6 @@ To utilize this library in your application code, the following is required:
 ## Version Compatibility Matrix
 
 | Feature | FB 3.0 | FB 4.0 | FB 5.0 |
->>>>+++ REPLACE
 
 |---------|--------|--------|--------|
 | Basic DBAL (queries, transactions) | ✅ | ✅ | ✅ |
@@ -297,7 +296,6 @@ $middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF
 - Non-string values (int, float, null, bool, objects) pass through unchanged.
 
 **Requires:** `ext-mbstring` (declared in `composer.json`)
->>>>+++ REPLACE
 
 
 # Testing
@@ -314,8 +312,8 @@ cd tests && ./phpunit-all.sh
 cd tests && ./phpunit.sh
 
 # Run specific test suite
-php vendor/bin/phpunit tests/Test/Unit/
-php vendor/bin/phpunit tests/Test/Functional/
+vendor/bin/phpunit tests/Test/Unit/
+vendor/bin/phpunit tests/Test/Functional/
 ```
 
 ## Test Coverage
