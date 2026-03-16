@@ -36,6 +36,7 @@ RUN docker-php-source extract \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
+    && export CPPFLAGS="-DFB_API_VER=40" \
     && docker-php-ext-install firebird pcntl \
     && mkdir -p /usr/local/lib/php/Firebird \
     && cp /usr/src/php/ext/firebird/src/Firebird/*.php /usr/local/lib/php/Firebird/ \

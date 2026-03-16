@@ -421,7 +421,7 @@ class Statement implements StatementInterface
         // We include DDL (CREATE|ALTER|DROP) because Firebird metadata changes must be
         // committed to release system table locks and be visible to subsequent operations.
         return (bool) preg_match(
-            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(INSERT|UPDATE|DELETE|MERGE|EXECUTE|CREATE|ALTER|DROP)\b/is',
+            '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?(INSERT|UPDATE|DELETE|MERGE|EXECUTE|CREATE|ALTER|DROP|RECREATE)\b/is',
             trim($sql),
         );
     }

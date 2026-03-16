@@ -2,9 +2,18 @@ name: Windows CI
 
 on:
   push:
-    branches: [ "3.10.x", "3.10.x-dev" ]
+    branches:
+      - '3.10.x'
+      - '3.10.x-dev'
+      - '3.0.*'
+      - 'main'
+      - 'feature/*'
   pull_request:
-    branches: [ "3.10.x", "3.10.x-dev" ]
+    branches:
+      - '3.10.x'
+      - '3.10.x-dev'
+      - '3.0.*'
+      - 'main'
 
 permissions:
   contents: read
@@ -44,7 +53,7 @@ jobs:
           $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.3.0/$dllName"
           echo "Downloading $url"
           try {
-              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip" -ErrorAction Stop
           } catch {
               # Fallback to v7.2.1 if v7.3.0 is missing for this version
               $dllName = "php_firebird-7.2.1-$phpVer-vs16-x86_64.zip"
@@ -52,21 +61,32 @@ jobs:
               echo "Falling back to $url"
               Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
           }
-          Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp"
+          Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp" -Force
           
           $phpPath = (Get-Command php).Source
           $phpDir = Split-Path -Parent $phpPath
           $extDir = "$phpDir\ext"
           
-          # Use recursive copy or check path because zip structure might contain subfolders
-          $dllPath = Get-ChildItem -Path "ext_temp" -Filter "php_firebird.dll" -Recurse | Select-Object -First 1
+          # Fix: Use wildcard filter because ZIP contains versioned filenames like 'php_firebird-v7.3.0-...'
+          # Avoid deep recursion if possible, check top level first
+          $dllPath = Get-ChildItem -Path "ext_temp" -Filter "php_firebird*.dll" -Recurse | Select-Object -First 1
+          
           if ($dllPath) {
-              Copy-Item $dllPath.FullName -Destination "$extDir\php_firebird.dll"
+              Write-Host "Found DLL: $($dllPath.FullName)"
+              # Standard PHP naming on Windows is php_firebird.dll
+              Copy-Item $dllPath.FullName -Destination "$extDir\php_firebird.dll" -Force
+              Write-Host "✅ Extracted and installed php_firebird.dll"
           } else {
-              Write-Error "php_firebird.dll not found in extracted archive"
+              Write-Error "php_firebird*.dll not found in extracted archive"
+              Get-ChildItem -Path "ext_temp" -Recurse # Debug: list what we found
               exit 1
           }
-          Add-Content -Path "$phpDir\php.ini" -Value "extension=firebird"
+          
+          # Enable extension in php.ini
+          if (-not (Test-Path "$phpDir\php.ini")) {
+              Copy-Item "$phpDir\php.ini-development" "$phpDir\php.ini"
+          }
+          Add-Content -Path "$phpDir\php.ini" -Value "`nextension=firebird"
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress

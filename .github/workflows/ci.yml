@@ -164,6 +164,7 @@ jobs:
 
           phpize
           ./configure --with-firebird
+          export CPPFLAGS="-DFB_API_VER=40"
           make -j"$(nproc)"
           sudo make install
 
@@ -297,6 +298,21 @@ jobs:
             echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
           fi
+
+      - name: Archive test logs on failure
+        if: failure()
+        run: |
+          mkdir -p tests/var/logs
+          php -i > tests/var/logs/php-info.txt
+          php -m > tests/var/logs/php-modules.txt
+          
+      - name: Upload debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs-${{ matrix.php-version }}-${{ matrix.firebird.version }}
+          path: tests/var/logs/
+          retention-days: 5
 
       - name: Run PHPUnit tests with coverage
         if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
