@@ -62,9 +62,6 @@
       <code><![CDATA[$transaction]]></code>
       <code><![CDATA[$transaction]]></code>
     </UnusedParam>
-    <UnusedVariable>
-      <code><![CDATA[$success]]></code>
-    </UnusedVariable>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
     <PossiblyFalseArgument>
@@ -79,11 +76,6 @@
       <code><![CDATA[fromFirebirdException]]></code>
     </PossiblyUnusedMethod>
   </file>
-  <file src="src/Driver/Firebird/ExceptionConverter.php">
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$sqlState !== null]]></code>
-    </RedundantConditionGivenDocblockType>
-  </file>
   <file src="src/Driver/Firebird/Result.php">
     <FalsableReturnStatement>
       <code><![CDATA[fbird_num_fields($this->firebirdResultResource)]]></code>
@@ -96,10 +88,6 @@
       <code><![CDATA[fetchNumericWithDateObjects]]></code>
       <code><![CDATA[isDateObjectFetchAvailable]]></code>
     </PossiblyUnusedMethod>
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $key]]></code>
-      <code><![CDATA[(string) $key]]></code>
-    </RedundantCastGivenDocblockType>
     <UnusedProperty>
       <code><![CDATA[$statement]]></code>
     </UnusedProperty>
