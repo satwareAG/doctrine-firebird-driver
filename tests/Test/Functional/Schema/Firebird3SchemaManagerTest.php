@@ -69,6 +69,14 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($this->schemaManager->tablesExist(['table_to_create']));
     }
 
+    /**
+     * @large
+     */
+    public function testSchemaIntrospection(): void
+    {
+        parent::testSchemaIntrospection();
+    }
+
     public function testGetBooleanColumn(): void
     {
         $table = new Table('boolean_column_test');

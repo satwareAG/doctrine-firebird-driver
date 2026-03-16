@@ -9,10 +9,12 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
 
 use function strtoupper;
+use Override;
 
 /** @psalm-suppress UnusedClass */
 class FirebirdQuoteStrategy extends DefaultQuoteStrategy
 {
+    #[Override]
     public function getColumnAlias(
         string $columnName,
         int $counter,

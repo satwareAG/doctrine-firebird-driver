@@ -30,8 +30,11 @@ use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
+use function array_filter;
 use function assert;
 use function class_exists;
+use function file_exists;
+use function glob;
 use function defined;
 use function fbird_close;
 use function fbird_commit;
@@ -85,6 +88,65 @@ use const FBIRD_WRITE;
  */
 final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
 {
+    /**
+     * Load Firebird OO API classes if they are available as PHP files.
+     * Some extension releases provide them in /usr/local/lib/php/Firebird.
+     */
+    private static bool $ooApiLoaded = false;
+
+    private static function loadOoApi(): void
+    {
+        if (self::$ooApiLoaded) {
+            return;
+        }
+
+        self::$ooApiLoaded = true;
+
+        // Try standard install path from Dockerfile and source build
+        $paths = [
+            '/usr/local/lib/php/Firebird',
+            '/usr/lib/php/Firebird',
+            '/tmp/php-firebird/src/Firebird', // Source build check
+        ];
+
+        $files = [
+            'functions.php',
+            'EventPollerInterface.php',
+            'EventPoller.php',
+            'PcntlEventPoller.php',
+            'FiberEventPoller.php',
+            'ProcessEventPoller.php',
+            'BlobId.php',
+            'DbInfo.php',
+            'Transaction.php',
+            'TBuilder.php',
+            'Database.php',
+            'BatchError.php',
+            'BatchResult.php',
+            'Batch.php',
+        ];
+
+        foreach ($paths as $path) {
+            if (! file_exists($path) || ! is_dir($path)) {
+                continue;
+            }
+
+            foreach ($files as $file) {
+                $fullPath = $path . '/' . $file;
+                if (! file_exists($fullPath) || is_dir($fullPath)) {
+                    continue;
+                }
+
+                try {
+                    /** @phpstan-ignore-next-line */
+                    require_once $fullPath;
+                } catch (Throwable) {
+                    // Ignore load errors for OO API
+                }
+            }
+        }
+    }
+
     /**
      * Valid resource types for Firebird connection.
      * php-firebird v7.0.0+ resource type strings only.
@@ -141,6 +203,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function __construct(private $connection, private readonly string $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
     {
+        self::loadOoApi();
+
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
 
@@ -343,10 +407,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new InvalidArgumentException('Given value is not scalar.');
         }
 
+        // Use extension-provided escaping if available (php-firebird v7.0.0-rc.25+)
         if (function_exists('fbird_escape_string')) {
             return "'" . fbird_escape_string((string) $value) . "'";
         }
 
+        // Fallback for older versions
         $value = str_replace("'", "''", (string) $value);
 
         return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
@@ -513,9 +579,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
-
-            if ($success !== false) {
+            if (@fbird_commit_ret($this->firebirdActiveTransaction) !== false) {
                 return;
             }
 
@@ -728,11 +792,31 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function isConnectionValid(): bool
     {
-        if (! is_resource($this->connection)) {
+        if ($this->connection === null) {
             return false;
         }
 
-        $type = get_resource_type($this->connection);
+        if (is_resource($this->connection)) {
+            return $this->isResourceTypeValid($this->connection);
+        }
+
+        // In DBAL 3.10+, getNativeConnection() might return an object that wraps the resource.
+        // If we are called on such an object, we need to unwrap it.
+        if (is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')) {
+            $native = $this->connection->getNativeConnection();
+
+            return is_resource($native) && $this->isResourceTypeValid($native);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param resource $resource
+     */
+    private function isResourceTypeValid($resource): bool
+    {
+        $type = get_resource_type($resource);
 
         return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
             || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
@@ -986,7 +1070,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         // IBatch API requires Firebird 4.0+
-        if (version_compare($this->serverVersion, '4.0', '<')) {
+        $version = $this->serverVersion;
+        if (preg_match('/(\d+\.\d+)/', $version, $matches) === 1) {
+            $version = $matches[1];
+        }
+
+        if (version_compare($version, '4.0', '<')) {
             throw new DriverException(sprintf(
                 'IBatch API requires Firebird 4.0 or later. Current version: %s. ' .
                 'Use traditional INSERT loops for Firebird 2.5/3.0.',
@@ -1003,6 +1092,18 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('No valid transaction available for batch operation.');
         }
 
+        // Check for static factory method (php-firebird v7.2.0+)
+        if (method_exists(Batch::class, 'fromQuery')) {
+            $query = @fbird_prepare($this->connection, $transResource, $sql);
+            if (! is_resource($query)) {
+                $this->checkLastApiCall();
+                throw new DriverException('Failed to prepare batch query');
+            }
+
+            return Batch::fromQuery($query);
+        }
+
+        /** @phpstan-ignore-next-line */
         return new Batch($this->connection, $sql, $transResource);
     }
 

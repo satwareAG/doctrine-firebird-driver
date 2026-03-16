@@ -32,11 +32,6 @@
                 <file name="src/Platforms/Firebird3Platform.php"/>
             </errorLevel>
         </DeprecatedMethod>
-        <DeprecatedProperty>
-            <errorLevel type="suppress">
-                <file name="src/Platforms/FirebirdPlatform.php"/>
-            </errorLevel>
-        </DeprecatedProperty>
 
         <DeprecatedInterface>
             <errorLevel type="suppress">

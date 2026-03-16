@@ -231,4 +231,27 @@ class CharsetResultMiddlewareTest extends TestCase
 
         self::assertSame([], $mw->fetchFirstColumn());
     }
+
+    public function testFetchOneConvertsStreamToDecodedString(): void
+    {
+        $utf8String   = 'Hällo World';
+        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
+
+        $stream = fopen('php://temp', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, $win1252Bytes);
+        rewind($stream);
+
+        $resultMock = $this->createMock(DriverResult::class);
+        $resultMock->method('fetchOne')->willReturn($stream);
+
+        $mw = new CharsetResultMiddleware($resultMock, 'Windows-1252', 'UTF-8');
+
+        $decoded = $mw->fetchOne();
+
+        self::assertIsString($decoded);
+        self::assertSame($utf8String, $decoded);
+
+        fclose($stream);
+    }
 }

@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0] - 2026-03-16
+
+### Added
+- **`CharsetMiddleware` BLOB & Large Object Support** — PHP resource streams are now automatically
+  extracted and transcoded in `CharsetResultMiddleware`; `CharsetStatementMiddleware` transcodes
+  parameters bound with `ParameterType::LARGE_OBJECT`; 100% unit test coverage for the charset
+  middleware stack (#89)
+- **`#[Override]` Attributes** — Added PHP 8.3+ `#[Override]` to 146 override methods across 23
+  source files for compile-time interface conformance checking
+
+### Fixed
+- **Metadata Lock Mitigation** — DDL statements (CREATE, ALTER, DROP, RECREATE) now trigger
+  auto-commit to release system table locks, especially on Firebird 3.0 (#90)
+- **Charset Transparency for BLOBs** — Fixed resource streams bypassing transcoding in the
+  middleware stack (#89)
+- **CI Stability (SIGSEGV/SIGABRT)** — Robust signal handling for exit codes 139/134; CI passes
+  if PHPUnit output confirms successful completion despite post-shutdown crashes (#90)
+- **Statement Detection** — Refactored `detectDmlStatement` regex to reliably identify DDL
+  commands including RECREATE (#90)
+- **Windows CI** — Fixed DLL search and installation in `windows.yml` for recursive ZIP extraction
+  and versioned filenames (#90)
+
+### Changed
+- **Psalm 6.15.1** — Upgraded from 5.26.1; regenerated baseline (reduced 51% from 420→204 lines,
+  151 errors fixed); removed redundant casts and stale suppressions; 0 errors, 96.85% type
+  inference coverage
+- **`IBatch` API Build Flag** — Docker test environment compiles `ext-firebird` with `FB_API_VER=40`
+  by default to enable Firebird 4.0+ batch operations (#91)
+- **CI Debugging** — Automated upload of `isql` and PHP debug artifacts on job failure (#90)
+
+### Tests
+- **Charset Middleware Round-Trip Coverage** — 70 new test cases (339 assertions) verifying real
+  Windows-1252 byte encoding through the full middleware stack: all six fetch methods with WIN1252
+  bytes, BLOB TEXT streams, seven Amicron special-character round-trip strings, LIKE/search
+  parameter encoding, and `Connection::quote()` encoding path (#89)
+- **Full Suite: 1988 tests, 4199 assertions, 0 failures**
+
+### Docs
+- **`specs/001-charset-transparency-middleware/spec.md`** — Driver-level feature spec with
+  5 user stories, 7 functional requirements, 4 NFRs, and 5 measurable success criteria for the
+  charset transparency contract
+
 ## [3.10.2] - 2026-03-06
 
 ### Changed
@@ -279,9 +321,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.2...HEAD
-[3.10.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.10.2
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.3...HEAD
+[3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
+[3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2
+[3.11.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.11.0...v3.11.0-RC.2
 [3.11.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.11.0
+[3.10.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.1...v3.10.2
 [3.10.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-RC.1...v3.10.1
 [3.10.0-RC.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.0-rc.1...v3.10.0-RC.1
 [3.10.0-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v3.10.0-rc.1

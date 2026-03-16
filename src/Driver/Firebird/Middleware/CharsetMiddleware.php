@@ -48,6 +48,7 @@ final class CharsetMiddleware implements MiddlewareInterface
     ) {
     }
 
+    #[Override]
     public function wrap(Driver $driver): Driver
     {
         $databaseEncoding = $this->databaseEncoding;

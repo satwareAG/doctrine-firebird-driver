@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
+use Override;
 
 /**
  * Firebird-specific Connection wrapper that configures the platform with
@@ -39,6 +40,7 @@ class FirebirdConnection extends Connection
      * Gets the DatabasePlatform for the connection and configures it with
      * Firebird-specific options from the connection parameters.
      */
+    #[Override]
     public function getDatabasePlatform(): AbstractPlatform
     {
         $platform = parent::getDatabasePlatform();

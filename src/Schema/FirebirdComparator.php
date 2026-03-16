@@ -14,6 +14,7 @@ use function array_keys;
 use function strtolower;
 use function strtoupper;
 use function trim;
+use Override;
 
 /**
  * Firebird-specific schema comparator.
@@ -48,6 +49,7 @@ final class FirebirdComparator extends BaseComparator
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function compareTables(Table $fromTable, Table $toTable): TableDiff
     {
         return parent::compareTables(

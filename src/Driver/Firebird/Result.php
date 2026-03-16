@@ -120,11 +120,9 @@ final class Result implements ResultInterface
                 // See https://github.com/satwareAG/php-firebird/issues/23
                 $normalized = [];
                 foreach ($result as $key => $value) {
-                    $keyString = (string) $key;
-
                     // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
                     // Handle preg_replace returning null on error by using null coalescing
-                    $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
+                    $keyString = preg_replace('/\s+(?=_\d+$)/', '', $key) ?? $key;
 
                     // 2. Trim surrounding spaces
                     $finalKey = trim($keyString);
@@ -289,11 +287,9 @@ final class Result implements ResultInterface
             // Normalize keys to handle Firebird 3.0+ padded aliases and suffixes
             $normalized = [];
             foreach ($result as $key => $value) {
-                $keyString = (string) $key;
-
                 // 1. Remove spaces before suffix (e.g. "   _01" -> "_01")
                 // Handle preg_replace returning null on error by using null coalescing
-                $keyString = preg_replace('/\s+(?=_\d+$)/', '', $keyString) ?? $keyString;
+                $keyString = preg_replace('/\s+(?=_\d+$)/', '', $key) ?? $key;
 
                 // 2. Trim surrounding spaces
                 $finalKey = trim($keyString);

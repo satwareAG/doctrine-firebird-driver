@@ -10,8 +10,11 @@ use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
 use Override;
 
+use function in_array;
+use function is_resource;
 use function is_string;
 use function mb_convert_encoding;
+use function stream_get_contents;
 
 /**
  * Encodes all string parameters from the PHP encoding to the database encoding
@@ -34,8 +37,8 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     /**
      * Encode string parameters from PHP encoding to database encoding before binding.
      *
-     * Only STRING and ASCII parameter types are encoded. Numeric, boolean,
-     * binary, and large-object types pass through unchanged.
+     * For TEXT BLOB columns, stream resources are extracted and transcoded.
+     * Supported parameter types: STRING, ASCII, and LARGE_OBJECT.
      *
      * Note: signature uses untyped $param/$value/$type to match the parent
      * AbstractStatementMiddleware which was written before PHP 8 union types.
@@ -47,7 +50,11 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     #[Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
-        if (is_string($value) && ($type === ParameterType::STRING || $type === ParameterType::ASCII)) {
+        if (is_resource($value)) {
+            $value = stream_get_contents($value);
+        }
+
+        if (is_string($value) && in_array($type, [ParameterType::STRING, ParameterType::ASCII, ParameterType::LARGE_OBJECT], true)) {
             $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
         }
 
@@ -68,6 +75,10 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
         // If inline params are passed (deprecated path), encode them first
         if ($params !== null) {
             foreach ($params as $key => $value) {
+                if (is_resource($value)) {
+                    $value = stream_get_contents($value);
+                }
+
                 if (! is_string($value)) {
                     continue;
                 }

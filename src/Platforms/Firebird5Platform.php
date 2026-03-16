@@ -6,9 +6,11 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\Deprecations\Deprecation;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
+use Override;
 
 class Firebird5Platform extends Firebird4Platform
 {
+    #[Override]
     public function getName(): string
     {
         Deprecation::triggerIfCalledFromOutside(
@@ -20,6 +22,7 @@ class Firebird5Platform extends Firebird4Platform
         return 'Firebird5';
     }
 
+    #[Override]
     protected function getReservedKeywordsClass(): string
     {
         return Firebird5Keywords::class;

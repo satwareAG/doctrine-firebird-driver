@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\SchemaManagerFactory;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Override;
 
 /**
  * Creates a FirebirdSchemaManager for Firebird connections.
@@ -30,6 +31,7 @@ final class FirebirdSchemaManagerFactory implements SchemaManagerFactory
      *
      * @return AbstractSchemaManager<FirebirdPlatform>
      */
+    #[Override]
     public function createSchemaManager(Connection $connection): AbstractSchemaManager
     {
         /** @var FirebirdPlatform $platform */

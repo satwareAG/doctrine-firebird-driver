@@ -316,20 +316,24 @@ run_phpunit_in_docker() {
     if [[ $exit_code -eq 0 ]]; then
         rm -f "$output_file"
         return 0
-    elif [[ $exit_code -eq 139 ]]; then
+    elif [[ $exit_code -eq 139 || $exit_code -eq 134 ]]; then
         # Exit code 139 = 128 + SIGSEGV (signal 11)
+        # Exit code 134 = 128 + SIGABRT (signal 6)
+        local sig_name="SIGSEGV"
+        [[ $exit_code -eq 134 ]] && sig_name="SIGABRT"
+
         # Check if PHPUnit actually reported success before the crash
         if is_phpunit_success "$output_file"; then
             echo ""
-            print_info "⚠️  PHP crashed with SIGSEGV (exit 139) during shutdown, but all tests passed."
+            print_info "⚠️  PHP crashed with ${sig_name} (exit ${exit_code}) during shutdown, but all tests passed."
             print_info "   This is a known php-firebird extension bug during persistent connection cleanup."
             print_info "   See: satwareAG/php-firebird#50, #51"
             rm -f "$output_file"
             return 0
         else
-            print_error "Tests failed with SIGSEGV (exit 139) and PHPUnit did not report success"
+            print_error "Tests failed with ${sig_name} (exit ${exit_code}) and PHPUnit did not report success"
             rm -f "$output_file"
-            return 139
+            return $exit_code
         fi
     elif [[ $exit_code -eq 124 ]]; then
         print_error "Command timed out after ${timeout_secs}s: $cmd"

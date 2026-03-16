@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
 use function array_merge;
+use Override;
 
 /**
  * Firebird 4.0 reserved keyword list.
@@ -15,6 +16,7 @@ use function array_merge;
  */
 class Firebird4Keywords extends Firebird3Keywords
 {
+    #[Override]
     public function getName(): string
     {
         return 'Firebird4';
@@ -31,6 +33,7 @@ class Firebird4Keywords extends Firebird3Keywords
      * - UNBOUNDED (window functions)
      * - WINDOW (window functions)
      */
+    #[Override]
     protected function getKeywords(): array
     {
         return array_merge(parent::getKeywords(), [

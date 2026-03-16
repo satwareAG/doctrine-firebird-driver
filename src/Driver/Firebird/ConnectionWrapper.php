@@ -21,6 +21,7 @@ use function preg_match;
 use function sprintf;
 use function strtolower;
 use function strtoupper;
+use Override;
 
 /** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection
@@ -68,6 +69,7 @@ final class ConnectionWrapper extends Connection
         return null;
     }
 
+    #[Override]
     public function prepare(string $sql): Statement
     {
         $sql = $this->extractIdentityColumn($sql);
@@ -76,6 +78,7 @@ final class ConnectionWrapper extends Connection
     }
 
     /** @inheritDoc */
+    #[Override]
     public function executeQuery(
         string $sql,
         array $params = [],
@@ -90,6 +93,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function executeStatement($sql, array $params = [], array $types = []): int|string
     {
         $sql = $this->extractIdentityColumn($sql);
@@ -101,6 +105,7 @@ final class ConnectionWrapper extends Connection
      * @inheritDoc
      * @psalm-suppress DocblockTypeContradiction
      * */
+    #[Override]
     public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
@@ -118,6 +123,7 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId($name);
     }
 
+    #[Override]
     public function getDatabase(): string|null
     {
         static $database = null;

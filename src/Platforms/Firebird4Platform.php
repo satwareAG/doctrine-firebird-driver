@@ -17,6 +17,7 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  */
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
+use Override;
 
 class Firebird4Platform extends Firebird3Platform
 {
@@ -24,6 +25,7 @@ class Firebird4Platform extends Firebird3Platform
      * Firebird 4 returns TIMESTAMP WITH TIME ZONE values as
      * "Y-m-d H:i:s <TimezoneIdentifier>" (example: "2010-04-05 10:10:10 Europe/Berlin").
      */
+    #[Override]
     public function getDateTimeTzFormatString(): string
     {
         return 'Y-m-d H:i:s e';
@@ -46,6 +48,7 @@ class Firebird4Platform extends Firebird3Platform
      * @psalm-suppress PossiblyUnusedMethod
      * @psalm-suppress PossiblyUnusedParam
      */
+    #[Override]
     public function getDateTimeTzTypeDeclarationSQL(array $column): string
     {
         return 'TIMESTAMP WITH TIME ZONE';
@@ -64,16 +67,24 @@ class Firebird4Platform extends Firebird3Platform
         return 'TIME WITH TIME ZONE';
     }
 
+    #[Override]
     protected function getReservedKeywordsClass(): string
     {
         return Firebird4Keywords::class;
     }
 
+    #[Override]
     protected function initializeDoctrineTypeMappings(): void
     {
         parent::initializeDoctrineTypeMappings();
 
         $this->doctrineTypeMapping['timestamp with time zone'] = Types::DATETIMETZ_MUTABLE;
         $this->doctrineTypeMapping['time with time zone']      = Types::TIME_MUTABLE;
+
+        // Firebird 4.0+ high-precision numeric types
+        $this->doctrineTypeMapping['int128']       = Types::BIGINT;
+        $this->doctrineTypeMapping['decfloat']     = Types::DECIMAL;
+        $this->doctrineTypeMapping['decfloat(16)'] = Types::DECIMAL;
+        $this->doctrineTypeMapping['decfloat(34)'] = Types::DECIMAL;
     }
 }

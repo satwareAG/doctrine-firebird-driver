@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+<files psalm-version="6.15.1@28dc127af1b5aecd52314f6f645bafc10d0e11f9">
   <file src="src/Compat/Compat.php">
     <UnusedClass>
       <code><![CDATA[Compat]]></code>
     </UnusedClass>
   </file>
+  <file src="src/DBAL/FirebirdBooleanType.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[FirebirdBooleanType]]></code>
+    </ClassMustBeFinal>
+  </file>
   <file src="src/DBAL/FirebirdConnection.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[FirebirdConnection]]></code>
+    </ClassMustBeFinal>
     <InternalMethod>
       <code><![CDATA[getParams]]></code>
     </InternalMethod>
@@ -17,11 +25,10 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
-    <MismatchingDocblockParamType>
-      <code><![CDATA[Transaction|resource|null]]></code>
-    </MismatchingDocblockParamType>
+    <NoValue>
+      <code><![CDATA[$this->connection]]></code>
+    </NoValue>
     <PossiblyNullArgument>
-      <code><![CDATA[$params]]></code>
       <code><![CDATA[$this->connection]]></code>
     </PossiblyNullArgument>
     <PossiblyUnusedMethod>
@@ -39,6 +46,13 @@
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
     </PossiblyUnusedMethod>
+    <RedundantConditionGivenDocblockType>
+      <code><![CDATA[is_resource($this->connection)]]></code>
+    </RedundantConditionGivenDocblockType>
+    <TypeDoesNotContainType>
+      <code><![CDATA[is_object($this->connection)]]></code>
+      <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
+    </TypeDoesNotContainType>
     <UndefinedClass>
       <code><![CDATA[Batch]]></code>
       <code><![CDATA[BatchResult]]></code>
@@ -46,10 +60,9 @@
       <code><![CDATA[DbInfo|array|false]]></code>
       <code><![CDATA[TBuilder]]></code>
       <code><![CDATA[Transaction|null]]></code>
-      <code><![CDATA[Transaction|resource|null]]></code>
+      <code><![CDATA[Transaction|null]]></code>
     </UndefinedClass>
     <UndefinedDocblockClass>
-      <code><![CDATA[Transaction|resource|null]]></code>
       <code><![CDATA[resource|Transaction]]></code>
     </UndefinedDocblockClass>
     <UnusedParam>
@@ -67,53 +80,125 @@
     </UnusedVariable>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[$serverVersion]]></code>
-    </PossiblyFalseArgument>
+    <InvalidArrayOffset>
+      <code><![CDATA[$params['buffers']]]></code>
+      <code><![CDATA[$params['dialect']]]></code>
+      <code><![CDATA[$params['firebird']]]></code>
+    </InvalidArrayOffset>
+  </file>
+  <file src="src/Driver/Firebird/Driver/FirebirdConnectString.php">
+    <InvalidOperand>
+      <code><![CDATA[$params['port']]]></code>
+    </InvalidOperand>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
     <PossiblyInvalidArgument>
       <code><![CDATA[$exception->getCode()]]></code>
     </PossiblyInvalidArgument>
-    <PossiblyUnusedMethod>
-      <code><![CDATA[fromFirebirdException]]></code>
-    </PossiblyUnusedMethod>
   </file>
-  <file src="src/Driver/Firebird/ExceptionConverter.php">
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[$sqlState !== null]]></code>
-    </RedundantConditionGivenDocblockType>
+  <file src="src/Driver/Firebird/FirebirdDriverMiddleware.php">
+    <DeprecatedInterface>
+      <code><![CDATA[class ($driver) extends AbstractDriverMiddleware {}]]></code>
+    </DeprecatedInterface>
+    <UnusedClass>
+      <code><![CDATA[FirebirdDriverMiddleware]]></code>
+    </UnusedClass>
+  </file>
+  <file src="src/Driver/Firebird/Middleware/CharsetConnectionMiddleware.php">
+    <DeprecatedInterface>
+      <code><![CDATA[CharsetConnectionMiddleware]]></code>
+    </DeprecatedInterface>
+  </file>
+  <file src="src/Driver/Firebird/Middleware/CharsetMiddleware.php">
+    <DeprecatedInterface>
+      <code><![CDATA[class ($driver, $databaseEncoding, $phpEncoding) extends AbstractDriverMiddleware {]]></code>
+    </DeprecatedInterface>
+    <UnusedClass>
+      <code><![CDATA[CharsetMiddleware]]></code>
+    </UnusedClass>
+  </file>
+  <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
+    <InvalidReturnStatement>
+      <code><![CDATA[array_map(
+            fn (array $row): array => $this->decodeRow($row),
+            parent::fetchAllAssociative(),
+        )]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[list<array<string, mixed>>]]></code>
+    </InvalidReturnType>
+    <PossiblyFalseArgument>
+      <code><![CDATA[$buffer]]></code>
+    </PossiblyFalseArgument>
   </file>
   <file src="src/Driver/Firebird/Result.php">
-    <FalsableReturnStatement>
-      <code><![CDATA[fbird_num_fields($this->firebirdResultResource)]]></code>
-    </FalsableReturnStatement>
-    <InvalidFalsableReturnType>
-      <code><![CDATA[int]]></code>
-    </InvalidFalsableReturnType>
     <PossiblyUnusedMethod>
       <code><![CDATA[fetchAllAssociativeWithDateObjects]]></code>
       <code><![CDATA[fetchNumericWithDateObjects]]></code>
       <code><![CDATA[isDateObjectFetchAvailable]]></code>
     </PossiblyUnusedMethod>
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $key]]></code>
-      <code><![CDATA[(string) $key]]></code>
-    </RedundantCastGivenDocblockType>
     <UnusedProperty>
       <code><![CDATA[$statement]]></code>
     </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/Statement.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[Statement]]></code>
+    </ClassMustBeFinal>
     <PossiblyFalseArgument>
       <code><![CDATA[$callArgs]]></code>
     </PossiblyFalseArgument>
     <RedundantCondition>
       <code><![CDATA[$fbirdResultRc === true]]></code>
-      <code><![CDATA[$returnedRow !== false && is_array($returnedRow)]]></code>
-      <code><![CDATA[is_array($returnedRow)]]></code>
-      <code><![CDATA[is_resource($variable)]]></code>
-      <code><![CDATA[is_resource($variable)]]></code>
     </RedundantCondition>
+  </file>
+  <file src="src/ORM/Mapping/FirebirdQuoteStrategy.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[FirebirdQuoteStrategy]]></code>
+    </ClassMustBeFinal>
+  </file>
+  <file src="src/Platforms/Firebird3Platform.php">
+    <InvalidOperand>
+      <code><![CDATA[$sequence->getCache()]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="src/Platforms/Firebird5Platform.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[Firebird5Platform]]></code>
+    </ClassMustBeFinal>
+  </file>
+  <file src="src/Platforms/FirebirdPlatform.php">
+    <InternalProperty>
+      <code><![CDATA[$columnDiff->fromColumn]]></code>
+    </InternalProperty>
+    <InvalidOperand>
+      <code><![CDATA[$column['length']]]></code>
+    </InvalidOperand>
+    <PossiblyFalseArgument>
+      <code><![CDATA[$expression]]></code>
+    </PossiblyFalseArgument>
+  </file>
+  <file src="src/Platforms/Keywords/Firebird5Keywords.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[Firebird5Keywords]]></code>
+    </ClassMustBeFinal>
+  </file>
+  <file src="src/Schema/FirebirdComparator.php">
+    <InternalMethod>
+      <code><![CDATA[parent::__construct($platform)]]></code>
+    </InternalMethod>
+  </file>
+  <file src="src/Schema/FirebirdSchemaManager.php">
+    <ClassMustBeFinal>
+      <code><![CDATA[FirebirdSchemaManager]]></code>
+    </ClassMustBeFinal>
+    <LessSpecificImplementedReturnType>
+      <code><![CDATA[array]]></code>
+    </LessSpecificImplementedReturnType>
+  </file>
+  <file src="src/Schema/FirebirdSchemaManagerFactory.php">
+    <UnusedClass>
+      <code><![CDATA[FirebirdSchemaManagerFactory]]></code>
+    </UnusedClass>
   </file>
 </files>

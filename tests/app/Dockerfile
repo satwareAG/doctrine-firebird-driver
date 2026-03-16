@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v7.2.0), pcov (fast coverage)
+# Extensions: firebird (php-firebird v7.3.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -28,15 +28,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v7.2.0)
+# Install php-firebird extension from source (v7.3.0)
 # Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
 # include tag refs. We fetch tags explicitly so config.m4 version detection works.
 RUN docker-php-source extract \
-    && git clone --branch v7.2.0 --depth 1 \
+    && git clone --branch v7.3.0 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
+    && export CPPFLAGS="-DFB_API_VER=40" \
     && docker-php-ext-install firebird pcntl \
+    && mkdir -p /usr/local/lib/php/Firebird \
+    && cp /usr/src/php/ext/firebird/src/Firebird/*.php /usr/local/lib/php/Firebird/ \
     && docker-php-source delete \
     && php -r " \
         \$ver = phpversion('firebird') ?: phpversion('interbase'); \
@@ -75,6 +78,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Copy PHP extensions from builder stage
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+COPY --from=builder /usr/local/lib/php/Firebird/ /usr/local/lib/php/Firebird/
 
 # Configure PCOV for optimal performance
 RUN { \

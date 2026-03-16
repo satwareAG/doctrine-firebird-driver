@@ -11,18 +11,20 @@ To utilize this library in your application code, the following is required:
 
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
-- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.2.0** (satwareAG fork with IBatch, Exception Mode, OO API)
+- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.3.0+** (satwareAG fork with IBatch, Exception Mode, OO API)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
 
 ## Version Compatibility Matrix
 
 | Feature | FB 3.0 | FB 4.0 | FB 5.0 |
+
 |---------|--------|--------|--------|
 | Basic DBAL (queries, transactions) | ✅ | ✅ | ✅ |
 | Schema introspection | ✅ | ✅ | ✅ |
 | Named parameters | ✅ | ✅ | ✅ |
 | BLOB support | ✅ | ✅ | ✅ |
 | Exception Mode (`Firebird\Exception`) | ✅ | ✅ | ✅ |
+| SQLSTATE Error Mapping | ✅ | ✅ | ✅ |
 | `fbird_execute_auto()` auto-commit | ✅ | ✅ | ✅ |
 | `fbird_connection_info()` / `DbInfo` | ✅ | ✅ | ✅ |
 | Savepoints (nested transactions) | ✅ | ✅ | ✅ |
@@ -32,7 +34,9 @@ To utilize this library in your application code, the following is required:
 | `DECFLOAT` type | ❌ | ✅ | ✅ |
 | `TIME ZONE` / `TIMESTAMP TZ` | ❌ | ✅ | ✅ |
 
-> **Breaking change (php-firebird v7.2.0):** Firebird 2.5 support dropped. Minimum server version is **3.0**.
+> **Breaking change (php-firebird v7.2.0+):** Firebird 2.5 support dropped. Minimum server version is **3.0**.
+
+> **Windows Support:** Starting with v7.3.0, pre-built Windows DLLs are available for PHP 8.2, 8.3, 8.4, and 8.5 (NTS and TS).
 
 > **Note:** Firebird **3.0 is the primary production target** (Amicron ERP). Features marked ❌ for FB3
 > are either absent on the server or require Firebird 4.0+. Feature detection is automatic —
@@ -60,6 +64,35 @@ Via Composer ([`satag/doctrine-firebird-driver`](https://packagist.org/packages/
 Via Github:
 
     git clone https://github.com/satwareAG/doctrine-firebird-driver.git
+
+## Error Handling with SQLSTATE
+
+With php-firebird v7.0.0+, the driver provides standardized SQLSTATE error codes for better error classification and handling. When Exception Mode is enabled (default), the driver maps these to specific Doctrine exceptions.
+
+### Doctrine Exception Mapping
+
+| SQLSTATE Class | Doctrine Exception | Description |
+|---------------|-------------------|-------------|
+| 08xxx | ConnectionException | Connection errors |
+| 23xxx | ConstraintViolation | Integrity constraints |
+| 23502 | NotNullConstraintViolationException | NOT NULL violation |
+| 23503 | ForeignKeyConstraintViolationException | FK violation |
+| 23505 | UniqueConstraintViolationException | Unique violation |
+| 40xxx | DeadlockException | Transaction rollback |
+| 42xxx | SyntaxErrorException | SQL syntax errors |
+
+### Custom Exception Handling
+
+```php
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+
+try {
+    $conn->insert('users', ['email' => 'duplicate@example.com']);
+} catch (UniqueConstraintViolationException $e) {
+    // SQLSTATE 23505 - handle duplicate
+    $sqlState = $e->getSQLState(); // Returns '23505'
+}
+```
 
 ## Working with LIKE Expressions
 
@@ -256,11 +289,14 @@ $middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF
 ```
 
 **How it works:**
-- `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird
-- `fetch*()` results: database encoding → PHP encoding after receiving from Firebird
-- Non-string values (int, float, null, bool) pass through unchanged
+- `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird.
+- `fetch*()` results: database encoding → PHP encoding after receiving from Firebird.
+- **BLOB Transparency:** PHP resource streams are automatically extracted and transcoded.
+- **`LARGE_OBJECT` support:** Parameters bound with `ParameterType::LARGE_OBJECT` are transcoded.
+- Non-string values (int, float, null, bool, objects) pass through unchanged.
 
 **Requires:** `ext-mbstring` (declared in `composer.json`)
+
 
 # Testing
 
@@ -276,8 +312,8 @@ cd tests && ./phpunit-all.sh
 cd tests && ./phpunit.sh
 
 # Run specific test suite
-php vendor/bin/phpunit tests/Test/Unit/
-php vendor/bin/phpunit tests/Test/Functional/
+vendor/bin/phpunit tests/Test/Unit/
+vendor/bin/phpunit tests/Test/Functional/
 ```
 
 ## Test Coverage
@@ -307,7 +343,7 @@ php vendor/bin/phpunit tests/Test/Functional/
 ## Test Requirements
 
 - **Docker & Docker Compose** - For running test environment
-- **PHP 8.2+** with `ext-firebird` (php-firebird v7.2.0+)
+- **PHP 8.2+** with `ext-firebird` (php-firebird v7.3.0+)
 - **Composer dependencies** - `composer install`
 
 All tests run in Docker containers to ensure consistent environments across Firebird versions. See [TESTING.md](docs/TESTING.md) for detailed setup instructions.
