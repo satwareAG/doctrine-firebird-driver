@@ -33,7 +33,7 @@ New unit tests added (commits `1f0aa1b` + current):
 
 ---
 
-## 🔵 Priority 3 — DBAL 4.x Migration Planning
+## 🔵 Priority 3 — DBAL 4.x Migration Planning (Issue #90) [IN PROGRESS] *
 
 `getWrappedConnection()` is deprecated in DBAL 3.x and **removed in DBAL 4.x**. Current
 usage in `FunctionalTestCase::getFirebirdConnection()` and `connect()` will break.
@@ -44,7 +44,7 @@ usage in `FunctionalTestCase::getFirebirdConnection()` and `connect()` will brea
 3. Update CI matrix to include DBAL 4.x test runs.
 4. Tag `v4.x.y` series from `4.0.x` branch.
 
-See `docs/BRANCHING.md` for the full `4.0.x` strategy.
+See Issue #90 for detailed tracking and the full `4.0.x` strategy in `docs/BRANCHING.md`.
 
 ---
 
