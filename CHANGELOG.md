@@ -5,53 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.12.0-RC.3] - 2026-03-10
-
-### Tests
-- **Charset Middleware Round-Trip Coverage** — Added `CharsetEncodingRoundTripTest` with 70 new
-  test cases (339 total assertions) verifying real Windows-1252 byte encoding through the full
-  middleware stack (#89)
-  - All six fetch methods (`fetchOne`, `fetchAssociative`, `fetchNumeric`, `fetchAllAssociative`,
-    `fetchAllNumeric`, `fetchFirstColumn`) tested with actual WIN1252 bytes — not just UTF-8→UTF-8
-    identity encoding
-  - BLOB TEXT stream resources decoded via all six fetch methods with WIN1252 bytes from
-    `php://temp` streams
-  - Full encode→decode round-trip test for seven real Amicron special-character strings:
-    `Faßbrause für 30€?`, `Ärger mit Öl`, `Straße 123`, `Müller & Söhne`, `€uro`, `äöüÄÖÜß`,
-    `Grüner Tee 500g` — each verified byte-identical after WIN1252↔UTF-8 conversion
-  - LIKE / search parameter encoding verified for all seven special-char strings via `bindValue()`
-    and inline `execute()` — confirms WHERE clause transparency
-  - `Connection::quote()` encoding path verified with special characters
-  - Zero PHPStan Level 8 errors; PHPCS clean; no PHPUnit deprecations (migrated to
-    `#[DataProvider]` PHP 8 attributes)
-
-### Docs
-- **`specs/001-charset-transparency-middleware/spec.md`** — New driver-level feature spec with
-  5 user stories, 7 functional requirements, 4 NFRs, and 5 measurable success criteria documenting
-  the charset transparency contract for `satag-amicron-entity-bundle` consumers
-
-## [3.12.0-RC.2] - 2026-03-09
-
-### Fixed
-- **Metadata Lock Mitigation** — Ensure DDL statements (CREATE, ALTER, DROP, RECREATE) trigger auto-commit to release system table locks, especially on Firebird 3.0 (#90)
-- **CI Stability (SIGSEGV/SIGABRT)** — Implemented robust signal handling for exit codes 139 (SIGSEGV) and 134 (SIGABRT); CI now passes if PHPUnit output confirms successful test completion despite post-shutdown crashes (#90)
-- **Statement Detection** — Refactored `detectDmlStatement` regex to more reliably identify DDL commands and metadata changes (#90)
-- **Windows CI** — Fixed DLL search and installation script in `windows.yml` to handle recursive ZIP extraction and versioned filenames (#90)
-
-### Changed
-- **`IBatch` API Build Flag** — Docker-based test environment now compiles `ext-firebird` with `FB_API_VER=40` by default to enable Firebird 4.0+ batch operations (#91)
-- **CI Debugging** — Added automated upload of `isql` and PHP debug artifacts on job failure (#90)
-
-## [3.11.0-RC.2] - 2026-03-09
+## [3.12.0] - 2026-03-16
 
 ### Added
-- **`CharsetMiddleware` Charset Transparency** — Improved support for BLOBs and large objects (#89)
-  - PHP resource streams are now automatically extracted and transcoded in `CharsetResultMiddleware`
-  - `CharsetStatementMiddleware` now transcodes parameters bound with `ParameterType::LARGE_OBJECT`
-  - Added 100% unit test coverage for the charset middleware stack
+- **`CharsetMiddleware` BLOB & Large Object Support** — PHP resource streams are now automatically
+  extracted and transcoded in `CharsetResultMiddleware`; `CharsetStatementMiddleware` transcodes
+  parameters bound with `ParameterType::LARGE_OBJECT`; 100% unit test coverage for the charset
+  middleware stack (#89)
+- **`#[Override]` Attributes** — Added PHP 8.3+ `#[Override]` to 146 override methods across 23
+  source files for compile-time interface conformance checking
 
 ### Fixed
-- **Charset Transparency for BLOBs** — Fixed issue where resource streams bypassed transcoding in the middleware stack (#89)
+- **Metadata Lock Mitigation** — DDL statements (CREATE, ALTER, DROP, RECREATE) now trigger
+  auto-commit to release system table locks, especially on Firebird 3.0 (#90)
+- **Charset Transparency for BLOBs** — Fixed resource streams bypassing transcoding in the
+  middleware stack (#89)
+- **CI Stability (SIGSEGV/SIGABRT)** — Robust signal handling for exit codes 139/134; CI passes
+  if PHPUnit output confirms successful completion despite post-shutdown crashes (#90)
+- **Statement Detection** — Refactored `detectDmlStatement` regex to reliably identify DDL
+  commands including RECREATE (#90)
+- **Windows CI** — Fixed DLL search and installation in `windows.yml` for recursive ZIP extraction
+  and versioned filenames (#90)
+
+### Changed
+- **Psalm 6.15.1** — Upgraded from 5.26.1; regenerated baseline (reduced 51% from 420→204 lines,
+  151 errors fixed); removed redundant casts and stale suppressions; 0 errors, 96.85% type
+  inference coverage
+- **`IBatch` API Build Flag** — Docker test environment compiles `ext-firebird` with `FB_API_VER=40`
+  by default to enable Firebird 4.0+ batch operations (#91)
+- **CI Debugging** — Automated upload of `isql` and PHP debug artifacts on job failure (#90)
+
+### Tests
+- **Charset Middleware Round-Trip Coverage** — 70 new test cases (339 assertions) verifying real
+  Windows-1252 byte encoding through the full middleware stack: all six fetch methods with WIN1252
+  bytes, BLOB TEXT streams, seven Amicron special-character round-trip strings, LIKE/search
+  parameter encoding, and `Connection::quote()` encoding path (#89)
+- **Full Suite: 1988 tests, 4199 assertions, 0 failures**
+
+### Docs
+- **`specs/001-charset-transparency-middleware/spec.md`** — Driver-level feature spec with
+  5 user stories, 7 functional requirements, 4 NFRs, and 5 measurable success criteria for the
+  charset transparency contract
 
 ## [3.10.2] - 2026-03-06
 
