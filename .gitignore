@@ -3,6 +3,7 @@
 /bin/
 /var/
 /vendor/
+.junie/
 /tests/databases/
 .phpcs-cache
 
