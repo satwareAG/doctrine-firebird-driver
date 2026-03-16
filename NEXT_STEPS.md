@@ -1,7 +1,7 @@
 # Next Steps — doctrine-firebird-driver
 
-**Last session:** 2026-03-10 (Charset middleware round-trip test coverage + RC.3 release)
-**Branch:** `3.10.x-dev` | **Tag:** `v3.12.0-RC.3` ✅
+**Last session:** 2026-03-16 (v3.12.0 stable: Psalm 6.15.1, baseline reduction, changelog consolidated)
+**Branch:** `3.10.x-dev` | **Tag:** `v3.12.0` (pending stable)
 
 ---
 
@@ -33,16 +33,31 @@ New unit tests added (commits `1f0aa1b` + current):
 
 ---
 
-## 🔵 Priority 3 — DBAL 4.x Migration Planning (Issue #90) [IN PROGRESS] *
+## ✅ v3.12.0 Stable Release (RC→Stable Promotion)
+
+Steps 1–6 of the release plan completed:
+1. ✅ Psalm upgraded to 6.15.1 (PHP 8.4 compatible, 0 errors)
+2. ✅ Psalm baseline reduced 51% (420→204 lines, 151 errors fixed, `#[Override]` on 146 methods)
+3. ✅ Full test suite passing (1988 tests, 4199 assertions, 0 failures)
+4. ✅ CHANGELOG.md consolidated (RC.2 + RC.3 → single [3.12.0] entry)
+5. ✅ Untracked scratch files cleaned up
+6. ✅ All changes committed on `3.10.x-dev`
+
+**Remaining:** Merge `3.10.x-dev` → `3.10.x` via PR, tag `v3.12.0` stable.
+
+---
+
+## 🔵 Priority 3 — DBAL 4.x Migration (Issue #90) [ACTIVE]
 
 `getWrappedConnection()` is deprecated in DBAL 3.x and **removed in DBAL 4.x**. Current
 usage in `FunctionalTestCase::getFirebirdConnection()` and `connect()` will break.
 
-**Planning tasks:**
-1. Research DBAL 4.x API for middleware-layered connection unwrapping.
-2. Create `4.0.x` branch from `3.0.x` when ready to tackle.
-3. Update CI matrix to include DBAL 4.x test runs.
-4. Tag `v4.x.y` series from `4.0.x` branch.
+**Next steps:**
+1. Research DBAL 4.x API for middleware-layered connection unwrapping — document in `docs/research/dbal4-migration.md`.
+2. Create `4.0.x` branch from `3.10.x`, update `composer.json` to require `doctrine/dbal ^4.0`.
+3. Fix all removed-API compilation errors.
+4. Add DBAL 4.x and Firebird 4/5 container jobs to CI matrix.
+5. Tag `v4.x.y` series from `4.0.x` branch.
 
 See Issue #90 for detailed tracking and the full `4.0.x` strategy in `docs/BRANCHING.md`.
 
@@ -52,6 +67,7 @@ See Issue #90 for detailed tracking and the full `4.0.x` strategy in `docs/BRANC
 
 | Item | Date | Notes |
 |------|------|-------|
+| v3.12.0 stable prep (steps 1–6) | 2026-03-16 | Psalm 6.15.1, baseline -51%, 1988 tests green, changelog consolidated |
 | !116 amicron-platform merged | 2026-03-05 | feat(deps): php-firebird v7.2.0 compat; fix(ci): rm stale composer.lock before install |
 | !25 satag-amicron-entity-bundle merged | 2026-03-05 | feat(deps): php-firebird v7.2.0 compat (PHP ^8.2, ext-firebird ^7.2.0) |
 | AppVeyor CI removed | 2026-03-05 | No Windows DLLs for ext-firebird v7.x; follows Doctrine pattern; research: `docs/research/2026-03-05-windows-ci-removal-decision.md` |
@@ -74,6 +90,6 @@ See Issue #90 for detailed tracking and the full `4.0.x` strategy in `docs/BRANC
 cd /home/mw/external/doctrine-firebird-driver
 git fetch --all
 # Working on 3.10.x-dev branch
-# P2: Coverage ≥90% — docker compose up -d fb3 app && run phpunit with pcov
-# P3: DBAL 4.x — research getWrappedConnection() replacement
+# Next: Merge 3.10.x-dev → 3.10.x, tag v3.12.0 stable
+# Then: DBAL 4.x migration — research getWrappedConnection() replacement
 ```
