@@ -225,9 +225,7 @@ class Statement implements StatementInterface
                 // Read stream into memory and pass as string. Tested with php-firebird 7.3.0
                 // which still requires this as it doesn't natively consume stream resources.
                 $content = stream_get_contents($variable);
-                if (is_resource($variable)) {
-                    fclose($variable);
-                }
+                fclose($variable);
 
                 $this->queryParamBindings[$param] = $content;
                 $this->queryParamTypes[$param]    = ParameterType::STRING;
@@ -395,9 +393,7 @@ class Statement implements StatementInterface
                 // which still requires this as it doesn't natively consume stream resources.
                 // This avoids fbird_blob_create/add/close which seem to cause instability.
                 $content = stream_get_contents($variable);
-                if (is_resource($variable)) {
-                    fclose($variable);
-                }
+                fclose($variable);
 
                 $variable = $content;
                 $type     = ParameterType::STRING;

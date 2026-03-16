@@ -28,6 +28,7 @@ use function class_exists;
 use function str_contains;
 use function strtolower;
 use function substr;
+use Override;
 
 /**
  * Reference https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html#fblangref40-appx02-sqlcodes
@@ -36,6 +37,7 @@ use function substr;
  */
 final class ExceptionConverter implements ExceptionConverterInterface
 {
+    #[Override]
     public function convert(Exception $exception, Query|null $query): DriverException
     {
         // SQLSTATE-based classification (php-firebird v7.0.0-rc.6+ Exception Mode)

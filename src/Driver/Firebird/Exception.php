@@ -11,6 +11,7 @@ use Throwable;
 use function fbird_sqlstate;
 use function function_exists;
 use function method_exists;
+use Override;
 
 /**
  * Firebird driver exception.
@@ -127,6 +128,7 @@ class Exception extends BaseException implements DriverException
      * - php-firebird version < 7.0.0 (fbird_sqlstate not available)
      * - Firebird version doesn't support SQLSTATE for this error
      */
+    #[Override]
     public function getSQLState(): string|null
     {
         return $this->sqlState;

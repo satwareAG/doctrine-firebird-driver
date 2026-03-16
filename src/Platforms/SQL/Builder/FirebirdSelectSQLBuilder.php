@@ -16,6 +16,7 @@ use function count;
 use function implode;
 use function preg_replace_callback;
 use function sprintf;
+use Override;
 
 final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 {
@@ -25,6 +26,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
     }
 
     /** @throws Exception */
+    #[Override]
     public function buildSQL(SelectQuery $query): string
     {
         $parts = ['SELECT'];

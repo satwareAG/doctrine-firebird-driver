@@ -22,6 +22,7 @@ use function assert;
 use function is_string;
 use function preg_match;
 use function version_compare;
+use Override;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
@@ -59,6 +60,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
      *
      * @throws Exception If the given version string could not be evaluated.
      */
+    #[Override]
     public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {
         if (! is_string($version)) {
@@ -116,6 +118,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
         return $platform;
     }
 
+    #[Override]
     public function getDatabasePlatform(): FirebirdPlatform
     {
         $platform = new FirebirdPlatform();
@@ -124,6 +127,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
         return $platform;
     }
 
+    #[Override]
     public function getExceptionConverter(): ExceptionConverter
     {
         return new Firebird\ExceptionConverter();
@@ -134,6 +138,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
      *
      * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
      */
+    #[Override]
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(

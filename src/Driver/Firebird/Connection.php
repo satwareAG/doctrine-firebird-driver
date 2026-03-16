@@ -578,9 +578,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            $success = @fbird_commit_ret($this->firebirdActiveTransaction);
-
-            if ($success !== false) {
+            if (@fbird_commit_ret($this->firebirdActiveTransaction) !== false) {
                 return;
             }
 

@@ -20,6 +20,7 @@ use function array_values;
 use function json_encode;
 use function sprintf;
 use function str_replace;
+use Override;
 
 class Firebird3Platform extends FirebirdPlatform
 {
@@ -31,6 +32,7 @@ class Firebird3Platform extends FirebirdPlatform
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function getAlterTableSQL(TableDiff $diff): array
     {
         $sql         = [];
@@ -185,22 +187,26 @@ class Firebird3Platform extends FirebirdPlatform
         return array_values(array_merge($sql, $tableSql, $columnSql));
     }
 
+    #[Override]
     public function supportsIdentityColumns(): bool
     {
         return true;
     }
 
+    #[Override]
     public function prefersIdentityColumns(): bool
     {
         return true;
     }
 
     /** @return string[] */
+    #[Override]
     public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
         return [];
     }
 
+    #[Override]
     public function getDropAutoincrementSql(string $table): string
     {
         return '';
@@ -212,6 +218,7 @@ class Firebird3Platform extends FirebirdPlatform
      * @param mixed       $table
      * @param string|null $database
      */
+    #[Override]
     public function getListTableColumnsSQL($table, $database = null): string
     {
         $table = $this->normalizeIdentifier($table);
@@ -264,16 +271,19 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
+    #[Override]
     public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return false;
     }
 
+    #[Override]
     public function createSelectSQLBuilder(): SelectSQLBuilder
     {
         return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
 
+    #[Override]
     public function getCreateSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -293,6 +303,7 @@ ___query___;
         return 'COMMENT ON SEQUENCE ' . $sequence->getQuotedName($this) . ' IS ' . $this->quoteStringLiteral($this->getSequenceCommentString($sequence));
     }
 
+    #[Override]
     public function getAlterSequenceSQL(Sequence $sequence): string
     {
         return $this->getExecuteBlockWithExecuteStatementsSql([
@@ -307,6 +318,7 @@ ___query___;
         ]);
     }
 
+    #[Override]
     public function isCommentedDoctrineType(Type $doctrineType): bool
     {
         return AbstractPlatform::isCommentedDoctrineType($doctrineType);
@@ -315,12 +327,14 @@ ___query___;
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName): string
     {
         return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
     /** @inheritDoc */
+    #[Override]
     public function getIdentitySequenceName($tableName, $columnName): string
     {
         return sprintf(
@@ -331,6 +345,7 @@ ___query___;
     }
 
     /** @inheritDoc */
+    #[Override]
     public function getDropTableSQL($table): string
     {
         $statements   = [];
@@ -344,6 +359,7 @@ ___query___;
         return $this->getExecuteBlockWithExecuteStatementsSql(['statements' => $statements]);
     }
 
+    #[Override]
     protected function getReservedKeywordsClass(): string
     {
         return Firebird3Keywords::class;
@@ -352,6 +368,7 @@ ___query___;
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
         $autoinc = '';
@@ -362,6 +379,7 @@ ___query___;
         return $autoinc;
     }
 
+    #[Override]
     protected function initializeDoctrineTypeMappings(): void
     {
         parent::initializeDoctrineTypeMappings();

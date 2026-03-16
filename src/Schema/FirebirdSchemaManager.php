@@ -43,6 +43,7 @@ use function trim;
 use const CASE_LOWER;
 use const CASE_UPPER;
 use const FBIRD_CREATE;
+use Override;
 
 /**
  * Firebird Schema Manager.
@@ -81,6 +82,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      * @psalm-suppress PossiblyUndefinedArrayOffset
      * @inheritDoc
      */
+    #[Override]
     public function dropDatabase($database): void
     {
         $params           = $this->_conn->getParams();
@@ -124,6 +126,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function dropTable($name): void
     {
         parent::dropTable($name);
@@ -132,6 +135,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     public function createDatabase($database): void
     {
         $params  = $this->_conn->getParams();
@@ -186,6 +190,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      *
      * @deprecated Use {@see introspectTable()} instead.
      */
+    #[Override]
     public function listTableDetails($name)
     {
         Deprecation::triggerIfCalledFromOutside(
@@ -198,6 +203,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return $this->doListTableDetails($name);
     }
 
+    #[Override]
     public function createComparator(): Comparator
     {
         return new FirebirdComparator($this->_platform);
@@ -225,6 +231,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function _getPortableTableDefinition($table): string
     {
         $table = array_change_key_case($table, CASE_LOWER);
@@ -235,6 +242,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function _getPortableViewDefinition($view): bool|View
     {
         $view = array_change_key_case($view, CASE_LOWER);
@@ -250,6 +258,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      *
      * @todo Read current generator value
      */
+    #[Override]
     protected function _getPortableSequenceDefinition($sequence)
     {
         $sequence = array_change_key_case($sequence, CASE_LOWER);
@@ -267,12 +276,14 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function _getPortableDatabaseDefinition($database)
     {
         return $database['Database'];
     }
 
     /** {@inheritDoc} */
+    #[Override]
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $options = [];
@@ -377,6 +388,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function _getPortableTableForeignKeysList($tableForeignKeys): array
     {
         $list = [];
@@ -428,6 +440,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      * @param array<mixed> $tableIndexes
      * @param string|null  $tableName
      */
+    #[Override]
     protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array
     {
         $mangledData = [];
@@ -461,6 +474,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
+    #[Override]
     protected function fetchTableOptionsByTable(string $databaseName, string|null $tableName = null): array
     {
         $sql = <<<'___query___'
@@ -490,6 +504,7 @@ ___query___;
         return $tableOptions;
     }
 
+    #[Override]
     protected function normalizeName(string $name): string
     {
         $identifier = new Identifier($name);

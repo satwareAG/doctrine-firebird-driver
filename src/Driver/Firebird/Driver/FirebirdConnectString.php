@@ -8,6 +8,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Stringable;
 
 use function is_numeric;
+use Override;
 
 final class FirebirdConnectString implements Stringable
 {
@@ -44,6 +45,7 @@ final class FirebirdConnectString implements Stringable
         throw HostDbnameRequired::new();
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->string;
