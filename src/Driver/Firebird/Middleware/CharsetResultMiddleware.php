@@ -129,21 +129,6 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
         return $column;
     }
 
-    /**
-     * Decode all string values in a row from database encoding to PHP encoding.
-     *
-     * @param array<int|string, mixed> $row
-     *
-     * @return array<int|string, mixed>
-     */
-    private function decodeRow(array $row): array
-    {
-        foreach ($row as $key => $value) {
-            $row[$key] = $this->decodeValue($value, $key);
-        }
-
-        return $row;
-    }
 
     /**
      * Decode a single value from database encoding to PHP encoding if it is a string.
@@ -160,7 +145,8 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     {
         if (is_resource($value)) {
             // If we know the column type is BINARY, return the resource as-is
-            if ($column !== null && isset($this->columnTypes[$column]) && $columnType = $this->columnTypes[$column]) {
+            if ($column !== null && isset($this->columnTypes[$column])) {
+                $columnType = $this->columnTypes[$column];
                 if ($columnType === ParameterType::BINARY || $columnType === ParameterType::LARGE_OBJECT) {
                     return $value;
                 }
@@ -173,11 +159,15 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
             // If we found a NULL byte, it's likely binary data, keep it as resource
             if (strpos($buffer, "\x00") !== false) {
                 $newStream = fopen('php://memory', 'r+');
-                fwrite($newStream, $buffer);
-                fwrite($newStream, $rest);
-                rewind($newStream);
+                if ($newStream !== false) {
+                    fwrite($newStream, $buffer);
+                    fwrite($newStream, $rest);
+                    rewind($newStream);
 
-                return $newStream;
+                    return $newStream;
+                }
+
+                return $value;
             }
 
             // Otherwise, treat as text and transcode
