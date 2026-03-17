@@ -51,6 +51,15 @@ jobs:
             if ($service) {
               Start-Service -Name "FirebirdServerDefaultInstance" -ErrorAction Stop
               Write-Host "Firebird service started"
+              # Initialize security database for Firebird 4.0
+              # Sometimes the installer doesn't fully initialize it on CI environments
+              Start-Sleep -Seconds 5
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "CREATE USER SYSDBA PASSWORD 'masterkey';" 2>$null
+              Write-Host "Firebird security database initialized (or already initialized)"
+              # Verify connectivity
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "select 1 from rdb`$database;"
+              if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready and reachable" }
+              else { Write-Warning "❌ Firebird ISQL check failed" }
             } else {
               Write-Warning "Firebird service not found, searching for alternatives..."
               Get-Service | Where-Object { $_.Name -like "*Firebird*" }
