@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   running inside the container, avoiding CI hangs at 67% progress (#92)
 - **Database Permissions** — Fixed file ownership of `.fdb` databases in Firebird containers to
   resolve "I/O error" and "object in use" issues during test cleanup (#92)
+- **Windows CI** — Removed `ext-posix` requirement from `composer.json` which is not available on
+  Windows and caused CI failures (#94)
 
 ### Changed
 - **php-firebird v7.3.0** — Standardized on the latest stable extension version across all CI
   environments (Docker and GitHub Actions Linux/Windows) (#93)
+- **CI Matrix Expansion** — Expanded test matrix to cover PHP 8.2-8.5 and Firebird 3.0-5.0 (#93)
 
 ## [3.12.1-rc.1] - 2026-03-16
 
