@@ -18,7 +18,6 @@
          timeoutForSmallTests="10"
          timeoutForMediumTests="30"
          timeoutForLargeTests="120"
-         stopOnDefect="true"
 >
   <php>
     <ini name="error_reporting" value="-1"/>
