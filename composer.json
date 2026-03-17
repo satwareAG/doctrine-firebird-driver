@@ -74,7 +74,6 @@
         "symfony/polyfill-php85": "^1.31"
     },
     "require-dev": {
-        "ext-pcov": "*",
         "bamarni/composer-bin-plugin": "^1.8",
         "dg/bypass-finals": "^1.8",
         "doctrine/coding-standard": "^14.0.0",
