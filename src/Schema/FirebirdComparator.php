@@ -8,13 +8,13 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator as BaseComparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;
 use function strtolower;
 use function strtoupper;
 use function trim;
-use Override;
 
 /**
  * Firebird-specific schema comparator.
@@ -46,9 +46,6 @@ final class FirebirdComparator extends BaseComparator
         parent::__construct($platform);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function compareTables(Table $fromTable, Table $toTable): TableDiff
     {
@@ -87,10 +84,12 @@ final class FirebirdComparator extends BaseComparator
 
         foreach (array_keys($platformOptions) as $key) {
             $keyLower = strtolower((string) $key);
-            if ($keyLower === 'charset' || $keyLower === 'collation') {
-                unset($platformOptions[$key]);
-                $stripped = true;
+            if ($keyLower !== 'charset' && $keyLower !== 'collation') {
+                continue;
             }
+
+            unset($platformOptions[$key]);
+            $stripped = true;
         }
 
         if ($stripped) {
@@ -100,14 +99,16 @@ final class FirebirdComparator extends BaseComparator
         // Normalise default value: trim whitespace and uppercase NULL sentinel
         // getDefault() is typed string|null but can return int in practice (e.g. integer column defaults)
         $default = $column->getDefault();
-        if ($default !== null) {
-            $trimmed = trim((string) $default);
-            if (strtoupper($trimmed) === 'NULL') {
-                // Firebird sometimes returns 'NULL' as a default string; treat as no default
-                $column->setDefault(null);
-            } elseif ($trimmed !== $default) {
-                $column->setDefault($trimmed);
-            }
+        if ($default === null) {
+            return;
+        }
+
+        $trimmed = trim((string) $default);
+        if (strtoupper($trimmed) === 'NULL') {
+            // Firebird sometimes returns 'NULL' as a default string; treat as no default
+            $column->setDefault(null);
+        } elseif ($trimmed !== $default) {
+            $column->setDefault($trimmed);
         }
     }
 }

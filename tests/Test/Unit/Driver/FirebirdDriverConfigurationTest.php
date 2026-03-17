@@ -10,12 +10,12 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests that FirebirdDriver correctly applies configuration to platform instances.
- *
- * @covers \Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver
- */
+ * */
+#[CoversClass(FirebirdDriver::class)]
 final class FirebirdDriverConfigurationTest extends TestCase
 {
     private TestableFirebirdDriver $driver;

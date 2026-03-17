@@ -23,6 +23,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
+use Override;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
@@ -54,7 +55,6 @@ use function strtoupper;
 use function substr_replace;
 
 use const PHP_INT_MAX;
-use Override;
 
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform

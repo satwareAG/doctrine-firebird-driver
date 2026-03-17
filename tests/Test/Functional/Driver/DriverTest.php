@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Driver as DriverInterface;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
-/** @requires extension interbase */
+#[RequiresPhpExtension('interbase')]
 class DriverTest extends DriverTestCase
 {
     public function testConnectsWithoutDatabaseNameParameter(): void

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="6.15.1@28dc127af1b5aecd52314f6f645bafc10d0e11f9">
+<files psalm-version="6.16.0@7cf3e8b988edd75e0766963b0b9e671b220f5785">
   <file src="src/Compat/Compat.php">
     <UnusedClass>
       <code><![CDATA[Compat]]></code>
@@ -98,7 +98,7 @@
   </file>
   <file src="src/Driver/Firebird/FirebirdDriverMiddleware.php">
     <DeprecatedInterface>
-      <code><![CDATA[class ($driver) extends AbstractDriverMiddleware {}]]></code>
+      <code><![CDATA[class ($driver) extends AbstractDriverMiddleware {]]></code>
     </DeprecatedInterface>
     <UnusedClass>
       <code><![CDATA[FirebirdDriverMiddleware]]></code>
@@ -118,18 +118,24 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
-    <InvalidReturnStatement>
-      <code><![CDATA[array_map(
-            fn (array $row): array => $this->decodeRow($row),
-            parent::fetchAllAssociative(),
-        )]]></code>
-    </InvalidReturnStatement>
-    <InvalidReturnType>
-      <code><![CDATA[list<array<string, mixed>>]]></code>
-    </InvalidReturnType>
     <PossiblyFalseArgument>
       <code><![CDATA[$buffer]]></code>
+      <code><![CDATA[$newStream]]></code>
+      <code><![CDATA[$newStream]]></code>
+      <code><![CDATA[$newStream]]></code>
+      <code><![CDATA[$rest]]></code>
     </PossiblyFalseArgument>
+    <PossiblyFalseOperand>
+      <code><![CDATA[$buffer]]></code>
+      <code><![CDATA[$rest]]></code>
+    </PossiblyFalseOperand>
+    <RedundantFunctionCallGivenDocblockType>
+      <code><![CDATA[array_values]]></code>
+      <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCallGivenDocblockType>
+    <UnusedMethod>
+      <code><![CDATA[decodeRow]]></code>
+    </UnusedMethod>
   </file>
   <file src="src/Driver/Firebird/Result.php">
     <PossiblyUnusedMethod>

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-use function array_merge;
 use Override;
+
+use function array_merge;
 
 /**
  * Firebird 4.0 reserved keyword list.

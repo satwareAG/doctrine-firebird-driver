@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
+use Firebird\Database;
 use Firebird\DbInfo;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -150,7 +151,7 @@ class ConnectionInfoTest extends FunctionalTestCase
      */
     public function testGetOoWrapperReturnsDatabaseInstance(): void
     {
-        if (! class_exists(\Firebird\Database::class)) {
+        if (! class_exists(Database::class)) {
             self::markTestSkipped('Firebird\Database OO class not available — requires php-firebird v7.0.0+');
         }
 
@@ -160,7 +161,7 @@ class ConnectionInfoTest extends FunctionalTestCase
         $db = $conn->getOOWrapper();
 
         self::assertInstanceOf(
-            \Firebird\Database::class,
+            Database::class,
             $db,
             'getOOWrapper() must return a Firebird\Database instance',
         );

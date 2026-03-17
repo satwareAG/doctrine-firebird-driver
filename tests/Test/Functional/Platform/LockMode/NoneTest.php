@@ -9,7 +9,10 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function array_change_key_case;
 use function str_contains;
+
+use const CASE_LOWER;
 
 /**
  * Confirms LockMode::NONE produces valid SQL and executes without error on all Firebird versions.
@@ -18,19 +21,6 @@ use function str_contains;
  */
 class NoneTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $table = new Table('lock_none_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::STRING, ['length' => 50]);
-        $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
-
-        $this->connection->insert('lock_none_test', ['id' => 1, 'val' => 'test']);
-    }
-
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
@@ -50,7 +40,7 @@ class NoneTest extends FunctionalTestCase
 
     public function testLockModeNoneGeneratesNoLockClause(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
+        $platform   = $this->connection->getDatabasePlatform();
         $fromClause = $platform->appendLockHint('lock_none_test', LockMode::NONE);
 
         // LockMode::NONE must not add any lock hint to the FROM clause
@@ -67,5 +57,18 @@ class NoneTest extends FunctionalTestCase
 
         // Should return the original FROM clause unchanged
         self::assertSame('lock_none_test', $fromClause);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $table = new Table('lock_none_test');
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('val', Types::STRING, ['length' => 50]);
+        $table->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($table);
+
+        $this->connection->insert('lock_none_test', ['id' => 1, 'val' => 'test']);
     }
 }

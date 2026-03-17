@@ -11,6 +11,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
@@ -22,7 +23,6 @@ use function assert;
 use function is_string;
 use function preg_match;
 use function version_compare;
-use Override;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
@@ -32,16 +32,16 @@ use Override;
  */
 abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @phpstan-ignore-line classImplements.deprecated
 {
-    public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
+    public const string ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
-    public const ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
+    public const string ATTR_DOCTRINE_DEFAULT_TRANS_WAIT = 'doctrineTransactionWait';
 
-    public const ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
+    public const string ATTR_AUTOCOMMIT = 'doctrineAutoCommit';
 
     /**
      * Retry DML/DDL on lock conflicts (e.g. objects in use) by forcing a full commit
      */
-    public const ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
+    public const string ATTR_DOCTRINE_RETRY_ON_LOCK = 'doctrineRetryOnLock';
 
     /**
      * Firebird-specific connection options.

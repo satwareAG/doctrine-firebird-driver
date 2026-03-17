@@ -16,8 +16,8 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * arising from decoding and encoding them.
  */
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 use Override;
+use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 
 class Firebird4Platform extends Firebird3Platform
 {

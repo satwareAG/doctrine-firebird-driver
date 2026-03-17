@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function array_map;
 use function strtolower;
@@ -30,59 +31,11 @@ use function strtolower;
  */
 class SchemaManagerTest extends FunctionalTestCase
 {
-    private const TABLE       = 'sm_test_table';
-    private const TABLE_FK    = 'sm_fk_table';
-    private const TABLE_REF   = 'sm_ref_table';
-    private const VIEW        = 'sm_test_view';
-    private const SEQ         = 'sm_test_seq';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $schemaManager = $this->connection->createSchemaManager();
-
-        // Drop in dependency order
-        try {
-            $schemaManager->dropView(self::VIEW);
-        } catch (\Throwable) {
-        }
-
-        $this->dropTableIfExists(self::TABLE_FK);
-        $this->dropTableIfExists(self::TABLE);
-        $this->dropTableIfExists(self::TABLE_REF);
-
-        try {
-            $schemaManager->dropSequence(self::SEQ);
-        } catch (\Throwable) {
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        $schemaManager = $this->connection->createSchemaManager();
-
-        try {
-            $schemaManager->dropView(self::VIEW);
-        } catch (\Throwable) {
-        }
-
-        $this->dropTableIfExists(self::TABLE_FK);
-        $this->dropTableIfExists(self::TABLE);
-        $this->dropTableIfExists(self::TABLE_REF);
-
-        try {
-            $schemaManager->dropSequence(self::SEQ);
-        } catch (\Throwable) {
-        }
-
-        $this->markConnectionNotReusable();
-        parent::tearDown();
-    }
-
-    // =========================================================================
-    // Table lifecycle
-    // =========================================================================
+    private const string TABLE     = 'sm_test_table';
+    private const string TABLE_FK  = 'sm_fk_table';
+    private const string TABLE_REF = 'sm_ref_table';
+    private const string VIEW      = 'sm_test_view';
+    private const string SEQ       = 'sm_test_seq';
 
     public function testCreateAndIntrospectTable(): void
     {
@@ -361,11 +314,13 @@ class SchemaManagerTest extends FunctionalTestCase
 
         $schemaManager->dropSequence(self::SEQ);
 
-        if ($platform instanceof Firebird3Platform) {
-            $sequences = $schemaManager->listSequences();
-            $names     = array_map(static fn (Sequence $s): string => strtolower($s->getName()), $sequences);
-            self::assertNotContains(self::SEQ, $names);
+        if (! ($platform instanceof Firebird3Platform)) {
+            return;
         }
+
+        $sequences = $schemaManager->listSequences();
+        $names     = array_map(static fn (Sequence $s): string => strtolower($s->getName()), $sequences);
+        self::assertNotContains(self::SEQ, $names);
     }
 
     // =========================================================================
@@ -412,6 +367,55 @@ class SchemaManagerTest extends FunctionalTestCase
         $schemaManager = $this->connection->createSchemaManager();
         self::assertFalse($schemaManager->tablesExist(['non_existing_table_xyz']));
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $schemaManager = $this->connection->createSchemaManager();
+
+        // Drop in dependency order
+        try {
+            $schemaManager->dropView(self::VIEW);
+        } catch (Throwable) {
+        }
+
+        $this->dropTableIfExists(self::TABLE_FK);
+        $this->dropTableIfExists(self::TABLE);
+        $this->dropTableIfExists(self::TABLE_REF);
+
+        try {
+            $schemaManager->dropSequence(self::SEQ);
+        } catch (Throwable) {
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        $schemaManager = $this->connection->createSchemaManager();
+
+        try {
+            $schemaManager->dropView(self::VIEW);
+        } catch (Throwable) {
+        }
+
+        $this->dropTableIfExists(self::TABLE_FK);
+        $this->dropTableIfExists(self::TABLE);
+        $this->dropTableIfExists(self::TABLE_REF);
+
+        try {
+            $schemaManager->dropSequence(self::SEQ);
+        } catch (Throwable) {
+        }
+
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }// =========================================================================
+
+// Table lifecycle
+// =========================================================================
+
 
     // =========================================================================
     // Helper

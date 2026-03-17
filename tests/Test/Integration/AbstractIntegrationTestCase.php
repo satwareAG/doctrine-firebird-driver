@@ -172,22 +172,32 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $queriesRemove = $schemaToDrop->toDropSql($platform);
         $queriesInsert = $schema->toSql($platform);
 
-        $connection->beginTransaction();
         foreach ($queriesRemove as $query) {
+            $connection->beginTransaction();
             try {
                 $connection->executeStatement($query);
+                $connection->commit();
             } catch (DatabaseObjectNotFoundException | Throwable) {
+                try {
+                    $connection->rollBack();
+                } catch (Throwable) {
+                }
             }
         }
 
-        $connection->commit();
-
-        $connection->beginTransaction();
         foreach ($queriesInsert as $sql) {
-            $connection->executeStatement($sql);
+            $connection->beginTransaction();
+            try {
+                $connection->executeStatement($sql);
+                $connection->commit();
+            } catch (Throwable $e) {
+                try {
+                    $connection->rollBack();
+                } catch (Throwable) {
+                }
+                throw $e;
+            }
         }
-
-        $connection->commit();
 
         $connection->beginTransaction();
         foreach (['Unknown', 'Solo', 'Duo', 'Trio', 'Quartet', 'Band'] as $name) {

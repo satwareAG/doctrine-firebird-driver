@@ -776,7 +776,7 @@ abstract class PlatformTestCase extends TestCase
         self::assertFalse($this->platform->usesSequenceEmulatedIdentityColumns());
     }
 
-    /** @group DBAL-563 */
+    #[Group('DBAL-563')]
     public function testReturnsIdentitySequenceName(): void
     {
         $this->expectException(Exception::class);

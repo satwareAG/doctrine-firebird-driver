@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
+use Satag\DoctrineFirebirdDriver\Test\SchemaEventListener;
 
 use function array_walk;
 use function implode;
@@ -33,6 +34,7 @@ use function trim;
 use function uniqid;
 
 use const PHP_INT_MAX;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests SQL generation.
@@ -190,9 +192,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('VARCHAR(255)', $this->_platform->getVarcharTypeDeclarationSQL([]));
     }
 
-    /**
-     * @group DBAL-1097
-     */
+    #[Group('DBAL-1097')]
     #[DataProvider('dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL($expected, array $options): void
     {
@@ -309,10 +309,8 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame($expected, $found);
     }
 
-    /**
-     * @group DBAL-472
-     * @group DBAL-1001
-     */
+    #[Group('DBAL-472')]
+#[Group('DBAL-1001')]
     public function testAlterTableNotNULL(): void
     {
         $fromTable = new Table('mytable');
@@ -393,7 +391,7 @@ class FirebirdPlatformSQLTest extends TestCase
         }
     }
 
-    /** @group DBAL-1004 */
+    #[Group('DBAL-1004')]
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers(): void
     {
         $table1     = new Table(
@@ -521,14 +519,7 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGetCreateTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this
-            ->getMockBuilder(\stdClass::class)
-            ->disableOriginalConstructor()
-            ->addMethods([
-                'onSchemaCreateTable',
-                'onSchemaCreateTableColumn',
-            ])
-            ->getMock();
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects($this->once())
             ->method('onSchemaCreateTable');
@@ -552,11 +543,7 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGetDropTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this
-            ->getMockBuilder(\stdClass::class)
-            ->disableOriginalConstructor()
-            ->addMethods(['onSchemaDropTable'])
-            ->getMock();
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects($this->once())
             ->method('onSchemaDropTable');
@@ -568,17 +555,7 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGetAlterTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this
-            ->getMockBuilder(\stdClass::class)
-            ->disableOriginalConstructor()
-            ->addMethods([
-                'onSchemaAlterTable',
-                'onSchemaAlterTableAddColumn',
-                'onSchemaAlterTableRemoveColumn',
-                'onSchemaAlterTableChangeColumn',
-                'onSchemaAlterTableRenameColumn',
-            ])
-            ->getMock();
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects($this->once())
             ->method('onSchemaAlterTable');
@@ -637,7 +614,7 @@ class FirebirdPlatformSQLTest extends TestCase
         $this->_platform->getAlterTableSQL($tableDiff);
     }
 
-    /** @group DBAL-42 */
+    #[Group('DBAL-42')]
     public function testCreateTableColumnComments(): void
     {
         $table = new Table('test');
@@ -651,7 +628,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame("COMMENT ON COLUMN test.id IS 'This is a comment'", $found[1]);
     }
 
-    /** @group DBAL-42 */
+    #[Group('DBAL-42')]
     public function testAlterTableColumnComments(): void
     {
         $tableDiff                        = new TableDiff('mytable');
@@ -736,7 +713,7 @@ class FirebirdPlatformSQLTest extends TestCase
         }
     }
 
-    /** @group DBAL-374 */
+    #[Group('DBAL-374')]
     public function testQuotedColumnInPrimaryKeyPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -750,7 +727,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame($expected, $found[0]);
     }
 
-    /** @group DBAL-374 */
+    #[Group('DBAL-374')]
     public function testQuotedColumnInIndexPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -777,7 +754,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame($expected, $found);
     }
 
-    /** @group DBAL-374 */
+    #[Group('DBAL-374')]
     public function testQuotedColumnInForeignKeyPropagation(): void
     {
         $table = new Table('`quoted`');
@@ -832,7 +809,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar") REFERENCES "foo-bar" ("create", bar, "foo-bar")', $found[3]);
     }
 
-    /** @group DBAL-1051 */
+    #[Group('DBAL-1051')]
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): void
     {
         $index = new UniqueConstraint('select', ['foo']);
@@ -840,7 +817,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('CONSTRAINT "select" UNIQUE (foo)', $found);
     }
 
-    /** @group DBAL-1051 */
+    #[Group('DBAL-1051')]
     public function testQuotesReservedKeywordInIndexDeclarationSQL(): void
     {
         $index = new Index('select', ['foo']);
@@ -848,7 +825,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('INDEX "select" (foo)', $found);
     }
 
-    /** @group DBAL-585 */
+    #[Group('DBAL-585')]
     public function testAlterTableChangeQuotedColumn(): void
     {
         $tableDiff                        = new TableDiff('mytable');
@@ -864,7 +841,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertStringContainsString($this->_platform->quoteIdentifier('select'), implode(';', $this->_platform->getAlterTableSQL($tableDiff)));
     }
 
-    /** @group DBAL-234 */
+    #[Group('DBAL-234')]
     public function testAlterTableRenameIndex(): void
     {
         $tableDiff            = new TableDiff('mytable');
@@ -883,7 +860,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('CREATE INDEX idx_bar ON mytable (id)', $found[1]);
     }
 
-    /** @group DBAL-234 */
+    #[Group('DBAL-234')]
     public function testQuotesAlterTableRenameIndex(): void
     {
         $tableDiff            = new TableDiff('table');
@@ -907,7 +884,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('CREATE INDEX "bar" ON "table" (id)', $found[3]);
     }
 
-    /** @group DBAL-835 */
+    #[Group('DBAL-835')]
     public function testQuotesAlterTableRenameColumn(): void
     {
         $fromTable = new Table('mytable');
@@ -954,7 +931,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE mytable ALTER COLUMN quoted3 TO "baz"', $found[8]);
     }
 
-    /** @group DBAL-807 */
+    #[Group('DBAL-807')]
     public function testAlterTableRenameIndexInSchema(): void
     {
         $tableDiff            = new TableDiff('myschema.mytable');
@@ -973,7 +950,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('CREATE INDEX idx_bar ON myschema.mytable (id)', $found[1]);
     }
 
-    /** @group DBAL-807 */
+    #[Group('DBAL-807')]
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
         $tableDiff            = new TableDiff('`schema`.table');
@@ -1009,7 +986,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame("COMMENT ON COLUMN mytable.id IS 'It''s a quote !'", $found);
     }
 
-    /** @group DBAL-1004 */
+    #[Group('DBAL-1004')]
     public function testGetCommentOnColumnSQL(): void
     {
         $found = $this->_platform->getCommentOnColumnSQL('foo', 'bar', 'comment'); // regular identifiers
@@ -1030,7 +1007,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame("''''", $found);
     }
 
-    /** @group DBAL-1010 */
+    #[Group('DBAL-1010')]
     public function testGeneratesAlterTableRenameColumnSQL(): void
     {
         $table = new Table('foo');
@@ -1053,7 +1030,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE foo ALTER COLUMN bar TO baz', $found[0]);
     }
 
-    /** @group DBAL-1016 */
+    #[Group('DBAL-1016')]
     public function testQuotesTableIdentifiersInAlterTableSQL(): void
     {
         $table = new Table('"foo"');
@@ -1111,7 +1088,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[8]);
     }
 
-    /** @group DBAL-1090 */
+    #[Group('DBAL-1090')]
     public function testAlterStringToFixedString(): void
     {
         $table = new Table('mytable');
@@ -1134,7 +1111,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE mytable ALTER COLUMN name TYPE CHAR(2)', $found[0]);
     }
 
-    /** @group DBAL-1062 */
+    #[Group('DBAL-1062')]
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): void
     {
         $foreignTable = new Table('foreign_table');
@@ -1160,9 +1137,7 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('CREATE INDEX idx_foo_renamed ON mytable (foo)', $found[1]);
     }
 
-    /**
-     * @group DBAL-1082
-     */
+    #[Group('DBAL-1082')]
     #[DataProvider('getGeneratesDecimalTypeDeclarationSQL')]
     public function testGeneratesDecimalTypeDeclarationSQL(array $column, $expectedSql): void
     {
@@ -1180,9 +1155,7 @@ class FirebirdPlatformSQLTest extends TestCase
         yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
-    /**
-     * @group DBAL-1082
-     */
+    #[Group('DBAL-1082')]
     #[DataProvider('getGeneratesFloatDeclarationSQL')]
     public function testGeneratesFloatDeclarationSQL(array $column, $expectedSql): void
     {

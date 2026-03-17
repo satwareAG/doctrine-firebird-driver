@@ -17,17 +17,6 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class DateImmutableTypeTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $table = new Table('date_immutable_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::DATE_IMMUTABLE);
-        $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
-    }
-
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
@@ -49,14 +38,6 @@ class DateImmutableTypeTest extends FunctionalTestCase
         $retrieved = $this->connection->convertToPHPValue($raw, Types::DATE_IMMUTABLE);
         self::assertInstanceOf(DateTimeImmutable::class, $retrieved);
         self::assertSame($date->format('Y-m-d'), $retrieved->format('Y-m-d'));
-    }
-
-    /** @return iterable<string, array{string}> */
-    public static function dateProvider(): iterable
-    {
-        yield 'regular date'  => ['2024-06-15'];
-        yield 'leap year day' => ['2024-02-29'];
-        yield 'year boundary' => ['2023-12-31'];
     }
 
     public function testDateLeapYear(): void
@@ -104,5 +85,24 @@ class DateImmutableTypeTest extends FunctionalTestCase
         self::assertInstanceOf(DateTimeImmutable::class, $retrievedMax);
         self::assertSame('1900-01-01', $retrievedMin->format('Y-m-d'));
         self::assertSame('2099-12-31', $retrievedMax->format('Y-m-d'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function dateProvider(): iterable
+    {
+        yield 'regular date'  => ['2024-06-15'];
+        yield 'leap year day' => ['2024-02-29'];
+        yield 'year boundary' => ['2023-12-31'];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $table = new Table('date_immutable_test');
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('val', Types::DATE_IMMUTABLE);
+        $table->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($table);
     }
 }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Stringable;
 
 use function is_numeric;
-use Override;
 
 final class FirebirdConnectString implements Stringable
 {

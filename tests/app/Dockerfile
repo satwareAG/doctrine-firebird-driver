@@ -80,12 +80,13 @@ COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY --from=builder /usr/local/lib/php/Firebird/ /usr/local/lib/php/Firebird/
 
-# Configure PCOV for optimal performance
+# Configure PCOV - disabled by default to reduce active plugins
 RUN { \
-        echo "pcov.enabled=1"; \
+        echo "extension=pcov.so"; \
+        echo "pcov.enabled=0"; \
         echo "pcov.directory=/app/src"; \
         echo "pcov.exclude=\"~vendor~\""; \
-    } >> /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
+    } > /usr/local/etc/php/conf.d/docker-php-ext-pcov.ini
 
 # Install Composer from official image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

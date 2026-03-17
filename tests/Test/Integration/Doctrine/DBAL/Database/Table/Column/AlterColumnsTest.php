@@ -24,6 +24,7 @@ use function str_replace;
 use function strtoupper;
 use function strval;
 use function substr;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class AlterColumnsTest extends AbstractIntegrationTestCase
 {
@@ -33,7 +34,7 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         $this->_platform = $this->connection->getDatabasePlatform();
     }
 
-    /** @dataProvider dataProvider_testAlterTableWithVariousColumnOptionCombinations */
+    #[DataProvider('dataProvider_testAlterTableWithVariousColumnOptionCombinations')]
     public function testAlterTableWithVariousColumnOptionCombinations(
         $expectedFieldType,
         array $options,

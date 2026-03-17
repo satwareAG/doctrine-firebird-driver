@@ -30,6 +30,7 @@ use function preg_replace;
 use function str_repeat;
 
 use const PHP_INT_MAX;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests primarily functional aspects of the platform class. For SQL tests, see FirebirdPlatformSQLTest.
@@ -90,7 +91,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         self::assertSame(str_repeat((string) $c, 4), $this->_platform->quoteIdentifier($c));
     }
 
-    /** @group DDC-1360 */
+    #[Group('DDC-1360')]
     public function testQuoteSingleIdentifier(): void
     {
         $c = $this->_platform->getIdentifierQuoteCharacter();
@@ -130,7 +131,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         $this->_platform->getCreateTableSQL($table);
     }
 
-    /** @group DBAL-45 */
+    #[Group('DBAL-45')]
     public function testKeywordList(): void
     {
         $keywordList = $this->_platform->getReservedKeywordsList();
@@ -955,13 +956,13 @@ END
             self::assertStringEndsWith('foo', $sql);
     }
 
-    /** @group DBAL-553 */
+    #[Group('DBAL-553')]
     public function testHasNativeJsonType(): void
     {
         self::assertFalse($this->_platform->hasNativeJsonType());
     }
 
-    /** @group DBAL-553 */
+    #[Group('DBAL-553')]
     public function testReturnsJsonTypeDeclarationSQL(): void
     {
         $column = ['length' => 666, 'notnull' => true, 'type' => Type::getType('json')];

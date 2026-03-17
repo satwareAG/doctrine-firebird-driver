@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
@@ -119,7 +118,7 @@ class ExecuteAutoTest extends FunctionalTestCase
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 
-        $this->expectException(\Throwable::class);
+        $this->expectException(Throwable::class);
         $conn->executeAuto('THIS IS NOT VALID SQL AT ALL');
     }
 

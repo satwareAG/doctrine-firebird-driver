@@ -26,7 +26,6 @@ use function fbird_free_query;
 use function fclose;
 use function func_num_args;
 use function get_resource_type;
-use function is_array;
 use function is_int;
 use function is_numeric;
 use function is_resource;

@@ -30,11 +30,8 @@ use Throwable;
 use UnexpectedValueException;
 
 use function addcslashes;
-use function array_filter;
 use function assert;
 use function class_exists;
-use function file_exists;
-use function glob;
 use function defined;
 use function fbird_close;
 use function fbird_commit;
@@ -57,15 +54,18 @@ use function fbird_rollback_savepoint;
 use function fbird_savepoint;
 use function fbird_set_exception_mode;
 use function fbird_trans_start;
+use function file_exists;
 use function function_exists;
 use function get_resource_type;
 use function in_array;
+use function is_dir;
 use function is_float;
 use function is_int;
 use function is_object;
 use function is_resource;
 use function is_scalar;
 use function is_string;
+use function method_exists;
 use function preg_match;
 use function sprintf;
 use function str_contains;
@@ -89,81 +89,22 @@ use const FBIRD_WRITE;
 final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
 {
     /**
-     * Load Firebird OO API classes if they are available as PHP files.
-     * Some extension releases provide them in /usr/local/lib/php/Firebird.
-     */
-    private static bool $ooApiLoaded = false;
-
-    private static function loadOoApi(): void
-    {
-        if (self::$ooApiLoaded) {
-            return;
-        }
-
-        self::$ooApiLoaded = true;
-
-        // Try standard install path from Dockerfile and source build
-        $paths = [
-            '/usr/local/lib/php/Firebird',
-            '/usr/lib/php/Firebird',
-            '/tmp/php-firebird/src/Firebird', // Source build check
-        ];
-
-        $files = [
-            'functions.php',
-            'EventPollerInterface.php',
-            'EventPoller.php',
-            'PcntlEventPoller.php',
-            'FiberEventPoller.php',
-            'ProcessEventPoller.php',
-            'BlobId.php',
-            'DbInfo.php',
-            'Transaction.php',
-            'TBuilder.php',
-            'Database.php',
-            'BatchError.php',
-            'BatchResult.php',
-            'Batch.php',
-        ];
-
-        foreach ($paths as $path) {
-            if (! file_exists($path) || ! is_dir($path)) {
-                continue;
-            }
-
-            foreach ($files as $file) {
-                $fullPath = $path . '/' . $file;
-                if (! file_exists($fullPath) || is_dir($fullPath)) {
-                    continue;
-                }
-
-                try {
-                    /** @phpstan-ignore-next-line */
-                    require_once $fullPath;
-                } catch (Throwable) {
-                    // Ignore load errors for OO API
-                }
-            }
-        }
-    }
-
-    /**
      * Valid resource types for Firebird connection.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const RESOURCE_TYPES_CONNECTION = ['Firebird link'];
+    private const array RESOURCE_TYPES_CONNECTION = ['Firebird link'];
 
     /**
      * Valid resource types for Firebird persistent connection.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
+    private const array RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
 
     /**
      * Valid resource types for Firebird transaction.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
+    private const array RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
 
     private readonly ExecutionMode $executionMode;
 
@@ -194,6 +135,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     /** @var resource|null */
     private $firebirdActiveTransaction = null;
+
+    /**
+     * Load Firebird OO API classes if they are available as PHP files.
+     * Some extension releases provide them in /usr/local/lib/php/Firebird.
+     */
+    private static bool $ooApiLoaded = false;
 
     /**
      * @param resource|null        $connection
@@ -812,17 +759,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     }
 
     /**
-     * @param resource $resource
-     */
-    private function isResourceTypeValid($resource): bool
-    {
-        $type = get_resource_type($resource);
-
-        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
-            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
-    }
-
-    /**
      * Check if the active transaction resource is valid.
      *
      * @return bool True if transaction is a valid Firebird resource
@@ -1097,6 +1033,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             $query = @fbird_prepare($this->connection, $transResource, $sql);
             if (! is_resource($query)) {
                 $this->checkLastApiCall();
+
                 throw new DriverException('Failed to prepare batch query');
             }
 
@@ -1262,6 +1199,15 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         return $result;
     }
 
+    /** @param resource $resource */
+    private function isResourceTypeValid($resource): bool
+    {
+        $type = get_resource_type($resource);
+
+        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
+            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
+    }
+
     private function getSavepointName(int $level): string
     {
         return 'TARGET_SP_' . $level;
@@ -1321,6 +1267,59 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             return $result;
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
+        }
+    }
+
+    private static function loadOoApi(): void
+    {
+        if (self::$ooApiLoaded) {
+            return;
+        }
+
+        self::$ooApiLoaded = true;
+
+        // Try standard install path from Dockerfile and source build
+        $paths = [
+            '/usr/local/lib/php/Firebird',
+            '/usr/lib/php/Firebird',
+            '/tmp/php-firebird/src/Firebird', // Source build check
+        ];
+
+        $files = [
+            'functions.php',
+            'EventPollerInterface.php',
+            'EventPoller.php',
+            'PcntlEventPoller.php',
+            'FiberEventPoller.php',
+            'ProcessEventPoller.php',
+            'BlobId.php',
+            'DbInfo.php',
+            'Transaction.php',
+            'TBuilder.php',
+            'Database.php',
+            'BatchError.php',
+            'BatchResult.php',
+            'Batch.php',
+        ];
+
+        foreach ($paths as $path) {
+            if (! file_exists($path) || ! is_dir($path)) {
+                continue;
+            }
+
+            foreach ($files as $file) {
+                $fullPath = $path . '/' . $file;
+                if (! file_exists($fullPath) || is_dir($fullPath)) {
+                    continue;
+                }
+
+                try {
+                    /** @phpstan-ignore-next-line */
+                    require_once $fullPath;
+                } catch (Throwable) {
+                    // Ignore load errors for OO API
+                }
+            }
         }
     }
 }

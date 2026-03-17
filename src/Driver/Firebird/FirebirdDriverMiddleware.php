@@ -34,6 +34,7 @@ final class FirebirdDriverMiddleware implements MiddlewareInterface
     #[Override]
     public function wrap(Driver $driver): Driver
     {
-        return new class ($driver) extends AbstractDriverMiddleware {};
+        return new class ($driver) extends AbstractDriverMiddleware {
+        };
     }
 }

@@ -23,12 +23,12 @@ use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
+use Override;
 
 use function class_exists;
 use function str_contains;
 use function strtolower;
 use function substr;
-use Override;
 
 /**
  * Reference https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html#fblangref40-appx02-sqlcodes
@@ -128,13 +128,15 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
                 // GDS codes 335544721 (net write error), 335544723 (database connection lost),
                 // 335544726 (net read error) — connection dropped mid-session
-                if ($this->exceptionContains($exception, [
-                    'net write error',
-                    'net read error',
-                    'lost remote part of database',
-                    'connection lost to database',
-                    'broken pipe',
-                ])) {
+                if (
+                    $this->exceptionContains($exception, [
+                        'net write error',
+                        'net read error',
+                        'lost remote part of database',
+                        'connection lost to database',
+                        'broken pipe',
+                    ])
+                ) {
                     return new ConnectionLost($exception, $query);
                 }
 
@@ -145,13 +147,15 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
             case -922: // Database connection error.
                 // GDS 335544723: database connection lost — arrives as -922 in some Firebird versions
-                if ($this->exceptionContains($exception, [
-                    'net write error',
-                    'net read error',
-                    'lost remote part of database',
-                    'connection lost to database',
-                    'broken pipe',
-                ])) {
+                if (
+                    $this->exceptionContains($exception, [
+                        'net write error',
+                        'net read error',
+                        'lost remote part of database',
+                        'connection lost to database',
+                        'broken pipe',
+                    ])
+                ) {
                     return new ConnectionLost($exception, $query);
                 }
 

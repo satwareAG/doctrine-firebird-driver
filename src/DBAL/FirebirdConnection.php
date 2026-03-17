@@ -6,9 +6,9 @@ namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
-use Override;
 
 /**
  * Firebird-specific Connection wrapper that configures the platform with

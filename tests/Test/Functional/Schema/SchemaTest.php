@@ -25,30 +25,9 @@ use function strtolower;
  */
 class SchemaTest extends FunctionalTestCase
 {
-    private const TABLE_A = 'schema_test_a';
-    private const TABLE_B = 'schema_test_b';
-    private const TABLE_C = 'schema_test_c';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->dropTableIfExists(self::TABLE_C);
-        $this->dropTableIfExists(self::TABLE_B);
-        $this->dropTableIfExists(self::TABLE_A);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE_C);
-        $this->dropTableIfExists(self::TABLE_B);
-        $this->dropTableIfExists(self::TABLE_A);
-        $this->markConnectionNotReusable();
-        parent::tearDown();
-    }
-
-    // =========================================================================
-    // Schema introspection
-    // =========================================================================
+    private const string TABLE_A = 'schema_test_a';
+    private const string TABLE_B = 'schema_test_b';
+    private const string TABLE_C = 'schema_test_c';
 
     public function testIntrospectSchemaContainsCreatedTable(): void
     {
@@ -297,4 +276,26 @@ class SchemaTest extends FunctionalTestCase
         $fkeysC = $schemaManager->listTableForeignKeys(self::TABLE_C);
         self::assertCount(1, $fkeysC);
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dropTableIfExists(self::TABLE_C);
+        $this->dropTableIfExists(self::TABLE_B);
+        $this->dropTableIfExists(self::TABLE_A);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE_C);
+        $this->dropTableIfExists(self::TABLE_B);
+        $this->dropTableIfExists(self::TABLE_A);
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }// =========================================================================
+
+// Schema introspection
+// =========================================================================
 }

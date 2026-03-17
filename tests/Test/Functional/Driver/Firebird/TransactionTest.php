@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver\Firebird;
 
 use Doctrine\DBAL\TransactionIsolationLevel;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-/** @requires extension interbase **/
+#[RequiresPhpExtension('interbase')]
 class TransactionTest extends FunctionalTestCase
 {
     public function testTransactionIsolationLevel(): void

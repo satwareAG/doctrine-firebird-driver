@@ -8,6 +8,10 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function array_change_key_case;
+
+use const CASE_LOWER;
+
 /**
  * Verifies FirebirdPlatform::getAlterTableSQL() correctly generates DDL to add a PK
  * with generator/trigger to an existing table without data loss.

@@ -20,19 +20,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class GH22Test extends FunctionalTestCase
 {
-    private const TABLE = 'gh22_regression';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->markConnectionNotReusable();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE);
-        parent::tearDown();
-    }
+    private const string TABLE = 'gh22_regression';
 
     /**
      * After close() + reconnect, the connection resource must be valid.
@@ -99,5 +87,19 @@ class GH22Test extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 2]);
         $count = $this->connection->fetchOne('SELECT COUNT(*) FROM ' . self::TABLE);
         self::assertSame('2', (string) $count);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->markConnectionNotReusable();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE);
+
+        parent::tearDown();
     }
 }

@@ -9,6 +9,10 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function array_change_key_case;
+
+use const CASE_LOWER;
+
 /**
  * Tests PHP true/false binding as statement parameters with Firebird BOOLEAN columns.
  *
@@ -21,18 +25,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class BooleanBindingTest extends FunctionalTestCase
 {
-    private const TABLE = 'bool_binding_test';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('flag', Types::BOOLEAN);
-        $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
-    }
+    private const string TABLE = 'bool_binding_test';
 
     public function tearDown(): void
     {
@@ -128,5 +121,16 @@ class BooleanBindingTest extends FunctionalTestCase
         // Firebird may return "1"/"0" or true/false depending on driver version
         self::assertTrue($this->connection->convertToPHPValue($row0['flag'], Types::BOOLEAN));
         self::assertFalse($this->connection->convertToPHPValue($row1['flag'], Types::BOOLEAN));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $table = new Table(self::TABLE);
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('flag', Types::BOOLEAN);
+        $table->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($table);
     }
 }

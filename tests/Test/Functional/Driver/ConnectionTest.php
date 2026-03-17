@@ -6,9 +6,10 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-/** @requires extension interbase */
+#[RequiresPhpExtension('interbase')]
 class ConnectionTest extends FunctionalTestCase
 {
     /**

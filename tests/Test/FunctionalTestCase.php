@@ -9,11 +9,14 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Schema\Table;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
 use Throwable;
 
 use function array_merge;
+use function assert;
 use function gc_collect_cycles;
 use function method_exists;
 use function str_contains;
@@ -207,7 +210,7 @@ abstract class FunctionalTestCase extends TestCase
         $this->isConnectionReusable = false;
     }
 
-    /** @before */
+    #[Before]
     final protected function connect(): void
     {
         $needNewConnection = ! self::$sharedConnection instanceof Connection;
@@ -246,7 +249,7 @@ abstract class FunctionalTestCase extends TestCase
         $this->connection = self::$sharedConnection;
     }
 
-    /** @after */
+    #[After]
     final protected function disconnect(): void
     {
         // Attempt to free any lingering statement resources via GC

@@ -7,29 +7,11 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function microtime;
-use function round;
+use function preg_match;
 use function version_compare;
 
 class BatchTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Skip if Firebird < 4.0 (IBatch requires Firebird 4.0+)
-        $fbirdConn = $this->getFirebirdConnection();
-        $version   = $fbirdConn?->getServerVersion() ?? '0.0';
-
-        // Extract numeric version (e.g. "4.0" from "LI-V4.0.2.2816 Firebird 4.0")
-        if (preg_match('/(\d+\.\d+)/', $version, $matches) === 1) {
-            $version = $matches[1];
-        }
-
-        if (version_compare($version, '4.0', '<')) {
-            $this->markTestSkipped('IBatch API requires Firebird 4.0+. Detected: ' . $version);
-        }
-    }
-
     public function testBatchInsertBasic(): void
     {
         $this->createBatchTestTable();
@@ -95,6 +77,26 @@ class BatchTest extends FunctionalTestCase
 
         // Log performance for comparison
         // echo "\nIBatch: $rowCount rows in " . round($elapsed * 1000) . "ms\n";
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Skip if Firebird < 4.0 (IBatch requires Firebird 4.0+)
+        $fbirdConn = $this->getFirebirdConnection();
+        $version   = $fbirdConn?->getServerVersion() ?? '0.0';
+
+        // Extract numeric version (e.g. "4.0" from "LI-V4.0.2.2816 Firebird 4.0")
+        if (preg_match('/(\d+\.\d+)/', $version, $matches) === 1) {
+            $version = $matches[1];
+        }
+
+        if (! version_compare($version, '4.0', '<')) {
+            return;
+        }
+
+        $this->markTestSkipped('IBatch API requires Firebird 4.0+. Detected: ' . $version);
     }
 
     private function createBatchTestTable(): void

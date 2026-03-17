@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function assert;
@@ -16,7 +17,6 @@ use function count;
 use function implode;
 use function preg_replace_callback;
 use function sprintf;
-use Override;
 
 final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 {

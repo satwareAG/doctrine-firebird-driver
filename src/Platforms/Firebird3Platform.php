@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
@@ -20,7 +21,6 @@ use function array_values;
 use function json_encode;
 use function sprintf;
 use function str_replace;
-use Override;
 
 class Firebird3Platform extends FirebirdPlatform
 {

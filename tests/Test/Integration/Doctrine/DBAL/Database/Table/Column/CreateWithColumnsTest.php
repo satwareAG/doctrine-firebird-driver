@@ -28,6 +28,7 @@ use function substr;
 use function trim;
 
 use const PHP_INT_MAX;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class CreateWithColumnsTest extends AbstractIntegrationTestCase
 {
@@ -37,7 +38,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         $this->_platform = $this->connection->getDatabasePlatform();
     }
 
-    /** @dataProvider dataProvider_testCreateTableWithVariousColumnOptionCombinations */
+    #[DataProvider('dataProvider_testCreateTableWithVariousColumnOptionCombinations')]
     public function testCreateTableWithVariousColumnOptionCombinations(
         $inputFieldType,
         $expectedFieldType,

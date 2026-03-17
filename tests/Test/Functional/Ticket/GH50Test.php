@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Ticket;
 
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+
+use function str_contains;
 
 /**
  * Regression test for GH-50: Schema test transaction deadlock.
@@ -24,15 +27,8 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class GH50Test extends FunctionalTestCase
 {
-    private const TABLE_A = 'gh50_table_a';
-    private const TABLE_B = 'gh50_table_b';
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE_A);
-        $this->dropTableIfExists(self::TABLE_B);
-        parent::tearDown();
-    }
+    private const string TABLE_A = 'gh50_table_a';
+    private const string TABLE_B = 'gh50_table_b';
 
     /**
      * Creating a table after a SELECT on another table must not deadlock.
@@ -62,7 +58,7 @@ class GH50Test extends FunctionalTestCase
             $schemaManager = $this->connection->createSchemaManager();
             $schemaManager->createTable($tableB);
             self::assertTrue($schemaManager->tablesExist([self::TABLE_B]));
-        } catch (\Doctrine\DBAL\Exception\DriverException $e) {
+        } catch (DriverException $e) {
             if (str_contains($e->getMessage(), 'is in use') || str_contains($e->getMessage(), 'deadlock')) {
                 self::markTestIncomplete(
                     'GH-50: Known Firebird deadlock with commit_retaining — tracked in issue #50. ' .
@@ -101,7 +97,7 @@ class GH50Test extends FunctionalTestCase
             $schemaManager = $this->connection->createSchemaManager();
             $schemaManager->dropTable(self::TABLE_B);
             self::assertFalse($schemaManager->tablesExist([self::TABLE_B]));
-        } catch (\Doctrine\DBAL\Exception\DriverException $e) {
+        } catch (DriverException $e) {
             if (str_contains($e->getMessage(), 'is in use') || str_contains($e->getMessage(), 'deadlock')) {
                 self::markTestIncomplete(
                     'GH-50: Known Firebird deadlock with commit_retaining — tracked in issue #50. ' .
@@ -140,7 +136,7 @@ class GH50Test extends FunctionalTestCase
 
                 $schemaManager->dropTable(self::TABLE_A);
                 self::assertFalse($schemaManager->tablesExist([self::TABLE_A]));
-            } catch (\Doctrine\DBAL\Exception\DriverException $e) {
+            } catch (DriverException $e) {
                 if (str_contains($e->getMessage(), 'is in use') || str_contains($e->getMessage(), 'deadlock')) {
                     self::markTestIncomplete(
                         'GH-50: Known Firebird deadlock with commit_retaining — tracked in issue #50. ' .
@@ -151,5 +147,13 @@ class GH50Test extends FunctionalTestCase
                 throw $e;
             }
         }
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE_A);
+        $this->dropTableIfExists(self::TABLE_B);
+
+        parent::tearDown();
     }
 }

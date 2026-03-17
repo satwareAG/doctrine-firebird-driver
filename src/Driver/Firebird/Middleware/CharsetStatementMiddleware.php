@@ -26,6 +26,9 @@ use function stream_get_contents;
  */
 final class CharsetStatementMiddleware extends AbstractStatementMiddleware
 {
+    /** @var array<int|string, int> */
+    private array $boundTypes = [];
+
     public function __construct(
         Statement $statement,
         private readonly string $databaseEncoding,
@@ -50,6 +53,8 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     #[Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
+        $this->boundTypes[$param] = $type;
+
         if (is_resource($value)) {
             $value = stream_get_contents($value);
         }
@@ -91,6 +96,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
             parent::execute($params),
             $this->databaseEncoding,
             $this->phpEncoding,
+            $this->boundTypes,
         );
     }
 }

@@ -1,0 +1,102 @@
+Command finished with exit code 0.
+Command output:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4827771Z [36;1melse[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4828017Z [36;1m  echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4828323Z [36;1m  exit $EXIT_CODE[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4828524Z [36;1mfi[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4874986Z shell: /usr/bin/bash -e {0}
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4875209Z env:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4875378Z   ISC_USER: SYSDBA
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4875584Z   ISC_PASSWORD: masterkey
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4875806Z   COMPOSER_PROCESS_TIMEOUT: 0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4876028Z   COMPOSER_NO_INTERACTION: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4876410Z   COMPOSER_NO_AUDIT: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4876632Z   PHPUNIT_CONFIG: phpunit-firebird5.xml
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.4876888Z ##[endgroup]
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8033416Z 
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8033570Z 
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8034163Z An error occurred inside PHPUnit.
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8034577Z 
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8035374Z Message:  Class "Doctrine\DBAL\Tests\Test\Functional\FunctionalTestCase" not found
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8036858Z Location: /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/tests/Test/Functional/BlobCharsetIntegrityTest.php:13
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8037956Z 
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8038728Z #0 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/Runner/TestSuiteLoader.php(116): require_once()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8040903Z #1 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/Runner/TestSuiteLoader.php(49): PHPUnit\Runner\TestSuiteLoader->loadSuiteClassFile()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8043351Z #2 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/Framework/TestSuite.php(231): PHPUnit\Runner\TestSuiteLoader->load()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8046219Z #3 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/TextUI/Configuration/Xml/TestSuiteMapper.php(105): PHPUnit\Framework\TestSuite->addTestFile()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8049184Z #4 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/TextUI/Configuration/TestSuiteBuilder.php(75): PHPUnit\TextUI\XmlConfiguration\TestSuiteMapper->map()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8051569Z #5 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/TextUI/Application.php(412): PHPUnit\TextUI\Configuration\TestSuiteBuilder->build()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8053761Z #6 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/src/TextUI/Application.php(182): PHPUnit\TextUI\Application->buildTestSuite()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8055725Z #7 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/phpunit/phpunit/phpunit(104): PHPUnit\TextUI\Application->run()
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8057521Z #8 /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver/vendor/bin/phpunit(122): include('...')
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8058471Z #9 {main}
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8059123Z ❌ PHPUnit tests failed with exit code 255
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8069638Z ##[error]Process completed with exit code 255.
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8113471Z ##[group]Run mkdir -p tests/var/logs
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8113798Z [36;1mmkdir -p tests/var/logs[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8114074Z [36;1mphp -i > tests/var/logs/php-info.txt[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8114392Z [36;1mphp -m > tests/var/logs/php-modules.txt[0m
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8162778Z shell: /usr/bin/bash -e {0}
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8163004Z env:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8163174Z   ISC_USER: SYSDBA
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8163376Z   ISC_PASSWORD: masterkey
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8163595Z   COMPOSER_PROCESS_TIMEOUT: 0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8163834Z   COMPOSER_NO_INTERACTION: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8164052Z   COMPOSER_NO_AUDIT: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:12.8164249Z ##[endgroup]
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0283399Z ##[group]Run actions/upload-artifact@v4
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0283675Z with:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0283857Z   name: debug-logs-8.5-5.0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0284080Z   path: tests/var/logs/
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0284281Z   retention-days: 5
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0284475Z   if-no-files-found: warn
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0284690Z   compression-level: 6
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0284895Z   overwrite: false
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0285084Z   include-hidden-files: false
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0285297Z env:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0285454Z   ISC_USER: SYSDBA
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0285640Z   ISC_PASSWORD: masterkey
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0285845Z   COMPOSER_PROCESS_TIMEOUT: 0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0286065Z   COMPOSER_NO_INTERACTION: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0286279Z   COMPOSER_NO_AUDIT: 1
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.0286469Z ##[endgroup]
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.2440874Z With the provided path, there will be 2 files uploaded
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.2446161Z Artifact name is valid!
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.2447594Z Root directory input is valid!
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.4927742Z Beginning upload of artifact content to blob storage
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.7663747Z Uploaded bytes 15124
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.8254321Z Finished uploading artifact content to blob storage!
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.8257897Z SHA256 digest of uploaded artifact zip is 1f523db2b2e2c29c15f5abdafbfa9e9065e920704c48f44879d0ed8ea6859bb6
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.8260382Z Finalizing artifact upload
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.9714773Z Artifact debug-logs-8.5-5.0.zip successfully finalized. Artifact ID 5971921695
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.9716183Z Artifact debug-logs-8.5-5.0 has been successfully uploaded! Final size is 15124 bytes. Artifact ID is 5971921695
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.9723760Z Artifact download URL: https://github.com/satwareAG/doctrine-firebird-driver/actions/runs/23211569244/artifacts/5971921695
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:13.9872709Z Post job cleanup.
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0674978Z [command]/usr/bin/git version
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0712183Z git version 2.53.0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0780632Z Temporarily overriding HOME='/home/runner/work/_temp/1055a474-8524-409d-af93-85681c8c1bf7' before making global git config changes
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0782405Z Adding repository directory to the temporary git global config as a safe directory
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0786293Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/doctrine-firebird-driver/doctrine-firebird-driver
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0824035Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.0860695Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1101789Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1126892Z http.https://github.com/.extraheader
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1136980Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1169551Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1407097Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1439701Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1779283Z Print service container logs: fcb1dd14545e4be898a1c32d2bbe02d9_firebirdsqlfirebird5_ec22c6
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1783606Z ##[command]/usr/bin/docker logs --details 8691ec9eb15550bfd1c9a2a073f6912e7cf966d0fea9cd05730b73a24e8938fb
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1909592Z  Changing SYSDBA password.
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1910186Z  Creating database '/var/lib/firebird/data/test.fdb'...
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1910815Z    ignoring /docker-entrypoint-initdb.d/*
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1911094Z  
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1911374Z  Starting Firebird TCP/IP server version LI-V5.0.3.1683 Firebird 5.0
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1928721Z Stop and remove container: fcb1dd14545e4be898a1c32d2bbe02d9_firebirdsqlfirebird5_ec22c6
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:14.1933477Z ##[command]/usr/bin/docker rm --force 8691ec9eb15550bfd1c9a2a073f6912e7cf966d0fea9cd05730b73a24e8938fb
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.3419738Z 8691ec9eb15550bfd1c9a2a073f6912e7cf966d0fea9cd05730b73a24e8938fb
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.3444423Z Remove container network: github_network_31cf0a6215ff4ba7a340471e12b9d4bc
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.3448832Z ##[command]/usr/bin/docker network rm github_network_31cf0a6215ff4ba7a340471e12b9d4bc
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.4848419Z github_network_31cf0a6215ff4ba7a340471e12b9d4bc
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.4910195Z Cleaning up orphan processes
+PHP 8.5 / Firebird 5.0	UNKNOWN STEP	2026-03-17T19:03:15.5369048Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/cache@v4, actions/upload-artifact@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -12,6 +12,7 @@ use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
+use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
@@ -94,8 +95,6 @@ class ExceptionConverterTest extends FunctionalTestCase
     }
 
     /**
-     * @group skip-on-ci
-     *
      * Note: True deadlock simulation requires concurrent execution (circular wait):
      * - Transaction A locks row 1, wants row 2
      * - Transaction B locks row 2, wants row 1
@@ -110,6 +109,7 @@ class ExceptionConverterTest extends FunctionalTestCase
      * - Code -913 maps to DeadlockException
      * - Code -901 with "transaction deadlock" maps to DeadlockException
      */
+    #[Group('skip-on-ci')]
     public function testConvertDeadlockException(): void
     {
         $this->markTestIncomplete(

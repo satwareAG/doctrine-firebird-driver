@@ -18,17 +18,6 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class DateTimeImmutableTypeTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $table = new Table('datetime_immutable_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::DATETIME_IMMUTABLE);
-        $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
-    }
-
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
@@ -84,5 +73,16 @@ class DateTimeImmutableTypeTest extends FunctionalTestCase
         $retrieved = $this->connection->convertToPHPValue($raw, Types::DATETIME_IMMUTABLE);
         self::assertInstanceOf(DateTimeImmutable::class, $retrieved);
         self::assertSame('2025-07-04 12:00:00', $retrieved->format('Y-m-d H:i:s'));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $table = new Table('datetime_immutable_test');
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('val', Types::DATETIME_IMMUTABLE);
+        $table->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($table);
     }
 }

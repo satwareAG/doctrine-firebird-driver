@@ -7,9 +7,9 @@ namespace Satag\DoctrineFirebirdDriver\ORM\Mapping;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
+use Override;
 
 use function strtoupper;
-use Override;
 
 /** @psalm-suppress UnusedClass */
 class FirebirdQuoteStrategy extends DefaultQuoteStrategy

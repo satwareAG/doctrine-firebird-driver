@@ -10,6 +10,9 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function array_values;
+use function strtolower;
+
 /**
  * Functional tests for schema comparator correctness.
  *
@@ -23,30 +26,9 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class ComparatorTest extends FunctionalTestCase
 {
-    private const TABLE      = 'comparator_test';
-    private const TABLE_FK   = 'comparator_fk_test';
-    private const TABLE_REF  = 'comparator_ref_test';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->dropTableIfExists(self::TABLE_FK);
-        $this->dropTableIfExists(self::TABLE);
-        $this->dropTableIfExists(self::TABLE_REF);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE_FK);
-        $this->dropTableIfExists(self::TABLE);
-        $this->dropTableIfExists(self::TABLE_REF);
-        $this->markConnectionNotReusable();
-        parent::tearDown();
-    }
-
-    // =========================================================================
-    // No false-positive diffs after roundtrip
-    // =========================================================================
+    private const string TABLE     = 'comparator_test';
+    private const string TABLE_FK  = 'comparator_fk_test';
+    private const string TABLE_REF = 'comparator_ref_test';
 
     public function testNoFalsePositiveDiffAfterCreateIntrospect(): void
     {
@@ -325,6 +307,29 @@ class ComparatorTest extends FunctionalTestCase
         $diff        = $schemaManager->createComparator()->diffTable($onlineTable, $table);
         self::assertFalse($diff, 'No diff expected for multi-type table after roundtrip');
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dropTableIfExists(self::TABLE_FK);
+        $this->dropTableIfExists(self::TABLE);
+        $this->dropTableIfExists(self::TABLE_REF);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE_FK);
+        $this->dropTableIfExists(self::TABLE);
+        $this->dropTableIfExists(self::TABLE_REF);
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }// =========================================================================
+
+// No false-positive diffs after roundtrip
+// =========================================================================
+
 
     // =========================================================================
     // Helper

@@ -16,6 +16,10 @@ class PhpunitScriptTest extends TestCase
 
     protected function setUp(): void
     {
+        if (file_exists('/.dockerenv')) {
+            $this->markTestSkipped('Skipping PhpunitScriptTest inside Docker to avoid recursive execution.');
+        }
+
         $this->scriptPath = realpath(__DIR__ . '/../../../phpunit.sh');
     }
 

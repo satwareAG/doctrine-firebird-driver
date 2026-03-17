@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Types;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
@@ -28,29 +29,7 @@ use const CASE_LOWER;
  */
 class TransactionTest extends FunctionalTestCase
 {
-    private const TABLE = 'transaction_test';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::STRING, ['length' => 100, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
-
-        $this->dropAndCreateTable($table);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-        parent::tearDown();
-    }
-
-    // =========================================================================
-    // Basic begin / commit / rollBack
-    // =========================================================================
+    private const string TABLE = 'transaction_test';
 
     public function testBeginTransactionAndCommit(): void
     {
@@ -429,12 +408,12 @@ class TransactionTest extends FunctionalTestCase
     public function testTransactionalHelperRollsBackOnException(): void
     {
         try {
-            $this->connection->transactional(function () {
+            $this->connection->transactional(function (): void {
                 $this->connection->insert(self::TABLE, ['id' => 120, 'val' => 'will_rollback']);
 
-                throw new \RuntimeException('Intentional failure');
+                throw new RuntimeException('Intentional failure');
             });
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             // expected
         }
 
@@ -506,4 +485,26 @@ class TransactionTest extends FunctionalTestCase
             TransactionIsolationLevel::READ_COMMITTED,
         );
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $table = new Table(self::TABLE);
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('val', Types::STRING, ['length' => 100, 'notnull' => false]);
+        $table->setPrimaryKey(['id']);
+
+        $this->dropAndCreateTable($table);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }// =========================================================================
+
+// Basic begin / commit / rollBack
+// =========================================================================
 }

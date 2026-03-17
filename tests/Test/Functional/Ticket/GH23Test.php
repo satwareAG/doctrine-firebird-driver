@@ -8,6 +8,12 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function array_change_key_case;
+use function array_keys;
+use function trim;
+
+use const CASE_LOWER;
+
 /**
  * Regression test for GH-23: Padded alias keys in fetchAssociative.
  *
@@ -21,13 +27,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class GH23Test extends FunctionalTestCase
 {
-    private const TABLE = 'gh23_regression';
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE);
-        parent::tearDown();
-    }
+    private const string TABLE = 'gh23_regression';
 
     /**
      * Column keys in fetchAssociative must not be padded with trailing spaces.
@@ -67,7 +67,7 @@ class GH23Test extends FunctionalTestCase
     public function testFetchAssociativeReturnsUnpaddedAliasKeys(): void
     {
         $row = $this->connection->fetchAssociative(
-            "SELECT 42 AS my_alias FROM RDB\$DATABASE",
+            'SELECT 42 AS my_alias FROM RDB$DATABASE',
         );
 
         self::assertIsArray($row);
@@ -105,5 +105,12 @@ class GH23Test extends FunctionalTestCase
                 self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
             }
         }
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE);
+
+        parent::tearDown();
     }
 }

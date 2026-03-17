@@ -8,6 +8,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
+use function class_exists;
 use function uniqid;
 
 /**
@@ -33,7 +34,7 @@ class QueryInTransactionTest extends FunctionalTestCase
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 
-        $tx     = $conn->getActiveTransaction();
+        $tx = $conn->getActiveTransaction();
         self::assertNotNull($tx, 'Active transaction must exist');
 
         $result = $conn->queryInTransaction($tx, 'SELECT 1 FROM RDB$DATABASE');
@@ -138,7 +139,7 @@ class QueryInTransactionTest extends FunctionalTestCase
         $tx = $conn->getActiveTransaction();
         self::assertNotNull($tx, 'Active transaction must exist');
 
-        $this->expectException(\Throwable::class);
+        $this->expectException(Throwable::class);
         $conn->queryInTransaction($tx, 'THIS IS NOT VALID SQL AT ALL');
     }
 

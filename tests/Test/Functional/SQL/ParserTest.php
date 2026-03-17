@@ -21,8 +21,8 @@ class ParserTest extends FunctionalTestCase
      */
     public function testParseSimpleSelect(): void
     {
-        $sql    = 'SELECT 1 FROM RDB$DATABASE';
-        $parser = new Parser(false);
+        $sql     = 'SELECT 1 FROM RDB$DATABASE';
+        $parser  = new Parser(false);
         $visitor = new ConvertParameters();
 
         $parser->parse($sql, $visitor);

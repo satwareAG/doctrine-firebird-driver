@@ -26,29 +26,6 @@ class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
     private string $tableParent = '';
     private string $tableChild  = '';
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->tableParent = 'fkv_parent_' . uniqid();
-        $this->tableChild  = 'fkv_child_' . uniqid();
-
-        $setupConn    = TestUtil::getConnection();
-        $schemaManager = $setupConn->createSchemaManager();
-
-        $parent = new Table($this->tableParent);
-        $parent->addColumn('id', Types::INTEGER);
-        $parent->setPrimaryKey(['id']);
-
-        $child = new Table($this->tableChild);
-        $child->addColumn('id', Types::INTEGER);
-        $child->addColumn('parent_id', Types::INTEGER);
-        $child->setPrimaryKey(['id']);
-        $child->addForeignKeyConstraint($parent, ['parent_id'], ['id']);
-
-        $schemaManager->createTable($parent);
-        $schemaManager->createTable($child);
-    }
-
     public function tearDown(): void
     {
         $this->markConnectionNotReusable();
@@ -100,5 +77,29 @@ class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
 
         // Delete parent while child still references it
         $this->connection->delete($this->tableParent, ['id' => 1]);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->tableParent = 'fkv_parent_' . uniqid();
+        $this->tableChild  = 'fkv_child_' . uniqid();
+
+        $setupConn     = TestUtil::getConnection();
+        $schemaManager = $setupConn->createSchemaManager();
+
+        $parent = new Table($this->tableParent);
+        $parent->addColumn('id', Types::INTEGER);
+        $parent->setPrimaryKey(['id']);
+
+        $child = new Table($this->tableChild);
+        $child->addColumn('id', Types::INTEGER);
+        $child->addColumn('parent_id', Types::INTEGER);
+        $child->setPrimaryKey(['id']);
+        $child->addForeignKeyConstraint($parent, ['parent_id'], ['id']);
+
+        $schemaManager->createTable($parent);
+        $schemaManager->createTable($child);
     }
 }

@@ -10,6 +10,10 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 
+use function array_filter;
+use function assert;
+use function class_exists;
+
 /**
  * Tests the PrimaryReadReplicaConnection pattern with Firebird.
  *
@@ -25,67 +29,6 @@ use Throwable;
 class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
 {
     private PrimaryReadReplicaConnection $primaryReplicaConnection;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(PrimaryReadReplicaConnection::class)) {
-            self::markTestSkipped('PrimaryReadReplicaConnection is not available in this DBAL version.');
-        }
-
-        $params = TestUtil::getConnectionParams();
-
-        // In CI/single-instance environments, primary and replica point to the same DB.
-        // This validates the connection-switching logic without requiring real replication.
-        $connectionParams = [
-            'wrapperClass' => PrimaryReadReplicaConnection::class,
-            'driver'       => $params['driver'] ?? null,
-            'driverClass'  => $params['driverClass'] ?? null,
-            'host'         => $params['host'] ?? 'localhost',
-            'port'         => $params['port'] ?? 3050,
-            'dbname'       => $params['dbname'] ?? null,
-            'user'         => $params['user'] ?? null,
-            'password'     => $params['password'] ?? null,
-            'primary'      => [
-                'host'     => $params['host'] ?? 'localhost',
-                'port'     => $params['port'] ?? 3050,
-                'dbname'   => $params['dbname'] ?? null,
-                'user'     => $params['user'] ?? null,
-                'password' => $params['password'] ?? null,
-            ],
-            'replica' => [
-                [
-                    'host'     => $params['host'] ?? 'localhost',
-                    'port'     => $params['port'] ?? 3050,
-                    'dbname'   => $params['dbname'] ?? null,
-                    'user'     => $params['user'] ?? null,
-                    'password' => $params['password'] ?? null,
-                ],
-            ],
-        ];
-
-        // Remove null values to avoid DBAL parameter validation issues
-        $connectionParams = array_filter($connectionParams, static fn ($v) => $v !== null);
-
-        /** @var PrimaryReadReplicaConnection $conn */
-        $conn = DriverManager::getConnection($connectionParams);
-
-        if (! $conn instanceof PrimaryReadReplicaConnection) {
-            self::markTestSkipped('Could not create PrimaryReadReplicaConnection for Firebird.');
-        }
-
-        $this->primaryReplicaConnection = $conn;
-    }
-
-    protected function tearDown(): void
-    {
-        if (isset($this->primaryReplicaConnection)) {
-            $this->primaryReplicaConnection->close();
-        }
-
-        parent::tearDown();
-    }
 
     /**
      * Read queries use the replica connection.
@@ -149,5 +92,66 @@ class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
         self::assertTrue($this->primaryReplicaConnection->isConnectedToPrimary());
 
         $this->primaryReplicaConnection->rollBack();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! class_exists(PrimaryReadReplicaConnection::class)) {
+            self::markTestSkipped('PrimaryReadReplicaConnection is not available in this DBAL version.');
+        }
+
+        $params = TestUtil::getConnectionParams();
+
+        // In CI/single-instance environments, primary and replica point to the same DB.
+        // This validates the connection-switching logic without requiring real replication.
+        $connectionParams = [
+            'wrapperClass' => PrimaryReadReplicaConnection::class,
+            'driver'       => $params['driver'] ?? null,
+            'driverClass'  => $params['driverClass'] ?? null,
+            'host'         => $params['host'] ?? 'localhost',
+            'port'         => $params['port'] ?? 3050,
+            'dbname'       => $params['dbname'] ?? null,
+            'user'         => $params['user'] ?? null,
+            'password'     => $params['password'] ?? null,
+            'primary'      => [
+                'host'     => $params['host'] ?? 'localhost',
+                'port'     => $params['port'] ?? 3050,
+                'dbname'   => $params['dbname'] ?? null,
+                'user'     => $params['user'] ?? null,
+                'password' => $params['password'] ?? null,
+            ],
+            'replica' => [
+                [
+                    'host'     => $params['host'] ?? 'localhost',
+                    'port'     => $params['port'] ?? 3050,
+                    'dbname'   => $params['dbname'] ?? null,
+                    'user'     => $params['user'] ?? null,
+                    'password' => $params['password'] ?? null,
+                ],
+            ],
+        ];
+
+        // Remove null values to avoid DBAL parameter validation issues
+        $connectionParams = array_filter($connectionParams, static fn ($v) => $v !== null);
+
+        $conn = DriverManager::getConnection($connectionParams);
+        assert($conn instanceof PrimaryReadReplicaConnection);
+
+        if (! $conn instanceof PrimaryReadReplicaConnection) {
+            self::markTestSkipped('Could not create PrimaryReadReplicaConnection for Firebird.');
+        }
+
+        $this->primaryReplicaConnection = $conn;
+    }
+
+    protected function tearDown(): void
+    {
+        if (isset($this->primaryReplicaConnection)) {
+            $this->primaryReplicaConnection->close();
+        }
+
+        parent::tearDown();
     }
 }

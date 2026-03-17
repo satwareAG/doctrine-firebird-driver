@@ -48,7 +48,7 @@ fi
 # Default Configuration
 # =============================================================================
 
-PHP_VERSION="${PHP_VERSION:-8.1}"
+PHP_VERSION="${PHP_VERSION:-8.4}"
 REBUILD_CONTAINER=false
 COVERAGE_ONLY=false
 QUICK_MODE=false

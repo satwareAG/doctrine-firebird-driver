@@ -8,8 +8,10 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\Types;
+use PHPUnit\Framework\Attributes\Large;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 
+#[Large]
 class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
     /**
@@ -69,9 +71,6 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($this->schemaManager->tablesExist(['table_to_create']));
     }
 
-    /**
-     * @large
-     */
     public function testSchemaIntrospection(): void
     {
         parent::testSchemaIntrospection();

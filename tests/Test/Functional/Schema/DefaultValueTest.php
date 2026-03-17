@@ -24,24 +24,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class DefaultValueTest extends FunctionalTestCase
 {
-    private const TABLE = 'default_value_test';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->dropTableIfExists(self::TABLE);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->dropTableIfExists(self::TABLE);
-        $this->markConnectionNotReusable();
-        parent::tearDown();
-    }
-
-    // =========================================================================
-    // Integer defaults
-    // =========================================================================
+    private const string TABLE = 'default_value_test';
 
     public function testIntegerDefaultZero(): void
     {
@@ -326,4 +309,22 @@ class DefaultValueTest extends FunctionalTestCase
         );
         self::assertSame(55, (int) $val);
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dropTableIfExists(self::TABLE);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->dropTableIfExists(self::TABLE);
+        $this->markConnectionNotReusable();
+
+        parent::tearDown();
+    }// =========================================================================
+
+// Integer defaults
+// =========================================================================
 }

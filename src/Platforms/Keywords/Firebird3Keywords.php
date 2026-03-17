@@ -22,8 +22,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-use function array_merge;
 use Override;
+
+use function array_merge;
 
 class Firebird3Keywords extends FirebirdKeywords
 {

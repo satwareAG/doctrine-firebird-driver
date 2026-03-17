@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
@@ -21,7 +22,6 @@ use function preg_match;
 use function sprintf;
 use function strtolower;
 use function strtoupper;
-use Override;
 
 /** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection

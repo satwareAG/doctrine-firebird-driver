@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -17,6 +18,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+use Throwable;
 
 class VersionAwarePlatformDriverTest extends TestCase
 {
@@ -43,7 +45,7 @@ class VersionAwarePlatformDriverTest extends TestCase
     public function testFirebirdDriverThrowsOnNonStringVersion(): void
     {
         $driver = new Driver();
-        $this->expectException(\Exception::class);
+        $this->expectException(Throwable::class);
         // @phpstan-ignore argument.type
         $driver->createDatabasePlatformForVersion(42);
     }
@@ -57,7 +59,7 @@ class VersionAwarePlatformDriverTest extends TestCase
         $driver = new class extends FirebirdDriver {
             public function connect(array $params): DriverConnection
             {
-                throw new \RuntimeException('Not implemented in test stub');
+                throw new RuntimeException('Not implemented in test stub');
             }
         };
 
@@ -82,6 +84,7 @@ class VersionAwarePlatformDriverTest extends TestCase
         yield ['LI-V4.1.2.34567', Firebird4Platform::class];
         yield ['LI-V5.1.2.34567', Firebird5Platform::class];
         yield ['LI-V6.1.2.34567', Firebird5Platform::class];
+
         // Plain numeric format returned by newer Firebird Docker images (firebirdsql/firebird:3, :4, :5)
         yield ['2.5.9.27139', FirebirdPlatform::class];
         yield ['3.0.13.33818', Firebird3Platform::class];
