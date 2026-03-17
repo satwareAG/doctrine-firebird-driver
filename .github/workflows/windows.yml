@@ -92,4 +92,4 @@ jobs:
         run: composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run Unit Tests
-        run: vendor/bin/phpunit --testsuite Unit
+        run: vendor/bin/phpunit -c tests/phpunit.xml --testsuite Unit
