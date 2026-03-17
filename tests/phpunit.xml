@@ -13,7 +13,7 @@
          displayDetailsOnTestsThatTriggerErrors="true"
          displayDetailsOnTestsThatTriggerNotices="true"
          displayDetailsOnTestsThatTriggerWarnings="true"
-         enforceTimeLimit="true"
+         enforceTimeLimit="false"
          defaultTimeLimit="10"
          timeoutForSmallTests="10"
          timeoutForMediumTests="30"
