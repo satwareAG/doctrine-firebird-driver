@@ -155,5 +155,7 @@ jobs:
       - name: Run Unit Tests
         run: |
           php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension is active!'; } else { echo '❌ firebird extension is NOT active'; exit(1); }"
-          # Run PHPUnit with explicit configuration and display all details
-          php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations
+          # Ultimate test: run without configuration to see if tests are discovered
+          php vendor/phpunit/phpunit/phpunit tests/Test/Unit --no-configuration --bootstrap tests/phpunit.bootstrap.php
+          # Then try with configuration but explicit directory and backslashes
+          php vendor/phpunit/phpunit/phpunit -c phpunit.xml tests\Test\Unit
