@@ -25,9 +25,9 @@ use function strtolower;
  */
 class SchemaTest extends FunctionalTestCase
 {
-    private const string TABLE_A = 'schema_test_a';
-    private const string TABLE_B = 'schema_test_b';
-    private const string TABLE_C = 'schema_test_c';
+    private const TABLE_A = 'schema_test_a';
+    private const TABLE_B = 'schema_test_b';
+    private const TABLE_C = 'schema_test_c';
 
     public function testIntrospectSchemaContainsCreatedTable(): void
     {

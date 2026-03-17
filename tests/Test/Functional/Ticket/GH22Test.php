@@ -20,7 +20,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class GH22Test extends FunctionalTestCase
 {
-    private const string TABLE = 'gh22_regression';
+    private const TABLE = 'gh22_regression';
 
     /**
      * After close() + reconnect, the connection resource must be valid.
