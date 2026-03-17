@@ -39,11 +39,17 @@ jobs:
       - name: Install Firebird
         run: |
           choco install firebird --version=4.0.6 -y
-          echo "C:\Program Files\Firebird\Firebird_4_0" >> $GITHUB_PATH
+          # Add Firebird path to GITHUB_PATH
+          echo "C:\Program Files\Firebird\Firebird_4_0" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           # Ensure service is started
           try {
-            Start-Service -Name "FirebirdServerDefaultInstance" -ErrorAction Stop
-            Write-Host "Firebird service started"
+            $service = Get-Service -Name "FirebirdServerDefaultInstance" -ErrorAction SilentlyContinue
+            if ($service) {
+              Start-Service -Name "FirebirdServerDefaultInstance" -ErrorAction Stop
+              Write-Host "Firebird service started"
+            } else {
+              Write-Warning "Firebird service not found"
+            }
           } catch {
             Write-Warning "Could not start Firebird service: $_"
           }
@@ -56,10 +62,9 @@ jobs:
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
           $releases = Invoke-RestMethod -Uri $apiUrl
           
-          # We prefer v7.3.0 or later, but fallback to what's available for the PHP version
           # Map PHP version to DLL name format
           $arch = "x86_64"
-          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
+          $vs = if ([version]$phpVer -ge [version]"8.4") { "vs17" } else { "vs16" }
           $pattern = "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip"
           
           $targetAsset = $null
@@ -97,20 +102,30 @@ jobs:
           }
           
           # Enable extension in php.ini
-          $phpIni = (php --ini | Select-String "Loaded Configuration File" | ForEach-Object { $_.ToString().Split(":")[1].Trim() })
-          if (-not $phpIni) {
+          $phpIni = (php --ini | Select-String "Loaded Configuration File" | ForEach-Object { 
+              $line = $_.ToString()
+              if ($line -match ":\s*(.+)$") { $matches[1].Trim() }
+          })
+          if (-not $phpIni -or -not (Test-Path $phpIni)) {
               $phpIni = "$phpDir\php.ini"
               if (-not (Test-Path $phpIni)) {
-                  Copy-Item "$phpDir\php.ini-development" $phpIni
+                  if (Test-Path "$phpDir\php.ini-development") {
+                      Copy-Item "$phpDir\php.ini-development" $phpIni
+                  } else {
+                      New-Item -Path $phpIni -ItemType File
+                  }
               }
           }
+          
+          Write-Host "Using php.ini: $phpIni"
           Add-Content -Path $phpIni -Value "`nextension=firebird"
-          # Also need to make sure pdo_firebird is NOT enabled as we use the native driver
-          # But setup-php might have enabled it. We check.
+          
+          # Debug: show loaded extensions and ini location
+          php --ini
           php -m
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress
+        run: composer update --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
       - name: Run Unit Tests
         run: vendor/bin/phpunit --testsuite Unit
