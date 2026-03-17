@@ -145,4 +145,15 @@ jobs:
         run: composer update --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
       - name: Run Unit Tests
-        run: vendor/bin/phpunit --testsuite Unit
+        run: |
+          Write-Host "--- DEBUG: File System ---"
+          Get-ChildItem -Path tests -Recurse | Select-Object FullName
+          Write-Host "--- DEBUG: PHP Info ---"
+          php -m
+          php --ini
+          Write-Host "--- DEBUG: PHPUnit List Tests ---"
+          vendor/bin/phpunit --list-tests
+          Write-Host "--- DEBUG: Single Test ---"
+          vendor/bin/phpunit tests/Test/Unit/ValueFormatterTest.php
+          Write-Host "--- RUN: Unit Testsuite ---"
+          vendor/bin/phpunit --testsuite Unit
