@@ -237,6 +237,7 @@ class TestUtil
     private static function mapConnectionParameters(array $configuration, string $prefix): array
     {
         $parameters = [];
+        $driverClass = $configuration['db_driver_class'] ?? 'Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver';
 
         foreach (
             [
@@ -273,7 +274,7 @@ class TestUtil
             $parameters['driverOptions'][substr($param, strlen($prefix . 'driver_option_'))] = $value;
         }
 
-        $parameters['driverClass'] = $configuration['db_driver_class'];
+        $parameters['driverClass'] = $driverClass;
 
         return $parameters;
     }
