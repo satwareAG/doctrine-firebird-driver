@@ -54,8 +54,18 @@ jobs:
               # Initialize security database for Firebird 4.0
               # Sometimes the installer doesn't fully initialize it on CI environments
               Start-Sleep -Seconds 5
-              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "CREATE USER SYSDBA PASSWORD 'masterkey';" 2>$null
-              Write-Host "Firebird security database initialized (or already initialized)"
+              $fbConf = "$fbDir\firebird.conf"
+              if (Test-Path $fbConf) {
+                  Write-Host "Modifying firebird.conf to allow Legacy_Auth as fallback"
+                  (Get-Content $fbConf) -replace "#UserManager = Srp", "UserManager = Srp, Legacy_UserManager" | Set-Content $fbConf
+                  (Get-Content $fbConf) -replace "#AuthServer = Srp", "AuthServer = Srp, Legacy_Auth" | Set-Content $fbConf
+                  Restart-Service -Name "FirebirdServerDefaultInstance" -Force
+                  Start-Sleep -Seconds 5
+              }
+              Write-Host "Initializing SYSDBA user..."
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "CREATE USER SYSDBA PASSWORD 'masterkey' USING PLUGIN SRP;" 2>$null
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "CREATE USER SYSDBA PASSWORD 'masterkey' USING PLUGIN Legacy_UserManager;" 2>$null
+              Write-Host "Firebird security database initialized"
               # Verify connectivity
               & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do 'select 1 from rdb$database;'
               if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready and reachable" }
