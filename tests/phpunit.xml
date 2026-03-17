@@ -34,9 +34,9 @@
   </php>
   <testsuites>
     <testsuite name="Unit">
-      <directory>./Test/Unit</directory>
-      <directory>./Test/Platforms</directory>
-      <directory>./Test/Tools</directory>
+      <directory>tests/Test/Unit</directory>
+      <directory>tests/Test/Platforms</directory>
+      <directory>tests/Test/Tools</directory>
     </testsuite>
     <testsuite name="Integration-ReadOnly">
       <file>./Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php</file>
