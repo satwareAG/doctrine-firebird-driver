@@ -155,5 +155,5 @@ jobs:
       - name: Run Unit Tests
         run: |
           php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension is active!'; } else { echo '❌ firebird extension is NOT active'; exit(1); }"
-          # Run PHPUnit explicitly pointing to the Unit directory to avoid any discovery issues with the XML testsuite on Windows
-          php vendor/phpunit/phpunit/phpunit -c phpunit.xml tests/Test/Unit
+          # Run PHPUnit with more verbose output and try to identify why it's not executing tests
+          php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations --verbose
