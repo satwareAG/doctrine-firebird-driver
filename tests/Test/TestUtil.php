@@ -238,13 +238,13 @@ class TestUtil
     {
         $parameters = [];
         $driverClass = $configuration['db_driver_class'] ?? 'Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver';
+        $dbHost = $configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1';
 
         foreach (
             [
                 'driver',
                 'user',
                 'password',
-                'host',
                 'dbname',
                 'memory',
                 'port',
@@ -275,6 +275,7 @@ class TestUtil
         }
 
         $parameters['driverClass'] = $driverClass;
+        $parameters['host'] = $dbHost;
 
         return $parameters;
     }
