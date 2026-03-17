@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.1] - 2026-03-17
+
+### Fixed
+- **FirebirdSchemaManager Table Comments** — Correctly retrieve and map table comments during
+  introspection; improved uppercase table name handling for reliable comment lookup (#92)
+- **Docker Recursion Hang** — Prevent recursive `docker compose` calls in `PhpunitScriptTest` when
+  running inside the container, avoiding CI hangs at 67% progress (#92)
+- **Database Permissions** — Fixed file ownership of `.fdb` databases in Firebird containers to
+  resolve "I/O error" and "object in use" issues during test cleanup (#92)
+
+### Changed
+- **php-firebird v7.3.0** — Standardized on the latest stable extension version across all CI
+  environments (Docker and GitHub Actions Linux/Windows) (#93)
+
 ## [3.12.1-rc.1] - 2026-03-16
 
 ### Fixed

@@ -11,7 +11,7 @@ To utilize this library in your application code, the following is required:
 
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
-- [**php-firebird extension**](https://github.com/satwareAG/php-firebird) **v7.3.0+** (satwareAG fork with IBatch, Exception Mode, OO API)
+- **php-firebird extension** v7.3.0+ (satwareAG fork with IBatch, Exception Mode, OO API, PHP 8.4 hardening)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
 
 ## Version Compatibility Matrix
