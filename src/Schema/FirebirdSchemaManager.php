@@ -11,9 +11,10 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use Doctrine\Deprecations\Deprecation;
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -43,7 +44,6 @@ use function trim;
 use const CASE_LOWER;
 use const CASE_UPPER;
 use const FBIRD_CREATE;
-use Override;
 
 /**
  * Firebird Schema Manager.
@@ -52,29 +52,29 @@ use Override;
  */
 class FirebirdSchemaManager extends AbstractSchemaManager
 {
-    public const META_FIELD_TYPE_SMALLINT = 7;
+    public const int META_FIELD_TYPE_SMALLINT = 7;
 
-    public const META_FIELD_TYPE_INTEGER = 8;
+    public const int META_FIELD_TYPE_INTEGER = 8;
 
-    public const META_FIELD_TYPE_FLOAT = 10;
+    public const int META_FIELD_TYPE_FLOAT = 10;
 
-    public const META_FIELD_TYPE_DATE = 12;
+    public const int META_FIELD_TYPE_DATE = 12;
 
-    public const META_FIELD_TYPE_TIME = 13;
+    public const int META_FIELD_TYPE_TIME = 13;
 
-    public const META_FIELD_TYPE_CHAR = 14;
+    public const int META_FIELD_TYPE_CHAR = 14;
 
-    public const META_FIELD_TYPE_BIGINT = 16;
+    public const int META_FIELD_TYPE_BIGINT = 16;
 
-    public const META_FIELD_TYPE_DOUBLE = 27;
+    public const int META_FIELD_TYPE_DOUBLE = 27;
 
-    public const META_FIELD_TYPE_TIMESTAMP = 35;
+    public const int META_FIELD_TYPE_TIMESTAMP = 35;
 
-    public const META_FIELD_TYPE_VARCHAR = 37;
+    public const int META_FIELD_TYPE_VARCHAR = 37;
 
-    public const META_FIELD_TYPE_CSTRING = 40;
+    public const int META_FIELD_TYPE_CSTRING = 40;
 
-    public const META_FIELD_TYPE_BLOB = 261;
+    public const int META_FIELD_TYPE_BLOB = 261;
 
     /**
      * @throws Exception
@@ -185,24 +185,6 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         fbird_close($result);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @deprecated Use {@see introspectTable()} instead.
-     */
-    #[Override]
-    public function listTableDetails($name)
-    {
-        Deprecation::triggerIfCalledFromOutside(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/5595',
-            '%s is deprecated. Use introspectTable() instead.',
-            __METHOD__,
-        );
-
-        return $this->introspectTable($name);
-    }
-
     #[Override]
     public function createComparator(): Comparator
     {
@@ -226,6 +208,32 @@ class FirebirdSchemaManager extends AbstractSchemaManager
             self::META_FIELD_TYPE_SMALLINT => 'smallint',
             self::META_FIELD_TYPE_INTEGER => 'integer',
         ];
+    }
+
+    #[Override]
+    public function listTableDetails($name)
+    {
+        $database = $this->_conn->getDatabase() ?? '';
+        $normalizedName = $this->normalizeName($name);
+        $tableOptions = $this->fetchTableOptionsByTable($database, $normalizedName);
+
+        $columns     = $this->listTableColumns($name);
+        $foreignKeys = [];
+
+        if ($this->_platform->supportsForeignKeyConstraints()) {
+            $foreignKeys = $this->listTableForeignKeys($name);
+        }
+
+        $indexes = $this->listTableIndexes($name);
+
+        $table = new Table($name, $columns, $indexes, [], $foreignKeys);
+
+        if (isset($tableOptions[$normalizedName]['comment'])) {
+            $table->addOption('comment', $tableOptions[$normalizedName]['comment']);
+            $table->setComment($tableOptions[$normalizedName]['comment']);
+        }
+
+        return $table;
     }
 
     /**
@@ -481,20 +489,22 @@ class FirebirdSchemaManager extends AbstractSchemaManager
 SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME, RDB$DESCRIPTION AS COMMENT
 FROM RDB$RELATIONS
 WHERE RDB$RELATION_TYPE = 0 -- 0 indicates a table, 1 indicates a view
-
 ___query___;
 
         if ($tableName !== null) {
-            $sql .= "AND UPPER(RDB\$RELATION_NAME) = UPPER('" . $tableName . "')";
+            $identifier = new Identifier($tableName);
+            $tableNameForQuery = $identifier->getName();
+            $sql .= " AND (UPPER(RDB\$RELATION_NAME) = UPPER('" . $tableNameForQuery . "') OR TRIM(RDB\$RELATION_NAME) = '" . $tableNameForQuery . "')";
         }
 
-        /** @var array<string,array<string,mixed>> $metadata */
+        /** @var array<int,array<string,mixed>> $metadata */
         $metadata = $this->_conn->executeQuery($sql)
-            ->fetchAllAssociativeIndexed();
+            ->fetchAllAssociative();
 
         $tableOptions = [];
-        foreach ($metadata as $table => $data) {
+        foreach ($metadata as $data) {
             $data = array_change_key_case($data, CASE_LOWER);
+            $table = strtoupper(trim((string) $data['table_name']));
 
             $tableOptions[$table] = [
                 'comment' => $data['comment'],
