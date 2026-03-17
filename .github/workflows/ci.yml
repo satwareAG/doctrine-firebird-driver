@@ -163,9 +163,15 @@ jobs:
           git fetch --tags --depth 1
 
           phpize
-          # Set FB_API_VER=40 BEFORE configure so it's properly embedded in the Makefile
-          # This enables IBatch API support for Firebird 4.0+
-          export CPPFLAGS="-DFB_API_VER=40"
+          # Set FB_API_VER BEFORE configure so it's properly embedded in the Makefile
+          # FB_API_VER=40 enables IBatch API support (requires Firebird 4.0+)
+          # Only set for Firebird 4.0+ to avoid API mismatch crashes with Firebird 3.0
+          if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
+            echo "Enabling FB_API_VER=40 for Firebird ${{ matrix.firebird.version }}"
+            export CPPFLAGS="-DFB_API_VER=40"
+          else
+            echo "Using default API for Firebird ${{ matrix.firebird.version }}"
+          fi
           ./configure --with-firebird
           make -j"$(nproc)"
           sudo make install
