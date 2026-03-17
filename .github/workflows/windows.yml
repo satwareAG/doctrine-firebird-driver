@@ -33,64 +33,84 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, mbstring, intl
+          extensions: mbstring, intl
           coverage: none
 
       - name: Install Firebird
         run: |
           choco install firebird --version=4.0.6 -y
           echo "C:\Program Files\Firebird\Firebird_4_0" >> $GITHUB_PATH
+          # Ensure service is started
+          try {
+            Start-Service -Name "FirebirdServerDefaultInstance" -ErrorAction Stop
+            Write-Host "Firebird service started"
+          } catch {
+            Write-Warning "Could not start Firebird service: $_"
+          }
 
       - name: Download php-firebird DLL
-        shell: powershell
+        shell: pwsh
         run: |
           $phpVer = "${{ matrix.php }}"
-          # Map PHP version to DLL name format
-          # Release v7.3.0 uses 'php_firebird-v7.3.0-...'
-          $dllName = "php_firebird-v7.3.0-$phpVer-nts-vs"
-          if ($phpVer -ge "8.4") { $dllName += "17-x86_64.zip" } else { $dllName += "16-x86_64.zip" }
+          # Get available releases to find the correct version
+          $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
+          $releases = Invoke-RestMethod -Uri $apiUrl
           
-          $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.3.0/$dllName"
-          echo "Downloading $url"
-          try {
-              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip" -ErrorAction Stop
-          } catch {
-              # Fallback to v7.2.1 if v7.3.0 is missing for this version
-              $dllName = "php_firebird-7.2.1-$phpVer-vs16-x86_64.zip"
-              $url = "https://github.com/satwareAG/php-firebird/releases/download/v7.2.1/$dllName"
-              echo "Falling back to $url"
-              Invoke-WebRequest -Uri $url -OutFile "php_firebird.zip"
+          # We prefer v7.3.0 or later, but fallback to what's available for the PHP version
+          # Map PHP version to DLL name format
+          $arch = "x86_64"
+          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
+          $pattern = "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip"
+          
+          $targetAsset = $null
+          foreach ($release in $releases) {
+              $asset = $release.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
+              if ($asset) {
+                  $targetAsset = $asset
+                  break
+              }
           }
+          
+          if (-not $targetAsset) {
+              Write-Error "Could not find a suitable php-firebird DLL for PHP $phpVer"
+              exit 1
+          }
+          
+          Write-Host "Downloading $($targetAsset.browser_download_url)"
+          Invoke-WebRequest -Uri $targetAsset.browser_download_url -OutFile "php_firebird.zip"
           Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp" -Force
           
           $phpPath = (Get-Command php).Source
           $phpDir = Split-Path -Parent $phpPath
           $extDir = "$phpDir\ext"
           
-          # Fix: Use wildcard filter because ZIP contains versioned filenames like 'php_firebird-v7.3.0-...'
-          # Avoid deep recursion if possible, check top level first
           $dllPath = Get-ChildItem -Path "ext_temp" -Filter "php_firebird*.dll" -Recurse | Select-Object -First 1
           
           if ($dllPath) {
               Write-Host "Found DLL: $($dllPath.FullName)"
-              # Standard PHP naming on Windows is php_firebird.dll
               Copy-Item $dllPath.FullName -Destination "$extDir\php_firebird.dll" -Force
               Write-Host "✅ Extracted and installed php_firebird.dll"
           } else {
               Write-Error "php_firebird*.dll not found in extracted archive"
-              Get-ChildItem -Path "ext_temp" -Recurse # Debug: list what we found
+              Get-ChildItem -Path "ext_temp" -Recurse
               exit 1
           }
           
           # Enable extension in php.ini
-          if (-not (Test-Path "$phpDir\php.ini")) {
-              Copy-Item "$phpDir\php.ini-development" "$phpDir\php.ini"
+          $phpIni = (php --ini | Select-String "Loaded Configuration File" | ForEach-Object { $_.ToString().Split(":")[1].Trim() })
+          if (-not $phpIni) {
+              $phpIni = "$phpDir\php.ini"
+              if (-not (Test-Path $phpIni)) {
+                  Copy-Item "$phpDir\php.ini-development" $phpIni
+              }
           }
-          Add-Content -Path "$phpDir\php.ini" -Value "`nextension=firebird"
+          Add-Content -Path $phpIni -Value "`nextension=firebird"
+          # Also need to make sure pdo_firebird is NOT enabled as we use the native driver
+          # But setup-php might have enabled it. We check.
+          php -m
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run Unit Tests
-        working-directory: tests
-        run: ../vendor/bin/phpunit -c phpunit.xml --testsuite Unit
+        run: vendor/bin/phpunit --testsuite Unit

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+         colors="true"
+         bootstrap="tests/phpunit.bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         enforceTimeLimit="false"
+         defaultTimeLimit="10"
+         timeoutForSmallTests="10"
+         timeoutForMediumTests="30"
+         timeoutForLargeTests="120"
+         stopOnDefect="true"
+>
+  <php>
+    <ini name="error_reporting" value="-1"/>
+    <var name="db_driver_class" value="Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver"/>
+    <var name="db_host" value="firebird3"/>
+    <var name="db_user" value="SYSDBA"/>
+    <var name="db_password" value="masterkey"/>
+    <var name="db_dbname" value="test.fdb"/>
+    <var name="db_charset" value="UTF8" />
+    <var name="db_test_logging" value="0" />
+    <var name="PHP_IDE_CONFIG" value="serverName=phpconsole" />
+    <ini name="memory_limit" value="4G"/>
+  </php>
+  <testsuites>
+    <testsuite name="Unit">
+      <directory>tests/Test/Unit</directory>
+      <directory>tests/Test/Platforms</directory>
+      <directory>tests/Test/Tools</directory>
+    </testsuite>
+    <testsuite name="Integration-ReadOnly">
+      <file>tests/Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php</file>
+      <file>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindTest.php</file>
+      <file>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindAllTest.php</file>
+      <file>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindByTest.php</file>
+      <file>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindOneByTest.php</file>
+    </testsuite>
+    <testsuite name="Integration-Write">
+      <directory>tests/Test/Integration</directory>
+      <directory>tests/Test/Driver</directory>
+      <exclude>tests/Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php</exclude>
+      <exclude>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindTest.php</exclude>
+      <exclude>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindAllTest.php</exclude>
+      <exclude>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindByTest.php</exclude>
+      <exclude>tests/Test/Integration/Doctrine/ORM/EntityManager/Repository/FindOneByTest.php</exclude>
+    </testsuite>
+    <testsuite name="Functional">
+      <directory>tests/Test/Functional</directory>
+    </testsuite>
+  </testsuites>
+  <groups>
+    <exclude>
+      <group>deprecated</group>
+    </exclude>
+  </groups>
+  <source>
+    <include>
+      <directory>src</directory>
+    </include>
+    <exclude>
+      <directory>src/Compat</directory>
+    </exclude>
+  </source>
+  <coverage
+    includeUncoveredFiles="true"
+    ignoreDeprecatedCodeUnits="true"
+    pathCoverage="false"
+  >
+    <report>
+      <clover outputFile="tests/var/coverage/clover.xml"/>
+      <html outputDirectory="tests/var/coverage/html" lowUpperBound="50" highLowerBound="80"/>
+      <text outputFile="tests/var/coverage/coverage.txt" showUncoveredFiles="true"/>
+    </report>
+  </coverage>
+  <logging>
+    <junit outputFile="tests/var/logs/junit.xml"/>
+    <testdoxHtml outputFile="tests/var/logs/testdox.html"/>
+    <testdoxText outputFile="tests/var/logs/testdox.txt"/>
+  </logging>
+</phpunit>
