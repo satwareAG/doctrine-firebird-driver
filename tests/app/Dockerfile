@@ -11,6 +11,7 @@
 # Stage 1: Builder - Install extensions and dependencies
 # -----------------------------------------------------------------------------
 ARG PHP_VERSION=8.1
+ARG FIREBIRD_VERSION=3.0
 
 # php:8.1-cli-bookworm SHA256 digest for reproducible builds
 # To update: docker pull php:${PHP_VERSION}-cli && docker inspect --format='{{index .RepoDigests 0}}' php:${PHP_VERSION}-cli
@@ -31,12 +32,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install php-firebird extension from source (v7.3.0)
 # Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
 # include tag refs. We fetch tags explicitly so config.m4 version detection works.
+#
+# FB_API_VER=40 enables IBatch API support (requires Firebird 4.0+ AND client libraries)
+# Only set for Firebird 4.0/5.0 to avoid API mismatch crashes with Firebird 3.0 client libraries
 RUN docker-php-source extract \
     && git clone --branch v7.3.0 --depth 1 \
         https://github.com/satwareAG/php-firebird.git \
         /usr/src/php/ext/firebird \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
-    && export CPPFLAGS="-DFB_API_VER=40" \
+    && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
+        echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
+        export CPPFLAGS="-DFB_API_VER=40"; \
+    else \
+        echo "Using default API for Firebird ${FIREBIRD_VERSION}"; \
+    fi \
     && docker-php-ext-install firebird pcntl \
     && mkdir -p /usr/local/lib/php/Firebird \
     && cp /usr/src/php/ext/firebird/src/Firebird/*.php /usr/local/lib/php/Firebird/ \
@@ -111,7 +120,9 @@ CMD ["php", "-a"]
 # =============================================================================
 # Build Arguments Reference:
 # - PHP_VERSION: PHP version to use (8.1, 8.2, 8.3, 8.4, 8.5)
+# - FIREBIRD_VERSION: Firebird version (3.0, 4.0, 5.0)
+#   Controls whether IBatch API is enabled via FB_API_VER=40
 #
 # Usage:
-#   DOCKER_BUILDKIT=1 docker build --build-arg PHP_VERSION=8.3 -t test-app .
+#   DOCKER_BUILDKIT=1 docker build --build-arg PHP_VERSION=8.3 --build-arg FIREBIRD_VERSION=4.0 -t test-app .
 # =============================================================================
