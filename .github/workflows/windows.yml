@@ -40,7 +40,11 @@ jobs:
         run: |
           choco install firebird --version=4.0.6 -y
           # Add Firebird path to GITHUB_PATH
-          echo "C:\Program Files\Firebird\Firebird_4_0" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $fbDir = "C:\Program Files\Firebird\Firebird_4_0"
+          echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          # Also add to current process path to ensure DLLs are found
+          $env:PATH = "$fbDir;" + $env:PATH
+          
           # Ensure service is started
           try {
             $service = Get-Service -Name "FirebirdServerDefaultInstance" -ErrorAction SilentlyContinue
@@ -48,7 +52,8 @@ jobs:
               Start-Service -Name "FirebirdServerDefaultInstance" -ErrorAction Stop
               Write-Host "Firebird service started"
             } else {
-              Write-Warning "Firebird service not found"
+              Write-Warning "Firebird service not found, searching for alternatives..."
+              Get-Service | Where-Object { $_.Name -like "*Firebird*" }
             }
           } catch {
             Write-Warning "Could not start Firebird service: $_"
@@ -64,7 +69,7 @@ jobs:
           
           # Map PHP version to DLL name format
           $arch = "x86_64"
-          $vs = if ([version]$phpVer -ge [version]"8.4") { "vs17" } else { "vs16" }
+          $vs = if ([double]$phpVer -ge 8.4) { "vs17" } else { "vs16" }
           $pattern = "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip"
           
           $targetAsset = $null
