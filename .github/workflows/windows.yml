@@ -69,7 +69,8 @@ jobs:
           
           # Map PHP version to DLL name format
           $arch = "x86_64"
-          $vs = if ([double]$phpVer -ge 8.4) { "vs17" } else { "vs16" }
+          # For version comparison, we use a simple string-based approach that's safer in PowerShell for X.Y format
+          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
           $pattern = "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip"
           
           $targetAsset = $null
@@ -125,9 +126,20 @@ jobs:
           Write-Host "Using php.ini: $phpIni"
           Add-Content -Path $phpIni -Value "`nextension=firebird"
           
+          # Ensure Firebird client DLLs are in the PHP directory (where php.exe is)
+          # This is the most reliable way to ensure extensions can load them.
+          $fbDir = "C:\Program Files\Firebird\Firebird_4_0"
+          if (Test-Path "$fbDir\fbclient.dll") {
+              Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
+              Write-Host "✅ Copied fbclient.dll to $phpDir"
+          } else {
+              Write-Warning "fbclient.dll not found in $fbDir"
+          }
+          
           # Debug: show loaded extensions and ini location
           php --ini
           php -m
+          php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension loaded!'; } else { echo '❌ firebird extension NOT loaded'; exit(1); }"
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
