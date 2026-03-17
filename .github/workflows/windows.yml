@@ -70,16 +70,24 @@ jobs:
           # Map PHP version to DLL name format
           $arch = "x86_64"
           # For version comparison, we use a simple string-based approach that's safer in PowerShell for X.Y format
+          # PHP 8.4 and later use vs17, earlier 8.x use vs16
           $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
-          $pattern = "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip"
+          # The pattern can vary, so we try to be flexible
+          $patterns = @(
+              "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip",
+              "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip"
+          )
           
           $targetAsset = $null
-          foreach ($release in $releases) {
-              $asset = $release.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
-              if ($asset) {
-                  $targetAsset = $asset
-                  break
+          foreach ($pattern in $patterns) {
+              foreach ($release in $releases) {
+                  $asset = $release.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
+                  if ($asset) {
+                      $targetAsset = $asset
+                      break
+                  }
               }
+              if ($targetAsset) { break }
           }
           
           if (-not $targetAsset) {
@@ -146,14 +154,5 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          Write-Host "--- DEBUG: File System ---"
-          Get-ChildItem -Path tests -Recurse | Select-Object FullName
-          Write-Host "--- DEBUG: PHP Info ---"
-          php -m
-          php --ini
-          Write-Host "--- DEBUG: PHPUnit List Tests ---"
-          vendor/bin/phpunit --list-tests
-          Write-Host "--- DEBUG: Single Test ---"
-          vendor/bin/phpunit tests/Test/Unit/ValueFormatterTest.php
-          Write-Host "--- RUN: Unit Testsuite ---"
-          vendor/bin/phpunit --testsuite Unit
+          php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension is active!'; } else { echo '❌ firebird extension is NOT active'; exit(1); }"
+          php vendor/phpunit/phpunit/phpunit -c phpunit.xml --testsuite Unit
