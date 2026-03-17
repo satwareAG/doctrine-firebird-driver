@@ -16,6 +16,10 @@ class PhpunitScriptTest extends TestCase
 
     protected function setUp(): void
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->markTestSkipped('Skipping PhpunitScriptTest on Windows as it requires a Bash environment for Docker.');
+        }
+
         if (file_exists('/.dockerenv')) {
             $this->markTestSkipped('Skipping PhpunitScriptTest inside Docker to avoid recursive execution.');
         }
