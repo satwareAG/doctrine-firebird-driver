@@ -244,13 +244,15 @@ jobs:
           
           cd tests
           
+          # Use /tmp for test databases (default writable location)
+          # IMPORTANT: Run this BEFORE the firebird[0-9]* replacement to avoid
+          # /firebird/data being corrupted to /127.0.0.1/data
+          sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"
+
           # Update PHPUnit config to use localhost (service container networking)
           # Service containers are accessible via localhost when using ports mapping
           sed -i 's|firebird[0-9]*/3050|127.0.0.1/3050|g' "${PHPUNIT_CONFIG}"
           sed -i 's|firebird[0-9]*|127.0.0.1|g' "${PHPUNIT_CONFIG}"
-          
-          # Use /tmp for test databases (default writable location)
-          sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"
           
           echo "Modified PHPUnit config (${PHPUNIT_CONFIG}):"
           grep -E 'db_host|db_dbname' "${PHPUNIT_CONFIG}" || true
