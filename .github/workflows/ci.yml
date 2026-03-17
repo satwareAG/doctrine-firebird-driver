@@ -163,8 +163,10 @@ jobs:
           git fetch --tags --depth 1
 
           phpize
-          ./configure --with-firebird
+          # Set FB_API_VER=40 BEFORE configure so it's properly embedded in the Makefile
+          # This enables IBatch API support for Firebird 4.0+
           export CPPFLAGS="-DFB_API_VER=40"
+          ./configure --with-firebird
           make -j"$(nproc)"
           sudo make install
 
@@ -244,8 +246,8 @@ jobs:
           
           # Update PHPUnit config to use localhost (service container networking)
           # Service containers are accessible via localhost when using ports mapping
-          sed -i 's|firebird[0-9]*/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
-          sed -i 's|firebird25/3050|localhost/3050|g' "${PHPUNIT_CONFIG}"
+          sed -i 's|firebird[0-9]*/3050|127.0.0.1/3050|g' "${PHPUNIT_CONFIG}"
+          sed -i 's|firebird[0-9]*|127.0.0.1|g' "${PHPUNIT_CONFIG}"
           
           # Use /tmp for test databases (default writable location)
           sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"

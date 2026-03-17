@@ -92,11 +92,23 @@ class BatchTest extends FunctionalTestCase
             $version = $matches[1];
         }
 
-        if (! version_compare($version, '4.0', '<')) {
+        if (version_compare($version, '4.0', '<')) {
+            $this->markTestSkipped('IBatch API requires Firebird 4.0+. Detected: ' . $version);
+
             return;
         }
 
-        $this->markTestSkipped('IBatch API requires Firebird 4.0+. Detected: ' . $version);
+        // Also verify php-firebird was compiled with FB_API_VER >= 40
+        // by attempting to create a batch (will throw if not supported)
+        try {
+            $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'FB_API_VER')) {
+                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
+            }
+
+            throw $e;
+        }
     }
 
     private function createBatchTestTable(): void
