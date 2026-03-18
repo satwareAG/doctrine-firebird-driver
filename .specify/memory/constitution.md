@@ -1,7 +1,22 @@
+<!--
+SYNC IMPACT REPORT
+Version change: 1.0 → 1.1
+Modified principles:
+- Article I (Doctrine DBAL Compatibility First): Updated branches to 3.10.x (DBAL 3) and 4.4.x (DBAL 4).
+- Article II (PHP Extension Dependency): Updated target extension version to ^7.2.0.
+Added sections: None
+Removed sections: None
+Templates requiring updates:
+- .specify/templates/plan-template.md (✅ updated)
+- .specify/templates/spec-template.md (✅ updated)
+- .specify/templates/tasks-template.md (✅ updated)
+Follow-up TODOs: None
+-->
 # Project Constitution: doctrine-firebird-driver
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Created**: 2026-03-03  
+**Last Amended**: 2026-03-18  
 **Status**: Active  
 **Maintainer**: Michael Wegener (mw@satware.com)
 
@@ -17,21 +32,22 @@ All specifications, plans, tasks, and implementations MUST comply with these art
 
 ## Article I: Doctrine DBAL Compatibility First
 
-**MUST** maintain compatibility with `doctrine/dbal ^3.10` on the `3.0.x` branch.  
-**MUST** target `doctrine/dbal ^4.1` on the `4.0.x` branch.  
+**MUST** maintain compatibility with `doctrine/dbal ^3.10` on the `3.10.x` branch.  
+**MUST** target `doctrine/dbal ^4.4` on the `4.4.x` branch.  
 **MUST NOT** introduce breaking changes to the public API without a major version bump.  
 **MUST** use `FirebirdConnection` wrapper pattern for DBAL 4.x forward compatibility.
 
 **Rationale**: This is a library consumed by downstream applications. API stability is paramount.
+The project follows the branch and versioning strategy of the upstream `doctrine/dbal` project.
 
 ---
 
 ## Article II: PHP Extension Dependency
 
-**MUST** target `ext-firebird ^7.0.0-rc.47` (satwareAG/php-firebird fork).  
+**MUST** target `ext-firebird ^7.2.0` (satwareAG/php-firebird stable).  
 **MUST** use `fbird_*` function aliases (not deprecated `ibase_*`).  
 **MUST NOT** use PDO-based Firebird drivers.  
-**MUST** support PHP 8.1+ (minimum), with PHP 8.3+ as the recommended target.
+**MUST** support PHP 8.2+ (minimum), with PHP 8.4+ as the recommended target for DBAL 4.x.
 
 **Rationale**: The driver is built on the native PHP Firebird extension, not PDO.
 
@@ -125,6 +141,21 @@ All specifications, plans, tasks, and implementations MUST comply with these art
 **SHOULD** keep CI/CD pipelines (AppVeyor, GitHub Actions) green.
 
 **Rationale**: Reproducible test environments prevent "works on my machine" failures.
+
+---
+
+## Governance
+
+### Amendments
+This constitution can be amended by the project maintainer. Any changes MUST be documented in the Sync Impact Report and reflected in the version number.
+
+### Versioning
+- MAJOR: Backward incompatible governance/principle removals or redefinitions.
+- MINOR: New principle/section added or materially expanded guidance.
+- PATCH: Clarifications, wording, typo fixes, non-semantic refinements.
+
+### Compliance Review
+All pull requests MUST include a **Constitution Check** section in their description or within the feature specification/plan.
 
 ---
 

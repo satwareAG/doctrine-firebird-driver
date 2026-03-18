@@ -21,7 +21,7 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create feature branch `###-feature-name` from `main`
+- [ ] T001 Create feature branch `###-feature-name` from `4.4.x`
 - [ ] T002 [P] Verify Docker test environment starts: `cd tests && docker compose up -d`
 - [ ] T003 [P] Verify PHPStan baseline: `vendor/bin/phpstan analyse src/ --level=8`
 
