@@ -24,8 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     
+    env:
+      ISC_USER: SYSDBA
+      ISC_PASSWORD: masterkey
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +42,7 @@ jobs:
 
       - name: Install Firebird
         run: |
-          choco install firebird --version=4.0.6 -y
+          choco install firebird --version=3.0.12 -y
           # Add Firebird path to GITHUB_PATH dynamically
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -51,16 +55,23 @@ jobs:
               Start-Service -Name $service.Name -ErrorAction SilentlyContinue
               Write-Host "Firebird service $($service.Name) started"
               Start-Sleep -Seconds 5
-              # Initialization for FB 4.0: CREATE USER SYSDBA if needed
-              # Using a simple isql check first
-              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "select 1 from rdb`$database;" 2>$null
-              if ($LASTEXITCODE -ne 0) {
-                  Write-Host "Initializing security database..."
-                  & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "CREATE USER SYSDBA PASSWORD 'masterkey';" 2>$null
-                  & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "ALTER USER SYSDBA PASSWORD 'masterkey';" 2>$null
+              
+              # Initialize security database by creating SYSDBA user
+              # Firebird 3.0 requires explicit user creation after installation
+              Write-Host "Creating/Updating SYSDBA user in security database..."
+              # Try both gsec and isql for maximum compatibility
+              & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
+              & "$fbDir\isql.exe" -user SYSDBA -q -do "CREATE USER SYSDBA PASSWORD 'masterkey';" 2>&1
+              & "$fbDir\isql.exe" -user SYSDBA -q -do "ALTER USER SYSDBA PASSWORD 'masterkey';" 2>&1
+              
+              if ($LASTEXITCODE -eq 0) { 
+                Write-Host "✅ SYSDBA user initialized successfully" 
+              } else { 
+                Write-Host "Note: user initialization returned exit code $LASTEXITCODE"
               }
-              # Final verification
-              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "select 1 from rdb`$database;"
+              
+              # Final verification via network
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "select 1 from rdb`$database;" "localhost:employee"
               if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready and reachable" }
               else { Write-Warning "❌ Firebird ISQL check failed" }
             } else {
@@ -147,10 +158,13 @@ jobs:
           
           # Ensure Firebird client DLLs are in the PHP directory (where php.exe is)
           # This is the most reliable way to ensure extensions can load them.
-          $fbDir = "C:\Program Files\Firebird\Firebird_4_0"
+          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           if (Test-Path "$fbDir\fbclient.dll") {
               Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
               Write-Host "✅ Copied fbclient.dll to $phpDir"
+              # Create gds32.dll as a copy of fbclient.dll for legacy compatibility
+              Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
+              Write-Host "✅ Created gds32.dll in $phpDir"
           } else {
               Write-Warning "fbclient.dll not found in $fbDir"
           }
@@ -166,6 +180,6 @@ jobs:
       - name: Run Unit Tests
         run: |
           php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension is active!'; } else { echo '❌ firebird extension is NOT active'; exit(1); }"
-          # Run PHPUnit explicitly pointing to the Unit directory with the configuration file
-          # This ensures that discovery works and that all configuration variables are loaded
-          php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml tests/Test/Unit --display-warnings --display-errors --display-deprecations
+          # Run Unit testsuite as defined in phpunit.xml
+          # --no-coverage is required on Windows as PCOV is not enabled to avoid blocking warnings
+          php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations --no-coverage

@@ -77,10 +77,10 @@ jobs:
       matrix:
         # PHP versions - must be released GA with Docker Hub image available
         # See header comment for verification steps before adding new versions
-        # PHP 8.1/8.2 dropped: config.platform.php=8.3 means installed deps
-        # may use PHP 8.3+ syntax. PHP 8.1 EOL Dec 2025.
-        # Minimum effective PHP version is 8.3.
-        php-version: ['8.3', '8.4', '8.5']
+        # PHP 8.1 dropped: config.platform.php=8.2 means installed deps
+        # may use PHP 8.2+ syntax. PHP 8.1 EOL Dec 2025.
+        # Minimum effective PHP version is 8.2.
+        php-version: ['8.2', '8.3', '8.4', '8.5']
         # Firebird configs: [display-version, docker-tag, phpunit-config, experimental]
         # Firebird 3.0 is the primary target (Amicron ERP). FB4/FB5 are informational.
         # php-firebird has known SIGABRT crashes with FB5 — marked experimental.

@@ -17,6 +17,11 @@ if [[ -d "/app" ]] && [[ ! -d "/app/vendor" ]]; then
     mkdir -p /app/vendor 2>/dev/null || true
 fi
 
+# Ensure Git doesn't complain about dubious ownership in Docker volumes
+if [[ -d "/app/.git" ]] || [[ -d "/app" ]]; then
+    git config --global --add safe.directory /app 2>/dev/null || true
+fi
+
 # Wait for Firebird containers if this is a test run
 wait_for_firebird() {
     local host="$1"

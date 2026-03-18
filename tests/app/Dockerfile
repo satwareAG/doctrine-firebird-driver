@@ -103,7 +103,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Security: Create non-root user for runtime
 # UID/GID 1000 matches typical host user for volume permissions
 RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser \
+    && mkdir -p /app \
+    && chown appuser:appuser /app
 
 # Set working directory
 WORKDIR /app

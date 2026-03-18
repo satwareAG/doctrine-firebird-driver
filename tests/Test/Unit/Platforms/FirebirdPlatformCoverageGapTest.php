@@ -289,7 +289,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // getExecuteBlockSql() is protected; use Reflection to call it with blockParams
         // to cover lines 1420-1429 (the blockParams loop in EXECUTE BLOCK header).
         $method = new ReflectionMethod(FirebirdPlatform::class, 'getExecuteBlockSql');
-        $method->setAccessible(true);
 
         $result = $method->invoke($this->platform, [
             'blockParams' => ['param1' => 'INTEGER', 'param2' => 'VARCHAR(100)'],
@@ -439,7 +438,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // getQuotedNameOf() is protected; call via ReflectionMethod.
         // When given a plain string (not an AbstractAsset), it wraps it in an Identifier.
         $method = new ReflectionMethod(FirebirdPlatform::class, 'getQuotedNameOf');
-        $method->setAccessible(true);
 
         $result = $method->invoke($this->platform, 'my_table_name');
 
@@ -456,7 +454,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // When an Identifier (which extends AbstractAsset) is passed, line 1711 is hit:
         //   return $name->getQuotedName($this);
         $method = new ReflectionMethod(FirebirdPlatform::class, 'getQuotedNameOf');
-        $method->setAccessible(true);
 
         $id     = new Identifier('my_table_name'); // Identifier extends AbstractAsset
         $result = $method->invoke($this->platform, $id);
@@ -473,7 +470,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         // getDropSequenceIfExistsPSql($aSequence, $inBlock = false) → line 1532: return $result;
         $method = new ReflectionMethod(FirebirdPlatform::class, 'getDropSequenceIfExistsPSql');
-        $method->setAccessible(true);
 
         /** @var string $result */
         $result = $method->invoke($this->platform, 'MY_SEQ', false);
@@ -492,7 +488,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // _getCreateTableSQL() with a column that has a 'check' option covers line 1654:
         //   $query .= ', ' . $check;
         $method = new ReflectionMethod(FirebirdPlatform::class, '_getCreateTableSQL');
-        $method->setAccessible(true);
 
         $columnData = [
             'name'             => 'qty',
@@ -527,7 +522,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // _getCreateTableSQL() with a column that has a 'sequence' option covers line 1670:
         //   $sql[] = $this->getCreateSequenceSQL($column['sequence']);
         $method = new ReflectionMethod(FirebirdPlatform::class, '_getCreateTableSQL');
-        $method->setAccessible(true);
 
         $seq        = new Sequence('MY_SEQ');
         $columnData = [
@@ -565,7 +559,6 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // When needQuote is already true, line 1279 (continue;) is hit.
         // Trigger: pass [QuotedIdentifier, UnquotedIdentifier] as prefix array.
         $method = new ReflectionMethod(FirebirdPlatform::class, 'generateIdentifier');
-        $method->setAccessible(true);
 
         // '"quoted"' creates a quoted Identifier (isQuoted() = true)
         // On the second prefix, needQuote is already true → continue; at line 1279

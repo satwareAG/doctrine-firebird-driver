@@ -24,6 +24,10 @@ class PhpunitScriptTest extends TestCase
             $this->markTestSkipped('Skipping PhpunitScriptTest inside Docker to avoid recursive execution.');
         }
 
+        if (getenv('CI')) {
+            $this->markTestSkipped('Skipping PhpunitScriptTest in CI to avoid nested Docker issues.');
+        }
+
         $this->scriptPath = realpath(__DIR__ . '/../../../phpunit.sh');
     }
 
@@ -49,7 +53,8 @@ PHP
         $output = [];
         $exitCode = -1;
         $relativePath = 'tests/Test/Unit/Tools/PassingTest.php';
-        exec(sprintf('PHP_VERSION=8.4 %s -- %s 2>&1', $this->scriptPath, $relativePath), $output, $exitCode);
+        $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+        exec(sprintf('export SKIP_COMPOSER_UPDATE=true && export PHP_VERSION=%s && %s -- %s 2>&1', $phpVersion, $this->scriptPath, $relativePath), $output, $exitCode);
 
         unlink($tmpTest);
 
@@ -78,8 +83,9 @@ PHP
         $output = [];
         $exitCode = -1;
         $relativePath = 'tests/Test/Unit/Tools/SkippedTest.php';
-        exec(sprintf('PHP_VERSION=8.4 %s -- %s 2>&1', $this->scriptPath, $relativePath), $output, $exitCode);
-        
+        $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+        exec(sprintf('export SKIP_COMPOSER_UPDATE=true && export PHP_VERSION=%s && %s -- %s 2>&1', $phpVersion, $this->scriptPath, $relativePath), $output, $exitCode);
+
         unlink($tmpTest);
 
         self::assertSame(0, $exitCode, 'Script should return 0 for skipped tests. Output: ' . implode("\n", $output));
@@ -108,8 +114,9 @@ PHP
         $output = [];
         $exitCode = -1;
         $relativePath = 'tests/Test/Unit/Tools/FailingTest.php';
-        exec(sprintf('PHP_VERSION=8.4 %s -- %s 2>&1', $this->scriptPath, $relativePath), $output, $exitCode);
-        
+        $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+        exec(sprintf('export SKIP_COMPOSER_UPDATE=true && export PHP_VERSION=%s && %s -- %s 2>&1', $phpVersion, $this->scriptPath, $relativePath), $output, $exitCode);
+
         unlink($tmpTest);
 
         self::assertNotSame(0, $exitCode, 'Script should return non-zero for failing tests.');

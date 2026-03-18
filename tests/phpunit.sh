@@ -13,6 +13,10 @@
 
 set -euo pipefail
 
+# Export current user UID/GID for Docker volume permissions
+export CURRENT_UID=$(id -u)
+export CURRENT_GID=$(id -g)
+
 # Enable BuildKit for Docker builds
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -472,9 +476,17 @@ main() {
     fi
     
     # Install dependencies
-    print_header "Installing Dependencies"
-    docker compose run --rm -T app composer update --prefer-stable < /dev/null || die "Composer update failed"
-    print_success "Dependencies installed"
+    # Skip if explicitly requested OR if running in CI and vendor already exists
+    if [[ "${SKIP_COMPOSER_UPDATE:-false}" == "true" ]]; then
+        print_info "Skipping Composer update (SKIP_COMPOSER_UPDATE is set)"
+    elif [[ "${CI:-false}" == "true" ]] && [[ -f "$PROJECT_ROOT/vendor/autoload.php" ]]; then
+        print_info "Skipping Composer update (CI environment and vendor directory exists)"
+    else
+        print_header "Installing Dependencies"
+        # Note: git config is now handled in entrypoint.sh, but we keep it here as a fallback
+        docker compose run --rm -T app bash -c "git config --global --add safe.directory /app 2>/dev/null || true && composer update --prefer-stable" < /dev/null || die "Composer update failed"
+        print_success "Dependencies installed"
+    fi
     
     # Create output directories
     docker compose run --rm -T app mkdir -p tests/var/coverage tests/var/logs tests/var/reports < /dev/null
