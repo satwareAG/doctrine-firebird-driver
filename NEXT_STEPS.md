@@ -17,12 +17,12 @@ All goals for the DBAL 3 compatible version have been fulfilled:
 
 ---
 
-## 🚀 Future: DBAL 4.x Migration (4.0.x branch)
+## 🚀 Future: DBAL 4.x Migration (4.4.x branch)
 
-The project now transitions to the `4.0.x` branch for active development.
+The project now transitions to the `4.4.x` branch for active development.
 
-### Roadmap for 4.0.x:
-1. **Branch Setup**: Create `4.0.x` from `3.10.x`.
+### Roadmap for 4.4.x:
+1. **Branch Setup**: Create `4.4.x` from `3.10.x`.
 2. **Dependency Update**: Require `doctrine/dbal: ^4.1`.
 3. **API Refactoring**:
    - Replace all `getWrappedConnection()` calls in tests with the unwrapping logic researched in `docs/research/dbal4-migration.md`.
@@ -34,7 +34,7 @@ The project now transitions to the `4.0.x` branch for active development.
 
 ## 📦 Maintenance (3.10.x branch)
 
-The `3.10.x` branch will receive only critical security fixes and major bug fixes. All new features will be targeted at the `4.0.x` branch.
+The `3.10.x` branch will receive only critical security fixes and major bug fixes. All new features will be targeted at the `4.4.x` branch.
 
 ### Final Verification for v3.12.2:
 - Tag created: `v3.12.2`

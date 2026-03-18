@@ -60,7 +60,7 @@ Focus on business/user value, not implementation details.]
 
 - **NFR-001**: [Performance] [measurable target]
 - **NFR-002**: [Compatibility] Firebird versions 2.5, 3.0, 4.0, 5.0
-- **NFR-003**: [PHP] PHP 8.1+ compatibility
+- **NFR-003**: [PHP] PHP 8.2+ compatibility
 
 ### Key Entities
 

@@ -12,7 +12,8 @@ To utilize this library in your application code, the following is required:
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
 - **php-firebird extension** v7.3.0+ (satwareAG fork with IBatch, Exception Mode, OO API, PHP 8.4 hardening)
-- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (up to v3.10.x)
+- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch)
+- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch)
 
 ## Version Compatibility Matrix
 
@@ -396,7 +397,7 @@ You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branches  
   - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.10.x supports DBAL ^3.10 (Maintenance)
-  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.0.x supports DBAL ^4.1 (Active)
+  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.4.x supports DBAL ^4.4 (Active)
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
 - Reference manuals of Firebird’s implementation of the SQL relational database language for  
   [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html), 
