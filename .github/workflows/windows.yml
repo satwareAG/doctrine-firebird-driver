@@ -47,52 +47,39 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Firebird Binaries
+      - name: Cache Firebird (Chocolatey)
         uses: actions/cache@v4
         with:
-          path: C:\firebird
-          key: ${{ runner.os }}-firebird-3.0.13-v2
+          path: C:\ProgramData\chocolatey\lib\firebird
+          key: ${{ runner.os }}-choco-firebird-3.0.13
 
       - name: Install Firebird
-        shell: pwsh
         run: |
-          if (-not (Test-Path "C:\firebird\instreg.exe")) {
-            $url = "https://github.com/FirebirdSQL/firebird/releases/download/v3.0.13/Firebird-3.0.13.33818-0-x64.zip"
-            Write-Host "Downloading Firebird 3.0.13 from $url"
-            Invoke-WebRequest -Uri $url -OutFile "firebird.zip"
-            if (Test-Path "C:\fb_unpack") { Remove-Item -Path "C:\fb_unpack" -Recurse -Force }
-            Expand-Archive -Path "firebird.zip" -DestinationPath "C:\fb_unpack"
-            if (-not (Test-Path "C:\firebird")) { New-Item -Path "C:\firebird" -ItemType Directory }
-            
-            # Find the actual folder containing instreg.exe
-            $fbPath = (Get-ChildItem "C:\fb_unpack" -Filter "instreg.exe" -Recurse | Select-Object -First 1).Directory.FullName
-            Write-Host "Found Firebird binaries in $fbPath"
-            Copy-Item "$fbPath\*" "C:\firebird" -Recurse -Force
-          }
-          
-          # Install and start service
-          cd C:\firebird
-          ./instreg.exe install
-          ./instsvc.exe install -auto
-          ./instsvc.exe start
+          # Install Firebird 3.0 via Chocolatey with increased timeout
+          choco install firebird --version=3.0.13 -y --no-progress --timeout 600
           
           # Create dedicated directory for test databases and grant full permissions to Everyone
           if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
           icacls "C:\firebird_tests" /grant "Everyone:(OI)(CI)F" /T /C
           
-          $env:PATH = "C:\firebird;" + $env:PATH
-          echo "C:\firebird" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          
-          Start-Sleep -Seconds 10
+          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
+          echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$fbDir;" + $env:PATH
           
           try {
-            # Standard Firebird security initialization
-            & "C:\firebird\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
-            "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "C:\firebird\isql.exe" -user SYSDBA -q 2>&1
-            
-            # Health check
-            "select 1 from rdb`$database;" | & "C:\firebird\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
-            if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
+            $service = Get-Service | Where-Object { $_.Name -like "*Firebird*" } | Select-Object -First 1
+            if ($service) {
+              Start-Service -Name $service.Name -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 10
+              
+              # Standard Firebird security initialization
+              & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
+              "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "$fbDir\isql.exe" -user SYSDBA -q 2>&1
+              
+              # Health check
+              "select 1 from rdb`$database;" | & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
+              if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
+            }
           } catch {
             Write-Warning "Initialization: $_"
           }
@@ -133,8 +120,9 @@ jobs:
           if (-not (Test-Path $phpIni)) { Copy-Item "$phpDir\php.ini-development" $phpIni }
           Add-Content -Path $phpIni -Value "`nextension=firebird"
           
-          Copy-Item "C:\firebird\fbclient.dll" -Destination $phpDir -Force
-          Copy-Item "C:\firebird\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
+          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
+          Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
+          Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
           
           php -r "if (!extension_loaded('firebird')) { exit(1); }"
           Write-Host "✅ php-firebird extension loaded successfully"
