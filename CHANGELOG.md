@@ -10,8 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **PHPUnit 11 Deprecations** — Resolved all `iniSet` usage deprecations by switching to native
   PHP functions (`ini_set`, `error_reporting`) with robust state restoration logic (#95)
+- **PHP 8.2 Compatibility** — Removed typed constants from functional tests to restore support for
+  PHP 8.2 runners (#98)
 - **PHPStan Return Type** — Fixed `return.unusedType` warning in `FirebirdSchemaManager` by
   clarifying PHPDoc metadata for portable view definitions (#95)
+- **Psalm Attribute Issues** — Resolved `InvalidAttribute` errors in GitHub Actions by suppressing
+  Psalm checks for `#[Override]` on PHP 8.2 target platforms (#97)
+- **Windows CI Stability** — Fixed a bug in `TestUtil.php` where test database paths were
+  incorrectly resolved on Windows CI; improved `C:\temp` directory permissions for Firebird
+  SuperServer (#98)
 - **Psalm Baseline** — Pruned stale entries from `psalm-baseline.xml` following code quality
   improvements (#95)
 
