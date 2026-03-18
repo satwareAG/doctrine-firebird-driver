@@ -234,13 +234,11 @@ jobs:
           set -eu
           
           # Always ignore ext-firebird platform req in CI because we build from source.
-          # Also ignore php platform req: composer.json sets config.platform.php=8.4 for
-          # static analysis, but test matrix runs on PHP 8.1-8.3 where vimeo/psalm ^5.0
-          # doesn't satisfy the overridden platform requirement.
+          # We don't ignore PHP platform req here to ensure Composer selects compatible 
+          # versions for the current PHP version in the matrix.
           php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
           composer install --prefer-dist --no-progress \
-            --ignore-platform-req=ext-firebird \
-            --ignore-platform-req=php
+            --ignore-platform-req=ext-firebird
 
       - name: Prepare PHPUnit configuration for CI
         env:
@@ -409,11 +407,9 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
-        # Also ignore php platform req: vimeo/psalm ^5.0 caps at ~8.3.0, incompatible with PHP 8.4
         run: |
           composer update --prefer-dist --no-progress --no-interaction \
-            --ignore-platform-req=ext-firebird \
-            --ignore-platform-req=php
+            --ignore-platform-req=ext-firebird
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=512M
