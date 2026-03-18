@@ -218,7 +218,7 @@ abstract class PlatformTestCase extends TestCase
         $table->setPrimaryKey(['id']);
 
         $sql = $this->platform->getCreateTableSQL($table);
-        self::assertSame($this->getGenerateTableSql(), $sql[0]);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateTableSql(), $sql[0]);
     }
 
     abstract public function getGenerateTableSql(): string;
@@ -230,8 +230,13 @@ abstract class PlatformTestCase extends TestCase
         $table->addColumn('bar', Types::STRING, ['notnull' => false, 'length' => 255]);
         $table->addUniqueIndex(['foo', 'bar']);
 
-        $sql = $this->platform->getCreateTableSQL($table);
-        self::assertEquals($this->getGenerateTableWithMultiColumnUniqueIndexSql(), $sql);
+        $sql      = $this->platform->getCreateTableSQL($table);
+        $expected = $this->getGenerateTableWithMultiColumnUniqueIndexSql();
+
+        self::assertCount(count($expected), $sql);
+        foreach ($sql as $i => $query) {
+            self::assertStringEqualsStringIgnoringLineEndings($expected[$i], $query);
+        }
     }
 
     /** @return string[] */
@@ -241,7 +246,7 @@ abstract class PlatformTestCase extends TestCase
     {
         $indexDef = new Index('my_idx', ['user_name', 'last_login']);
 
-        self::assertSame($this->getGenerateIndexSql(), $this->platform->getCreateIndexSQL($indexDef, 'mytable'));
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateIndexSql(), $this->platform->getCreateIndexSQL($indexDef, 'mytable'));
     }
 
     abstract public function getGenerateIndexSql(): string;
@@ -251,7 +256,7 @@ abstract class PlatformTestCase extends TestCase
         $indexDef = new Index('index_name', ['test', 'test2'], true);
 
         $sql = $this->platform->getCreateIndexSQL($indexDef, 'test');
-        self::assertSame($this->getGenerateUniqueIndexSql(), $sql);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateUniqueIndexSql(), $sql);
     }
 
     abstract public function getGenerateUniqueIndexSql(): string;
@@ -289,7 +294,7 @@ abstract class PlatformTestCase extends TestCase
         $fk = new ForeignKeyConstraint(['fk_name_id'], 'other_table', ['id'], '');
 
         $sql = $this->platform->getCreateForeignKeySQL($fk, 'test');
-        self::assertSame($sql, $this->getGenerateForeignKeySql());
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateForeignKeySql(), $sql);
     }
 
     abstract protected function getGenerateForeignKeySql(): string;
@@ -298,19 +303,19 @@ abstract class PlatformTestCase extends TestCase
     {
         $idx = new Index('constraint_name', ['test'], true, false);
         $sql = $this->platform->getCreateConstraintSQL($idx, 'test');
-        self::assertSame($this->getGenerateConstraintUniqueIndexSql(), $sql);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintUniqueIndexSql(), $sql);
 
         $pk  = new Index('constraint_name', ['test'], true, true);
         $sql = $this->platform->getCreateConstraintSQL($pk, 'test');
-        self::assertSame($this->getGenerateConstraintPrimaryIndexSql(), $sql);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintPrimaryIndexSql(), $sql);
 
         $uc  = new UniqueConstraint('constraint_name', ['test']);
         $sql = $this->platform->getCreateConstraintSQL($uc, 'test');
-        self::assertSame($this->getGenerateConstraintUniqueIndexSql(), $sql);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintUniqueIndexSql(), $sql);
 
         $fk  = new ForeignKeyConstraint(['fk_name'], 'foreign', ['id'], 'constraint_fk');
         $sql = $this->platform->getCreateConstraintSQL($fk, 'test');
-        self::assertSame($this->getGenerateConstraintForeignKeySql($fk), $sql);
+        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintForeignKeySql($fk), $sql);
     }
 
     protected function getBitAndComparisonExpressionSql(string $value1, string $value2): string
@@ -402,7 +407,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGetAlterTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this->createMock(GetAlterTableSqlDispatchEventListener::class);
+        $listenerMock = $this->createMock(GetCreateTableSqlDispatchEventListener::class);
         $listenerMock
             ->expects(self::once())
             ->method('onSchemaAlterTable');
@@ -447,7 +452,7 @@ abstract class PlatformTestCase extends TestCase
                 Type::getType(Types::STRING),
                 [],
             ),
-            [],
+            ['type'],
         );
         $tableDiff->renamedColumns['renamed'] = new Column('renamed2', Type::getType(Types::INTEGER), []);
 
@@ -1240,9 +1245,12 @@ abstract class PlatformTestCase extends TestCase
 
         $sql = $this->platform->getAlterTableSQL($tableDiff);
 
-        $expectedSql = $this->getAlterStringToFixedStringSQL();
+        $expected = $this->getAlterStringToFixedStringSQL();
 
-        self::assertEquals($expectedSql, $sql);
+        self::assertCount(count($expected), $sql);
+        foreach ($sql as $i => $query) {
+            self::assertStringEqualsStringIgnoringLineEndings($expected[$i], $query);
+        }
     }
 
     /** @return string[] */
@@ -1267,7 +1275,13 @@ abstract class PlatformTestCase extends TestCase
         $tableDiff->fromTable                 = $primaryTable;
         $tableDiff->renamedIndexes['idx_foo'] = new Index('idx_foo_renamed', ['foo']);
 
-        self::assertSame($this->getGeneratesAlterTableRenameIndexUsedByForeignKeySQL(), $this->platform->getAlterTableSQL($tableDiff));
+        $sql      = $this->platform->getAlterTableSQL($tableDiff);
+        $expected = $this->getGeneratesAlterTableRenameIndexUsedByForeignKeySQL();
+
+        self::assertCount(count($expected), $sql);
+        foreach ($sql as $i => $query) {
+            self::assertStringEqualsStringIgnoringLineEndings($expected[$i], $query);
+        }
     }
 
     /** @return string[] */
