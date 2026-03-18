@@ -24,7 +24,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class DefaultValueTest extends FunctionalTestCase
 {
-    private const string TABLE = 'default_value_test';
+    private const TABLE = 'default_value_test';
 
     public function testIntegerDefaultZero(): void
     {

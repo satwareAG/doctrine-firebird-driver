@@ -30,11 +30,11 @@ use function strtolower;
  */
 class SchemaManagerTest extends FunctionalTestCase
 {
-    private const string TABLE     = 'sm_test_table';
-    private const string TABLE_FK  = 'sm_fk_table';
-    private const string TABLE_REF = 'sm_ref_table';
-    private const string VIEW      = 'sm_test_view';
-    private const string SEQ       = 'sm_test_seq';
+    private const TABLE     = 'sm_test_table';
+    private const TABLE_FK  = 'sm_fk_table';
+    private const TABLE_REF = 'sm_ref_table';
+    private const VIEW      = 'sm_test_view';
+    private const SEQ       = 'sm_test_seq';
 
     public function testCreateAndIntrospectTable(): void
     {

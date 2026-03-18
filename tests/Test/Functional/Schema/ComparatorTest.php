@@ -26,9 +26,9 @@ use function strtolower;
  */
 class ComparatorTest extends FunctionalTestCase
 {
-    private const string TABLE     = 'comparator_test';
-    private const string TABLE_FK  = 'comparator_fk_test';
-    private const string TABLE_REF = 'comparator_ref_test';
+    private const TABLE     = 'comparator_test';
+    private const TABLE_FK  = 'comparator_fk_test';
+    private const TABLE_REF = 'comparator_ref_test';
 
     public function testNoFalsePositiveDiffAfterCreateIntrospect(): void
     {

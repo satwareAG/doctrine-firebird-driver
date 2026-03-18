@@ -27,8 +27,8 @@ use function str_contains;
  */
 class GH50Test extends FunctionalTestCase
 {
-    private const string TABLE_A = 'gh50_table_a';
-    private const string TABLE_B = 'gh50_table_b';
+    private const TABLE_A = 'gh50_table_a';
+    private const TABLE_B = 'gh50_table_b';
 
     /**
      * Creating a table after a SELECT on another table must not deadlock.

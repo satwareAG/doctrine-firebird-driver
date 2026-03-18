@@ -27,7 +27,7 @@ use const CASE_LOWER;
  */
 class GH23Test extends FunctionalTestCase
 {
-    private const string TABLE = 'gh23_regression';
+    private const TABLE = 'gh23_regression';
 
     /**
      * Column keys in fetchAssociative must not be padded with trailing spaces.

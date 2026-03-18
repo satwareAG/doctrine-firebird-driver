@@ -29,7 +29,7 @@ use const CASE_LOWER;
  */
 class TransactionTest extends FunctionalTestCase
 {
-    private const string TABLE = 'transaction_test';
+    private const TABLE = 'transaction_test';
 
     public function testBeginTransactionAndCommit(): void
     {
