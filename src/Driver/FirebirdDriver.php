@@ -11,6 +11,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
@@ -59,7 +60,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
      *
      * @throws Exception If the given version string could not be evaluated.
      */
-    #[\Override]
+    #[Override]
     public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {
         if (! is_string($version)) {
@@ -117,7 +118,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
         return $platform;
     }
 
-    #[\Override]
+    #[Override]
     public function getDatabasePlatform(): FirebirdPlatform
     {
         $platform = new FirebirdPlatform();
@@ -126,7 +127,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
         return $platform;
     }
 
-    #[\Override]
+    #[Override]
     public function getExceptionConverter(): ExceptionConverter
     {
         return new Firebird\ExceptionConverter();
@@ -137,7 +138,7 @@ abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @
      *
      * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
      */
-    #[\Override]
+    #[Override]
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(

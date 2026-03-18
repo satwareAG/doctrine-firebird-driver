@@ -8,6 +8,7 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
+use Override;
 use RuntimeException;
 use Throwable;
 
@@ -118,7 +119,7 @@ final class Statement implements StatementInterface
      *
      * @psalm-suppress PossiblyUnusedReturnValue
      */
-    #[\Override]
+    #[Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
         if (func_num_args() < 3) {
@@ -140,7 +141,7 @@ final class Statement implements StatementInterface
      *
      * @deprecated Use bindValue() instead.
      */
-    #[\Override]
+    #[Override]
     public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
         Deprecation::trigger(
@@ -169,7 +170,7 @@ final class Statement implements StatementInterface
      *
      * @throws RuntimeException
      */
-    #[\Override]
+    #[Override]
     public function execute($params = null): ResultInterface
     {
         assert(is_resource($this->statement));

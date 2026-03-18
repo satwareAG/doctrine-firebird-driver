@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware;
 use Doctrine\DBAL\Driver\Middleware\AbstractResultMiddleware;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\ParameterType;
+use Override;
 
 use function array_values;
 use function fopen;
@@ -40,7 +41,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     }
 
     /** @return list<mixed>|false */
-    #[\Override]
+    #[Override]
     public function fetchNumeric(): array|false
     {
         $row = parent::fetchNumeric();
@@ -57,7 +58,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     }
 
     /** @return array<string, mixed>|false */
-    #[\Override]
+    #[Override]
     public function fetchAssociative(): array|false
     {
         $row = parent::fetchAssociative();
@@ -73,7 +74,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
         return $row;
     }
 
-    #[\Override]
+    #[Override]
     public function fetchOne(): mixed
     {
         $value = parent::fetchOne();
@@ -82,7 +83,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     }
 
     /** @return list<list<mixed>> */
-    #[\Override]
+    #[Override]
     public function fetchAllNumeric(): array
     {
         $rows = parent::fetchAllNumeric();
@@ -99,7 +100,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     }
 
     /** @return list<array<string, mixed>> */
-    #[\Override]
+    #[Override]
     public function fetchAllAssociative(): array
     {
         $rows = parent::fetchAllAssociative();
@@ -116,7 +117,7 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
     }
 
     /** @return list<mixed> */
-    #[\Override]
+    #[Override]
     public function fetchFirstColumn(): array
     {
         $column = parent::fetchFirstColumn();

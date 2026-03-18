@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 
@@ -39,7 +40,7 @@ final class FirebirdConnection extends Connection
      * Gets the DatabasePlatform for the connection and configures it with
      * Firebird-specific options from the connection parameters.
      */
-    #[\Override]
+    #[Override]
     public function getDatabasePlatform(): AbstractPlatform
     {
         $platform = parent::getDatabasePlatform();

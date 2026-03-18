@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function assert;
@@ -25,7 +26,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
     }
 
     /** @throws Exception */
-    #[\Override]
+    #[Override]
     public function buildSQL(SelectQuery $query): string
     {
         $parts = ['SELECT'];

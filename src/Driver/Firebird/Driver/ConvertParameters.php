@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
 use Doctrine\DBAL\SQL\Parser\Visitor;
+use Override;
 
 /**
  * Firebird Statements only support positional parameters
@@ -16,7 +17,7 @@ final class ConvertParameters implements Visitor
     private array $paramMap = [];      // Maps positional parameter indices to named parameters
     private int $paramIndex = 1;       // Tracks the current positional parameter index
 
-    #[\Override]
+    #[Override]
     public function acceptPositionalParameter(string $sql): void
     {
         $this->paramMap[$this->paramIndex] = $sql;
@@ -27,7 +28,7 @@ final class ConvertParameters implements Visitor
     /**
      * Accepts an SQL fragment containing a named parameter
      */
-    #[\Override]
+    #[Override]
     public function acceptNamedParameter(string $sql): void
     {
         // Extract the named parameter (e.g., :param1)
@@ -36,7 +37,7 @@ final class ConvertParameters implements Visitor
         $this->paramIndex++;  // Increment the positional parameter index
     }
 
-    #[\Override]
+    #[Override]
     public function acceptOther(string $sql): void
     {
         $this->convertedSql .= $sql;  // Append the other SQL fragments directly

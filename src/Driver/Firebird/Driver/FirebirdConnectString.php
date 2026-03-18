@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Stringable;
 
@@ -44,7 +45,7 @@ final class FirebirdConnectString implements Stringable
         throw HostDbnameRequired::new();
     }
 
-    #[\Override]
+    #[Override]
     public function __toString(): string
     {
         return $this->string;

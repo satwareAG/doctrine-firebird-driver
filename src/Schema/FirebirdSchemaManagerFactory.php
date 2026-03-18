@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Schema;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\SchemaManagerFactory;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function assert;
@@ -32,7 +33,7 @@ final class FirebirdSchemaManagerFactory implements SchemaManagerFactory
      *
      * @return AbstractSchemaManager<FirebirdPlatform>
      */
-    #[\Override]
+    #[Override]
     public function createSchemaManager(Connection $connection): AbstractSchemaManager
     {
         $platform = $connection->getDatabasePlatform();

@@ -16,6 +16,7 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * arising from decoding and encoding them.
  */
 use Doctrine\DBAL\Types\Types;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 
 class Firebird4Platform extends Firebird3Platform
@@ -24,7 +25,7 @@ class Firebird4Platform extends Firebird3Platform
      * Firebird 4 returns TIMESTAMP WITH TIME ZONE values as
      * "Y-m-d H:i:s <TimezoneIdentifier>" (example: "2010-04-05 10:10:10 Europe/Berlin").
      */
-    #[\Override]
+    #[Override]
     public function getDateTimeTzFormatString(): string
     {
         return 'Y-m-d H:i:s e';
@@ -47,7 +48,7 @@ class Firebird4Platform extends Firebird3Platform
      * @psalm-suppress PossiblyUnusedMethod
      * @psalm-suppress PossiblyUnusedParam
      */
-    #[\Override]
+    #[Override]
     public function getDateTimeTzTypeDeclarationSQL(array $column): string
     {
         return 'TIMESTAMP WITH TIME ZONE';
@@ -66,13 +67,13 @@ class Firebird4Platform extends Firebird3Platform
         return 'TIME WITH TIME ZONE';
     }
 
-    #[\Override]
+    #[Override]
     protected function getReservedKeywordsClass(): string
     {
         return Firebird4Keywords::class;
     }
 
-    #[\Override]
+    #[Override]
     protected function initializeDoctrineTypeMappings(): void
     {
         parent::initializeDoctrineTypeMappings();

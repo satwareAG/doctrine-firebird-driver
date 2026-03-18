@@ -14,6 +14,7 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -81,7 +82,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * @psalm-suppress PossiblyUndefinedArrayOffset
      * @inheritDoc
      */
-    #[\Override]
+    #[Override]
     public function dropDatabase($database): void
     {
         $params           = $this->_conn->getParams();
@@ -125,7 +126,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     public function dropTable($name): void
     {
         parent::dropTable($name);
@@ -134,7 +135,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     public function createDatabase($database): void
     {
         $params  = $this->_conn->getParams();
@@ -184,13 +185,13 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         fbird_close($result);
     }
 
-    #[\Override]
+    #[Override]
     public function createComparator(): Comparator
     {
         return new FirebirdComparator($this->_platform);
     }
 
-    #[\Override]
+    #[Override]
     public function listTableDetails($name)
     {
         $database       = $this->_conn->getDatabase() ?? '';
@@ -238,7 +239,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableTableDefinition($table): string
     {
         $table = array_change_key_case($table, CASE_LOWER);
@@ -249,7 +250,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableViewDefinition($view): View
     {
         $view = array_change_key_case($view, CASE_LOWER);
@@ -265,7 +266,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      *
      * @todo Read current generator value
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableSequenceDefinition($sequence)
     {
         $sequence = array_change_key_case($sequence, CASE_LOWER);
@@ -283,14 +284,14 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableDatabaseDefinition($database)
     {
         return $database['Database'];
     }
 
     /** {@inheritDoc} */
-    #[\Override]
+    #[Override]
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $options = [];
@@ -395,7 +396,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableTableForeignKeysList($tableForeignKeys): array
     {
         $list = [];
@@ -447,7 +448,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * @param array<mixed> $tableIndexes
      * @param string|null  $tableName
      */
-    #[\Override]
+    #[Override]
     protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array
     {
         $mangledData = [];
@@ -481,7 +482,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     protected function fetchTableOptionsByTable(string $databaseName, string|null $tableName = null): array
     {
         $sql = <<<'___query___'
@@ -513,7 +514,7 @@ ___query___;
         return $tableOptions;
     }
 
-    #[\Override]
+    #[Override]
     protected function normalizeName(string $name): string
     {
         $identifier = new Identifier($name);

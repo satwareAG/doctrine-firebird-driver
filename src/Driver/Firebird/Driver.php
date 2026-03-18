@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -35,7 +36,7 @@ final class Driver extends FirebirdDriver
     /**
      * {@inheritDoc}
      */
-    #[\Override]
+    #[Override]
     public function connect(
         #[SensitiveParameter]
         array $params,
@@ -112,7 +113,7 @@ final class Driver extends FirebirdDriver
         return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
     }
 
-    #[\Override]
+    #[Override]
     public function getExceptionConverter(): ExceptionConverter
     {
         return new ExceptionConverter();
