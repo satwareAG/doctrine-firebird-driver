@@ -33,10 +33,11 @@ jobs:
     env:
       ISC_USER: SYSDBA
       ISC_PASSWORD: masterkey
-      DB_DBNAME: C:\temp\test.fdb
+      # Dedicated, service-accessible directory for databases on Windows CI
+      DB_DBNAME: C:\firebird_tests\test.fdb
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -50,13 +51,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\ProgramData\chocolatey\lib\firebird
-          key: ${{ runner.os }}-choco-firebird-3.0.12
+          key: ${{ runner.os }}-choco-firebird-3.0.13
 
       - name: Install Firebird
         run: |
-          choco install firebird --version=3.0.12 -y --no-progress
-          if (-not (Test-Path "C:\temp")) { New-Item -Path "C:\temp" -ItemType Directory }
-          icacls "C:\temp" /grant "Everyone:(OI)(CI)F" /T
+          # Install Firebird 3.0 (stable production target)
+          choco install firebird --version=3.0.13 -y --no-progress
+          
+          # Create dedicated directory for test databases and grant full permissions to Everyone
+          # This is required because the Firebird service (LocalSystem) needs access to files created by the runner user.
+          if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
+          icacls "C:\firebird_tests" /grant "Everyone:(OI)(CI)F" /T
+          
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $env:PATH = "$fbDir;" + $env:PATH
@@ -66,8 +72,12 @@ jobs:
             if ($service) {
               Start-Service -Name $service.Name -ErrorAction SilentlyContinue
               Start-Sleep -Seconds 5
+              
+              # Standard Firebird security initialization
               & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
               "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "$fbDir\isql.exe" -user SYSDBA -q 2>&1
+              
+              # Health check
               "select 1 from rdb`$database;" | & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
               if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
             }
@@ -86,6 +96,7 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl
           
           $targetAsset = $null
+          # Match DLL by PHP version, NTS/TS, VS version, and architecture
           $patterns = @("php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
@@ -98,6 +109,7 @@ jobs:
           
           if (-not $targetAsset) { throw "Could not find DLL for PHP $phpVer" }
           
+          Write-Host "Downloading DLL from $($targetAsset.browser_download_url)"
           Invoke-WebRequest -Uri $targetAsset.browser_download_url -OutFile "php_firebird.zip"
           Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp" -Force
           
@@ -108,13 +120,18 @@ jobs:
           $phpIni = php -r "echo php_ini_loaded_file();"
           if (-not $phpIni) { $phpIni = "$phpDir\php.ini" }
           if (-not (Test-Path $phpIni)) { Copy-Item "$phpDir\php.ini-development" $phpIni }
+          
+          # Enable extension in php.ini
           Add-Content -Path $phpIni -Value "`nextension=firebird"
           
+          # Copy Firebird client library to PHP directory so it can be found at runtime
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
           Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
           
+          # Verification
           php -r "if (!extension_loaded('firebird')) { exit(1); }"
+          Write-Host "✅ php-firebird extension loaded successfully"
 
       - name: Install dependencies
         run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
@@ -122,4 +139,5 @@ jobs:
       - name: Run Tests
         run: |
           # Run Unit and Integration testsuites
+          # Using dedicated DB_DBNAME from environment
           vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit,Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage
