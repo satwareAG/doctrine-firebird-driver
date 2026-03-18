@@ -47,40 +47,46 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Firebird (Chocolatey)
+      - name: Cache Firebird Binaries
         uses: actions/cache@v4
         with:
-          path: C:\ProgramData\chocolatey\lib\firebird
-          key: ${{ runner.os }}-choco-firebird-3.0.13
+          path: C:\firebird
+          key: ${{ runner.os }}-firebird-3.0.13
 
       - name: Install Firebird
+        shell: pwsh
         run: |
-          # Install Firebird 3.0 (stable production target)
-          choco install firebird --version=3.0.13 -y --no-progress
+          if (-not (Test-Path "C:\firebird")) {
+            $url = "https://github.com/FirebirdSQL/firebird/releases/download/v3.0.13/Firebird-3.0.13.33818-0-x64.zip"
+            Write-Host "Downloading Firebird 3.0.13 from $url"
+            Invoke-WebRequest -Uri $url -OutFile "firebird.zip"
+            Expand-Archive -Path "firebird.zip" -DestinationPath "C:\firebird_temp"
+            $fbFolder = Get-ChildItem "C:\firebird_temp" | Select-Object -First 1
+            Move-Item $fbFolder.FullName "C:\firebird"
+          }
+          
+          cd C:\firebird
+          ./instreg.exe install
+          ./instsvc.exe install -auto
+          ./instsvc.exe start
           
           # Create dedicated directory for test databases and grant full permissions to Everyone
-          # This is required because the Firebird service (LocalSystem) needs access to files created by the runner user.
           if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
           icacls "C:\firebird_tests" /grant "Everyone:(OI)(CI)F" /T
           
-          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
-          echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $env:PATH = "$fbDir;" + $env:PATH
+          $env:PATH = "C:\firebird;" + $env:PATH
+          echo "C:\firebird" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
+          Start-Sleep -Seconds 5
           
           try {
-            $service = Get-Service | Where-Object { $_.Name -like "*Firebird*" } | Select-Object -First 1
-            if ($service) {
-              Start-Service -Name $service.Name -ErrorAction SilentlyContinue
-              Start-Sleep -Seconds 5
-              
-              # Standard Firebird security initialization
-              & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
-              "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "$fbDir\isql.exe" -user SYSDBA -q 2>&1
-              
-              # Health check
-              "select 1 from rdb`$database;" | & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
-              if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
-            }
+            # Standard Firebird security initialization
+            & "C:\firebird\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
+            "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "C:\firebird\isql.exe" -user SYSDBA -q 2>&1
+            
+            # Health check
+            "select 1 from rdb`$database;" | & "C:\firebird\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
+            if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
           } catch {
             Write-Warning "Initialization: $_"
           }
@@ -96,7 +102,6 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl
           
           $targetAsset = $null
-          # Match DLL by PHP version, NTS/TS, VS version, and architecture
           $patterns = @("php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
@@ -120,16 +125,11 @@ jobs:
           $phpIni = php -r "echo php_ini_loaded_file();"
           if (-not $phpIni) { $phpIni = "$phpDir\php.ini" }
           if (-not (Test-Path $phpIni)) { Copy-Item "$phpDir\php.ini-development" $phpIni }
-          
-          # Enable extension in php.ini
           Add-Content -Path $phpIni -Value "`nextension=firebird"
           
-          # Copy Firebird client library to PHP directory so it can be found at runtime
-          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
-          Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
-          Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
+          Copy-Item "C:\firebird\fbclient.dll" -Destination $phpDir -Force
+          Copy-Item "C:\firebird\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
           
-          # Verification
           php -r "if (!extension_loaded('firebird')) { exit(1); }"
           Write-Host "✅ php-firebird extension loaded successfully"
 
@@ -139,5 +139,4 @@ jobs:
       - name: Run Tests
         run: |
           # Run Unit and Integration testsuites
-          # Using dedicated DB_DBNAME from environment
           vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit,Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage
