@@ -69,9 +69,12 @@ jobs:
           # Enable full database access in firebird.conf and restart service
           $confPath = "$fbDir\firebird.conf"
           if (Test-Path $confPath) {
-            (Get-Content $confPath) -replace '#DatabaseAccess = Full', 'DatabaseAccess = Full' | Set-Content $confPath
+            Add-Content -Path $confPath -Value "DatabaseAccess = Full"
             $service = Get-Service | Where-Object { $_.Name -like "*Firebird*" } | Select-Object -First 1
-            if ($service) { Restart-Service -Name $service.Name }
+            if ($service) { 
+              Restart-Service -Name $service.Name 
+              Start-Sleep -Seconds 5
+            }
           }
           
           try {
