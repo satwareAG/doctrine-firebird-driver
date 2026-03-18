@@ -60,9 +60,9 @@ jobs:
               # Firebird 3.0 requires explicit user creation after installation
               Write-Host "Creating/Updating SYSDBA user in security database..."
               # Try both gsec and isql for maximum compatibility
+              # Note: isql on Windows doesn't have -do, we use Here-String instead
               & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
-              & "$fbDir\isql.exe" -user SYSDBA -q -do "CREATE USER SYSDBA PASSWORD 'masterkey';" 2>&1
-              & "$fbDir\isql.exe" -user SYSDBA -q -do "ALTER USER SYSDBA PASSWORD 'masterkey';" 2>&1
+              "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "$fbDir\isql.exe" -user SYSDBA -q 2>&1
               
               if ($LASTEXITCODE -eq 0) { 
                 Write-Host "✅ SYSDBA user initialized successfully" 
@@ -71,7 +71,7 @@ jobs:
               }
               
               # Final verification via network
-              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -do "select 1 from rdb`$database;" "localhost:employee"
+              "select 1 from rdb`$database;" | & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
               if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready and reachable" }
               else { Write-Warning "❌ Firebird ISQL check failed" }
             } else {
