@@ -9,17 +9,13 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
-use InvalidArgumentException;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
-use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 use function array_key_exists;
 use function crc32;
 use function dechex;
-use function is_string;
 use function preg_match;
-use function sprintf;
 use function strtolower;
 use function strtoupper;
 
@@ -106,12 +102,8 @@ final class ConnectionWrapper extends Connection
      * @psalm-suppress DocblockTypeContradiction
      * */
     #[Override]
-    public function lastInsertId($name = null): string|int|false
+    public function lastInsertId(string|null $name = null): string|int
     {
-        if ($name !== null && ! is_string($name)) {
-            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
-        }
-
         if ($this->lastInsertIdentityId !== null && $name === null) {
             return $this->lastInsertIdentityId;
         }

@@ -192,7 +192,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     }
 
     #[Override]
-    public function listTableDetails($name)
+    public function listTableDetails($name): Table
     {
         $database       = $this->_conn->getDatabase() ?? '';
         $normalizedName = $this->normalizeName($name);

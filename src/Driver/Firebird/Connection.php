@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
-use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
@@ -64,7 +63,6 @@ use function is_int;
 use function is_object;
 use function is_resource;
 use function is_scalar;
-use function is_string;
 use function method_exists;
 use function preg_match;
 use function sprintf;
@@ -86,7 +84,7 @@ use const FBIRD_WRITE;
  * Based on https://github.com/helicon-os/doctrine-dbal
  * and Doctrine\DBAL\Driver\OCI8\Connection
  */
-final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
+final class Connection implements \Doctrine\DBAL\Driver\Connection
 {
     /**
      * Valid resource types for Firebird connection.
@@ -344,23 +342,15 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * {@inheritDoc}
      */
     #[Override]
-    public function quote($value, $type = ParameterType::STRING): string|int|float
+    public function quote(string $value): string
     {
-        if (is_int($value) || is_float($value)) {
-            return $value;
-        }
-
-        if (! is_scalar($value)) {
-            throw new InvalidArgumentException('Given value is not scalar.');
-        }
-
         // Use extension-provided escaping if available (php-firebird v7.0.0-rc.25+)
         if (function_exists('fbird_escape_string')) {
-            return "'" . fbird_escape_string((string) $value) . "'";
+            return "'" . fbird_escape_string($value) . "'";
         }
 
         // Fallback for older versions
-        $value = str_replace("'", "''", (string) $value);
+        $value = str_replace("'", "''", $value);
 
         return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
     }
@@ -380,14 +370,10 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * @psalm-suppress DocblockTypeContradiction
      */
     #[Override]
-    public function lastInsertId($name = null): string|int|false
+    public function lastInsertId(string|null $name = null): string|int
     {
-        if ($name !== null && ! is_string($name)) {
-            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
-        }
-
         if ($name === null) {
-            return $this->connectionInsertId ?? false;
+            return $this->connectionInsertId ?? 0;
         }
 
         Deprecation::triggerIfCalledFromOutside(

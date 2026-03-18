@@ -290,11 +290,8 @@ class FirebirdPlatform extends AbstractPlatform
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    public function getIdentitySequenceName($tableName, $columnName): string
+    public function getIdentitySequenceName(string $tableName, string $columnName): string
     {
         return $this->generateIdentifier([$tableName], 'D2IS', $this->getMaxIdentifierLength())->getQuotedName($this);
     }
@@ -479,11 +476,8 @@ class FirebirdPlatform extends AbstractPlatform
                 ' RESTART WITH ' . ($sequence->getInitialValue() - 1);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    public function getDropSequenceSQL($sequence): string
+    public function getDropSequenceSQL(string $sequence): string
     {
         if (! ($sequence instanceof Sequence)) {
             $sequence = new Sequence($sequence);

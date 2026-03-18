@@ -24,7 +24,6 @@ use function fbird_execute;
 use function fbird_fetch_assoc;
 use function fbird_free_query;
 use function fclose;
-use function func_num_args;
 use function get_resource_type;
 use function is_int;
 use function is_numeric;
@@ -120,20 +119,11 @@ final class Statement implements StatementInterface
      * @psalm-suppress PossiblyUnusedReturnValue
      */
     #[Override]
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
+    public function bindValue(int|string $param, mixed $value, ParameterType $type = ParameterType::STRING): void
     {
-        if (func_num_args() < 3) {
-            Deprecation::trigger(
-                'doctrine/dbal',
-                'https://github.com/doctrine/dbal/pull/5558',
-                'Not passing $type to Statement::bindValue() is deprecated.'
-                . ' Pass the type corresponding to the parameter being bound.',
-            );
-        }
-
         $this->boundValues[$param] = $value;
 
-        return $this->bindValueInternal($param, $this->boundValues[$param], $type);
+        $this->bindValueInternal($param, $this->boundValues[$param], $type);
     }
 
     /**
@@ -142,7 +132,7 @@ final class Statement implements StatementInterface
      * @deprecated Use bindValue() instead.
      */
     #[Override]
-    public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
+    public function bindParam(int|string $param, mixed &$variable, ParameterType $type = ParameterType::STRING, int|null $length = null): void
     {
         Deprecation::trigger(
             'doctrine/dbal',
@@ -151,18 +141,9 @@ final class Statement implements StatementInterface
             __METHOD__,
         );
 
-        if (func_num_args() < 3) {
-            Deprecation::trigger(
-                'doctrine/dbal',
-                'https://github.com/doctrine/dbal/pull/5558',
-                'Not passing $type to Statement::bindParam() is deprecated.'
-                . ' Pass the type corresponding to the parameter being bound.',
-            );
-        }
-
         $this->boundValues[$param] = &$variable;
 
-        return $this->bindValueInternal($param, $variable, $type);
+        $this->bindValueInternal($param, $variable, $type);
     }
 
     /**
@@ -365,7 +346,7 @@ final class Statement implements StatementInterface
      * Internal method to bind a value to a parameter.
      * This contains the core binding logic used by both bindValue() and bindParam().
      */
-    private function bindValueInternal(int|string $param, mixed &$variable, int $type): bool
+    private function bindValueInternal(int|string $param, mixed &$variable, ParameterType $type): void
     {
         // Break references to ensure re-binding works correctly
         if (isset($this->queryParamBindings[$param])) {
@@ -402,8 +383,6 @@ final class Statement implements StatementInterface
         assert(is_int($param));
         $this->queryParamBindings[$param] = &$variable;
         $this->queryParamTypes[$param]    = $type;
-
-        return true;
     }
 
     /**

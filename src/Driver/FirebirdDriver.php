@@ -9,7 +9,6 @@ use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -26,11 +25,8 @@ use function version_compare;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
- *
- * This driver is version-aware and provides platform instances appropriate
- * for the connected Firebird server version.
  */
-abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @phpstan-ignore-line classImplements.deprecated
+abstract class FirebirdDriver implements Driver
 {
     public const ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL = 'doctrineTransactionIsolationLevel';
 
