@@ -12,7 +12,7 @@ To utilize this library in your application code, the following is required:
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
 - **php-firebird extension** v7.3.0+ (satwareAG fork with IBatch, Exception Mode, OO API, PHP 8.4 hardening)
-- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0)
+- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (up to v3.10.x)
 
 ## Version Compatibility Matrix
 
@@ -323,6 +323,8 @@ vendor/bin/phpunit tests/Test/Functional/
 
 - **1255+ tests** (unit, functional, integration)
 - **100% pass rate** across all Firebird versions (3.0, 4.0, 5.0)
+- **Windows CI** — Fully stabilized integration tests on GitHub Actions using dedicated permissive storage (`C:\firebird_tests`) to bypass `SYSTEM` account I/O restrictions.
+- **CI/CD Audit** — Regular audits ensure parity between local (`docker-cqc.sh`, `act`) and remote GitHub Actions environments.
 - PHPUnit 10.5, PHPStan Level 8, Psalm static analysis
 
 ## Documentation
@@ -393,8 +395,8 @@ The Driver is not based on Firebird PDO, it is based on the PHP Firebird Extensi
 You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branches  
-  - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.0.x supports DBAL ^3.10
-  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.0.x supports DBAL ^4.1
+  - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.10.x supports DBAL ^3.10 (Maintenance)
+  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.0.x supports DBAL ^4.1 (Active)
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
 - Reference manuals of Firebird’s implementation of the SQL relational database language for  
   [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html), 

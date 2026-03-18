@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.12.2] - 2026-03-18
 
+### Added
+- **DBAL 4.x Migration Research** — Documented connection unwrapping patterns for DBAL 4.x in `docs/research/dbal4-migration.md` to guide future major version migration (#90)
+
 ### Fixed
 - **PHPUnit 11 Deprecations** — Resolved all `iniSet` usage deprecations by switching to native
   PHP functions (`ini_set`, `error_reporting`) with robust state restoration logic (#95)
@@ -16,9 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clarifying PHPDoc metadata for portable view definitions (#95)
 - **Psalm Attribute Issues** — Resolved `InvalidAttribute` errors in GitHub Actions by suppressing
   Psalm checks for `#[Override]` on PHP 8.2 target platforms (#97)
-- **Windows CI Stability** — Fixed a bug in `TestUtil.php` where test database paths were
-  incorrectly resolved on Windows CI; improved `C:\temp` directory permissions for Firebird
-  SuperServer (#98)
+- **Windows CI Stability** — Resolved persistent I/O errors by moving test databases to
+  `C:\firebird_tests` to avoid `SYSTEM` account permission issues on the `D:` workspace drive;
+  refined `TestUtil.php` path resolution to be more resilient to absolute paths (#98)
 - **Psalm Baseline** — Pruned stale entries from `psalm-baseline.xml` following code quality
   improvements (#95)
 
@@ -29,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   management via PowerShell; added caching for pre-compiled extensions (#96)
 - **Local Development** — Enhanced `docker-cqc.sh` and `phpunit.sh` for more reliable local
   quality gate validation (#95)
+- **CI/CD Pipeline Audit** — Conducted a comprehensive review of all GitHub Actions workflows (`ci.yml`, `windows.yml`, `codeql.yml`) and local testing scripts (`act-local-test.sh`, `docker-cqc.sh`, `phpunit.sh`) to ensure parity and long-term maintainability.
+- **Firebird 2.5 Testing** — Identified that Firebird 2.5 testing is currently limited to local environments using `phpunit-firebird25.xml`; documented as a known gap for future CI expansion.
+- **Project Maintenance** — Closed all open milestones and issues for the DBAL 3 compatible branch; project now enters maintenance mode for the 3.x series.
 
 ## [3.12.1] - 2026-03-17
 

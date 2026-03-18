@@ -20,7 +20,7 @@ Comprehensive testing guide for the Doctrine Firebird Driver project.
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- PHP 8.1+ with ext-interbase
+- PHP 8.2+ with `ext-firebird` (v7.3.0+)
 - Composer dependencies installed (`composer install`)
 
 ### Running Tests
@@ -37,7 +37,7 @@ cd tests && ./phpunit.sh -c
 # Run with HTML coverage report
 cd tests && ./phpunit.sh -c -f html
 
-# Run all Firebird versions (2.5, 3, 4, 5)
+# Run all supported Firebird versions (3.0, 4.0, 5.0)
 cd tests && ./phpunit.sh -v all
 
 # Run specific version
@@ -167,11 +167,11 @@ start tests/var/coverage/html/index.html
 ```
 tests/
 ├── phpunit.xml                 # Default config (Firebird 3)
-├── phpunit-firebird25.xml      # Firebird 2.5 configuration
 ├── phpunit-firebird4.xml       # Firebird 4 configuration
 ├── phpunit-firebird5.xml       # Firebird 5 configuration
-├── phpunit.sh                  # Single version runner (FB 2.5)
-├── phpunit-all.sh              # Multi-version runner (all versions)
+├── phpunit-firebird25.xml      # Legacy FB 2.5 config (local only)
+├── phpunit.sh                  # Optimized test runner script
+├── phpunit-all.sh              # Multi-version runner (3.0, 4.0, 5.0)
 ├── docker-compose.yml          # Test environment services
 ├── Test/
 │   ├── FunctionalTestCase.php # Base class for functional tests
@@ -203,9 +203,9 @@ The project supports multiple Firebird versions via different PHPUnit configurat
 | Config File | Firebird Version | Docker Service | Use Case |
 |-------------|------------------|----------------|----------|
 | `phpunit.xml` | 3.0 (default) | `firebird3` | Development, default testing |
-| `phpunit-firebird25.xml` | 2.5 | `firebird25` | Legacy compatibility |
 | `phpunit-firebird4.xml` | 4.0 | `firebird4` | Modern features |
 | `phpunit-firebird5.xml` | 5.0 | `firebird5` | Latest version |
+| `phpunit-firebird25.xml` | 2.5 | `firebird25` | Legacy compatibility (local only) |
 
 ### Key Configuration Differences
 
@@ -707,13 +707,13 @@ php vendor/bin/phpunit --configuration tests/phpunit.xml --debug
 
 ### Testing Across Firebird Versions
 
-The project supports Firebird 2.5, 3.0, 4.0, and 5.0. Some features and SQL syntax differ between versions.
+The project supports Firebird 3.0, 4.0, and 5.0 in CI. Firebird 2.5 is supported for local testing only. Some features and SQL syntax differ between versions.
 
 ### Version-Specific Considerations
 
 | Version | Key Differences | Test Focus |
 |---------|----------------|------------|
-| **2.5** | Legacy syntax, older DDL | Backward compatibility |
+| **2.5** | Legacy syntax (Local only) | Backward compatibility |
 | **3.0** | BOOLEAN type introduced | Current baseline |
 | **4.0** | Improved performance features | Modern features |
 | **5.0** | Latest syntax enhancements | Forward compatibility |
@@ -721,13 +721,10 @@ The project supports Firebird 2.5, 3.0, 4.0, and 5.0. Some features and SQL synt
 ### Running Multi-Version Tests
 
 ```bash
-# All versions sequentially
+# All supported versions sequentially (3, 4, 5)
 cd tests && ./phpunit-all.sh
 
 # Individual versions
-docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
-    php ../vendor/bin/phpunit -c phpunit-firebird25.xml
-
 docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
     php ../vendor/bin/phpunit -c phpunit.xml  # Firebird 3
 
@@ -736,6 +733,10 @@ docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
 
 docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
     php ../vendor/bin/phpunit -c phpunit-firebird5.xml
+
+# Legacy version (local only)
+docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
+    php ../vendor/bin/phpunit -c phpunit-firebird25.xml
 ```
 
 ### Version-Specific Tests
@@ -763,97 +764,28 @@ final class VersionSpecificTest extends TestCase
 
 ## CI/CD Integration
 
-### GitLab CI Example
+The project uses GitHub Actions for primary CI/CD.
 
-```yaml
-stages:
-  - test
+### GitHub Actions (Linux)
 
-test:firebird25:
-  stage: test
-  script:
-    - cd tests
-    - docker compose up -d
-    - sleep 10
-    - docker exec --user=application -w /app/tests app-doctrine-firebird-driver
-        php ../vendor/bin/phpunit -c phpunit-firebird25.xml
-    - docker compose down
+Standard matrix testing across PHP versions (8.2, 8.3, 8.4, 8.5) and Firebird versions (3.0, 4.0, 5.0). Static analysis (PHPStan, Psalm) and coding standards (PHPCS) are consolidated into a single quality-check job.
 
-test:firebird3:
-  stage: test
-  script:
-    - cd tests
-    - docker compose up -d
-    - sleep 10
-    - docker exec --user=application -w /app/tests app-doctrine-firebird-driver
-        php ../vendor/bin/phpunit -c phpunit.xml
-    - docker compose down
+### GitHub Actions (Windows)
 
-test:firebird4:
-  stage: test
-  script:
-    - cd tests
-    - docker compose up -d
-    - sleep 10
-    - docker exec --user=application -w /app/tests app-doctrine-firebird-driver
-        php ../vendor/bin/phpunit -c phpunit-firebird4.xml
-    - docker compose down
+Fully stabilized integration tests on Windows runners.
 
-test:firebird5:
-  stage: test
-  script:
-    - cd tests
-    - docker compose up -d
-    - sleep 10
-    - docker exec --user=application -w /app/tests app-doctrine-firebird-driver
-        php ../vendor/bin/phpunit -c phpunit-firebird5.xml
-    - docker compose down
-```
+**Key Stabilization Features:**
+- **Permissive Storage:** Uses `C:\firebird_tests` to avoid `SYSTEM` account I/O restrictions on the workspace drive.
+- **Resilient Path Resolution:** `TestUtil.php` automatically forces CI database paths into the permissive directory.
+- **PowerShell Automation:** DLL management and Firebird service setup are fully automated via PowerShell scripts.
 
-### GitHub Actions Example
+### Local CI Validation (act)
 
-```yaml
-name: Tests
+You can run the GitHub Actions workflows locally using [act](https://github.com/nektos/act):
 
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        firebird: ['2.5', '3.0', '4.0', '5.0']
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: interbase, pdo
-      
-      - name: Install dependencies
-        run: composer install
-      
-      - name: Start Docker services
-        run: |
-          cd tests
-          docker compose up -d
-          sleep 10
-      
-      - name: Run tests
-        run: |
-          cd tests
-          CONFIG="phpunit.xml"
-          if [ "${{ matrix.firebird }}" = "2.5" ]; then CONFIG="phpunit-firebird25.xml"; fi
-          if [ "${{ matrix.firebird }}" = "4.0" ]; then CONFIG="phpunit-firebird4.xml"; fi
-          if [ "${{ matrix.firebird }}" = "5.0" ]; then CONFIG="phpunit-firebird5.xml"; fi
-          docker exec --user=application -w /app/tests app-doctrine-firebird-driver \
-            php ../vendor/bin/phpunit -c $CONFIG
-      
-      - name: Stop Docker services
-        run: cd tests && docker compose down
+```bash
+# Run Linux CI locally
+cd tests && ./act-local-test.sh
 ```
 
 ## Additional Resources
@@ -871,7 +803,7 @@ jobs:
 
 ---
 
-**Last Updated:** 2025-12-07  
+**Last Updated:** 2026-03-18  
 **PHPUnit Version:** 10.5  
 **Doctrine DBAL:** ^3.10  
-**Supported Firebird Versions:** 2.5, 3.0, 4.0, 5.0
+**Supported Firebird Versions:** 3.0, 4.0, 5.0 (Legacy 2.5 local-only)

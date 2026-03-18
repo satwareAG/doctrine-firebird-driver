@@ -1,47 +1,31 @@
-# Implementation Plan
+# Implementation Plan - CI/CD Audit & Post-Stabilization
 
 [Overview]
-Resolve the remaining PHPUnit deprecations, fix a PHPStan return type warning, and prune the Psalm baseline to achieve a clean v3.12.0 stable release state.
+Following the successful stabilization of Windows CI and a comprehensive audit of all project pipelines, this plan outlines the final documentation updates and the transition to Priority 3 (DBAL 4.x migration).
 
-The project is nearing a stable release, but a few minor quality issues remain. Two PHPUnit deprecations were observed in recent runs, likely due to missing parameter types in functional tests. Additionally, PHPStan reports an unused return type in `FirebirdSchemaManager`, and Psalm's baseline contains entries that are no longer applicable. This plan focuses on surgically addressing these items within the Docker environment.
+[Status]
+- ✅ Windows CI Stabilization (Resolved I/O errors via `C:\firebird_tests`)
+- ✅ CI/CD Pipeline Audit (Reviewed all workflows and local scripts)
+- ✅ Para-parity between local and remote testing environments confirmed
 
-[Types]
-No changes to the type system are required, only refinements to PHPDoc and method return types to match existing implementation.
+[Key technical changes]
+- Dedicated permissive directory `C:\firebird_tests` on Windows CI runners.
+- Resilient path resolution in `TestUtil.php`.
+- Consolidation of static analysis and testing jobs in GitHub Actions.
 
-[Files]
-Refine internal documentation and clean up static analysis configuration.
+[Documentation Updates]
+- [x] Update `README.md` with Windows CI status.
+- [x] Update `CHANGELOG.md` with audit and stabilization details.
+- [ ] Update `NEXT_STEPS.md` to reflect current project state.
 
-Detailed breakdown:
-- Existing files to be modified:
-    - `src/Schema/FirebirdSchemaManager.php`: Override inherited PHPDoc return type.
-    - `psalm-baseline.xml`: Pruned via automated Psalm execution.
-    - `tests/Test/Functional/*`: Update tests once specific deprecations are identified.
-
-[Functions]
-Refine function metadata for better static analysis.
-
-Detailed breakdown:
-- Modified functions:
-    - `Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::_getPortableViewDefinition()`: Update PHPDoc to specifically return `View`.
-
-[Classes]
-No changes to class structure.
-
-[Dependencies]
-No changes to dependencies.
-
-[Implementation Order]
-Execute in a sequence that minimizes context loss and ensures immediate verification.
-
-1. Run Firebird 3 functional tests in Docker with verbose output to identify the exact lines causing the 2 PHPUnit deprecations.
-2. Fix identified deprecations in the test files.
-3. Update `src/Schema/FirebirdSchemaManager.php` to resolve the PHPStan warning.
-4. Run Psalm in Docker with `--set-baseline` to clean up `psalm-baseline.xml`.
-5. Run the full quality and test suite to verify the fix.
+[Issues & Milestones]
+- [ ] Close Issue #91 (BLOB corruption fix verified).
+- [ ] Tag `v3.12.2` release.
+- [ ] Transition tracking to DBAL 4.x Migration (Issue #90).
 
 task_progress Items:
-- [ ] Step 1: Identify PHPUnit deprecations via verbose Docker run
-- [ ] Step 2: Fix identified deprecations in functional tests
-- [ ] Step 3: Resolve PHPStan warning in FirebirdSchemaManager
-- [ ] Step 4: Prune Psalm baseline in Docker
-- [ ] Step 5: Final verification of full matrix and quality suite
+- [x] Audit all GitHub Actions workflows
+- [x] Audit local testing scripts (`docker-cqc.sh`, `phpunit.sh`)
+- [x] Stabilize Windows CI integration tests
+- [x] Document CI/CD Audit findings in CHANGELOG.md
+- [ ] Finalize NEXT_STEPS.md and close resolved issues

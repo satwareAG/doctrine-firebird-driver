@@ -23,6 +23,7 @@ use Throwable;
 use function array_keys;
 use function array_map;
 use function array_values;
+use function basename;
 use function file_exists;
 use function getenv;
 use function implode;
@@ -140,9 +141,14 @@ class TestUtil
         $baseName   = $baseParams['dbname'];
 
         // On Windows CI, ensure we use a simple writable path that Firebird likes
-        if (PHP_OS_FAMILY === 'Windows' && getenv('CI') && ! str_contains($baseName, '/') && ! str_contains($baseName, '\\')) {
-            $tempDir              = 'C:\\firebird_tests';
-            $baseName             = $tempDir . '\\' . $baseName;
+        if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
+            $tempDir = 'C:\\firebird_tests';
+            if (! str_starts_with($baseName, $tempDir)) {
+                // Strip any path and force into tempDir
+                $baseName = basename(str_replace('\\', '/', $baseName));
+                $baseName = $tempDir . '\\' . $baseName;
+            }
+
             $baseParams['dbname'] = $baseName;
             if (! file_exists($tempDir)) {
                 @mkdir($tempDir, 0777, true);

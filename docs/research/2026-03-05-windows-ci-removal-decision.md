@@ -1,8 +1,12 @@
-# Windows CI Removal Decision
+# Windows CI Removal Decision (SUPERSEDED)
 
 **Date**: 2026-03-05
-**Status**: Decision Implemented
+**Status**: Superseded by `2026-03-18-windows-ci-stabilization.md`
 **Supersedes**: `2025-12-25-windows-ci-options-research.md`
+
+> [!CAUTION]
+> This decision was superseded on March 18, 2026. Windows CI has been restored using GitHub Actions
+> and stabilized with a permissive `C:\firebird_tests` directory workaround.
 
 ## Decision
 

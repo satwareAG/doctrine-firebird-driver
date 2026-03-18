@@ -33,8 +33,8 @@ jobs:
     env:
       ISC_USER: SYSDBA
       ISC_PASSWORD: masterkey
-      # Use workspace directory for databases on Windows CI
-      DB_DBNAME: ${{ github.workspace }}\tests\var\test.fdb
+      # Simple filename triggers C:\firebird_tests workaround in TestUtil.php
+      DB_DBNAME: test.fdb
 
     steps:
       - uses: actions/checkout@v5
