@@ -57,6 +57,7 @@ class VersionAwarePlatformDriverTest extends TestCase
     public function testAbstractFirebirdDriverGetExceptionConverterMethod(): void
     {
         $driver = new class extends FirebirdDriver {
+            /** @param array<string, mixed> $params */
             public function connect(array $params): DriverConnection
             {
                 throw new RuntimeException('Not implemented in test stub');

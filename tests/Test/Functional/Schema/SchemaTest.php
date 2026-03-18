@@ -25,9 +25,9 @@ use function strtolower;
  */
 class SchemaTest extends FunctionalTestCase
 {
-    private const TABLE_A = 'schema_test_a';
-    private const TABLE_B = 'schema_test_b';
-    private const TABLE_C = 'schema_test_c';
+    private const string TABLE_A = 'schema_test_a';
+    private const string TABLE_B = 'schema_test_b';
+    private const string TABLE_C = 'schema_test_c';
 
     public function testIntrospectSchemaContainsCreatedTable(): void
     {
@@ -57,10 +57,9 @@ class SchemaTest extends FunctionalTestCase
         self::assertFalse($schema->hasTable(self::TABLE_A));
     }
 
-    // =========================================================================
-    // createSchemaObjects
-    // =========================================================================
-
+    /**
+     * createSchemaObjects
+     */
     public function testCreateSchemaObjects(): void
     {
         $schema = new Schema();
@@ -87,10 +86,9 @@ class SchemaTest extends FunctionalTestCase
         self::assertSame(self::TABLE_A, strtolower($fkeys[0]->getForeignTableName()));
     }
 
-    // =========================================================================
-    // migrateSchema
-    // =========================================================================
-
+    /**
+     * migrateSchema
+     */
     public function testMigrateSchemaAddTable(): void
     {
         // Start with table A
@@ -161,10 +159,9 @@ class SchemaTest extends FunctionalTestCase
         self::assertTrue($introspected->hasColumn('new_col'));
     }
 
-    // =========================================================================
-    // Schema diff
-    // =========================================================================
-
+    /**
+     * Schema diff
+     */
     public function testSchemaDiffDetectsNewTable(): void
     {
         $schemaManager = $this->connection->createSchemaManager();
@@ -237,10 +234,9 @@ class SchemaTest extends FunctionalTestCase
         self::assertEmpty($diff->getAlteredTables(), 'No altered tables expected');
     }
 
-    // =========================================================================
-    // Multi-table schema with FK
-    // =========================================================================
-
+    /**
+     * Multi-table schema with FK
+     */
     public function testMultiTableSchemaWithForeignKeys(): void
     {
         $schema = new Schema();
@@ -294,8 +290,5 @@ class SchemaTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }// =========================================================================
-
-// Schema introspection
-// =========================================================================
+    }
 }

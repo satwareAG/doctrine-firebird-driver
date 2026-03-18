@@ -65,7 +65,7 @@ class BlobCharsetIntegrityTest extends FunctionalTestCase
         self::assertSame(256, strlen($fetched));
 
         for ($i = 0; $i < 256; $i++) {
-            self::assertSame(chr($i), $fetched[$i], "Byte at offset $i does not match");
+            self::assertSame(chr($i), $fetched[$i], 'Byte at offset ' . $i . ' does not match');
         }
     }
 

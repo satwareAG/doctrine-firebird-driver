@@ -28,7 +28,9 @@ use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Test\SchemaEventListener;
 
+use function count;
 use function implode;
 use function sprintf;
 use function str_repeat;
@@ -367,7 +369,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGetCreateTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this->createMock(GetCreateTableSqlDispatchEventListener::class);
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects(self::once())
             ->method('onSchemaCreateTable');
@@ -392,7 +394,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGetDropTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this->createMock(GetDropTableSqlDispatchEventListener::class);
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects(self::once())
             ->method('onSchemaDropTable');

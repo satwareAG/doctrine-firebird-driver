@@ -52,29 +52,29 @@ use const FBIRD_CREATE;
  */
 class FirebirdSchemaManager extends AbstractSchemaManager
 {
-    public const META_FIELD_TYPE_SMALLINT = 7;
+    public const int META_FIELD_TYPE_SMALLINT = 7;
 
-    public const META_FIELD_TYPE_INTEGER = 8;
+    public const int META_FIELD_TYPE_INTEGER = 8;
 
-    public const META_FIELD_TYPE_FLOAT = 10;
+    public const int META_FIELD_TYPE_FLOAT = 10;
 
-    public const META_FIELD_TYPE_DATE = 12;
+    public const int META_FIELD_TYPE_DATE = 12;
 
-    public const META_FIELD_TYPE_TIME = 13;
+    public const int META_FIELD_TYPE_TIME = 13;
 
-    public const META_FIELD_TYPE_CHAR = 14;
+    public const int META_FIELD_TYPE_CHAR = 14;
 
-    public const META_FIELD_TYPE_BIGINT = 16;
+    public const int META_FIELD_TYPE_BIGINT = 16;
 
-    public const META_FIELD_TYPE_DOUBLE = 27;
+    public const int META_FIELD_TYPE_DOUBLE = 27;
 
-    public const META_FIELD_TYPE_TIMESTAMP = 35;
+    public const int META_FIELD_TYPE_TIMESTAMP = 35;
 
-    public const META_FIELD_TYPE_VARCHAR = 37;
+    public const int META_FIELD_TYPE_VARCHAR = 37;
 
-    public const META_FIELD_TYPE_CSTRING = 40;
+    public const int META_FIELD_TYPE_CSTRING = 40;
 
-    public const META_FIELD_TYPE_BLOB = 261;
+    public const int META_FIELD_TYPE_BLOB = 261;
 
     /**
      * @throws Exception
@@ -191,31 +191,12 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         return new FirebirdComparator($this->_platform);
     }
 
-    /** @return array<int, string> */
-    public static function getFieldTypeIdToColumnTypeMap(): array
-    {
-        return [
-            self::META_FIELD_TYPE_CHAR => 'string',
-            self::META_FIELD_TYPE_VARCHAR => 'string',
-            self::META_FIELD_TYPE_CSTRING => 'string',
-            self::META_FIELD_TYPE_BLOB => 'blob',
-            self::META_FIELD_TYPE_DATE => 'date',
-            self::META_FIELD_TYPE_TIME => 'time',
-            self::META_FIELD_TYPE_TIMESTAMP => 'timestamp',
-            self::META_FIELD_TYPE_DOUBLE => 'double',
-            self::META_FIELD_TYPE_FLOAT => 'float',
-            self::META_FIELD_TYPE_BIGINT => 'bigint',
-            self::META_FIELD_TYPE_SMALLINT => 'smallint',
-            self::META_FIELD_TYPE_INTEGER => 'integer',
-        ];
-    }
-
     #[Override]
     public function listTableDetails($name)
     {
-        $database = $this->_conn->getDatabase() ?? '';
+        $database       = $this->_conn->getDatabase() ?? '';
         $normalizedName = $this->normalizeName($name);
-        $tableOptions = $this->fetchTableOptionsByTable($database, $normalizedName);
+        $tableOptions   = $this->fetchTableOptionsByTable($database, $normalizedName);
 
         $columns     = $this->listTableColumns($name);
         $foreignKeys = [];
@@ -234,6 +215,25 @@ class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         return $table;
+    }
+
+    /** @return array<int, string> */
+    public static function getFieldTypeIdToColumnTypeMap(): array
+    {
+        return [
+            self::META_FIELD_TYPE_CHAR => 'string',
+            self::META_FIELD_TYPE_VARCHAR => 'string',
+            self::META_FIELD_TYPE_CSTRING => 'string',
+            self::META_FIELD_TYPE_BLOB => 'blob',
+            self::META_FIELD_TYPE_DATE => 'date',
+            self::META_FIELD_TYPE_TIME => 'time',
+            self::META_FIELD_TYPE_TIMESTAMP => 'timestamp',
+            self::META_FIELD_TYPE_DOUBLE => 'double',
+            self::META_FIELD_TYPE_FLOAT => 'float',
+            self::META_FIELD_TYPE_BIGINT => 'bigint',
+            self::META_FIELD_TYPE_SMALLINT => 'smallint',
+            self::META_FIELD_TYPE_INTEGER => 'integer',
+        ];
     }
 
     /**
@@ -492,9 +492,9 @@ WHERE RDB$RELATION_TYPE = 0 -- 0 indicates a table, 1 indicates a view
 ___query___;
 
         if ($tableName !== null) {
-            $identifier = new Identifier($tableName);
+            $identifier        = new Identifier($tableName);
             $tableNameForQuery = $identifier->getName();
-            $sql .= " AND (UPPER(RDB\$RELATION_NAME) = UPPER('" . $tableNameForQuery . "') OR TRIM(RDB\$RELATION_NAME) = '" . $tableNameForQuery . "')";
+            $sql              .= " AND (UPPER(RDB\$RELATION_NAME) = UPPER('" . $tableNameForQuery . "') OR TRIM(RDB\$RELATION_NAME) = '" . $tableNameForQuery . "')";
         }
 
         /** @var array<int,array<string,mixed>> $metadata */
@@ -503,7 +503,7 @@ ___query___;
 
         $tableOptions = [];
         foreach ($metadata as $data) {
-            $data = array_change_key_case($data, CASE_LOWER);
+            $data  = array_change_key_case($data, CASE_LOWER);
             $table = strtoupper(trim((string) $data['table_name']));
 
             $tableOptions[$table] = [

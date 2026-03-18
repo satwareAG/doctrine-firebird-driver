@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function microtime;
 use function preg_match;
+use function str_contains;
 use function version_compare;
 
 class BatchTest extends FunctionalTestCase
@@ -102,7 +104,7 @@ class BatchTest extends FunctionalTestCase
         // by attempting to create a batch (will throw if not supported)
         try {
             $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             if (str_contains($e->getMessage(), 'FB_API_VER')) {
                 $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
             }

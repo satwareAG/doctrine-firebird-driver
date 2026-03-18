@@ -118,7 +118,13 @@ final class ExceptionConverter implements ExceptionConverterInterface
 
             case -901: // General engine error.
             case -902: // Internal errors, database corruption, or connection issues.
-                if ($this->exceptionContains($exception, ['no such file or directory'])) {
+                if (
+                    $this->exceptionContains($exception, [
+                        'no such file or directory',
+                        'the system cannot find the file specified',
+                        'error while trying to open file',
+                    ])
+                ) {
                     return new DatabaseDoesNotExist($exception, $query);
                 }
 

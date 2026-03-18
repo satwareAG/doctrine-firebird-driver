@@ -303,17 +303,21 @@ is_phpunit_success() {
 # See: docs/issues/2025-01-02-schema-test-timeout-segfault.md
 run_phpunit_in_docker() {
     local cmd="$1"
-    local timeout_secs="${2:-300}"
+    local version="$2"
+    local timeout_secs="${3:-300}"
     local output_file
     local exit_code
     
     output_file=$(mktemp)
     
-    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd (timeout: ${timeout_secs}s)"
+    # Determine DB_HOST based on version for local Docker networking
+    local fb_host="firebird${version//./}"
+    
+    [[ "$VERBOSE" == "true" ]] && print_info "Running: $cmd (timeout: ${timeout_secs}s) with DB_HOST=${fb_host}"
     
     # Run command, capture output with tee while streaming to terminal
     # Use PIPESTATUS to capture the actual command exit code (not tee's)
-    timeout "$timeout_secs" docker compose run --rm -T app bash -c "$cmd" < /dev/null 2>&1 | tee "$output_file"
+    timeout "$timeout_secs" docker compose run --rm -T -e DB_HOST="${fb_host}" app bash -c "$cmd" < /dev/null 2>&1 | tee "$output_file"
     exit_code=${PIPESTATUS[0]}
     
     # Handle different exit codes
@@ -420,7 +424,7 @@ run_tests_for_version() {
     
     # Use run_phpunit_in_docker with 20 minute timeout (1200 seconds) for test execution
     # This handles exit code 139 (SIGSEGV) gracefully when tests actually passed
-    if run_phpunit_in_docker "$cmd" 1200; then
+    if run_phpunit_in_docker "$cmd" "$version" 1200; then
         print_success "Firebird $version: PASSED"
         return 0
     else

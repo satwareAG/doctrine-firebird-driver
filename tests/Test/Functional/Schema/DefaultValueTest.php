@@ -24,7 +24,7 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
  */
 class DefaultValueTest extends FunctionalTestCase
 {
-    private const TABLE = 'default_value_test';
+    private const string TABLE = 'default_value_test';
 
     public function testIntegerDefaultZero(): void
     {
@@ -69,10 +69,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertSame('-1', $columns['col']->getDefault());
     }
 
-    // =========================================================================
-    // String defaults
-    // =========================================================================
-
+    /**
+     * String defaults
+     */
     public function testStringDefaultValue(): void
     {
         $table = new Table(self::TABLE);
@@ -115,10 +114,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertSame('expected default', $columns['col']->getDefault());
     }
 
-    // =========================================================================
-    // NULL defaults
-    // =========================================================================
-
+    /**
+     * NULL defaults
+     */
     public function testNullDefaultIsNull(): void
     {
         $table = new Table(self::TABLE);
@@ -147,10 +145,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertNull($columns['col']->getDefault());
     }
 
-    // =========================================================================
-    // Decimal defaults
-    // =========================================================================
-
+    /**
+     * Decimal defaults
+     */
     public function testDecimalDefault(): void
     {
         $table = new Table(self::TABLE);
@@ -167,10 +164,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertStringContainsString('10', (string) $columns['col']->getDefault());
     }
 
-    // =========================================================================
-    // Roundtrip: create → introspect → compare (no false-positive diff)
-    // =========================================================================
-
+    /**
+     * Roundtrip: create → introspect → compare (no false-positive diff)
+     */
     public function testDefaultValueRoundtripNoFalsePositiveDiff(): void
     {
         $table = new Table(self::TABLE);
@@ -208,10 +204,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertFalse($diff, 'Generic comparator: no schema diff expected after create/introspect roundtrip');
     }
 
-    // =========================================================================
-    // Default value lifecycle: alter column default
-    // =========================================================================
-
+    /**
+     * Default value lifecycle: alter column default
+     */
     public function testAlterColumnDefaultFromValueToNull(): void
     {
         $table = new Table(self::TABLE);
@@ -285,10 +280,9 @@ class DefaultValueTest extends FunctionalTestCase
         self::assertSame('new_default', $columns['col']->getDefault());
     }
 
-    // =========================================================================
-    // Default value is used on INSERT
-    // =========================================================================
-
+    /**
+     * Default value is used on INSERT
+     */
     public function testDefaultValueAppliedOnInsert(): void
     {
         $table = new Table(self::TABLE);
@@ -323,8 +317,5 @@ class DefaultValueTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }// =========================================================================
-
-// Integer defaults
-// =========================================================================
+    }
 }

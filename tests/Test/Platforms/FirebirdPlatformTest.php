@@ -97,7 +97,7 @@ BEGIN
   EXECUTE STATEMENT \'EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT \'\'DROP TABLE foobar\'\'; END \';
 END
 ';
-        self::assertSame($expectsd, $this->platform->getDropTableSQL('foobar'));
+        self::assertStringEqualsStringIgnoringLineEndings($expectsd, $this->platform->getDropTableSQL('foobar'));
     }
 
     public function testGeneratesTypeDeclarationForIntegers(): void

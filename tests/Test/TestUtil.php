@@ -24,14 +24,20 @@ use function array_keys;
 use function array_map;
 use function array_values;
 use function file_exists;
+use function getenv;
 use function implode;
 use function in_array;
 use function is_string;
+use function mkdir;
+use function str_contains;
 use function str_ends_with;
 use function str_starts_with;
 use function strlen;
+use function strtoupper;
 use function substr;
 use function unlink;
+
+use const PHP_OS_FAMILY;
 
 /**
  * TestUtil is a class with static utility methods used during tests.
@@ -245,9 +251,10 @@ class TestUtil
      */
     private static function mapConnectionParameters(array $configuration, string $prefix): array
     {
-        $parameters = [];
+        $parameters  = [];
         $driverClass = $configuration['db_driver_class'] ?? 'Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver';
-        $dbHost = $configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1';
+
+        $dbHost = getenv('DB_HOST') ?: ($configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1');
 
         foreach (
             [
@@ -268,6 +275,12 @@ class TestUtil
                 'charset',
             ] as $parameter
         ) {
+            $envValue = getenv('DB_' . strtoupper($parameter));
+            if ($envValue !== false) {
+                $parameters[$parameter] = $envValue;
+                continue;
+            }
+
             if (! isset($configuration[$prefix . $parameter])) {
                 continue;
             }
@@ -284,7 +297,7 @@ class TestUtil
         }
 
         $parameters['driverClass'] = $driverClass;
-        $parameters['host'] = $dbHost;
+        $parameters['host']        = $dbHost;
 
         return $parameters;
     }

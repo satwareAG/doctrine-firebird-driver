@@ -120,9 +120,6 @@
   <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
     <PossiblyFalseArgument>
       <code><![CDATA[$buffer]]></code>
-      <code><![CDATA[$newStream]]></code>
-      <code><![CDATA[$newStream]]></code>
-      <code><![CDATA[$newStream]]></code>
       <code><![CDATA[$rest]]></code>
     </PossiblyFalseArgument>
     <PossiblyFalseOperand>
@@ -133,9 +130,6 @@
       <code><![CDATA[array_values]]></code>
       <code><![CDATA[array_values]]></code>
     </RedundantFunctionCallGivenDocblockType>
-    <UnusedMethod>
-      <code><![CDATA[decodeRow]]></code>
-    </UnusedMethod>
   </file>
   <file src="src/Driver/Firebird/Result.php">
     <PossiblyUnusedMethod>

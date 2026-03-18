@@ -29,7 +29,7 @@ use const CASE_LOWER;
  */
 class TransactionTest extends FunctionalTestCase
 {
-    private const TABLE = 'transaction_test';
+    private const string TABLE = 'transaction_test';
 
     public function testBeginTransactionAndCommit(): void
     {
@@ -115,10 +115,9 @@ class TransactionTest extends FunctionalTestCase
         self::assertSame(0, (int) $count);
     }
 
-    // =========================================================================
-    // Savepoints
-    // =========================================================================
-
+    /**
+     * Savepoints
+     */
     public function testSavepointCreateAndRelease(): void
     {
         $this->connection->setNestTransactionsWithSavepoints(true);
@@ -257,10 +256,9 @@ class TransactionTest extends FunctionalTestCase
         self::assertSame('level1', $row['val']);
     }
 
-    // =========================================================================
-    // Isolation levels
-    // =========================================================================
-
+    /**
+     * Isolation levels
+     */
     public function testSetIsolationLevelReadCommitted(): void
     {
         $fbirdConn = $this->getFirebirdConnection();
@@ -352,10 +350,9 @@ class TransactionTest extends FunctionalTestCase
         self::assertStringContainsString('SNAPSHOT TABLE STABILITY', $sql);
     }
 
-    // =========================================================================
-    // Transaction state
-    // =========================================================================
-
+    /**
+     * Transaction state
+     */
     public function testTransactionActiveStateTracking(): void
     {
         self::assertFalse($this->connection->isTransactionActive());
@@ -423,10 +420,9 @@ class TransactionTest extends FunctionalTestCase
         self::assertSame(0, (int) $count);
     }
 
-    // =========================================================================
-    // Auto-commit behaviour
-    // =========================================================================
-
+    /**
+     * Auto-commit behaviour
+     */
     public function testAutoCommitInsertsAreVisibleWithoutExplicitTransaction(): void
     {
         // Without beginTransaction(), inserts are auto-committed
@@ -438,10 +434,9 @@ class TransactionTest extends FunctionalTestCase
         self::assertSame(1, (int) $count);
     }
 
-    // =========================================================================
-    // FirebirdConnection attribute access
-    // =========================================================================
-
+    /**
+     * FirebirdConnection attribute access
+     */
     public function testGetAttributeIsolationLevel(): void
     {
         $fbirdConn = $this->getFirebirdConnection();
@@ -503,8 +498,5 @@ class TransactionTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }// =========================================================================
-
-// Basic begin / commit / rollBack
-// =========================================================================
+    }
 }

@@ -129,7 +129,6 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
         return $column;
     }
 
-
     /**
      * Decode a single value from database encoding to PHP encoding if it is a string.
      * Non-string values (int, float, null, bool, objects) pass through unchanged.

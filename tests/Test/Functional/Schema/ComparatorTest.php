@@ -26,9 +26,9 @@ use function strtolower;
  */
 class ComparatorTest extends FunctionalTestCase
 {
-    private const TABLE     = 'comparator_test';
-    private const TABLE_FK  = 'comparator_fk_test';
-    private const TABLE_REF = 'comparator_ref_test';
+    private const string TABLE     = 'comparator_test';
+    private const string TABLE_FK  = 'comparator_fk_test';
+    private const string TABLE_REF = 'comparator_ref_test';
 
     public function testNoFalsePositiveDiffAfterCreateIntrospect(): void
     {
@@ -77,10 +77,9 @@ class ComparatorTest extends FunctionalTestCase
         );
     }
 
-    // =========================================================================
-    // Detect real changes: added column
-    // =========================================================================
-
+    /**
+     * Detect real changes: added column
+     */
     public function testDetectsAddedColumn(): void
     {
         $table = $this->buildTestTable();
@@ -99,10 +98,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertSame('new_col', strtolower(array_values($addedColumns)[0]->getName()));
     }
 
-    // =========================================================================
-    // Detect real changes: dropped column
-    // =========================================================================
-
+    /**
+     * Detect real changes: dropped column
+     */
     public function testDetectsDroppedColumn(): void
     {
         $table = $this->buildTestTable();
@@ -121,10 +119,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertSame('str_col', strtolower(array_values($droppedColumns)[0]->getName()));
     }
 
-    // =========================================================================
-    // Detect real changes: modified column type
-    // =========================================================================
-
+    /**
+     * Detect real changes: modified column type
+     */
     public function testDetectsModifiedColumnType(): void
     {
         $table = $this->buildTestTable();
@@ -139,10 +136,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertNotFalse($diff, 'Comparator should detect type change');
     }
 
-    // =========================================================================
-    // Detect real changes: modified column default
-    // =========================================================================
-
+    /**
+     * Detect real changes: modified column default
+     */
     public function testDetectsModifiedColumnDefault(): void
     {
         $table = $this->buildTestTable();
@@ -157,10 +153,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertNotFalse($diff, 'Comparator should detect default value change');
     }
 
-    // =========================================================================
-    // Apply diff and verify no further diff
-    // =========================================================================
-
+    /**
+     * Apply diff and verify no further diff
+     */
     public function testApplyDiffAndVerifyNoDiff(): void
     {
         $table = $this->buildTestTable();
@@ -201,10 +196,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertFalse($diff2, 'No diff expected after dropping column');
     }
 
-    // =========================================================================
-    // Index changes
-    // =========================================================================
-
+    /**
+     * Index changes
+     */
     public function testNoFalsePositiveDiffWithIndex(): void
     {
         $table = new Table(self::TABLE);
@@ -238,10 +232,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertNotFalse($diff, 'Comparator should detect added index');
     }
 
-    // =========================================================================
-    // Foreign key changes
-    // =========================================================================
-
+    /**
+     * Foreign key changes
+     */
     public function testNoFalsePositiveDiffWithForeignKey(): void
     {
         $refTable = new Table(self::TABLE_REF);
@@ -263,10 +256,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertFalse($diff, 'No diff expected for table with FK after roundtrip');
     }
 
-    // =========================================================================
-    // Unique constraint
-    // =========================================================================
-
+    /**
+     * Unique constraint
+     */
     public function testNoFalsePositiveDiffWithUniqueIndex(): void
     {
         $table = new Table(self::TABLE);
@@ -283,10 +275,9 @@ class ComparatorTest extends FunctionalTestCase
         self::assertFalse($diff, 'No diff expected for table with unique index after roundtrip');
     }
 
-    // =========================================================================
-    // Multiple column types roundtrip
-    // =========================================================================
-
+    /**
+     * Multiple column types roundtrip
+     */
     public function testNoFalsePositiveDiffMultipleColumnTypes(): void
     {
         $table = new Table(self::TABLE);
@@ -325,16 +316,11 @@ class ComparatorTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }// =========================================================================
+    }
 
-// No false-positive diffs after roundtrip
-// =========================================================================
-
-
-    // =========================================================================
-    // Helper
-    // =========================================================================
-
+    /**
+     * Helper
+     */
     private function buildTestTable(): Table
     {
         $table = new Table(self::TABLE);

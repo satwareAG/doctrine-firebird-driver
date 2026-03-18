@@ -31,11 +31,11 @@ use function strtolower;
  */
 class SchemaManagerTest extends FunctionalTestCase
 {
-    private const TABLE     = 'sm_test_table';
-    private const TABLE_FK  = 'sm_fk_table';
-    private const TABLE_REF = 'sm_ref_table';
-    private const VIEW      = 'sm_test_view';
-    private const SEQ       = 'sm_test_seq';
+    private const string TABLE     = 'sm_test_table';
+    private const string TABLE_FK  = 'sm_fk_table';
+    private const string TABLE_REF = 'sm_ref_table';
+    private const string VIEW      = 'sm_test_view';
+    private const string SEQ       = 'sm_test_seq';
 
     public function testCreateAndIntrospectTable(): void
     {
@@ -75,10 +75,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertContains(self::TABLE, $tableNames);
     }
 
-    // =========================================================================
-    // Column introspection
-    // =========================================================================
-
+    /**
+     * Column introspection
+     */
     public function testListTableColumns(): void
     {
         $table = $this->buildTable();
@@ -128,10 +127,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertTrue($columns['notnull_col']->getNotnull());
     }
 
-    // =========================================================================
-    // Alter table
-    // =========================================================================
-
+    /**
+     * Alter table
+     */
     public function testAlterTableAddColumn(): void
     {
         $table = $this->buildTable();
@@ -186,10 +184,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertSame('42', $columns['val_col']->getDefault());
     }
 
-    // =========================================================================
-    // Indexes
-    // =========================================================================
-
+    /**
+     * Indexes
+     */
     public function testCreateAndListIndexes(): void
     {
         $table = new Table(self::TABLE);
@@ -236,10 +233,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertArrayHasKey('idx_sm_drop_test', $indexes);
     }
 
-    // =========================================================================
-    // Foreign keys
-    // =========================================================================
-
+    /**
+     * Foreign keys
+     */
     public function testCreateAndListForeignKeys(): void
     {
         $refTable = new Table(self::TABLE_REF);
@@ -291,10 +287,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertCount(0, $fkeys);
     }
 
-    // =========================================================================
-    // Sequences
-    // =========================================================================
-
+    /**
+     * Sequences
+     */
     public function testCreateAndDropSequence(): void
     {
         $platform = $this->connection->getDatabasePlatform();
@@ -323,10 +318,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertNotContains(self::SEQ, $names);
     }
 
-    // =========================================================================
-    // Views
-    // =========================================================================
-
+    /**
+     * Views
+     */
     public function testCreateAndDropView(): void
     {
         $table = $this->buildTable();
@@ -348,10 +342,9 @@ class SchemaManagerTest extends FunctionalTestCase
         self::assertNotContains(self::VIEW, $viewNames);
     }
 
-    // =========================================================================
-    // tablesExist
-    // =========================================================================
-
+    /**
+     * tablesExist
+     */
     public function testTablesExistReturnsTrueForExistingTable(): void
     {
         $table = $this->buildTable();
@@ -411,16 +404,11 @@ class SchemaManagerTest extends FunctionalTestCase
         $this->markConnectionNotReusable();
 
         parent::tearDown();
-    }// =========================================================================
+    }
 
-// Table lifecycle
-// =========================================================================
-
-
-    // =========================================================================
-    // Helper
-    // =========================================================================
-
+    /**
+     * Helper
+     */
     private function buildTable(): Table
     {
         $table = new Table(self::TABLE);

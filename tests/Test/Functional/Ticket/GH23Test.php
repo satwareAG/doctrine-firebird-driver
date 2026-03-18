@@ -27,7 +27,7 @@ use const CASE_LOWER;
  */
 class GH23Test extends FunctionalTestCase
 {
-    private const TABLE = 'gh23_regression';
+    private const string TABLE = 'gh23_regression';
 
     /**
      * Column keys in fetchAssociative must not be padded with trailing spaces.
@@ -57,7 +57,7 @@ class GH23Test extends FunctionalTestCase
 
         // Verify no padded variants exist (after normalisation)
         foreach (array_keys($row) as $key) {
-            self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
+            self::assertSame(trim($key), $key, 'Key \'' . $key . '\' must not have trailing spaces');
         }
     }
 
@@ -78,7 +78,7 @@ class GH23Test extends FunctionalTestCase
         self::assertArrayHasKey('my_alias', $row, 'Alias key must exist without padding');
 
         foreach (array_keys($row) as $key) {
-            self::assertSame(trim($key), $key, "Alias key '$key' must not have trailing spaces");
+            self::assertSame(trim($key), $key, 'Alias key \'' . $key . '\' must not have trailing spaces');
         }
     }
 
@@ -102,7 +102,7 @@ class GH23Test extends FunctionalTestCase
 
         foreach ($rows as $row) {
             foreach (array_keys($row) as $key) {
-                self::assertSame(trim($key), $key, "Key '$key' must not have trailing spaces");
+                self::assertSame(trim($key), $key, 'Key \'' . $key . '\' must not have trailing spaces');
             }
         }
     }

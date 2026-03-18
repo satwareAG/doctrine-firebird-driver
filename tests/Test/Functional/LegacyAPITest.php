@@ -184,7 +184,7 @@ class LegacyAPITest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $this->table = 'legacy_table' . uniqid();
+        $this->table = 'legacy_' . uniqid();
         $table       = new Table($this->table);
         $table->addColumn('test_int', Types::INTEGER);
         $table->addColumn('test_string', Types::STRING);

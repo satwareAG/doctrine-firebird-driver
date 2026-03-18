@@ -25,7 +25,7 @@ use const CASE_LOWER;
  */
 class BooleanBindingTest extends FunctionalTestCase
 {
-    private const TABLE = 'bool_binding_test';
+    private const string TABLE = 'bool_binding_test';
 
     public function tearDown(): void
     {
