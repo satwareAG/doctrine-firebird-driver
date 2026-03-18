@@ -407,7 +407,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGetAlterTableSqlDispatchEvent(): void
     {
-        $listenerMock = $this->createMock(GetCreateTableSqlDispatchEventListener::class);
+        $listenerMock = $this->createMock(SchemaEventListener::class);
         $listenerMock
             ->expects(self::once())
             ->method('onSchemaAlterTable');

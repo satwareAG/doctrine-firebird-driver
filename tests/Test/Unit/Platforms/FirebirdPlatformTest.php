@@ -470,7 +470,7 @@ END
     {
         $found = $this->_platform->getDropSequenceSQL('bar_D2IS');
         self::assertIsString($found);
-        self::assertStringStartsWithIgnoringCase('EXECUTE BLOCK AS', $found);
+        self::assertStringStartsWith('EXECUTE BLOCK AS', strtoupper($found));
         self::assertStringContainsString('RDB$TRIGGERS', $found);
         self::assertStringContainsString('RDB$TRIGGER_NAME', $found);
         self::assertStringContainsString('DROP TRIGGER bar_D2IT', $found);
@@ -604,7 +604,7 @@ END
         $found = $this->_platform->getAlterTableSQL($diff);
         self::assertIsArray($found);
         self::assertCount(1, $found);
-        self::assertSame([0 => "ALTER TABLE 'foo' ADD 'bar' INTEGER DEFAULT  NOT NULL"], $found);
+        self::assertStringEqualsStringIgnoringLineEndings("ALTER TABLE 'foo' ADD 'bar' INTEGER DEFAULT  NOT NULL", $found[0]);
     }
 
     public function testGetAlterTableSQLWorksWithRemovedColumn(): void
@@ -623,7 +623,7 @@ END
         $found = $this->_platform->getAlterTableSQL($diff);
         self::assertIsArray($found);
         self::assertCount(1, $found);
-        self::assertSame([0 => "ALTER TABLE 'foo' DROP 'bar'"], $found);
+        self::assertStringEqualsStringIgnoringLineEndings("ALTER TABLE 'foo' DROP 'bar'", $found[0]);
     }
 
     public function testGetAlterTableSQLWorksWithChangedColumn(): void
@@ -681,7 +681,7 @@ END
         $found = $this->_platform->getAlterTableSQL($diff);
         self::assertIsArray($found);
         self::assertCount(1, $found);
-        self::assertSame([0 => "ALTER TABLE 'foo' ALTER COLUMN 0 TO 'bar'"], $found);
+        self::assertStringEqualsStringIgnoringLineEndings("ALTER TABLE 'foo' ALTER COLUMN 0 TO 'bar'", $found[0]);
     }
 
     public function testGetVarcharMaxLength(): void

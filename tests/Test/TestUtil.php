@@ -133,9 +133,12 @@ class TestUtil
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
         $baseName   = $baseParams['dbname'];
 
-        // On Windows, if no path is provided, use the temporary directory
-        if (PHP_OS_FAMILY === 'Windows' && ! str_contains($baseName, '/') && ! str_contains($baseName, '\\')) {
-            $baseName = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $baseName;
+        // On Windows CI, ensure we use a simple writable path that Firebird likes
+        if (PHP_OS_FAMILY === 'Windows' && getenv('CI') && ! str_contains($baseName, '/') && ! str_contains($baseName, '\\')) {
+            $baseName = 'C:\\temp\\' . $baseName;
+            if (! file_exists('C:\\temp')) {
+                @mkdir('C:\\temp', 0777, true);
+            }
         }
 
         $ext = '';
