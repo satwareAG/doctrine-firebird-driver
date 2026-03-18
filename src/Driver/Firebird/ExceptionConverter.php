@@ -23,7 +23,6 @@ use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
-use Override;
 
 use function class_exists;
 use function str_contains;
@@ -37,7 +36,7 @@ use function substr;
  */
 final class ExceptionConverter implements ExceptionConverterInterface
 {
-    #[Override]
+    #[\Override]
     public function convert(Exception $exception, Query|null $query): DriverException
     {
         // SQLSTATE-based classification (php-firebird v7.0.0-rc.6+ Exception Mode)

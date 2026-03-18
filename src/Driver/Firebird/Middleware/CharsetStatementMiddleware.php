@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Middleware\AbstractStatementMiddleware;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
 
 use function in_array;
 use function is_resource;
@@ -50,7 +49,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * @param mixed      $value
      * @param mixed      $type
      */
-    #[Override]
+    #[\Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
         $this->boundTypes[$param] = $type;
@@ -74,7 +73,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      *
      * @param array<int|string, mixed>|null $params
      */
-    #[Override]
+    #[\Override]
     public function execute($params = null): ResultInterface
     {
         // If inline params are passed (deprecated path), encode them first

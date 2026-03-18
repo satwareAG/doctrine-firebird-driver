@@ -10,7 +10,6 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
-use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
@@ -69,7 +68,7 @@ final class ConnectionWrapper extends Connection
         return null;
     }
 
-    #[Override]
+    #[\Override]
     public function prepare(string $sql): Statement
     {
         $sql = $this->extractIdentityColumn($sql);
@@ -78,7 +77,7 @@ final class ConnectionWrapper extends Connection
     }
 
     /** @inheritDoc */
-    #[Override]
+    #[\Override]
     public function executeQuery(
         string $sql,
         array $params = [],
@@ -93,7 +92,7 @@ final class ConnectionWrapper extends Connection
     /**
      * {@inheritDoc}
      */
-    #[Override]
+    #[\Override]
     public function executeStatement($sql, array $params = [], array $types = []): int|string
     {
         $sql = $this->extractIdentityColumn($sql);
@@ -105,7 +104,7 @@ final class ConnectionWrapper extends Connection
      * @inheritDoc
      * @psalm-suppress DocblockTypeContradiction
      * */
-    #[Override]
+    #[\Override]
     public function lastInsertId($name = null): string|int|false
     {
         if ($name !== null && ! is_string($name)) {
@@ -123,7 +122,7 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId($name);
     }
 
-    #[Override]
+    #[\Override]
     public function getDatabase(): string|null
     {
         static $database = null;

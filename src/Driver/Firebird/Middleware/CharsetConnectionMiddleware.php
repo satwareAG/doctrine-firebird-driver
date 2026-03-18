@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
 
 use function is_string;
 use function mb_convert_encoding;
@@ -30,7 +29,7 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
     /**
      * Prepare a statement and wrap it so all bound parameters are encoded.
      */
-    #[Override]
+    #[\Override]
     public function prepare(string $sql): Statement
     {
         return new CharsetStatementMiddleware(
@@ -54,7 +53,7 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
      *
      * @return mixed
      */
-    #[Override]
+    #[\Override]
     public function quote($value, $type = ParameterType::STRING)
     {
         if (is_string($value)) {

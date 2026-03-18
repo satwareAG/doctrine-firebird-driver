@@ -7,14 +7,13 @@ namespace Satag\DoctrineFirebirdDriver\ORM\Mapping;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
-use Override;
 
 use function strtoupper;
 
 /** @psalm-suppress UnusedClass */
 final class FirebirdQuoteStrategy extends DefaultQuoteStrategy
 {
-    #[Override]
+    #[\Override]
     public function getColumnAlias(
         string $columnName,
         int $counter,

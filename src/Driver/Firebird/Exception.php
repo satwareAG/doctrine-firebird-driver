@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\Exception as DriverException;
 use Exception as BaseException;
-use Override;
 use Throwable;
 
 use function fbird_sqlstate;
@@ -128,7 +127,7 @@ class Exception extends BaseException implements DriverException
      * - php-firebird version < 7.0.0 (fbird_sqlstate not available)
      * - Firebird version doesn't support SQLSTATE for this error
      */
-    #[Override]
+    #[\Override]
     public function getSQLState(): string|null
     {
         return $this->sqlState;

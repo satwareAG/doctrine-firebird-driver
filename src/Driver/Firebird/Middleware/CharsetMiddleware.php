@@ -7,7 +7,6 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware as MiddlewareInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
-use Override;
 use SensitiveParameter;
 
 /**
@@ -48,7 +47,7 @@ final class CharsetMiddleware implements MiddlewareInterface
     ) {
     }
 
-    #[Override]
+    #[\Override]
     public function wrap(Driver $driver): Driver
     {
         $databaseEncoding = $this->databaseEncoding;
@@ -68,7 +67,7 @@ final class CharsetMiddleware implements MiddlewareInterface
              *
              * {@inheritDoc}
              */
-            #[Override]
+            #[\Override]
             public function connect(
                 #[SensitiveParameter]
                 array $params,

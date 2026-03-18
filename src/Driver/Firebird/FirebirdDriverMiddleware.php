@@ -7,7 +7,6 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware as MiddlewareInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
-use Override;
 
 /**
  * DBAL Driver Middleware support for the Firebird driver.
@@ -31,7 +30,7 @@ use Override;
  */
 final class FirebirdDriverMiddleware implements MiddlewareInterface
 {
-    #[Override]
+    #[\Override]
     public function wrap(Driver $driver): Driver
     {
         return new class ($driver) extends AbstractDriverMiddleware {

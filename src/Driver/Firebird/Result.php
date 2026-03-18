@@ -7,7 +7,6 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
-use Override;
 use Throwable;
 
 use function array_values;
@@ -72,7 +71,7 @@ final class Result implements ResultInterface
      *
      * @return false|list<mixed>
      */
-    #[Override]
+    #[\Override]
     public function fetchNumeric()
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -98,7 +97,7 @@ final class Result implements ResultInterface
         return false;
     }
 
-    #[Override]
+    #[\Override]
     public function fetchAssociative(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -145,34 +144,34 @@ final class Result implements ResultInterface
         return false;
     }
 
-    #[Override]
+    #[\Override]
     public function fetchOne(): mixed
     {
         return FetchUtils::fetchOne($this);
     }
 
     /** @inheritDoc */
-    #[Override]
+    #[\Override]
     public function fetchAllNumeric(): array
     {
         return FetchUtils::fetchAllNumeric($this);
     }
 
     /** @inheritDoc */
-    #[Override]
+    #[\Override]
     public function fetchAllAssociative(): array
     {
         return FetchUtils::fetchAllAssociative($this);
     }
 
     /** @inheritDoc */
-    #[Override]
+    #[\Override]
     public function fetchFirstColumn(): array
     {
         return FetchUtils::fetchFirstColumn($this);
     }
 
-    #[Override]
+    #[\Override]
     public function rowCount(): int
     {
         if (is_numeric($this->firebirdResultResource)) {
@@ -187,7 +186,7 @@ final class Result implements ResultInterface
         return 0;
     }
 
-    #[Override]
+    #[\Override]
     public function columnCount(): int
     {
         if (is_resource($this->firebirdResultResource)) {
@@ -327,7 +326,7 @@ final class Result implements ResultInterface
     }
 
     /** @throws Exception */
-    #[Override]
+    #[\Override]
     public function free(): void
     {
         if (! is_resource($this->firebirdResultResource)) {

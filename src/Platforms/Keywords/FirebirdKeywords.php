@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
-use Override;
 
 class FirebirdKeywords extends KeywordList
 {
-    #[Override]
+    #[\Override]
     public function getName(): string
     {
         return 'Firebird';
@@ -20,7 +19,7 @@ class FirebirdKeywords extends KeywordList
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */
-    #[Override]
+    #[\Override]
     protected function getKeywords(): array
     {
         return [
