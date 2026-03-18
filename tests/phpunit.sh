@@ -484,7 +484,11 @@ main() {
     else
         print_header "Installing Dependencies"
         # Note: git config is now handled in entrypoint.sh, but we keep it here as a fallback
-        docker compose run --rm -T app bash -c "git config --global --add safe.directory /app 2>/dev/null || true && composer update --prefer-stable" < /dev/null || die "Composer update failed"
+        local composer_cmd="composer update --prefer-stable"
+        if [[ -f "$PROJECT_ROOT/composer.lock" ]]; then
+            composer_cmd="composer install"
+        fi
+        docker compose run --rm -T app bash -c "git config --global --add safe.directory /app 2>/dev/null || true && $composer_cmd" < /dev/null || die "Composer command failed: $composer_cmd"
         print_success "Dependencies installed"
     fi
     

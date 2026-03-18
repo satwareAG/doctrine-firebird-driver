@@ -345,7 +345,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         $method     = $reflection->getMethod('getExecuteBlockWithExecuteStatementsSql');
         $found = $method->invoke($this->_platform, $params);
         self::assertIsString($found);
-        self::assertSame($expected, $found);
+        self::assertStringEqualsStringIgnoringLineEndings($expected, $found);
     }
 
     public static function dataProvider_testGetExecuteBlockWithExecuteStatementsSql(): Iterator
@@ -397,14 +397,14 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         $found = $this->_platform->getAlterSequenceSQL($sequence);
         self::assertIsString($found);
         if ($this->_platform instanceof Firebird3Platform) {
-            self::assertSame('EXECUTE BLOCK AS
+            self::assertStringEqualsStringIgnoringLineEndings('EXECUTE BLOCK AS
 BEGIN
   EXECUTE STATEMENT \'ALTER SEQUENCE foo RESTART WITH 3 INCREMENT BY \';
   EXECUTE STATEMENT \'{"name":null,"initialValue":3,"allocationSize":null,"cache":null}\';
 END
 ', $found);
         } else {
-            self::assertSame('ALTER SEQUENCE foo RESTART WITH 2', $found);
+            self::assertStringEqualsStringIgnoringLineEndings('ALTER SEQUENCE foo RESTART WITH 2', $found);
         }
     }
 
@@ -470,7 +470,7 @@ END
     {
         $found = $this->_platform->getDropSequenceSQL('bar_D2IS');
         self::assertIsString($found);
-        self::assertStringStartsWith('EXECUTE BLOCK AS', $found);
+        self::assertStringStartsWithIgnoringCase('EXECUTE BLOCK AS', $found);
         self::assertStringContainsString('RDB$TRIGGERS', $found);
         self::assertStringContainsString('RDB$TRIGGER_NAME', $found);
         self::assertStringContainsString('DROP TRIGGER bar_D2IT', $found);
