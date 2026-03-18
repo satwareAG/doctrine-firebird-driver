@@ -141,7 +141,8 @@ class TestUtil
 
         // On Windows CI, ensure we use a simple writable path that Firebird likes
         if (PHP_OS_FAMILY === 'Windows' && getenv('CI') && ! str_contains($baseName, '/') && ! str_contains($baseName, '\\')) {
-            $baseName = 'C:\\temp\\' . $baseName;
+            $baseName             = 'C:\\temp\\' . $baseName;
+            $baseParams['dbname'] = $baseName;
             if (! file_exists('C:\\temp')) {
                 @mkdir('C:\\temp', 0777, true);
             }

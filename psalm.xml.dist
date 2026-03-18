@@ -22,6 +22,40 @@
         <file name="stubs/firebird-userland-classes.php" />
     </stubs>
     <issueHandlers>
+        <InvalidAttribute>
+            <errorLevel type="suppress">
+                <file name="src/DBAL/FirebirdBooleanType.php" />
+                <file name="src/DBAL/FirebirdConnection.php" />
+                <file name="src/Driver/Firebird/Connection.php" />
+                <file name="src/Driver/Firebird/ConnectionWrapper.php" />
+                <file name="src/Driver/Firebird/Driver.php" />
+                <file name="src/Driver/Firebird/Driver/ConvertParameters.php" />
+                <file name="src/Driver/Firebird/Driver/FirebirdConnectString.php" />
+                <file name="src/Driver/Firebird/Exception.php" />
+                <file name="src/Driver/Firebird/ExceptionConverter.php" />
+                <file name="src/Driver/Firebird/FirebirdDriverMiddleware.php" />
+                <file name="src/Driver/Firebird/Middleware/CharsetConnectionMiddleware.php" />
+                <file name="src/Driver/Firebird/Middleware/CharsetMiddleware.php" />
+                <file name="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php" />
+                <file name="src/Driver/Firebird/Middleware/CharsetStatementMiddleware.php" />
+                <file name="src/Driver/Firebird/Result.php" />
+                <file name="src/Driver/Firebird/Statement.php" />
+                <file name="src/Driver/FirebirdDriver.php" />
+                <file name="src/ORM/Mapping/FirebirdQuoteStrategy.php" />
+                <file name="src/Platforms/Firebird3Platform.php" />
+                <file name="src/Platforms/Firebird4Platform.php" />
+                <file name="src/Platforms/Firebird5Platform.php" />
+                <file name="src/Platforms/FirebirdPlatform.php" />
+                <file name="src/Platforms/Keywords/Firebird3Keywords.php" />
+                <file name="src/Platforms/Keywords/Firebird4Keywords.php" />
+                <file name="src/Platforms/Keywords/Firebird5Keywords.php" />
+                <file name="src/Platforms/Keywords/FirebirdKeywords.php" />
+                <file name="src/Platforms/SQL/Builder/FirebirdSelectSQLBuilder.php" />
+                <file name="src/Schema/FirebirdComparator.php" />
+                <file name="src/Schema/FirebirdSchemaManager.php" />
+                <file name="src/Schema/FirebirdSchemaManagerFactory.php" />
+            </errorLevel>
+        </InvalidAttribute>
         <InvalidReturnType>
             <errorLevel type="suppress">
                 <file name="src/Driver/Firebird/Connection.php"/>

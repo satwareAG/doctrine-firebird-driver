@@ -33,6 +33,7 @@ jobs:
     env:
       ISC_USER: SYSDBA
       ISC_PASSWORD: masterkey
+      DB_DBNAME: C:\temp\test.fdb
 
     steps:
       - uses: actions/checkout@v4
