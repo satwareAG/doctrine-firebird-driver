@@ -12,7 +12,7 @@ use Override;
 use function strtoupper;
 
 /** @psalm-suppress UnusedClass */
-class FirebirdQuoteStrategy extends DefaultQuoteStrategy
+final class FirebirdQuoteStrategy extends DefaultQuoteStrategy
 {
     #[Override]
     public function getColumnAlias(

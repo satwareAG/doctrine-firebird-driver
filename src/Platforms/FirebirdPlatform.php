@@ -713,8 +713,8 @@ class FirebirdPlatform extends AbstractPlatform
             $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->fromColumn;
             $newColumn = $columnDiff->getNewColumn();
 
-            // fromColumn may be null for legacy ColumnDiff instances; fall back to new column name
-            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $newColumn->getQuotedName($this);
+            // fromColumn may be null for legacy ColumnDiff instances; fall back to oldColumnName string
+            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $columnDiff->getOldColumnName()->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()

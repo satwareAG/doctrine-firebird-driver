@@ -81,10 +81,10 @@ class Firebird3Platform extends FirebirdPlatform
                 continue;
             }
 
-            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->getOldColumnName();
+            $oldColumn = $columnDiff->getOldColumn();
             $newColumn = $columnDiff->getNewColumn();
 
-            $oldColumnName = $oldColumn->getQuotedName($this);
+            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $columnDiff->getOldColumnName()->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()

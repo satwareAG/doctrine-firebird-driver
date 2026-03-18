@@ -32,7 +32,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
  *         ],
  *     ]);
  */
-class FirebirdConnection extends Connection
+final class FirebirdConnection extends Connection
 {
     private bool $platformConfigured = false;
 

@@ -31,7 +31,7 @@ class BinaryDataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindValue(1, 1);
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $stmt->bindValue(2, hex2bin('C0DEF00D'), ParameterType::BINARY);
 
         $row = $stmt->executeQuery()->fetchAssociative();
@@ -57,7 +57,7 @@ class BinaryDataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindValue(1, $paramInt);
+        $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramBin, ParameterType::BINARY);
 
         $rows    = $stmt->executeQuery()->fetchAllAssociative();
@@ -82,7 +82,7 @@ class BinaryDataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindValue(1, $paramInt);
+        $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramBin, ParameterType::BINARY);
 
         $column = $stmt->executeQuery()->fetchOne();

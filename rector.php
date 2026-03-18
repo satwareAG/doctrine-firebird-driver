@@ -15,7 +15,7 @@ return RectorConfig::configure()
         __DIR__ . '/stubs/FirebirdStub.php',
     ])->withSets([
         // Upgrade to the latest PHP version; adjust as newer sets are released
-        LevelSetList::UP_TO_PHP_84,
+        LevelSetList::UP_TO_PHP_82,
         // Common refactorings and performance improvements
         SetList::CODE_QUALITY,
         SetList::DEAD_CODE,

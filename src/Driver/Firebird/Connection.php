@@ -92,19 +92,19 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Valid resource types for Firebird connection.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const array RESOURCE_TYPES_CONNECTION = ['Firebird link'];
+    private const RESOURCE_TYPES_CONNECTION = ['Firebird link'];
 
     /**
      * Valid resource types for Firebird persistent connection.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const array RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
+    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
 
     /**
      * Valid resource types for Firebird transaction.
      * php-firebird v7.0.0+ resource type strings only.
      */
-    private const array RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
+    private const RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
 
     private readonly ExecutionMode $executionMode;
 

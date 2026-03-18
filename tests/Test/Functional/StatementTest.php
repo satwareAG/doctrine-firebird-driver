@@ -12,6 +12,7 @@ use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function base64_decode;
+use function ini_set;
 use function stream_get_contents;
 
 class StatementTest extends FunctionalTestCase
@@ -71,13 +72,14 @@ class StatementTest extends FunctionalTestCase
     {
         // make sure memory limit is large enough to not cause false positives,
         // but is still not enough to store a LONGBLOB of the max possible size
-        $this->iniSet('memory_limit', '4G');
+        $oldLimit = ini_set('memory_limit', '4G');
 
-        $table = new Table('stmt_long_blob');
-        $table->addColumn('contents', Types::BLOB, ['length' => 0xFFFFFFFF]);
-        $this->dropAndCreateTable($table);
+        try {
+            $table = new Table('stmt_long_blob');
+            $table->addColumn('contents', Types::BLOB, ['length' => 0xFFFFFFFF]);
+            $this->dropAndCreateTable($table);
 
-        $contents = base64_decode(<<<'EOF'
+            $contents = base64_decode(<<<'EOF'
 H4sICJRACVgCA2RvY3RyaW5lLmljbwDtVNtLFHEU/ia1i9fVzVWxvJSrZmoXS6pd0zK7QhdNc03z
 lrpppq1pWqJCFERZkUFEDybYBQqJhB6iUOqhh+whgl4qkF6MfGh+s87O7GVmO6OlBfUfdIZvznxn
 fpzznW9gAI4unQ50XwirH2AAkEygEuIwU58ODnPBzXGv14sEq4BrwzKKL4sY++SGTz6PodcutN5x
@@ -94,18 +96,23 @@ d+N0hqezcjblboJ3Bj8ARJilHX4FAAA=
 EOF
         , true);
 
-        $this->connection->insert('stmt_long_blob', ['contents' => $contents], [ParameterType::LARGE_OBJECT]);
+            $this->connection->insert('stmt_long_blob', ['contents' => $contents], [ParameterType::LARGE_OBJECT]);
 
-        $result = $this->connection->prepare('SELECT contents FROM stmt_long_blob')
+            $result = $this->connection->prepare('SELECT contents FROM stmt_long_blob')
             ->execute();
 
-        $stream = Type::getType(Types::BLOB)
-            ->convertToPHPValue(
-                $result->fetchOne(),
-                $this->connection->getDatabasePlatform(),
-            );
+            $stream = Type::getType(Types::BLOB)
+                ->convertToPHPValue(
+                    $result->fetchOne(),
+                    $this->connection->getDatabasePlatform(),
+                );
 
-        self::assertSame($contents, stream_get_contents($stream));
+            self::assertSame($contents, stream_get_contents($stream));
+        } finally {
+            if ($oldLimit !== false) {
+                ini_set('memory_limit', $oldLimit);
+            }
+        }
     }
 
     public function testIncompletelyFetchedStatementDoesNotBlockConnection(): void
@@ -152,7 +159,7 @@ EOF
         $this->connection->insert('stmt_test', ['id' => 2]);
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
-        $stmt->bindParam(1, $id);
+        $stmt->bindParam(1, $id, ParameterType::INTEGER);
 
         $id     = 1;
         $result = $stmt->execute();
@@ -170,11 +177,11 @@ EOF
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
-        $stmt->bindValue(1, 1);
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(1, $result->fetchOne());
 
-        $stmt->bindValue(1, 2);
+        $stmt->bindValue(1, 2, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(2, $result->fetchOne());
     }
@@ -187,12 +194,12 @@ EOF
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
         $x = 1;
-        $stmt->bindParam(1, $x);
+        $stmt->bindParam(1, $x, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(1, $result->fetchOne());
 
         $y = 2;
-        $stmt->bindParam(1, $y);
+        $stmt->bindParam(1, $y, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(2, $result->fetchOne());
     }
@@ -231,8 +238,8 @@ EOF
         );
 
         $stmt = $this->connection->prepare($query);
-        $stmt->bindValue(2, 'banana');
-        $stmt->bindValue(1, 'apple');
+        $stmt->bindValue(2, 'banana', ParameterType::STRING);
+        $stmt->bindValue(1, 'apple', ParameterType::STRING);
 
         self::assertSame([5, 6], $stmt->executeQuery()->fetchNumeric());
     }
@@ -272,7 +279,7 @@ EOF
         $query = 'UPDATE stmt_test SET name = ? WHERE id = 1';
         $stmt  = $this->connection->prepare($query);
 
-        $stmt->bindValue(1, 'bar');
+        $stmt->bindValue(1, 'bar', ParameterType::STRING);
 
         $result = $stmt->executeStatement();
 

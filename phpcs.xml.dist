@@ -93,6 +93,11 @@
     		<exclude-pattern>tests/*.php</exclude-pattern>
     	</rule>
 
+    <!-- Class constants with native types are supported only on PHP 8.3 and later -->
+    <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint">
+        <severity>0</severity>
+    </rule>
+
      <!-- Old tests, will be removed in 4.x -->
     <exclude-pattern>tests/Test/Unit/*</exclude-pattern>
     <exclude-pattern>tests/Test/Integration/*</exclude-pattern>

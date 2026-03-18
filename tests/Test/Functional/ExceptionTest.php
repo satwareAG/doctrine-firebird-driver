@@ -18,6 +18,7 @@ use Throwable;
 
 use function array_merge;
 use function chmod;
+use function error_reporting;
 use function exec;
 use function file_exists;
 use function posix_geteuid;
@@ -238,11 +239,15 @@ class ExceptionTest extends FunctionalTestCase
         $table->addColumn('id', Types::INTEGER, []);
         $this->dropAndCreateTable($table);
 
-        // prevent the PHPUnit error handler from handling the warning that db2_bind_param() may trigger
-        $this->iniSet('error_reporting', (string) (E_ALL & ~E_WARNING));
+        // prevent the PHPUnit error handler from handling the warning that may be triggered
+        $oldLevel = error_reporting(E_ALL & ~E_WARNING);
 
-        $this->expectException(Exception\InvalidFieldNameException::class);
-        $this->connection->insert('bad_columnname_table', ['name' => 5]);
+        try {
+            $this->expectException(Exception\InvalidFieldNameException::class);
+            $this->connection->insert('bad_columnname_table', ['name' => 5]);
+        } finally {
+            error_reporting($oldLevel);
+        }
     }
 
     public function testNonUniqueFieldNameException(): void

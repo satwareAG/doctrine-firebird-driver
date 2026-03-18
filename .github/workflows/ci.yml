@@ -18,6 +18,10 @@ on:
     - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
   workflow_dispatch: ~
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # ==============================================================================
 # PHP VERSION MANAGEMENT - READ BEFORE MODIFYING MATRIX
 # ==============================================================================
@@ -139,78 +143,51 @@ jobs:
       - name: Install Firebird client libraries
         run: |
           set -eu
-          
-          # Install Firebird client libraries for PHP extension compilation
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             firebird-dev \
             firebird3.0-common \
             libfbclient2 \
             netcat-openbsd
-          
           echo "Firebird client libraries installed"
 
+      - name: Cache php-firebird extension
+        id: cache-php-firebird
+        uses: actions/cache@v4
+        with:
+          path: /tmp/php-firebird-bin
+          key: php-firebird-v7.3.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+
       - name: Build php-firebird extension from source
+        if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-
-          # Clone and build php-firebird v7.3.0
           echo "Building php-firebird v7.3.0 for PHP ${{ matrix.php-version }}"
-
           git clone --depth 1 --branch v7.3.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
-          # Fetch tags so git describe works (needed for config.m4 version detection)
           git fetch --tags --depth 1
-
           phpize
-          # Set FB_API_VER BEFORE configure so it's properly embedded in the Makefile
-          # FB_API_VER=40 enables IBatch API support (requires Firebird 4.0+)
-          # Only set for Firebird 4.0+ to avoid API mismatch crashes with Firebird 3.0
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
             echo "Enabling FB_API_VER=40 for Firebird ${{ matrix.firebird.version }}"
             export CPPFLAGS="-DFB_API_VER=40"
-          else
-            echo "Using default API for Firebird ${{ matrix.firebird.version }}"
           fi
           ./configure --with-firebird
           make -j"$(nproc)"
-          sudo make install
+          mkdir -p /tmp/php-firebird-bin
+          cp modules/firebird.so /tmp/php-firebird-bin/
 
-          # Determine where PHP actually looks for extensions and ini files.
-          # shivammathur/setup-php installs PHP to a non-standard prefix, so we
-          # must ask PHP itself rather than assuming /etc/php/X.Y paths.
+      - name: Install php-firebird extension
+        run: |
+          set -eu
           PHP_EXT_DIR="$(php -r 'echo ini_get("extension_dir");')"
           PHP_INI_SCAN_DIR="$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
-
-          echo "PHP extension dir: ${PHP_EXT_DIR}"
-          echo "PHP ini scan dir:  ${PHP_INI_SCAN_DIR}"
-
-          # make install puts firebird.so into the phpize extension dir.
-          # If that differs from PHP's runtime extension_dir, copy it there.
-          PHPIZE_EXT_DIR="$(php-config --extension-dir)"
-          echo "phpize extension dir: ${PHPIZE_EXT_DIR}"
-
-          if [ "${PHPIZE_EXT_DIR}" != "${PHP_EXT_DIR}" ]; then
-            echo "Copying firebird.so from ${PHPIZE_EXT_DIR} to ${PHP_EXT_DIR}"
-            sudo cp "${PHPIZE_EXT_DIR}/firebird.so" "${PHP_EXT_DIR}/firebird.so"
-          fi
-
-          # Write the ini using the full absolute path to avoid any search-path issues
+          sudo cp /tmp/php-firebird-bin/firebird.so "${PHP_EXT_DIR}/firebird.so"
           sudo mkdir -p "${PHP_INI_SCAN_DIR}"
           echo "extension=${PHP_EXT_DIR}/firebird.so" | sudo tee "${PHP_INI_SCAN_DIR}/99-firebird.ini"
-          echo "Wrote extension ini to: ${PHP_INI_SCAN_DIR}/99-firebird.ini"
-
-          # Verify extension is loaded.
-          # php-firebird v7+ registers as 'firebird'; older versions used 'interbase'.
-          php -m
-          if ! php -m | grep -qiE 'firebird|interbase'; then
-            echo "ERROR: firebird/interbase extension not found in php -m output" >&2
-            php --ini
-            exit 1
-          fi
+          php -m | grep -qiE 'firebird|interbase'
           php -r "
               \$ver = phpversion('firebird') ?: phpversion('interbase');
-              if (!\$ver) { fwrite(STDERR, 'ERROR: php-firebird extension not loaded' . PHP_EOL); exit(1); }
+              if (!\$ver) { exit(1); }
               echo 'php-firebird version: ' . \$ver . ' OK' . PHP_EOL;
           "
 
@@ -232,12 +209,8 @@ jobs:
       - name: Install Composer dependencies
         run: |
           set -eu
-          
-          # Always ignore ext-firebird platform req in CI because we build from source.
-          # We don't ignore PHP platform req here to ensure Composer selects compatible 
-          # versions for the current PHP version in the matrix.
           php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
-          composer install --prefer-dist --no-progress \
+          composer update --prefer-stable --prefer-dist --no-progress \
             --ignore-platform-req=ext-firebird
 
       - name: Prepare PHPUnit configuration for CI
@@ -375,9 +348,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  # Static analysis job (separate from test matrix)
-  static-analysis:
-    name: Static Analysis
+  # Quality checks job (matching local Phase 1-3)
+  quality-checks:
+    name: Code Quality (PHP 8.4)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -392,7 +365,7 @@ jobs:
           php-version: '8.4'
           extensions: pdo, mbstring, intl
           coverage: none
-          tools: composer:v2
+          tools: composer:v2, cs2pr
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -408,27 +381,33 @@ jobs:
 
       - name: Install Composer dependencies
         run: |
-          composer update --prefer-dist --no-progress --no-interaction \
+          composer update --prefer-stable --prefer-dist --no-progress --no-interaction \
             --ignore-platform-req=ext-firebird
 
+      - name: Run PHP_CodeSniffer
+        run: vendor/bin/phpcs -q --report=checkstyle | cs2pr
+
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=512M
+        run: vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=1G
+
+      - name: Run Psalm
+        run: vendor/bin/psalm --no-cache --output-format=github
 
   # Summary job for CI dashboard
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [test, static-analysis]
+    needs: [test, quality-checks]
     if: always()
     steps:
       - name: Check test results
         run: |
-          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.static-analysis.result }}" == "success" ]; then
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.quality-checks.result }}" == "success" ]; then
             echo "✅ All PHP × Firebird matrix tests and static analysis passed!"
             exit 0
           else
             echo "❌ Some jobs failed. Check individual job logs."
             echo "  - Test matrix: ${{ needs.test.result }}"
-            echo "  - Static analysis: ${{ needs.static-analysis.result }}"
+            echo "  - Quality checks: ${{ needs.quality-checks.result }}"
             exit 1
           fi

@@ -8,7 +8,7 @@ use Doctrine\Deprecations\Deprecation;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
 
-class Firebird5Platform extends Firebird4Platform
+final class Firebird5Platform extends Firebird4Platform
 {
     #[Override]
     public function getName(): string

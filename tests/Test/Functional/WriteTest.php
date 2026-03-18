@@ -53,8 +53,8 @@ class WriteTest extends FunctionalTestCase
         $sql  = 'INSERT INTO write_table (test_int, test_string) VALUES (?, ?)';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindValue(1, 1);
-        $stmt->bindValue(2, 'foo');
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
+        $stmt->bindValue(2, 'foo', ParameterType::STRING);
 
         self::assertSame(1, $stmt->execute()->rowCount());
     }

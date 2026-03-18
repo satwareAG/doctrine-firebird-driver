@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\BooleanType;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
-class FirebirdBooleanType extends BooleanType
+final class FirebirdBooleanType extends BooleanType
 {
     #[Override]
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool

@@ -43,20 +43,20 @@ use function trim;
  *   - https://github.com/helicon-os/doctrine-dbal
  *   - https://github.com/doctrine/dbal/blob/2.6/lib/Doctrine/DBAL/Driver/SQLSrv/SQLSrvStatement.php
  */
-class Statement implements StatementInterface
+final class Statement implements StatementInterface
 {
     /** @var array<int, mixed> */
-    protected array $queryParamBindings = [];
+    private array $queryParamBindings = [];
 
     /**
      * Zero-Based List of parameter binding types
      *
      * @var array<int, mixed>
      */
-    protected array $queryParamTypes = [];
+    private array $queryParamTypes = [];
 
     /** @var array<int|string, mixed> */
-    protected array $boundValues = [];
+    private array $boundValues = [];
 
     private Result|null $currentResult = null;
 
@@ -204,7 +204,7 @@ class Statement implements StatementInterface
                         $this->bindValue($key + 1, $val, ParameterType::STRING);
                     } else {
                         $check = array_flip($this->parameterMap);
-                        $this->bindValue($check[':' . $key] ?? 0, ParameterType::STRING);
+                        $this->bindValue($check[':' . $key] ?? 0, $val, ParameterType::STRING);
                     }
                 }
             }

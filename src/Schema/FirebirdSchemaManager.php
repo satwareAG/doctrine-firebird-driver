@@ -50,31 +50,31 @@ use const FBIRD_CREATE;
  *
  * @extends AbstractSchemaManager<FirebirdPlatform|Firebird3Platform|Firebird4Platform|Firebird5Platform>
  */
-class FirebirdSchemaManager extends AbstractSchemaManager
+final class FirebirdSchemaManager extends AbstractSchemaManager
 {
-    public const int META_FIELD_TYPE_SMALLINT = 7;
+    public const META_FIELD_TYPE_SMALLINT = 7;
 
-    public const int META_FIELD_TYPE_INTEGER = 8;
+    public const META_FIELD_TYPE_INTEGER = 8;
 
-    public const int META_FIELD_TYPE_FLOAT = 10;
+    public const META_FIELD_TYPE_FLOAT = 10;
 
-    public const int META_FIELD_TYPE_DATE = 12;
+    public const META_FIELD_TYPE_DATE = 12;
 
-    public const int META_FIELD_TYPE_TIME = 13;
+    public const META_FIELD_TYPE_TIME = 13;
 
-    public const int META_FIELD_TYPE_CHAR = 14;
+    public const META_FIELD_TYPE_CHAR = 14;
 
-    public const int META_FIELD_TYPE_BIGINT = 16;
+    public const META_FIELD_TYPE_BIGINT = 16;
 
-    public const int META_FIELD_TYPE_DOUBLE = 27;
+    public const META_FIELD_TYPE_DOUBLE = 27;
 
-    public const int META_FIELD_TYPE_TIMESTAMP = 35;
+    public const META_FIELD_TYPE_TIMESTAMP = 35;
 
-    public const int META_FIELD_TYPE_VARCHAR = 37;
+    public const META_FIELD_TYPE_VARCHAR = 37;
 
-    public const int META_FIELD_TYPE_CSTRING = 40;
+    public const META_FIELD_TYPE_CSTRING = 40;
 
-    public const int META_FIELD_TYPE_BLOB = 261;
+    public const META_FIELD_TYPE_BLOB = 261;
 
     /**
      * @throws Exception
@@ -251,7 +251,7 @@ class FirebirdSchemaManager extends AbstractSchemaManager
      * {@inheritDoc}
      */
     #[Override]
-    protected function _getPortableViewDefinition($view): bool|View
+    protected function _getPortableViewDefinition($view): View
     {
         $view = array_change_key_case($view, CASE_LOWER);
 

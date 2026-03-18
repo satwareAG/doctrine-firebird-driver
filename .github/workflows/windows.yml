@@ -15,6 +15,10 @@ on:
       - '3.0.*'
       - 'main'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -39,147 +43,80 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl
           coverage: none
+          tools: composer:v2
+
+      - name: Cache Firebird (Chocolatey)
+        uses: actions/cache@v4
+        with:
+          path: C:\ProgramData\chocolatey\lib\firebird
+          key: ${{ runner.os }}-choco-firebird-3.0.12
 
       - name: Install Firebird
         run: |
-          choco install firebird --version=3.0.12 -y
-          # Add Firebird path to GITHUB_PATH dynamically
+          choco install firebird --version=3.0.12 -y --no-progress
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $env:PATH = "$fbDir;" + $env:PATH
           
-          # Ensure service is started
           try {
             $service = Get-Service | Where-Object { $_.Name -like "*Firebird*" } | Select-Object -First 1
             if ($service) {
               Start-Service -Name $service.Name -ErrorAction SilentlyContinue
-              Write-Host "Firebird service $($service.Name) started"
               Start-Sleep -Seconds 5
-              
-              # Initialize security database by creating SYSDBA user
-              # Firebird 3.0 requires explicit user creation after installation
-              Write-Host "Creating/Updating SYSDBA user in security database..."
-              # Try both gsec and isql for maximum compatibility
-              # Note: isql on Windows doesn't have -do, we use Here-String instead
               & "$fbDir\gsec.exe" -user SYSDBA -password masterkey -add SYSDBA -pw masterkey 2>&1
               "CREATE USER SYSDBA PASSWORD 'masterkey'; ALTER USER SYSDBA PASSWORD 'masterkey';" | & "$fbDir\isql.exe" -user SYSDBA -q 2>&1
-              
-              if ($LASTEXITCODE -eq 0) { 
-                Write-Host "✅ SYSDBA user initialized successfully" 
-              } else { 
-                Write-Host "Note: user initialization returned exit code $LASTEXITCODE"
-              }
-              
-              # Final verification via network
               "select 1 from rdb`$database;" | & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey "localhost:employee" 2>&1
-              if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready and reachable" }
-              else { Write-Warning "❌ Firebird ISQL check failed" }
-            } else {
-              Write-Warning "Firebird service not found"
+              if ($LASTEXITCODE -eq 0) { Write-Host "✅ Firebird is ready" }
             }
           } catch {
-            Write-Warning "Could not initialize Firebird: $_"
+            Write-Warning "Initialization: $_"
           }
 
-      - name: Download php-firebird DLL
+      - name: Download and setup php-firebird DLL
         shell: pwsh
         run: |
           $phpVer = "${{ matrix.php }}"
-          # Get available releases to find the correct version
+          $arch = "x86_64"
+          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
+          
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
           $releases = Invoke-RestMethod -Uri $apiUrl
           
-          # Map PHP version to DLL name format
-          $arch = "x86_64"
-          # For version comparison, we use a simple string-based approach that's safer in PowerShell for X.Y format
-          # PHP 8.4 and later use vs17, earlier 8.x use vs16
-          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
-          # The pattern can vary, so we try to be flexible
-          $patterns = @(
-              "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip",
-              "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip"
-          )
-          
           $targetAsset = $null
+          $patterns = @("php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
+          
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
                   $asset = $release.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
-                  if ($asset) {
-                      $targetAsset = $asset
-                      break
-                  }
+                  if ($asset) { $targetAsset = $asset; break }
               }
               if ($targetAsset) { break }
           }
           
-          if (-not $targetAsset) {
-              Write-Error "Could not find a suitable php-firebird DLL for PHP $phpVer"
-              exit 1
-          }
+          if (-not $targetAsset) { throw "Could not find DLL for PHP $phpVer" }
           
-          Write-Host "Downloading $($targetAsset.browser_download_url)"
           Invoke-WebRequest -Uri $targetAsset.browser_download_url -OutFile "php_firebird.zip"
           Expand-Archive -Path "php_firebird.zip" -DestinationPath "ext_temp" -Force
           
-          $phpPath = (Get-Command php).Source
-          $phpDir = Split-Path -Parent $phpPath
-          $extDir = "$phpDir\ext"
-          
+          $phpDir = Split-Path -Parent (Get-Command php).Source
           $dllPath = Get-ChildItem -Path "ext_temp" -Filter "php_firebird*.dll" -Recurse | Select-Object -First 1
+          Copy-Item $dllPath.FullName -Destination "$phpDir\ext\php_firebird.dll" -Force
           
-          if ($dllPath) {
-              Write-Host "Found DLL: $($dllPath.FullName)"
-              Copy-Item $dllPath.FullName -Destination "$extDir\php_firebird.dll" -Force
-              Write-Host "✅ Extracted and installed php_firebird.dll"
-          } else {
-              Write-Error "php_firebird*.dll not found in extracted archive"
-              Get-ChildItem -Path "ext_temp" -Recurse
-              exit 1
-          }
-          
-          # Enable extension in php.ini
-          $phpIni = (php --ini | Select-String "Loaded Configuration File" | ForEach-Object { 
-              $line = $_.ToString()
-              if ($line -match ":\s*(.+)$") { $matches[1].Trim() }
-          })
-          if (-not $phpIni -or -not (Test-Path $phpIni)) {
-              $phpIni = "$phpDir\php.ini"
-              if (-not (Test-Path $phpIni)) {
-                  if (Test-Path "$phpDir\php.ini-development") {
-                      Copy-Item "$phpDir\php.ini-development" $phpIni
-                  } else {
-                      New-Item -Path $phpIni -ItemType File
-                  }
-              }
-          }
-          
-          Write-Host "Using php.ini: $phpIni"
+          $phpIni = php -r "echo php_ini_loaded_file();"
+          if (-not $phpIni) { $phpIni = "$phpDir\php.ini" }
+          if (-not (Test-Path $phpIni)) { Copy-Item "$phpDir\php.ini-development" $phpIni }
           Add-Content -Path $phpIni -Value "`nextension=firebird"
           
-          # Ensure Firebird client DLLs are in the PHP directory (where php.exe is)
-          # This is the most reliable way to ensure extensions can load them.
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
-          if (Test-Path "$fbDir\fbclient.dll") {
-              Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
-              Write-Host "✅ Copied fbclient.dll to $phpDir"
-              # Create gds32.dll as a copy of fbclient.dll for legacy compatibility
-              Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
-              Write-Host "✅ Created gds32.dll in $phpDir"
-          } else {
-              Write-Warning "fbclient.dll not found in $fbDir"
-          }
+          Copy-Item "$fbDir\fbclient.dll" -Destination $phpDir -Force
+          Copy-Item "$fbDir\fbclient.dll" -Destination "$phpDir\gds32.dll" -Force
           
-          # Debug: show loaded extensions and ini location
-          php --ini
-          php -m
-          php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension loaded!'; } else { echo '❌ firebird extension NOT loaded'; exit(1); }"
+          php -r "if (!extension_loaded('firebird')) { exit(1); }"
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
+        run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
-      - name: Run Unit Tests
+      - name: Run Tests
         run: |
-          php -r "if (extension_loaded('firebird')) { echo '✅ firebird extension is active!'; } else { echo '❌ firebird extension is NOT active'; exit(1); }"
-          # Run Unit testsuite as defined in phpunit.xml
-          # --no-coverage is required on Windows as PCOV is not enabled to avoid blocking warnings
-          php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations --no-coverage
+          # Run Unit and Integration testsuites
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit,Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage

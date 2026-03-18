@@ -15,7 +15,7 @@ use function array_merge;
  *
  * @link https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-reskeywords-reswords
  */
-class Firebird5Keywords extends Firebird4Keywords
+final class Firebird5Keywords extends Firebird4Keywords
 {
     #[Override]
     public function getName(): string

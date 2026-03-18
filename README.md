@@ -308,6 +308,9 @@ The project includes comprehensive test coverage across **Firebird 3.0, 4.0, and
 # Run all tests for all Firebird versions
 cd tests && ./phpunit-all.sh
 
+# Run complete quality check (PHPUnit, PHPStan, Psalm, PHPCS)
+cd tests && ./docker-cqc.sh
+
 # Run tests for Firebird 3.0 only
 cd tests && ./phpunit.sh
 

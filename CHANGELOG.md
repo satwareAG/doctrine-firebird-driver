@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.2] - 2026-03-18
+
+### Fixed
+- **PHPUnit 11 Deprecations** — Resolved all `iniSet` usage deprecations by switching to native
+  PHP functions (`ini_set`, `error_reporting`) with robust state restoration logic (#95)
+- **PHPStan Return Type** — Fixed `return.unusedType` warning in `FirebirdSchemaManager` by
+  clarifying PHPDoc metadata for portable view definitions (#95)
+- **Psalm Baseline** — Pruned stale entries from `psalm-baseline.xml` following code quality
+  improvements (#95)
+
+### Changed
+- **CI/CD Optimization (Linux)** — Consolidated static analysis into a single `quality-checks` job;
+  implemented custom extension caching using `actions/cache` to speed up builds (#96)
+- **CI/CD Optimization (Windows)** — Enabled integration tests on Windows runners; automated DLL
+  management via PowerShell; added caching for pre-compiled extensions (#96)
+- **Local Development** — Enhanced `docker-cqc.sh` and `phpunit.sh` for more reliable local
+  quality gate validation (#95)
+
 ## [3.12.1] - 2026-03-17
 
 ### Fixed

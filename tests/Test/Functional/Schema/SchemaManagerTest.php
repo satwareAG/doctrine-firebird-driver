@@ -9,7 +9,6 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
@@ -301,21 +300,15 @@ class SchemaManagerTest extends FunctionalTestCase
         $sequence      = new Sequence(self::SEQ, 1, 1);
         $schemaManager->createSequence($sequence);
 
-        if ($platform instanceof Firebird3Platform) {
-            $sequences = $schemaManager->listSequences();
-            $names     = array_map(static fn (Sequence $s): string => strtolower($s->getName()), $sequences);
-            self::assertContains(self::SEQ, $names);
-        }
+        $sequences = $schemaManager->listSequences();
+        $names     = array_map(static fn (Sequence $s): string => strtolower($s->getName()), $sequences);
+        self::assertContains(strtolower(self::SEQ), $names);
 
         $schemaManager->dropSequence(self::SEQ);
 
-        if (! ($platform instanceof Firebird3Platform)) {
-            return;
-        }
-
         $sequences = $schemaManager->listSequences();
         $names     = array_map(static fn (Sequence $s): string => strtolower($s->getName()), $sequences);
-        self::assertNotContains(self::SEQ, $names);
+        self::assertNotContains(strtolower(self::SEQ), $names);
     }
 
     /**

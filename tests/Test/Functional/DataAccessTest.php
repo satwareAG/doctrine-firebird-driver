@@ -40,8 +40,8 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindValue(1, 1);
-        $stmt->bindValue(2, 'foo');
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
+        $stmt->bindValue(2, 'foo', ParameterType::STRING);
 
         $row = $stmt->execute()->fetchAssociative();
 
@@ -58,8 +58,8 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt);
-        $stmt->bindParam(2, $paramStr);
+        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
 
         $row = $stmt->execute()->fetchAssociative();
 
@@ -76,8 +76,8 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt);
-        $stmt->bindParam(2, $paramStr);
+        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
 
         $rows    = $stmt->execute()->fetchAllAssociative();
         $rows[0] = array_change_key_case($rows[0], CASE_LOWER);
@@ -92,8 +92,8 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt);
-        $stmt->bindParam(2, $paramStr);
+        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
 
         $column = $stmt->execute()->fetchOne();
         self::assertSame(1, $column);
