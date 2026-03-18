@@ -55,6 +55,8 @@ jobs:
       - name: Install Firebird
         run: |
           choco install firebird --version=3.0.12 -y --no-progress
+          if (-not (Test-Path "C:\temp")) { New-Item -Path "C:\temp" -ItemType Directory }
+          icacls "C:\temp" /grant "Everyone:(OI)(CI)F" /T
           $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
           echo "$fbDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $env:PATH = "$fbDir;" + $env:PATH
