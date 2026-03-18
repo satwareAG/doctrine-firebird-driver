@@ -132,7 +132,13 @@ class TestUtil
     {
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
         $baseName   = $baseParams['dbname'];
-        $ext        = '';
+
+        // On Windows, if no path is provided, use the temporary directory
+        if (PHP_OS_FAMILY === 'Windows' && ! str_contains($baseName, '/') && ! str_contains($baseName, '\\')) {
+            $baseName = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $baseName;
+        }
+
+        $ext = '';
         if (str_ends_with($baseName, '.fdb')) {
             $baseName = substr($baseName, 0, -4);
             $ext      = '.fdb';
