@@ -51,20 +51,26 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\firebird
-          key: ${{ runner.os }}-firebird-3.0.13
+          key: ${{ runner.os }}-firebird-3.0.13-v2
 
       - name: Install Firebird
         shell: pwsh
         run: |
-          if (-not (Test-Path "C:\firebird")) {
+          if (-not (Test-Path "C:\firebird\instreg.exe")) {
             $url = "https://github.com/FirebirdSQL/firebird/releases/download/v3.0.13/Firebird-3.0.13.33818-0-x64.zip"
             Write-Host "Downloading Firebird 3.0.13 from $url"
             Invoke-WebRequest -Uri $url -OutFile "firebird.zip"
-            Expand-Archive -Path "firebird.zip" -DestinationPath "C:\firebird_temp"
-            $fbFolder = Get-ChildItem "C:\firebird_temp" | Select-Object -First 1
-            Move-Item $fbFolder.FullName "C:\firebird"
+            if (Test-Path "C:\fb_unpack") { Remove-Item -Path "C:\fb_unpack" -Recurse -Force }
+            Expand-Archive -Path "firebird.zip" -DestinationPath "C:\fb_unpack"
+            if (-not (Test-Path "C:\firebird")) { New-Item -Path "C:\firebird" -ItemType Directory }
+            
+            # Find the actual folder containing instreg.exe
+            $fbPath = (Get-ChildItem "C:\fb_unpack" -Filter "instreg.exe" -Recurse | Select-Object -First 1).Directory.FullName
+            Write-Host "Found Firebird binaries in $fbPath"
+            Copy-Item "$fbPath\*" "C:\firebird" -Recurse -Force
           }
           
+          # Install and start service
           cd C:\firebird
           ./instreg.exe install
           ./instsvc.exe install -auto
@@ -72,12 +78,12 @@ jobs:
           
           # Create dedicated directory for test databases and grant full permissions to Everyone
           if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
-          icacls "C:\firebird_tests" /grant "Everyone:(OI)(CI)F" /T
+          icacls "C:\firebird_tests" /grant "Everyone:(OI)(CI)F" /T /C
           
           $env:PATH = "C:\firebird;" + $env:PATH
           echo "C:\firebird" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
-          Start-Sleep -Seconds 5
+          Start-Sleep -Seconds 10
           
           try {
             # Standard Firebird security initialization
