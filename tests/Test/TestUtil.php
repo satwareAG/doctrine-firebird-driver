@@ -127,11 +127,6 @@ class TestUtil
         ), $rows));
     }
 
-    private static function hasRequiredConnectionParams(): bool
-    {
-        return isset($GLOBALS['db_driver_class']);
-    }
-
     public static function initializeDatabase(bool $force = false): void
     {
         if (self::$initialized && ! $force) {
@@ -238,6 +233,11 @@ class TestUtil
                 }
             }
         }
+    }
+
+    private static function hasRequiredConnectionParams(): bool
+    {
+        return isset($GLOBALS['db_driver_class']);
     }
 
     private static function createConfiguration(): Configuration
