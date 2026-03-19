@@ -169,24 +169,27 @@ class TestUtil
             $params['driverOptions']['persistent'] = false;
 
             // Use a separate connection to drop/create the database
-            // This connection SHOULD NOT be to the database we are trying to create if it does not exist
+            // On Windows CI, we've already ensured C:\firebird_tests exists and is writable
             $privilegedParams = self::getPrivilegedConnectionParameters();
+            
+            // Try connecting to the primary DB name first (it might already exist)
             $privilegedParams['dbname'] = $baseParams['dbname'];
-            // Explicitly disable persistence for the privileged connection
             $privilegedParams['persistent'] = false;
             $privilegedParams['driverOptions']['persistent'] = false;
 
+            $privilegedConnection = null;
             try {
                 $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                // Attempt a simple query to verify the connection is alive
+                // Simple health check
                 $privilegedConnection->executeQuery($privilegedConnection->getDatabasePlatform()->getDummySelectSQL());
             } catch (Throwable) {
-                // If connecting to the target database failed, try to connect to a known existing one like 'employee'
+                // If target DB doesn't exist, connect to a system database to perform CREATE DATABASE
+                // On Windows/Linux, 'employee' is usually available or we can use the default security DB
                 $privilegedParams['dbname'] = 'employee';
                 try {
                     $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                } catch (Throwable $e) {
-                    // Last ditch attempt: use provided dbname but hope for the best
+                } catch (Throwable) {
+                    // Final fallback: just use the base name and hope it works for createDatabase
                     $privilegedParams['dbname'] = $baseParams['dbname'];
                     $privilegedConnection = DriverManager::getConnection($privilegedParams);
                 }
@@ -200,17 +203,27 @@ class TestUtil
                     // Ignore drop errors
                 }
 
-                // If we are here, database is dropped or didn't exist. Now create it.
+                // Create the test database
                 $sm->createDatabase($currentName);
                 self::$effectiveDbName = $currentName;
+                
+                // Explicitly close the privileged connection and clear its state
+                if ($privilegedConnection->isTransactionActive()) {
+                    $privilegedConnection->rollBack();
+                }
                 $privilegedConnection->close();
 
                 return;
             } catch (Throwable $e) {
-                try {
-                    $privilegedConnection->close();
-                } catch (Throwable) {
-                    // Ignore close errors
+                if ($privilegedConnection instanceof Connection) {
+                    try {
+                        if ($privilegedConnection->isTransactionActive()) {
+                            $privilegedConnection->rollBack();
+                        }
+                        $privilegedConnection->close();
+                    } catch (Throwable) {
+                        // Ignore cleanup errors
+                    }
                 }
 
                 if ($i === $maxSlots - 1) {

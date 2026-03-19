@@ -899,8 +899,9 @@ END
     {
         $found = $this->_platform->getListTableColumnsSQL('foo');
         self::assertIsString($found);
-        self::assertStringStartsWith("SELECT TRIM(r.RDB\$FIELD_NAME) AS \"FIELD_NAME\",\n", $found);
-        self::assertStringContainsString('FROM RDB$RELATION_FIELDS r', $found);
+        $foundNormalized = preg_replace('/\r\n|\r/', "\n", ltrim($found));
+        self::assertStringStartsWith("SELECT TRIM(r.RDB\$FIELD_NAME) AS \"FIELD_NAME\",\n", $foundNormalized);
+        self::assertStringContainsString('FROM RDB$RELATION_FIELDS r', $foundNormalized);
     }
 
     public function testGetListTableForeignKeysSQL(): void
