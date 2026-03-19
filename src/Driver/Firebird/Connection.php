@@ -33,6 +33,7 @@ use function addcslashes;
 use function assert;
 use function class_exists;
 use function defined;
+use function error_log;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -111,12 +112,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * This occurs when trying to use a transaction that was already closed or invalidated.
      */
     private const ER_INVALID_TRANSACTION_HANDLE = 335544332;
-
-    private function isInvalidTransactionHandle(int $code, string $message): bool
-    {
-        return $code === self::ER_INVALID_TRANSACTION_HANDLE
-            || str_contains($message, 'invalid transaction handle');
-    }
 
     private readonly ExecutionMode $executionMode;
 
@@ -1233,6 +1228,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
             || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
+    }
+
+    private function isInvalidTransactionHandle(int $code, string $message): bool
+    {
+        return $code === self::ER_INVALID_TRANSACTION_HANDLE
+            || str_contains($message, 'invalid transaction handle');
     }
 
     private function getSavepointName(int $level): string
