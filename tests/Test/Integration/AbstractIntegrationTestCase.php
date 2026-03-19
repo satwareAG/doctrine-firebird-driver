@@ -162,34 +162,32 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $platform = $connection->getDatabasePlatform();
         $schemaManager = $connection->createSchemaManager();
 
-        // Standard tables for the music library schema (must be dropped in reverse order)
-        $tableNames = ['ALBUM_SONGMAP', 'SONG', 'ALBUM', 'ARTIST', 'GENRE', 'ARTIST_TYPE', 'CASES_CASCADINGREMOVE_SUBCLASS', 'CASES_CASCADINGREMOVE'];
+        // Dynamically fetch and drop all existing tables to ensure a clean state.
+        // This is more robust than a hardcoded list, especially with casing issues.
+        // We drop in a loop and commit each one.
+        $existingTables = $schemaManager->listTableNames();
+        // Sort to attempt dropping child tables first (rough heuristic)
+        rsort($existingTables);
 
-        // Drop existing tables before creating new ones to ensure clean state
-        foreach ($tableNames as $name) {
-            // Check existence first to avoid Firebird warnings, but if check fails proceed anyway
-            $exists = false;
+        foreach ($existingTables as $name) {
+            $connection->beginTransaction();
             try {
-                $exists = $schemaManager->tablesExist([$name]);
-            } catch (Throwable) {
-                $exists = true; // Assume exists and try drop if check fails
-            }
-
-            if ($exists) {
-                // Wrap in transaction for atomic drop, but commit immediately
-                $connection->beginTransaction();
+                // Use a direct query that won't be modified by any platform logic
+                $connection->executeStatement('DROP TABLE ' . $name);
+                $connection->commit();
+                error_log(sprintf('Dropped existing table: %s', $name));
+            } catch (Throwable $e) {
                 try {
-                    $schemaManager->dropTable($name);
-                    $connection->commit();
+                    $connection->rollBack();
                 } catch (Throwable) {
-                    try {
-                        $connection->rollBack();
-                    } catch (Throwable) {
-                        // Ignore rollback error - connection may have reset
-                    }
                 }
+                error_log(sprintf('Failed to drop existing table %s: %s', $name, $e->getMessage()));
             }
         }
+
+        // Close and reconnect to ensure all metadata updates are visible and locks released
+        $connection->close();
+        $connection->connect();
 
         $queriesInsert = $schema->toSql($platform);
 
