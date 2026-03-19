@@ -17,7 +17,6 @@ use Throwable;
 
 use function array_merge;
 use function assert;
-use function gc_collect_cycles;
 use function method_exists;
 use function str_contains;
 use function usleep;

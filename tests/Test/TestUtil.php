@@ -74,7 +74,7 @@ class TestUtil
             self::$initialized = true;
         }
 
-        $params                 = self::getConnectionParams();
+        $params                 = self::getTestConnectionParameters();
         $params['wrapperClass'] = ConnectionWrapper::class;
         $configuration          = self::createConfiguration();
 
@@ -171,10 +171,10 @@ class TestUtil
             // Use a separate connection to drop/create the database
             // On Windows CI, we've already ensured C:\firebird_tests exists and is writable
             $privilegedParams = self::getPrivilegedConnectionParameters();
-            
+
             // Try connecting to the primary DB name first (it might already exist)
-            $privilegedParams['dbname'] = $baseParams['dbname'];
-            $privilegedParams['persistent'] = false;
+            $privilegedParams['dbname']                      = $baseParams['dbname'];
+            $privilegedParams['persistent']                  = false;
             $privilegedParams['driverOptions']['persistent'] = false;
 
             $privilegedConnection = null;
@@ -191,7 +191,7 @@ class TestUtil
                 } catch (Throwable) {
                     // Final fallback: just use the base name and hope it works for createDatabase
                     $privilegedParams['dbname'] = $baseParams['dbname'];
-                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                    $privilegedConnection       = DriverManager::getConnection($privilegedParams);
                 }
             }
 
@@ -206,11 +206,12 @@ class TestUtil
                 // Create the test database
                 $sm->createDatabase($currentName);
                 self::$effectiveDbName = $currentName;
-                
+
                 // Explicitly close the privileged connection and clear its state
                 if ($privilegedConnection->isTransactionActive()) {
                     $privilegedConnection->rollBack();
                 }
+
                 $privilegedConnection->close();
 
                 return;
@@ -220,6 +221,7 @@ class TestUtil
                         if ($privilegedConnection->isTransactionActive()) {
                             $privilegedConnection->rollBack();
                         }
+
                         $privilegedConnection->close();
                     } catch (Throwable) {
                         // Ignore cleanup errors
@@ -285,8 +287,7 @@ class TestUtil
     {
         $parameters  = [];
         $driverClass = $configuration['db_driver_class'] ?? 'Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver';
-
-        $dbHost = getenv('DB_HOST') ?: ($configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1');
+        $dbHost      = getenv('DB_HOST') ?: ($configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1');
 
         foreach (
             [
