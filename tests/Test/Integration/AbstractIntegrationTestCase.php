@@ -161,29 +161,37 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         $platform = $connection->getDatabasePlatform();
         $schemaManager = $connection->createSchemaManager();
-        $tablesToDrop = [];
-        foreach ($schema->getTables() as $table) {
-            if ($schemaManager->tablesExist([$table->getName()])) {
-                $tablesToDrop[] = $table;
-            }
-        }
-        $schemaToDrop = new Schema($tablesToDrop);
 
-        $queriesRemove = $schemaToDrop->toDropSql($platform);
-        $queriesInsert = $schema->toSql($platform);
+        // Standard tables for the music library schema (must be dropped in reverse order)
+        $tableNames = ['ALBUM_SONGMAP', 'SONG', 'ALBUM', 'ARTIST', 'GENRE', 'ARTIST_TYPE', 'CASES_CASCADINGREMOVE_SUBCLASS', 'CASES_CASCADINGREMOVE'];
 
-        foreach ($queriesRemove as $query) {
-            $connection->beginTransaction();
+        // Drop existing tables before creating new ones to ensure clean state
+        foreach ($tableNames as $name) {
+            // Check existence first to avoid Firebird warnings, but if check fails proceed anyway
+            $exists = false;
             try {
-                $connection->executeStatement($query);
-                $connection->commit();
-            } catch (DatabaseObjectNotFoundException | Throwable) {
+                $exists = $schemaManager->tablesExist([$name]);
+            } catch (Throwable) {
+                $exists = true; // Assume exists and try drop if check fails
+            }
+
+            if ($exists) {
+                // Wrap in transaction for atomic drop, but commit immediately
+                $connection->beginTransaction();
                 try {
-                    $connection->rollBack();
+                    $schemaManager->dropTable($name);
+                    $connection->commit();
                 } catch (Throwable) {
+                    try {
+                        $connection->rollBack();
+                    } catch (Throwable) {
+                        // Ignore rollback error - connection may have reset
+                    }
                 }
             }
         }
+
+        $queriesInsert = $schema->toSql($platform);
 
         foreach ($queriesInsert as $sql) {
             $connection->beginTransaction();
