@@ -394,15 +394,15 @@ ___query___;
             return $query;
         }
 
-        if ($offset === null || $offset <= 0) {
-            return $query . ' FETCH FIRST ' . (int) $limit . ' ROWS ONLY';
+        if ($offset <= 0) {
+            return $query . ' FETCH FIRST ' . $limit . ' ROWS ONLY';
         }
 
         if ($limit === null) {
-            return $query . ' OFFSET ' . (int) $offset . ' ROWS';
+            return $query . ' OFFSET ' . $offset . ' ROWS';
         }
 
-        return $query . ' OFFSET ' . (int) $offset . ' ROWS FETCH NEXT ' . (int) $limit . ' ROWS ONLY';
+        return $query . ' OFFSET ' . $offset . ' ROWS FETCH NEXT ' . $limit . ' ROWS ONLY';
     }
 
     /**
