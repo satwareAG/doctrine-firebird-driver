@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.3] - 2026-03-19
+
+### Fixed
+- **Standard SQL Pagination (Firebird 3.0+)** — Replaced legacy `ROWS` syntax with standard
+  SQL `OFFSET <m> ROWS FETCH NEXT <n> ROWS ONLY` for `Firebird3Platform`, `Firebird4Platform`,
+  and `Firebird5Platform`. This improves compatibility with modern SQL standards and Doctrine
+  DBAL 3.10+ expectations (#93)
+
+### Changed
+- **Platform Test Coverage** — Enhanced `Firebird4PlatformTest` and `Firebird5PlatformTest` by
+  extending `Firebird3PlatformTest` to ensure full feature parity and regression testing
+  for pagination across all supported Firebird 3.0+ versions.
+- **Docker Test Stability** — Refactored `TestUtil::initializeDatabase` and corrected directory
+  permissions in Firebird containers to resolve intermittent database creation failures (#93)
+
 ## [3.12.2] - 2026-03-18
 
 ### Added

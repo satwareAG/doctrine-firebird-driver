@@ -6,7 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Types;
-use PHPUnit\Framework\TestCase;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 
 /**
@@ -14,9 +14,12 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
  *
  * Firebird 4.0 introduces TIMESTAMP WITH TIME ZONE and TIME WITH TIME ZONE types.
  */
-class Firebird4PlatformTest extends TestCase
+class Firebird4PlatformTest extends Firebird3PlatformTest
 {
-    private Firebird4Platform $platform;
+    public function createPlatform(): AbstractPlatform
+    {
+        return new Firebird4Platform();
+    }
 
     public function testGetDateTimeTzTypeDeclarationSQL(): void
     {
@@ -80,8 +83,4 @@ class Firebird4PlatformTest extends TestCase
         self::assertTrue($this->platform->hasDoctrineTypeMappingFor('boolean'));
     }
 
-    protected function setUp(): void
-    {
-        $this->platform = new Firebird4Platform();
-    }
 }

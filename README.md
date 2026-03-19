@@ -26,6 +26,7 @@ To utilize this library in your application code, the following is required:
 | BLOB support | ✅ | ✅ | ✅ |
 | Exception Mode (`Firebird\Exception`) | ✅ | ✅ | ✅ |
 | SQLSTATE Error Mapping | ✅ | ✅ | ✅ |
+| Standard Pagination (`OFFSET`/`FETCH`) | ✅ | ✅ | ✅ |
 | `fbird_execute_auto()` auto-commit | ✅ | ✅ | ✅ |
 | `fbird_connection_info()` / `DbInfo` | ✅ | ✅ | ✅ |
 | Savepoints (nested transactions) | ✅ | ✅ | ✅ |

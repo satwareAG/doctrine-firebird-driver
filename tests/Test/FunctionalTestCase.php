@@ -176,6 +176,10 @@ abstract class FunctionalTestCase extends TestCase
         // Traverse DBAL middleware layers to find the underlying FirebirdConnection object.
         // In DBAL 3.x, we must walk the getWrappedConnection() chain to reach the
         // driver-level object that provides isConnectionValid(), dropTableForce(), etc.
+        if (! isset($this->connection)) {
+            return null;
+        }
+
         $connection = $this->connection;
 
         // Try to get the driver connection directly if it's already unwrapped

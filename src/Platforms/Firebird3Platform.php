@@ -411,4 +411,24 @@ ___query___;
 
         return '';
     }
+    /**
+     * {@inheritDoc}
+     */
+    #[Override]
+    protected function doModifyLimitQuery($query, $limit, $offset): string
+    {
+        if ($limit === null && $offset <= 0) {
+            return $query;
+        }
+
+        if ($offset === null || $offset <= 0) {
+            return $query . ' FETCH FIRST ' . (int) $limit . ' ROWS ONLY';
+        }
+
+        if ($limit === null) {
+            return $query . ' OFFSET ' . (int) $offset . ' ROWS';
+        }
+
+        return $query . ' OFFSET ' . (int) $offset . ' ROWS FETCH NEXT ' . (int) $limit . ' ROWS ONLY';
+    }
 }

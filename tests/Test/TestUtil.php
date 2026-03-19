@@ -171,37 +171,28 @@ class TestUtil
             $params['persistent']                  = false;
             $params['driverOptions']['persistent'] = false;
 
-            $connection = DriverManager::getConnection($params);
-            // Silencing createSchemaManager/dropDatabase because they might trigger connection which warns if DB doesn't exist
+            // Use a separate connection to drop/create the database
+            // This connection MUST NOT be to the database we are trying to create
+            $privilegedParams           = self::getPrivilegedConnectionParameters();
+            $privilegedParams['dbname'] = $baseParams['dbname']; // Connect to the main test.fdb which already exists
+            $privilegedConnection       = DriverManager::getConnection($privilegedParams);
+
             try {
-                $sm = @$connection->createSchemaManager();
+                $sm = $privilegedConnection->createSchemaManager();
                 try {
                     @$sm->dropDatabase($currentName);
-                } catch (DatabaseDoesNotExist) {
-                    // Expected
-                } catch (Exception $e) {
-                    // Fallback: try local unlink if possible
-                    if (! str_ends_with($currentName, '.fdb') || ! file_exists($currentName)) {
-                        // If we cannot drop/delete, and it's not the last slot, try next slot
-                        if ($i < $maxSlots - 1) {
-                            $connection->close();
-                            continue;
-                        }
-
-                        throw $e;
-                    }
-
-                    unlink($currentName);
+                } catch (Throwable) {
+                    // Ignore drop errors
                 }
 
                 // If we are here, database is dropped or didn't exist. Now create it.
                 $sm->createDatabase($currentName);
                 self::$effectiveDbName = $currentName;
-                $connection->close();
+                $privilegedConnection->close();
 
                 return;
             } catch (Throwable $e) {
-                $connection->close();
+                $privilegedConnection->close();
                 if ($i === $maxSlots - 1) {
                     throw $e;
                 }

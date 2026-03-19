@@ -125,8 +125,8 @@ class SelectSQLBuilderTest extends TestCase
     {
         $query = $this->makeQuery(columns: ['id'], from: ['users'], maxResults: 10);
         $sql   = $this->builder->buildSQL($query);
-        // Firebird uses ROWS syntax for LIMIT
-        self::assertStringContainsString('ROWS', $sql);
+        // Firebird 3.0+ uses FETCH FIRST syntax for LIMIT
+        self::assertStringContainsString('FETCH FIRST', $sql);
         self::assertStringContainsString('10', $sql);
     }
 
@@ -134,9 +134,9 @@ class SelectSQLBuilderTest extends TestCase
     {
         $query = $this->makeQuery(columns: ['id'], from: ['users'], maxResults: 10, firstResult: 20);
         $sql   = $this->builder->buildSQL($query);
-        // Firebird: ROWS (firstResult+1) TO (firstResult+maxResults) = ROWS 21 TO 30
-        self::assertStringContainsString('21', $sql);
-        self::assertStringContainsString('30', $sql);
+        // Firebird 3.0+: OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY
+        self::assertStringContainsString('OFFSET 20', $sql);
+        self::assertStringContainsString('FETCH NEXT 10', $sql);
     }
 
     public function testSelectWithForUpdate(): void
