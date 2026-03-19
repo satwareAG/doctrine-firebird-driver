@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
-use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function microtime;
 use function preg_match;
@@ -104,9 +104,9 @@ class BatchTest extends FunctionalTestCase
         // by attempting to create a batch (will throw if not supported)
         try {
             $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
-        } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'FB_API_VER')) {
-                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
+        } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), 'FB_API_VER') || str_contains($e->getMessage(), 'Class "Firebird\Batch" not found')) {
+                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40 and Firebird\Batch class');
             }
 
             throw $e;

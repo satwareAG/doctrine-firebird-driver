@@ -8,7 +8,6 @@ use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
 use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
@@ -17,7 +16,6 @@ use Monolog\Level;
 use Monolog\Logger;
 use Monolog\Processor\MemoryUsageProcessor;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Throwable;
 
 use function array_keys;
@@ -36,7 +34,6 @@ use function str_starts_with;
 use function strlen;
 use function strtoupper;
 use function substr;
-use function unlink;
 
 use const PHP_OS_FAMILY;
 

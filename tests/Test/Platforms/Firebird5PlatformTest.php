@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Types;
-use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 
 /**
@@ -82,5 +81,4 @@ class Firebird5PlatformTest extends Firebird3PlatformTest
         self::assertTrue($this->platform->supportsSavepoints());
         self::assertTrue($this->platform->supportsCommentOnStatement());
     }
-
 }
