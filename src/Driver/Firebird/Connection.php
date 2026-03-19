@@ -447,7 +447,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                         // to create a new transaction.
                         @fbird_rollback($this->firebirdActiveTransaction);
                         $lastError = $this->errorInfo();
-                        error_log(sprintf('Firebird implicit commit error: [%s] %s', $lastError['code'] ?? 'N/A', $lastError['message'] ?? 'N/A'));
                         if (isset($lastError['code']) && $lastError['code'] !== 0 && ! $this->isInvalidTransactionHandle((int) $lastError['code'], (string) $lastError['message'])) {
                             throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
                         }
@@ -460,8 +459,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     } catch (Throwable) {
                         // Ignore rollback exception during cleanup
                     }
-
-                    error_log(sprintf('Firebird beginTransaction caught Throwable: [%s] %s', $e->getCode(), $e->getMessage()));
 
                     if (! $this->isInvalidTransactionHandle((int) $e->getCode(), $e->getMessage())) {
                         throw DriverException::fromThrowable($e);
@@ -1233,6 +1230,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private function isInvalidTransactionHandle(int $code, string $message): bool
     {
         return $code === self::ER_INVALID_TRANSACTION_HANDLE
+            || $code === -999
             || str_contains($message, 'invalid transaction handle');
     }
 

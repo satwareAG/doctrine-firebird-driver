@@ -132,8 +132,12 @@ class TestUtil
         return isset($GLOBALS['db_driver_class']);
     }
 
-    private static function initializeDatabase(): void
+    private static function initializeDatabase(bool $force = false): void
     {
+        if (self::$initialized && ! $force) {
+            return;
+        }
+
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
         $baseName   = $baseParams['dbname'];
 
@@ -213,6 +217,7 @@ class TestUtil
                 }
 
                 $privilegedConnection->close();
+                self::$initialized = true;
 
                 return;
             } catch (Throwable $e) {

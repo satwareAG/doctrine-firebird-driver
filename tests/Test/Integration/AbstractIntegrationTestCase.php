@@ -102,6 +102,17 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         if ($testCase !== null) {
             $testCase->stopIfOver(999, 'installFirebirdDatabase');
         }
+
+        // Force recreation of the database to ensure a truly fresh state for each test class.
+        // This is the most reliable way to bypass locking and dependency issues on Firebird.
+        TestUtil::initializeDatabase(true);
+
+        // Reconnect to the fresh database
+        if ($connection->isConnected()) {
+            $connection->close();
+        }
+        $connection->connect();
+
         $connection->createSchemaManager();
 
         $schema = new Schema();
@@ -160,34 +171,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
         $platform = $connection->getDatabasePlatform();
-        $schemaManager = $connection->createSchemaManager();
-
-        // Dynamically fetch and drop all existing tables to ensure a clean state.
-        // This is more robust than a hardcoded list, especially with casing issues.
-        // We drop in a loop and commit each one.
-        $existingTables = $schemaManager->listTableNames();
-        // Sort to attempt dropping child tables first (rough heuristic)
-        rsort($existingTables);
-
-        foreach ($existingTables as $name) {
-            $connection->beginTransaction();
-            try {
-                // Use a direct query that won't be modified by any platform logic
-                $connection->executeStatement('DROP TABLE ' . $name);
-                $connection->commit();
-                error_log(sprintf('Dropped existing table: %s', $name));
-            } catch (Throwable $e) {
-                try {
-                    $connection->rollBack();
-                } catch (Throwable) {
-                }
-                error_log(sprintf('Failed to drop existing table %s: %s', $name, $e->getMessage()));
-            }
-        }
-
-        // Close and reconnect to ensure all metadata updates are visible and locks released
-        $connection->close();
-        $connection->connect();
 
         $queriesInsert = $schema->toSql($platform);
 
