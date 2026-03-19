@@ -132,7 +132,7 @@ class TestUtil
         return isset($GLOBALS['db_driver_class']);
     }
 
-    private static function initializeDatabase(bool $force = false): void
+    public static function initializeDatabase(bool $force = false): void
     {
         if (self::$initialized && ! $force) {
             return;
