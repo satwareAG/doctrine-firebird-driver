@@ -106,6 +106,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     private const RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
 
+    /**
+     * Firebird error code for "invalid transaction handle".
+     * This occurs when trying to use a transaction that was already closed or invalidated.
+     */
+    private const ER_INVALID_TRANSACTION_HANDLE = 335544332;
+
     private readonly ExecutionMode $executionMode;
 
     /**
@@ -430,23 +436,32 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     {
         if ($this->fbirdTransactionLevel === 0) {
             // as Firebird always generates a transaction, we have to commit everything now.
-            if (is_resource($this->firebirdActiveTransaction)) {
+            if ($this->isTransactionValid()) {
                 // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
                 try {
                     if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                        // If implicit commit fails, try rollback to clear state before throwing
+                        // If implicit commit fails, try rollback to clear state before throwing.
+                        // If we get "invalid transaction handle" (335544332), it means the transaction
+                        // was already closed or invalidated, so we can ignore it and proceed
+                        // to create a new transaction.
                         @fbird_rollback($this->firebirdActiveTransaction);
-                        $this->checkLastApiCall();
+                        $lastError = $this->errorInfo();
+                        if (isset($lastError['code']) && $lastError['code'] !== 0 && $lastError['code'] !== self::ER_INVALID_TRANSACTION_HANDLE) {
+                            throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
+                        }
                     }
                 } catch (Throwable $e) {
-                    // Try rollback to clear state, then convert exception
+                    // Try rollback to clear state, then convert exception.
+                    // Ignore "invalid transaction handle" errors here too.
                     try {
                         @fbird_rollback($this->firebirdActiveTransaction);
                     } catch (Throwable) {
                         // Ignore rollback exception during cleanup
                     }
 
-                    throw DriverException::fromThrowable($e);
+                    if ($e->getCode() !== self::ER_INVALID_TRANSACTION_HANDLE) {
+                        throw DriverException::fromThrowable($e);
+                    }
                 }
             }
 
@@ -470,18 +485,19 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         if ($this->fbirdTransactionLevel === 0) {
-            if (! is_resource($this->firebirdActiveTransaction)) {
+            if (! $this->isTransactionValid()) {
                 throw new RuntimeException('No active transaction resource.');
             }
 
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
             try {
                 if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                    // Capture error, attempt rollback cleanup, then throw
+                    // Capture error, attempt rollback cleanup, then throw.
+                    // Ignore "invalid transaction handle" errors as the transaction is already gone.
                     $lastError = $this->errorInfo();
                     @fbird_rollback($this->firebirdActiveTransaction);
 
-                    if (isset($lastError['code']) && $lastError['code'] !== 0) {
+                    if (isset($lastError['code']) && $lastError['code'] !== 0 && $lastError['code'] !== self::ER_INVALID_TRANSACTION_HANDLE) {
                         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
                     }
                 }
@@ -493,7 +509,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     // Ignore rollback exception during cleanup
                 }
 
-                throw DriverException::fromThrowable($e);
+                if ($e->getCode() !== self::ER_INVALID_TRANSACTION_HANDLE) {
+                    throw DriverException::fromThrowable($e);
+                }
             }
 
             $this->firebirdActiveTransaction = $this->createTransaction();
@@ -598,7 +616,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
             $this->executionMode->enableAutoCommit();
 
-            if (! $success && isset($lastError['code']) && $lastError['code'] !== 0) {
+            if (! $success && isset($lastError['code']) && $lastError['code'] !== 0 && $lastError['code'] !== self::ER_INVALID_TRANSACTION_HANDLE) {
                 throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
             }
         } else {
