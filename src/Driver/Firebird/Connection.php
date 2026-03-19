@@ -33,7 +33,6 @@ use function addcslashes;
 use function assert;
 use function class_exists;
 use function defined;
-use function error_log;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
