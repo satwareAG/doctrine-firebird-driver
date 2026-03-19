@@ -256,9 +256,6 @@ abstract class FunctionalTestCase extends TestCase
     #[After]
     final protected function disconnect(): void
     {
-        // Attempt to free any lingering statement resources via GC
-        gc_collect_cycles();
-
         // Get Firebird connection early to check validity
         $fbirdConnection = $this->getFirebirdConnection();
         $connectionValid = $fbirdConnection === null || $fbirdConnection->isConnectionValid();

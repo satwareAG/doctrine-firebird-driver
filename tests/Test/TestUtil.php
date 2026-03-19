@@ -169,10 +169,28 @@ class TestUtil
             $params['driverOptions']['persistent'] = false;
 
             // Use a separate connection to drop/create the database
-            // This connection MUST NOT be to the database we are trying to create
-            $privilegedParams           = self::getPrivilegedConnectionParameters();
-            $privilegedParams['dbname'] = $baseParams['dbname']; // Connect to the main test.fdb which already exists
-            $privilegedConnection       = DriverManager::getConnection($privilegedParams);
+            // This connection SHOULD NOT be to the database we are trying to create if it does not exist
+            $privilegedParams = self::getPrivilegedConnectionParameters();
+            $privilegedParams['dbname'] = $baseParams['dbname'];
+            // Explicitly disable persistence for the privileged connection
+            $privilegedParams['persistent'] = false;
+            $privilegedParams['driverOptions']['persistent'] = false;
+
+            try {
+                $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                // Attempt a simple query to verify the connection is alive
+                $privilegedConnection->executeQuery($privilegedConnection->getDatabasePlatform()->getDummySelectSQL());
+            } catch (Throwable) {
+                // If connecting to the target database failed, try to connect to a known existing one like 'employee'
+                $privilegedParams['dbname'] = 'employee';
+                try {
+                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                } catch (Throwable $e) {
+                    // Last ditch attempt: use provided dbname but hope for the best
+                    $privilegedParams['dbname'] = $baseParams['dbname'];
+                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                }
+            }
 
             try {
                 $sm = $privilegedConnection->createSchemaManager();
@@ -189,7 +207,12 @@ class TestUtil
 
                 return;
             } catch (Throwable $e) {
-                $privilegedConnection->close();
+                try {
+                    $privilegedConnection->close();
+                } catch (Throwable) {
+                    // Ignore close errors
+                }
+
                 if ($i === $maxSlots - 1) {
                     throw $e;
                 }
