@@ -162,14 +162,17 @@ class TestUtil
         // On Windows CI, ensure we use a simple writable path that Firebird likes
         if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
             $tempDir = 'C:\\firebird_tests';
+            echo "Windows CI detected. Ensuring temp directory: $tempDir\n";
             if (! str_starts_with($baseName, $tempDir)) {
                 // Strip any path and force into tempDir
                 $baseName = basename(str_replace('\\', '/', $baseName));
                 $baseName = $tempDir . '\\' . $baseName;
+                echo "Revised database path: $baseName\n";
             }
 
             $baseParams['dbname'] = $baseName;
             if (! file_exists($tempDir)) {
+                echo "Creating temp directory...\n";
                 @mkdir($tempDir, 0777, true);
             }
         }
@@ -201,16 +204,21 @@ class TestUtil
 
             $privilegedConnection = null;
             try {
+                echo "Attempting privileged connection to: " . $privilegedParams['dbname'] . "\n";
                 $privilegedConnection = DriverManager::getConnection($privilegedParams);
                 // Simple health check
                 $privilegedConnection->executeQuery($privilegedConnection->getDatabasePlatform()->getDummySelectSQL());
-            } catch (Throwable) {
+                echo "Privileged connection successful.\n";
+            } catch (Throwable $e) {
+                echo "Initial privileged connection failed: " . $e->getMessage() . "\n";
                 // If target DB doesn't exist, connect to a system database to perform CREATE DATABASE
                 // On Windows/Linux, 'employee' is usually available or we can use the default security DB
                 $privilegedParams['dbname'] = 'employee';
                 try {
+                    echo "Attempting privileged connection to employee database...\n";
                     $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                } catch (Throwable) {
+                } catch (Throwable $ee) {
+                    echo "Employee database connection failed: " . $ee->getMessage() . "\n";
                     // Final fallback: just use the base name and hope it works for createDatabase
                     $privilegedParams['dbname'] = $baseParams['dbname'];
                     $privilegedConnection       = DriverManager::getConnection($privilegedParams);
@@ -222,17 +230,21 @@ class TestUtil
 
                 // On Windows, the drop might fail if locks are held.
                 // We retry with a small delay.
+                echo "Attempting to drop database: $currentName\n";
                 for ($retry = 0; $retry < 3; $retry++) {
                     try {
                         @$sm->dropDatabase($currentName);
                         break;
-                    } catch (Throwable) {
+                    } catch (Throwable $e) {
+                        echo "Drop attempt $retry failed: " . $e->getMessage() . "\n";
                         usleep(100000); // 100ms
                     }
                 }
 
                 // Create the test database
+                echo "Creating test database: $currentName\n";
                 $sm->createDatabase($currentName);
+                echo "Test database created successfully.\n";
                 self::$effectiveDbName = $currentName;
 
                 // Explicitly close the privileged connection and clear its state
@@ -263,6 +275,8 @@ class TestUtil
                 }
 
                 if ($i === $maxSlots - 1) {
+                    echo "CRITICAL: Database initialization failed after $maxSlots attempts: " . $e->getMessage() . "\n";
+                    echo $e->getTraceAsString() . "\n";
                     throw $e;
                 }
             }
