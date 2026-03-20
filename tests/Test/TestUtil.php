@@ -42,8 +42,16 @@ use const PHP_OS_FAMILY;
  */
 class TestUtil
 {
-    /** Whether the database schema is initialized. */
-    private static bool $initialized = false;
+    /** Whether the database schema is initialized for the current test run. */
+    private static bool $runInitialized = false;
+
+    /**
+     * Map of class-level initialization flags.
+     * Some test classes require a truly fresh database.
+     *
+     * @var array<string, bool>
+     */
+    private static array $classInitialized = [];
 
     /** The actual database name being used (after resolving locks). */
     private static string|null $effectiveDbName = null;
@@ -69,14 +77,20 @@ class TestUtil
      */
     public static function getConnection(): Connection
     {
-        if (self::hasRequiredConnectionParams() && ! self::$initialized) {
+        if (self::hasRequiredConnectionParams() && ! self::$runInitialized) {
             self::initializeDatabase();
-            self::$initialized = true;
+            self::$runInitialized = true;
         }
 
         $params                 = self::getTestConnectionParameters();
         $params['wrapperClass'] = ConnectionWrapper::class;
-        $configuration          = self::createConfiguration();
+
+        // Force non-persistent connections in tests to avoid shutdown crashes
+        // and lock issues on both Linux and Windows runners.
+        $params['persistent']                  = false;
+        $params['driverOptions']['persistent'] = false;
+
+        $configuration = self::createConfiguration();
 
         $configuration->setMiddlewares([
             new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
@@ -127,10 +141,18 @@ class TestUtil
         ), $rows));
     }
 
-    public static function initializeDatabase(bool $force = false): void
+    public static function initializeDatabase(bool $force = false, string|null $className = null): void
     {
-        if (self::$initialized && ! $force) {
-            return;
+        // Skip if already initialized for this run, unless $force is true.
+        // If $className is provided, we only skip if THAT class was already initialized.
+        if (! $force) {
+            if ($className !== null && isset(self::$classInitialized[$className])) {
+                return;
+            }
+
+            if ($className === null && self::$runInitialized) {
+                return;
+            }
         }
 
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
@@ -196,10 +218,19 @@ class TestUtil
 
             try {
                 $sm = $privilegedConnection->createSchemaManager();
-                try {
-                    @$sm->dropDatabase($currentName);
-                } catch (Throwable) {
-                    // Ignore drop errors
+
+                // On Windows, the drop might fail if locks are held.
+                // We retry with a small delay.
+                for ($retry = 0; $retry < 3; $retry++) {
+                    try {
+                        @$sm->dropDatabase($currentName);
+                        break;
+                    } catch (Throwable) {
+                        if ($retry === 2) {
+                            // Last attempt failed, but createDatabase might still work if drop was partial
+                        }
+                        usleep(100000); // 100ms
+                    }
                 }
 
                 // Create the test database
@@ -212,7 +243,12 @@ class TestUtil
                 }
 
                 $privilegedConnection->close();
-                self::$initialized = true;
+
+                if ($className !== null) {
+                    self::$classInitialized[$className] = true;
+                } else {
+                    self::$runInitialized = true;
+                }
 
                 return;
             } catch (Throwable $e) {

@@ -49,7 +49,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         parent::setUpBeforeClass();
 
         $connection = TestUtil::getConnection();
-        static::installFirebirdDatabase($connection, []);
+        static::installFirebirdDatabase($connection, [], static::class);
         $connection->close();
     }
 
@@ -97,15 +97,11 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         // Don't mark connection not reusable - we're using transaction isolation
     }
 
-    protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, ?self $testCase = null): void
+    protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, string|null $className = null): void
     {
-        if ($testCase !== null) {
-            $testCase->stopIfOver(999, 'installFirebirdDatabase');
-        }
-
         // Force recreation of the database to ensure a truly fresh state for each test class.
         // This is the most reliable way to bypass locking and dependency issues on Firebird.
-        TestUtil::initializeDatabase(true);
+        TestUtil::initializeDatabase(true, $className);
 
         // Reconnect to the fresh database
         if ($connection->isConnected()) {
