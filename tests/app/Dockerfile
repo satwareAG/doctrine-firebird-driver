@@ -36,9 +36,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # FB_API_VER=40 enables IBatch API support (requires Firebird 4.0+ AND client libraries)
 # Only set for Firebird 4.0/5.0 to avoid API mismatch crashes with Firebird 3.0 client libraries
 RUN docker-php-source extract \
-    && git clone --branch v7.3.0 --depth 1 \
-        https://github.com/satwareAG/php-firebird.git \
-        /usr/src/php/ext/firebird \
+    && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
+    && git -C /usr/src/php/ext/firebird checkout v7.3.5-dev \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
