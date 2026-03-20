@@ -141,7 +141,12 @@ jobs:
       - name: Install dependencies
         run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
-      - name: Run Tests
+      - name: Run Tests (Unit)
         run: |
-          # Run Unit and Integration testsuites
-          vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit,Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage
+          # Run Unit testsuite
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations --no-coverage
+
+      - name: Run Tests (Integration-ReadOnly)
+        run: |
+          # Run Integration-ReadOnly testsuite
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage

@@ -234,50 +234,80 @@ jobs:
           echo "Modified PHPUnit config (${PHPUNIT_CONFIG}):"
           grep -E 'db_host|db_dbname' "${PHPUNIT_CONFIG}" || true
 
-      - name: Run PHPUnit tests
+      - name: Run PHPUnit tests (Unit)
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
           set -eu
-          
           cd tests
-          
-          # Run tests without coverage (--no-coverage prevents "No coverage driver" warning)
-          # Handle exit code 139 (SIGSEGV) gracefully - known php-firebird extension bug
-          # during persistent connection cleanup (see docs/issues/2025-01-02-schema-test-timeout-segfault.md)
+          # Handle exit code 139 (SIGSEGV) gracefully
           set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage 2>&1)
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Unit 2>&1)
           EXIT_CODE=$?
           set -e
-          
           echo "$OUTPUT"
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "✅ PHPUnit tests passed"
-          elif [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 134 ] || [ $EXIT_CODE -eq 1 ]; then
-            # Exit 139 = SIGSEGV (128 + 11), Exit 134 = SIGABRT (128 + 6)
-            # Exit 1 = PHP crashed/aborted within Docker-like setup but without SIGSEGV?
-            # Or just check if PHPUnit reports success in the output anyway.
-            # Both are known php-firebird extension crash signals during shutdown.
-            # Check if PHPUnit reported success before the crash.
-            # PHPUnit output formats: "OK (N tests, N assertions)" or
-            # "OK, but some tests were skipped!" — match both.
-            SIGNAL_NAME="SIGSEGV"
-            [ $EXIT_CODE -eq 134 ] && SIGNAL_NAME="SIGABRT"
-            if echo "$OUTPUT" | grep -qE '^OK|Tests: [0-9]+.*Assertions: [0-9]+' && \
-               ! echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
-              echo ""
-              echo "⚠️  WARNING: PHP process crashed with ${SIGNAL_NAME} (exit ${EXIT_CODE}) during shutdown"
-              echo "   This is a known php-firebird extension bug during persistent connection cleanup."
-              echo "   PHPUnit reported success before crash - treating as success."
-              echo ""
-            else
-              echo "❌ PHPUnit tests failed with ${SIGNAL_NAME} (exit ${EXIT_CODE})"
-              exit $EXIT_CODE
-            fi
-          else
-            echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
             exit $EXIT_CODE
+          fi
+          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
+            exit 1
+          fi
+
+      - name: Run PHPUnit tests (Integration-ReadOnly)
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+        run: |
+          set -eu
+          cd tests
+          # Handle exit code 139 (SIGSEGV) gracefully
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-ReadOnly 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
+            exit $EXIT_CODE
+          fi
+          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
+            exit 1
+          fi
+
+      - name: Run PHPUnit tests (Integration-Write)
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+        run: |
+          set -eu
+          cd tests
+          # Handle exit code 139 (SIGSEGV) gracefully
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-Write 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
+            exit $EXIT_CODE
+          fi
+          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
+            exit 1
+          fi
+
+      - name: Run PHPUnit tests (Functional)
+        env:
+          PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
+        run: |
+          set -eu
+          cd tests
+          # Handle exit code 139 (SIGSEGV) gracefully
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Functional 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
+            exit $EXIT_CODE
+          fi
+          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
+            exit 1
           fi
 
       - name: Archive test logs on failure
