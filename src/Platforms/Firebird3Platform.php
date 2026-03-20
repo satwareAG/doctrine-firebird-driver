@@ -129,7 +129,7 @@ class Firebird3Platform extends FirebirdPlatform
                 );
 
                 // Step 2: Copy the data from the original column to the temporary column
-                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $tempColumn . '=' . $oldColumnName . ' )';
+                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $tempColumn . '=' . $oldColumnName;
                 // Step 3: Drop the original column
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP ' . $oldColumnName;
                 // Step 4: Rename the temporary column to the original column name
