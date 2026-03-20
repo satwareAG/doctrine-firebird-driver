@@ -108,16 +108,21 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         $this->_conn->close();
+
+        // Ensure no active transactions before dropping.
+        // fbird_connect might have started an implicit transaction.
+        @fbird_rollback($connection);
+
         try {
-            $result = fbird_drop_db(
-                $connection,
-            );
+            $result = @fbird_drop_db($connection);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
         if (! $result) {
-            throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
+            throw new Exception($msg, null, $code);
         }
 
         fbird_close($connection);
