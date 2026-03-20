@@ -34,6 +34,7 @@ use function str_starts_with;
 use function strlen;
 use function strtoupper;
 use function substr;
+use function usleep;
 
 use const PHP_OS_FAMILY;
 
@@ -226,9 +227,6 @@ class TestUtil
                         @$sm->dropDatabase($currentName);
                         break;
                     } catch (Throwable) {
-                        if ($retry === 2) {
-                            // Last attempt failed, but createDatabase might still work if drop was partial
-                        }
                         usleep(100000); // 100ms
                     }
                 }
