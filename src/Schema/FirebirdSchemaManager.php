@@ -88,33 +88,71 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $params           = $this->_conn->getParams();
         $params['dbname'] = $database;
 
-        $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
+        $dbname = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        // Suppress warning since we handle the error explicitly below
-        try {
-            $connection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
-        } catch (Throwable $e) {
-            throw Exception::fromThrowable($e);
+        // In v8, fbird_connect() sets the new resource as the global default link.
+        // If we call $this->_conn->close() afterwards, fbird_close() may free that
+        // same resource via zend_list_delete, leaving a dangling pointer that causes
+        // a SIGSEGV in fbird_drop_db. Calling close() before fbird_connect() also
+        // corrupts the connection pool state for the same DB path in v8.
+        //
+        // Solution: reuse the existing native connection only when the target database
+        // matches the current connection's database. For a different target, open a
+        // fresh fbird_connect. In both cases we close $this->_conn AFTER capturing the
+        // native resource so the resource pointer stays valid for fbird_drop_db.
+        $currentDbname    = (string) FirebirdConnectString::fromConnectionParameters($this->_conn->getParams());
+        $nativeConnection = null;
+        $openedFresh      = false;
+
+        if ($currentDbname === $dbname) {
+            // Reuse the existing connection resource — avoids the v8 default-link bug
+            // where fbird_connect() overwrites IBG(default_link) and a subsequent
+            // fbird_close() on the old DBAL link frees the new resource via zend_list_delete.
+            try {
+                $driverConn = $this->_conn->getNativeConnection();
+                if (is_resource($driverConn)) {
+                    $nativeConnection = $driverConn;
+                } elseif ($driverConn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                    $nativeConnection = $driverConn->getNativeConnection();
+                }
+            } catch (Throwable) {
+                // Fall through to fbird_connect below
+            }
         }
 
-        if (! is_resource($connection)) {
-            $code = (int) fbird_errcode();
-            $msg  = (string) fbird_errmsg();
-            if ($code === -902) {
-                throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
+        if (! is_resource($nativeConnection)) {
+            // Suppress warning since we handle the error explicitly below
+            try {
+                $nativeConnection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
+            } catch (Throwable $e) {
+                throw Exception::fromThrowable($e);
             }
 
-            throw new Exception($msg, null, $code);
+            if (! is_resource($nativeConnection)) {
+                $code = (int) fbird_errcode();
+                $msg  = (string) fbird_errmsg();
+                if ($code === -902) {
+                    throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
+                }
+
+                throw new Exception($msg, null, $code);
+            }
+
+            $openedFresh = true;
         }
 
-        $this->_conn->close();
-
-        // Ensure no active transactions before dropping.
-        // fbird_connect might have started an implicit transaction.
-        @fbird_rollback($connection);
+        // Close the DBAL wrapper AFTER capturing the native resource so the resource
+        // pointer stays valid. For fresh connections, no DBAL close is needed.
+        if (! $openedFresh) {
+            try {
+                $this->_conn->close();
+            } catch (Throwable) {
+                // Already closed — safe to ignore
+            }
+        }
 
         try {
-            $result = @fbird_drop_db($connection);
+            $result = @fbird_drop_db($nativeConnection);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
@@ -125,7 +163,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception($msg, null, $code);
         }
 
-        fbird_close($connection);
+        // fbird_drop_db frees the connection internally; no fbird_close needed.
     }
 
     /**

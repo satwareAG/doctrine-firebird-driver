@@ -38,15 +38,12 @@ class ConnectionInfoTest extends FunctionalTestCase
     }
 
     /**
-     * getConnectionInfo() returns a DbInfo object when the OO API is available
-     * (php-firebird v7.0.0+).
+     * getConnectionInfo() returns a DbInfo object.
+     *
+     * With php-firebird v8.0.0+ this is always available.
      */
-    public function testGetConnectionInfoReturnsDbInfoWhenOoApiAvailable(): void
+    public function testGetConnectionInfoReturnsDbInfo(): void
     {
-        if (! class_exists(DbInfo::class)) {
-            self::markTestSkipped('DbInfo OO class not available — requires php-firebird v7.0.0+');
-        }
-
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 
@@ -55,31 +52,7 @@ class ConnectionInfoTest extends FunctionalTestCase
         self::assertInstanceOf(
             DbInfo::class,
             $info,
-            'getConnectionInfo() must return a DbInfo instance when php-firebird v7+ OO API is available',
-        );
-    }
-
-    /**
-     * getConnectionInfo() falls back to an array when only the procedural API is available.
-     */
-    public function testGetConnectionInfoFallbackReturnsArray(): void
-    {
-        if (class_exists(DbInfo::class)) {
-            self::markTestSkipped('DbInfo OO class is available — OO path is tested by testGetConnectionInfoReturnsDbInfoWhenOoApiAvailable');
-        }
-
-        if (! function_exists('fbird_connection_info')) {
-            self::markTestSkipped('fbird_connection_info() not available — requires php-firebird extension');
-        }
-
-        $conn = $this->getFirebirdConnection();
-        self::assertNotNull($conn, 'Firebird connection must be available');
-
-        $info = $conn->getConnectionInfo();
-
-        self::assertTrue(
-            is_array($info),
-            'getConnectionInfo() procedural fallback must return an array',
+            'getConnectionInfo() must return a DbInfo instance',
         );
     }
 
@@ -111,13 +84,11 @@ class ConnectionInfoTest extends FunctionalTestCase
      * In a normal test environment there are no limbo transactions, so the result
      * should be an empty array. The important thing is that the call succeeds and
      * returns an array, not false.
+     *
+     * Always available with php-firebird v8.0.0+.
      */
     public function testGetLimboTransactionsReturnsArray(): void
     {
-        if (! function_exists('fbird_get_limbo_transactions')) {
-            self::markTestSkipped('fbird_get_limbo_transactions() not available — requires php-firebird v7.0.0+');
-        }
-
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 
@@ -127,34 +98,12 @@ class ConnectionInfoTest extends FunctionalTestCase
     }
 
     /**
-     * getLimboTransactions() throws DriverException when the function is not available.
-     *
-     * This test only runs when fbird_get_limbo_transactions() is NOT present,
-     * which would be the case with an older php-firebird build.
-     */
-    public function testGetLimboTransactionsThrowsWhenFunctionMissing(): void
-    {
-        if (function_exists('fbird_get_limbo_transactions')) {
-            self::markTestSkipped('fbird_get_limbo_transactions() is available — missing-function path cannot be tested');
-        }
-
-        $conn = $this->getFirebirdConnection();
-        self::assertNotNull($conn, 'Firebird connection must be available');
-
-        $this->expectException(DriverException::class);
-        $this->expectExceptionMessageMatches('/fbird_get_limbo_transactions.*php-firebird/i');
-        $conn->getLimboTransactions();
-    }
-
-    /**
      * getOOWrapper() returns a Database instance wrapping the native connection.
+     *
+     * Always available with php-firebird v8.0.0+.
      */
     public function testGetOoWrapperReturnsDatabaseInstance(): void
     {
-        if (! class_exists(Database::class)) {
-            self::markTestSkipped('Firebird\Database OO class not available — requires php-firebird v7.0.0+');
-        }
-
         $conn = $this->getFirebirdConnection();
         self::assertNotNull($conn, 'Firebird connection must be available');
 

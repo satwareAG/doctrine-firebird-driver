@@ -20,27 +20,11 @@ class DefaultExpressionTest extends FunctionalTestCase
 
     public function testCurrentDate(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-
-        if ($platform instanceof AbstractMySQLPlatform) {
-            self::markTestSkipped('Not supported on MySQL');
-        }
-
         $this->assertDefaultExpression(Types::DATE_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentDateSQL());
     }
 
     public function testCurrentTime(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-
-        if ($platform instanceof AbstractMySQLPlatform) {
-            self::markTestSkipped('Not supported on MySQL');
-        }
-
-        if ($platform instanceof OraclePlatform) {
-            self::markTestSkipped('Not supported on Oracle');
-        }
-
         $this->assertDefaultExpression(Types::TIME_MUTABLE, static fn (AbstractPlatform $platform): string => $platform->getCurrentTimeSQL());
     }
 

@@ -20,7 +20,6 @@ use function fbird_pconnect;
 use function fbird_server_info;
 use function fbird_service_attach;
 use function fbird_service_detach;
-use function function_exists;
 use function is_resource;
 use function stristr;
 
@@ -61,31 +60,26 @@ final class Driver extends FirebirdDriver
 
         $connectString = $this->buildConnectString($params);
 
-        if (function_exists('fbird_service_attach')) {
-            try {
-                $firebirdService = @fbird_service_attach($host, $username, $password);
-            } catch (Throwable $e) {
-                throw Exception::fromThrowable($e);
-            }
-
-            if (! is_resource($firebirdService)) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
-            if ($serverVersion === false) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            if (! fbird_service_detach($firebirdService)) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            unset($firebirdService);
-        } else {
-            // Fallback for environments where service API is not available
-            $serverVersion = '3.0'; // Minimal supported version
+        try {
+            $firebirdService = @fbird_service_attach($host, $username, $password);
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
+
+        if (! is_resource($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
+        if ($serverVersion === false) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        if (! fbird_service_detach($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        unset($firebirdService);
 
         try {
             if ($persistent) {

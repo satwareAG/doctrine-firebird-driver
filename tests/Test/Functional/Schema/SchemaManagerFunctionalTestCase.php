@@ -182,10 +182,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListDatabases(): void
     {
-        if (! $this->connection->getDatabasePlatform()->supportsCreateDropDatabase()) {
-            self::markTestSkipped('Cannot drop Database client side with this Driver.');
-        }
-
         try {
             $this->schemaManager->dropDatabase('test_create_database');
         } catch (Exception\DatabaseDoesNotExist) {
@@ -193,11 +189,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $this->schemaManager->createDatabase('test_create_database');
 
-        try {
-            $databases = $this->schemaManager->listDatabases();
-        } catch (Exception $exception) {
-            self::markTestSkipped($exception->getMessage());
-        }
+        $databases = $this->schemaManager->listDatabases();
 
         $databases = array_map('strtolower', $databases);
 

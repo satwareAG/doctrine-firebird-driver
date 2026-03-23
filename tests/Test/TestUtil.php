@@ -206,25 +206,25 @@ class TestUtil
             // On Windows CI, we've already ensured C:\firebird_tests exists and is writable
             $privilegedParams = self::getPrivilegedConnectionParameters();
 
-            // Try connecting to the primary DB name first (it might already exist)
-            $privilegedParams['dbname']                      = $baseParams['dbname'];
+            // Connect directly to $currentName so dropDatabase can reuse the native
+            // connection resource (avoids the v8 default-link SIGSEGV bug).
+            $privilegedParams['dbname']                      = $currentName;
             $privilegedParams['persistent']                  = false;
             $privilegedParams['driverOptions']['persistent'] = false;
 
             $privilegedConnection = null;
             try {
                 $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                // Simple health check
+                // Simple health check — confirms the DB exists and is reachable
                 $privilegedConnection->executeQuery($privilegedConnection->getDatabasePlatform()->getDummySelectSQL());
             } catch (Throwable) {
-                // If target DB doesn't exist, connect to a system database to perform CREATE DATABASE
-                // On Windows/Linux, 'employee' is usually available or we can use the default security DB
+                // DB doesn't exist yet — connect to employee to perform CREATE DATABASE
                 $privilegedParams['dbname'] = 'employee';
                 try {
                     $privilegedConnection = DriverManager::getConnection($privilegedParams);
                 } catch (Throwable) {
-                    // Final fallback: just use the base name and hope it works for createDatabase
-                    $privilegedParams['dbname'] = $baseParams['dbname'];
+                    // Final fallback
+                    $privilegedParams['dbname'] = $currentName;
                     $privilegedConnection       = DriverManager::getConnection($privilegedParams);
                 }
             }
@@ -232,22 +232,29 @@ class TestUtil
             try {
                 $sm = $privilegedConnection->createSchemaManager();
 
-                // On Windows, the drop might fail if locks are held.
-                // We retry with a small delay.
-                for ($retry = 0; $retry < 3; $retry++) {
-                    try {
-                        @$sm->dropDatabase($currentName);
-                        break;
-                    } catch (Throwable) {
-                        usleep(100000); // 100ms
-                    }
+                // Drop the database if it exists; ignore errors (DB may not exist yet).
+                // dropDatabase() reuses the existing native fbird resource and closes
+                // $this->_conn internally (v8 default-link fix). After drop, we must
+                // reconnect before calling createDatabase.
+                try {
+                    @$sm->dropDatabase($currentName);
+                } catch (Throwable) {
+                    // DB may not exist yet — safe to ignore
                 }
 
-                // Create the test database
+                // Reconnect after dropDatabase (which closes the underlying connection)
+                $privilegedParams['dbname'] = 'employee';
+                try {
+                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                } catch (Throwable) {
+                    $privilegedParams['dbname'] = $baseParams['dbname'];
+                    $privilegedConnection       = DriverManager::getConnection($privilegedParams);
+                }
+
+                $sm = $privilegedConnection->createSchemaManager();
                 $sm->createDatabase($currentName);
                 self::$effectiveDbName = $currentName;
 
-                // Explicitly close the privileged connection and clear its state
                 if ($privilegedConnection->isTransactionActive()) {
                     $privilegedConnection->rollBack();
                 }

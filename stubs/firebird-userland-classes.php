@@ -3,9 +3,14 @@
 /**
  * PHPStan stubs for php-firebird userland classes (Firebird namespace).
  *
- * These classes are provided by the php-firebird C extension as userland PHP classes
- * (not C-level classes). They are distributed with the extension itself, not in the
- * satwareag/php-firebird-stubs package (which only covers C-level extension symbols).
+ * These classes are provided by the php-firebird extension as userland PHP classes
+ * distributed with the extension itself. The satwareag/php-firebird-stubs v8 package
+ * covers C-level classes (Connection, Transaction, Statement, ResultSet, Blob, Service);
+ * this file covers the remaining userland helpers not yet in the external stubs package.
+ *
+ * Changes in v8.0.0:
+ * - Firebird\Transaction renamed to Firebird\TransactionManager to avoid conflict
+ *   with the new C-level Firebird\Transaction class.
  *
  * @see https://github.com/satwareAG/php-firebird
  */
@@ -47,15 +52,18 @@ class TBuilder
     {
     }
 
-    public function start(): Transaction
+    public function start(): TransactionManager
     {
     }
 }
 
 /**
- * Represents an active Firebird transaction.
+ * Represents an active Firebird transaction (userland wrapper).
+ *
+ * Renamed from Transaction to TransactionManager in v8.0.0 to avoid
+ * conflict with the new C-level Firebird\Transaction class.
  */
-class Transaction
+class TransactionManager
 {
     private function __construct()
     {

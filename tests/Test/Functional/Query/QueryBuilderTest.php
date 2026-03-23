@@ -17,12 +17,6 @@ final class QueryBuilderTest extends FunctionalTestCase
 {
     public function testForUpdateOrdinary(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-
-        if ($platform instanceof SqlitePlatform) {
-            self::markTestSkipped('Skipping on SQLite');
-        }
-
         $qb1 = $this->connection->createQueryBuilder();
         $qb1->select('id')
             ->from('for_update')

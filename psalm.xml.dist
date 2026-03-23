@@ -18,7 +18,6 @@
         <file name="vendor/jetbrains/phpstorm-stubs/interbase/interbase.php" />
         <file name="vendor/satwareag/php-firebird-stubs/firebird-stubs.php" />
         <file name="vendor/satwareag/php-firebird-stubs/firebird-classes.php" />
-        <file name="stubs/firebird-global-functions.php" />
         <file name="stubs/firebird-userland-classes.php" />
     </stubs>
     <issueHandlers>

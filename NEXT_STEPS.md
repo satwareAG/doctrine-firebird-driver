@@ -5,15 +5,18 @@
 
 ---
 
-## ✅ DBAL 3 series (3.10.x branch) - COMPLETE
+## ✅ DBAL 3 series (3.10.x branch) - php-firebird v8 UPGRADE - COMPLETE
 
-All goals for the DBAL 3 compatible version have been fulfilled:
-- ✅ **Coverage ≥90%** verified on PHP 8.4 + FB3.
-- ✅ **Windows CI stabilized** on GitHub Actions.
-- ✅ **CI/CD Pipeline Audit** complete, parity verified.
-- ✅ **CharsetMiddleware** fully implemented and tested.
-- ✅ **DBAL 4.x Preparation** — `introspectTable()` and `FirebirdSchemaManagerFactory` implemented.
-- ✅ **Research documented** — DBAL 4.x connection unwrapping in `docs/research/dbal4-migration.md`.
+All goals for the v8 upgrade and modernization have been fulfilled:
+- ✅ **php-firebird v8.0.0 Requirement** — Updated `composer.json` and removed all legacy guards.
+- ✅ **Test Suite Modernized** — Removed redundant version checks, deleted SQLite-only tests, and adapted cross-platform tests for Firebird.
+- ✅ **Upstream Collaboration** — Created 7 GitHub issues (#119-#125) to fix regressions and improve the extension API.
+
+### ⚠️ Known Issue: php-firebird v8.0.0 Regression (#119)
+The `php-firebird` v8.0.0 extension has a regression where `fbird_trans_start()` fails on cached connections with "Connection has no OO API handle".
+- **Status**: Reported upstream (#119).
+- **Impact**: Many transaction-heavy tests fail when connection caching is active.
+- **Temporary Fix**: In the test environment, avoid using persistent connections (`fbird_pconnect`) or ensure a fresh connection for each test run if stability is critical.
 
 ---
 

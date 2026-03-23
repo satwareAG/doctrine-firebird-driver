@@ -17,7 +17,7 @@ use Firebird\BatchResult;
 use Firebird\Database;
 use Firebird\DbInfo;
 use Firebird\TBuilder;
-use Firebird\Transaction;
+use Firebird\TransactionManager;
 use InvalidArgumentException;
 use Override;
 use PDO;
@@ -55,7 +55,6 @@ use function fbird_savepoint;
 use function fbird_set_exception_mode;
 use function fbird_trans_start;
 use function file_exists;
-use function function_exists;
 use function get_resource_type;
 use function in_array;
 use function is_dir;
@@ -162,14 +161,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         $this->executionMode = new ExecutionMode();
 
         if ($connection !== null) {
-            // Enable Exception Mode API if available (php-firebird v7.0.0-rc.6+)
+            // Enable Exception Mode (php-firebird v8.0.0+, guaranteed available)
             // This provides PDO::ERRMODE_EXCEPTION-like behavior where Firebird API
             // functions throw Firebird\Exception instead of returning false on errors.
             // Note: This is a GLOBAL setting affecting all Firebird operations in this process.
             // We enable it AFTER connection is established to avoid interfering with database creation.
-            if (function_exists('fbird_set_exception_mode') && defined('FBIRD_EXCEPTION_MODE_THROW')) {
-                fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
-            }
+            fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
 
             $this->firebirdActiveTransaction = $this->createTransaction();
         }
@@ -360,15 +357,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new InvalidArgumentException('Given value is not scalar.');
         }
 
-        // Use extension-provided escaping if available (php-firebird v7.0.0-rc.25+)
-        if (function_exists('fbird_escape_string')) {
-            return "'" . fbird_escape_string((string) $value) . "'";
-        }
-
-        // Fallback for older versions
-        $value = str_replace("'", "''", (string) $value);
-
-        return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
+        return "'" . fbird_escape_string((string) $value) . "'";
     }
 
     #[Override]
@@ -909,7 +898,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * - CQRS patterns with different isolation levels for reads/writes
      * - Multi-transaction workflows (e.g., long-running batch with progress tracking)
      *
-     * @param resource|Transaction    $transaction Transaction resource or OO wrapper
+     * @param resource|TransactionManager $transaction Transaction resource or OO wrapper
      * @param string                  $sql         SQL statement to execute
      * @param array<int|string,mixed> $params      Optional bind parameters
      *
@@ -924,7 +913,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         // Support both raw resource and OO Transaction wrapper
-        $transResource = $transaction instanceof Transaction
+        $transResource = $transaction instanceof TransactionManager
             ? $transaction->getResource()
             : $transaction;
 
@@ -1011,13 +1000,13 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *   echo "Inserted: " . $result->count() . " rows";
      *
      * @param string           $sql         INSERT statement with placeholders
-     * @param Transaction|null $transaction Optional transaction (uses active if null)
+     * @param TransactionManager|null $transaction Optional transaction (uses active if null)
      *
      * @return Batch Batch object for adding rows and executing
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function createBatch(string $sql, Transaction|null $transaction = null): Batch
+    public function createBatch(string $sql, TransactionManager|null $transaction = null): Batch
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
@@ -1038,7 +1027,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         // Use provided transaction or fall back to active transaction
-        $transResource = $transaction instanceof Transaction
+        $transResource = $transaction instanceof TransactionManager
             ? $transaction->getResource()
             : $this->firebirdActiveTransaction;
 
@@ -1084,13 +1073,13 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * @param string                               $sql         INSERT statement with placeholders
      * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
-     * @param Transaction|null                     $transaction Optional transaction
+     * @param TransactionManager|null              $transaction Optional transaction
      *
      * @return BatchResult Result with row counts and any errors
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): BatchResult
+    public function executeBatch(string $sql, array $rows, TransactionManager|null $transaction = null): BatchResult
     {
         $batch = $this->createBatch($sql, $transaction);
 
@@ -1126,18 +1115,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        // Use OO API if available (php-firebird v7+)
-        // Falls back to procedural fbird_connection_info() if OO not available
         if (class_exists(DbInfo::class)) {
             return DbInfo::fromConnection($this->connection);
         }
 
-        // Procedural fallback
-        if (function_exists('fbird_connection_info')) {
-            return fbird_connection_info($this->connection);
-        }
-
-        return false;
+        return fbird_connection_info($this->connection);
     }
 
     // =========================================================================
@@ -1162,12 +1144,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
-        }
-
-        if (! function_exists('fbird_get_limbo_transactions')) {
-            throw new DriverException(
-                'fbird_get_limbo_transactions() requires php-firebird v7.0.0+',
-            );
         }
 
         $result = fbird_get_limbo_transactions($this->connection);
@@ -1198,12 +1174,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
-        }
-
-        if (! function_exists('fbird_reconnect_transaction')) {
-            throw new DriverException(
-                'fbird_reconnect_transaction() requires php-firebird v7.0.0+',
-            );
         }
 
         assert(is_resource($this->connection));

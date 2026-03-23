@@ -7,16 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.12.4] - Unreleased
 
+### Changed
+- **php-firebird v8.0.0 upgrade** — Updated `ext-firebird` requirement to `^8.0` and
+  `satwareag/php-firebird-stubs` to `^8.0.0`. The v8 extension adds native OOP classes
+  (`Firebird\Connection`, `Firebird\Transaction`, `Firebird\Statement`, etc.) and a PDO
+  driver (`pdo_fbird`) while keeping the `fbird_*` procedural API fully intact.
+- **Modernized Test Suite** — Performed a comprehensive cleanup of the functional test suite
+  to align with php-firebird v8.0.0+.
+    - Removed redundant `function_exists()` and `class_exists()` guards in `ConnectionInfoTest`
+      as v8 features are now guaranteed.
+    - Deleted `OtherSchemaTest` (SQLite-only) and removed SQLite-specific paths from `ExceptionTest`.
+    - Adapted `DataAccessTest` to include Firebird-compatible date arithmetic.
+    - Enabled `testListDatabases` in `SchemaManagerFunctionalTestCase` as Firebird supports
+      procedural database creation and dropping.
+- **Removed `function_exists()` guards** — All runtime guards for `fbird_set_exception_mode`,
+  `fbird_escape_string`, `fbird_connection_info`, `fbird_get_limbo_transactions`,
+  `fbird_reconnect_transaction`, `fbird_sqlstate`, and `fbird_service_attach` removed from
+  `Connection.php`, `Driver.php`, and `Exception.php` since v8 guarantees these functions.
+- **Stubs cleanup** — Removed local `stubs/firebird-global-functions.php` (now covered by
+  `satwareag/php-firebird-stubs` v8). Updated `stubs/firebird-userland-classes.php` to rename
+  `Firebird\Transaction` → `Firebird\TransactionManager` matching the v8 rename that avoids
+  conflict with the new C-level `Firebird\Transaction` class.
+
 ### Fixed
 - **php-firebird v7.3.5-dev (SIGSEGV)** — Validated and adopted the critical fix for segmentation
   faults in `fbird_blob_info()`. This improves stability during BLOB operations and schema
   introspection across all Firebird versions (#94)
-
-### Changed
-- **Test Infrastructure** — Updated `tests/app/Dockerfile` to use the `v7.3.5-dev` branch of
-  the `php-firebird` extension for all Docker-based testing.
-- **Code Coverage** — Re-generated comprehensive test coverage reports using `PCOV`, confirming
-  high coverage (98-100%) in critical driver and platform logic.
 
 ## [3.12.3] - 2026-03-19
 

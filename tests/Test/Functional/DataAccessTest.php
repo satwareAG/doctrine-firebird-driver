@@ -377,7 +377,7 @@ class DataAccessTest extends FunctionalTestCase
         self::assertSame('2004-01-01', date('Y-m-d', strtotime((string) $row['sub_years'])));
     }
 
-    public function testSqliteDateArithmeticWithDynamicInterval(): void
+    public function testDateArithmeticWithDynamicInterval(): void
     {
         $platform = $this->connection->getDatabasePlatform();
 
@@ -395,7 +395,7 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT COUNT(*) FROM fetch_table_date_math WHERE ';
         $sql .= $platform->getDateSubDaysExpression('test_date', 'test_days') . " < '2010-05-12'";
 
-        $rowCount = $this->connection->fetchOne($sql);
+        $rowCount = (int) $this->connection->fetchOne($sql);
 
         self::assertSame(1, $rowCount);
     }
@@ -437,42 +437,6 @@ class DataAccessTest extends FunctionalTestCase
         ], $row);
     }
 
-    public function testSqliteLocateEmulation(): void
-    {
-        self::markTestSkipped('test is for SQLite only');
-
-        $sql = <<< 'SQL'
-            SELECT
-                LOCATE(test_string, 'oo') AS locate1,
-                LOCATE(test_string, 'foo') AS locate2,
-                LOCATE(test_string, 'bar') AS locate3,
-                LOCATE(test_string, test_string) AS locate4,
-                LOCATE('foo', test_string) AS locate5,
-                LOCATE('barfoobaz', test_string) AS locate6,
-                LOCATE('bar', test_string) AS locate7,
-                LOCATE(test_string, 'oo', 2) AS locate8,
-                LOCATE(test_string, 'oo', 3) AS locate9,
-                LOCATE(test_string, 'foo', 1) AS locate10,
-                LOCATE(test_string, 'oo', 1 + 1) AS locate11
-            FROM {$this->table}
-            SQL;
-
-        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5749');
-
-        $this->assertSame([
-            'locate1' => 2,
-            'locate2' => 1,
-            'locate3' => 0,
-            'locate4' => 1,
-            'locate5' => 1,
-            'locate6' => 4,
-            'locate7' => 0,
-            'locate8' => 2,
-            'locate9' => 0,
-            'locate10' => 1,
-            'locate11' => 2,
-        ], $this->connection->fetchAssociative($sql));
-    }
 
     public function testQuoteSQLInjection(): void
     {

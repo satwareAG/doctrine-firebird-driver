@@ -10,7 +10,6 @@ use Override;
 use Throwable;
 
 use function fbird_sqlstate;
-use function function_exists;
 use function method_exists;
 
 /**
@@ -137,22 +136,12 @@ class Exception extends BaseException implements DriverException
     /**
      * Fetch the current SQLSTATE from the Firebird extension.
      *
-     * Uses fbird_sqlstate() (php-firebird v7.0.0+) to get the 5-character
-     * SQLSTATE code for the last error. Returns null if the function is
-     * not available or no error occurred.
-     *
      * @return string|null The 5-character SQLSTATE code or null
      */
     private static function fetchSqlState(): string|null
     {
-        // fbird_sqlstate() is available in php-firebird v7.0.0+
-        if (! function_exists('fbird_sqlstate')) {
-            return null;
-        }
-
         $state = fbird_sqlstate();
 
-        // fbird_sqlstate() returns false if no error or empty string
         if ($state === false || $state === '') {
             return null;
         }
