@@ -12,12 +12,6 @@ All goals for the v8 upgrade and modernization have been fulfilled:
 - ✅ **Test Suite Modernized** — Removed redundant version checks, deleted SQLite-only tests, and adapted cross-platform tests for Firebird.
 - ✅ **Upstream Collaboration** — Created 7 GitHub issues (#119-#125) to fix regressions and improve the extension API.
 
-### ⚠️ Known Issue: php-firebird v8.0.0 Regression (#119)
-The `php-firebird` v8.0.0 extension has a regression where `fbird_trans_start()` fails on cached connections with "Connection has no OO API handle".
-- **Status**: Reported upstream (#119).
-- **Impact**: Many transaction-heavy tests fail when connection caching is active.
-- **Temporary Fix**: In the test environment, avoid using persistent connections (`fbird_pconnect`) or ensure a fresh connection for each test run if stability is critical.
-
 ---
 
 ## 🚀 Future: DBAL 4.x Migration (4.4.x branch)
