@@ -196,18 +196,22 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 // fall back to rollback. Wrap in try-catch because Exception Mode (php-firebird
                 // v7.0.0+) throws Firebird\Exception even with @ suppression. Destructors must
                 // not throw exceptions, so we silently catch any errors during cleanup.
+                $rolledBack = false;
                 try {
                     if (! fbird_commit($this->firebirdActiveTransaction)) {
                         // If commit fails, try rollback to clean up gracefully
+                        $rolledBack = true;
                         fbird_rollback($this->firebirdActiveTransaction);
                     }
                 } catch (Throwable) {
                     // Silently ignore exceptions during destructor cleanup.
                     // Destructors cannot throw; best effort cleanup only.
-                    try {
-                        fbird_rollback($this->firebirdActiveTransaction);
-                    } catch (Throwable) {
-                        // Ignore - nothing more we can do during destruction
+                    if (! $rolledBack) {
+                        try {
+                            fbird_rollback($this->firebirdActiveTransaction);
+                        } catch (Throwable) {
+                            // Ignore - nothing more we can do during destruction
+                        }
                     }
                 }
             }
@@ -426,12 +430,14 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             // as Firebird always generates a transaction, we have to commit everything now.
             if ($this->isTransactionValid()) {
                 // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+                $rolledBack = false;
                 try {
                     if (! fbird_commit($this->firebirdActiveTransaction)) {
                         // If implicit commit fails, try rollback to clear state before throwing.
                         // If we get "invalid transaction handle" (335544332), it means the transaction
                         // was already closed or invalidated, so we can ignore it and proceed
                         // to create a new transaction.
+                        $rolledBack = true;
                         fbird_rollback($this->firebirdActiveTransaction);
                         $lastError = $this->errorInfo();
                         if (isset($lastError['code']) && $lastError['code'] !== 0 && ! $this->isInvalidTransactionHandle((int) $lastError['code'], (string) $lastError['message'])) {
@@ -440,11 +446,14 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     }
                 } catch (Throwable $e) {
                     // Try rollback to clear state, then convert exception.
+                    // Only attempt rollback if not already done in the try branch.
                     // Ignore "invalid transaction handle" errors here too.
-                    try {
-                        fbird_rollback($this->firebirdActiveTransaction);
-                    } catch (Throwable) {
-                        // Ignore rollback exception during cleanup
+                    if (! $rolledBack) {
+                        try {
+                            fbird_rollback($this->firebirdActiveTransaction);
+                        } catch (Throwable) {
+                            // Ignore rollback exception during cleanup
+                        }
                     }
 
                     if (! $this->isInvalidTransactionHandle((int) $e->getCode(), $e->getMessage())) {
