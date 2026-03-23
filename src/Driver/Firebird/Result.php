@@ -89,8 +89,7 @@ final class Result implements ResultInterface
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
-            // @todo remove @ when fbird_fetch_row() doesn't warn on normal end of fetch or closed cursor
-            // Warning "Invalid cursor" is emitted when fetching from a closed/reused statement's result in some cases
+            // Warning "Invalid cursor" may be emitted when fetching from a closed/reused statement's result
             /** @phpstan-ignore argument.type */
             $result = fbird_fetch_row($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
@@ -118,7 +117,6 @@ final class Result implements ResultInterface
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
-            // @todo remove @ when fbird_fetch_assoc() doesn't warn
             /** @phpstan-ignore argument.type */
             $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
         } catch (Throwable $e) {
