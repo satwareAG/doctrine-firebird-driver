@@ -8,7 +8,7 @@ use Doctrine\DBAL\Driver\Middleware\AbstractStatementMiddleware;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function in_array;
 use function is_resource;

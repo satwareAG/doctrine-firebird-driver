@@ -8,7 +8,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator as BaseComparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;

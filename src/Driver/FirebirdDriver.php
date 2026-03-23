@@ -11,7 +11,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Doctrine\Deprecations\Deprecation;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;

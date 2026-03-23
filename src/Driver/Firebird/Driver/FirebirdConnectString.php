@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Stringable;
 

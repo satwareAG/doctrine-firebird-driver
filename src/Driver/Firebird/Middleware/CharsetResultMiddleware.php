@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware;
 use Doctrine\DBAL\Driver\Middleware\AbstractResultMiddleware;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\ParameterType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function array_values;
 use function fopen;

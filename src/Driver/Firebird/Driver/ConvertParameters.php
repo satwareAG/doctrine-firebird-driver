@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 
 use Doctrine\DBAL\SQL\Parser\Visitor;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 /**
  * Firebird Statements only support positional parameters

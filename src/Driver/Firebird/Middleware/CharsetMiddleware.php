@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware as MiddlewareInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use SensitiveParameter;
 
 /**

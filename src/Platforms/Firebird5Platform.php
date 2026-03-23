@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\Deprecations\Deprecation;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
 
 final class Firebird5Platform extends Firebird4Platform

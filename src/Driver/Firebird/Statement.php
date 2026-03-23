@@ -8,7 +8,7 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use RuntimeException;
 use Throwable;
 
@@ -242,7 +242,7 @@ final class Statement implements StatementInterface
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
             // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
             try {
-                $fbirdResultRc = @fbird_execute(...$callArgs);
+                $fbirdResultRc = fbird_execute(...$callArgs);
 
                 if ($fbirdResultRc === false) {
                     // fbird_execute returns false on failure and emits a warning or sets error info
@@ -294,7 +294,7 @@ final class Statement implements StatementInterface
                         // This is used by ConnectionWrapper to get identity column values
                         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
                         try {
-                            $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
+                            $returnedRow = fbird_fetch_assoc($fbirdResultRc);
                         } catch (Throwable $e) {
                             throw Exception::fromThrowable($e);
                         }
@@ -306,18 +306,16 @@ final class Statement implements StatementInterface
 
                             // Try to find the identity value in the returned row
                             foreach ($returnedRow as $key => $value) {
-                                // ConnectionWrapper uses alias format: ID<hash>.<hash>
-                                // Also check for the actual column name
+                                // Match only the exact identity column name set by ConnectionWrapper.
+                                // Previously used str_starts_with('ID') heuristic which caused
+                                // false positives on columns like IDEMPOTENT_KEY, IDENTITY_NAME, etc.
                                 if (
-                                    $identityColumn !== null && (
-                                    strcasecmp($key, $identityColumn) === 0 ||
-                                    str_starts_with(strtoupper($key), 'ID')
-                                    )
+                                    $identityColumn !== null
+                                    && strcasecmp($key, $identityColumn) === 0
+                                    && is_numeric($value)
                                 ) {
-                                    if (is_numeric($value)) {
-                                        $this->connection->setLastInsertId((int) $value);
-                                        break;
-                                    }
+                                    $this->connection->setLastInsertId((int) $value);
+                                    break;
                                 }
 
                                 // Fallback: if only one numeric value returned, assume it's the ID

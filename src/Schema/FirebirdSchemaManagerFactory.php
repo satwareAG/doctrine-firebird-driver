@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Schema;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\SchemaManagerFactory;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function assert;

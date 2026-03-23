@@ -10,7 +10,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 

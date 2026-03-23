@@ -19,7 +19,7 @@ use Firebird\DbInfo;
 use Firebird\TBuilder;
 use Firebird\TransactionManager;
 use InvalidArgumentException;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use PDO;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
@@ -32,7 +32,6 @@ use UnexpectedValueException;
 use function addcslashes;
 use function assert;
 use function class_exists;
-use function defined;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_commit_ret;
@@ -139,7 +138,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private int $fbirdTransactionLevel = 0;
 
     /** @var resource|null */
-    private $firebirdActiveTransaction = null;
+    private mixed $firebirdActiveTransaction = null;
 
     /**
      * Load Firebird OO API classes if they are available as PHP files.
@@ -198,15 +197,15 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 // v7.0.0+) throws Firebird\Exception even with @ suppression. Destructors must
                 // not throw exceptions, so we silently catch any errors during cleanup.
                 try {
-                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                    if (! fbird_commit($this->firebirdActiveTransaction)) {
                         // If commit fails, try rollback to clean up gracefully
-                        @fbird_rollback($this->firebirdActiveTransaction);
+                        fbird_rollback($this->firebirdActiveTransaction);
                     }
                 } catch (Throwable) {
                     // Silently ignore exceptions during destructor cleanup.
                     // Destructors cannot throw; best effort cleanup only.
                     try {
-                        @fbird_rollback($this->firebirdActiveTransaction);
+                        fbird_rollback($this->firebirdActiveTransaction);
                     } catch (Throwable) {
                         // Ignore - nothing more we can do during destruction
                     }
@@ -315,7 +314,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
             /** @phpstan-ignore arguments.count */
-            $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
+            $stmt = fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
 
             if ($stmt === false) {
                 $this->checkLastApiCall();
@@ -428,12 +427,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             if ($this->isTransactionValid()) {
                 // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
                 try {
-                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                    if (! fbird_commit($this->firebirdActiveTransaction)) {
                         // If implicit commit fails, try rollback to clear state before throwing.
                         // If we get "invalid transaction handle" (335544332), it means the transaction
                         // was already closed or invalidated, so we can ignore it and proceed
                         // to create a new transaction.
-                        @fbird_rollback($this->firebirdActiveTransaction);
+                        fbird_rollback($this->firebirdActiveTransaction);
                         $lastError = $this->errorInfo();
                         if (isset($lastError['code']) && $lastError['code'] !== 0 && ! $this->isInvalidTransactionHandle((int) $lastError['code'], (string) $lastError['message'])) {
                             throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
@@ -443,7 +442,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     // Try rollback to clear state, then convert exception.
                     // Ignore "invalid transaction handle" errors here too.
                     try {
-                        @fbird_rollback($this->firebirdActiveTransaction);
+                        fbird_rollback($this->firebirdActiveTransaction);
                     } catch (Throwable) {
                         // Ignore rollback exception during cleanup
                     }
@@ -479,23 +478,27 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
 
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
+            $rolledBack = false;
             try {
-                if (! @fbird_commit($this->firebirdActiveTransaction)) {
+                if (! fbird_commit($this->firebirdActiveTransaction)) {
                     // Capture error, attempt rollback cleanup, then throw.
                     // Ignore "invalid transaction handle" errors as the transaction is already gone.
                     $lastError = $this->errorInfo();
-                    @fbird_rollback($this->firebirdActiveTransaction);
+                    $rolledBack = true;
+                    fbird_rollback($this->firebirdActiveTransaction);
 
                     if (isset($lastError['code']) && $lastError['code'] !== 0 && ! $this->isInvalidTransactionHandle((int) $lastError['code'], (string) $lastError['message'])) {
                         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
                     }
                 }
             } catch (Throwable $e) {
-                // Try rollback cleanup, then convert exception
-                try {
-                    @fbird_rollback($this->firebirdActiveTransaction);
-                } catch (Throwable) {
-                    // Ignore rollback exception during cleanup
+                // Only attempt rollback if not already done in the try branch
+                if (! $rolledBack) {
+                    try {
+                        fbird_rollback($this->firebirdActiveTransaction);
+                    } catch (Throwable) {
+                        // Ignore rollback exception during cleanup
+                    }
                 }
 
                 if (! $this->isInvalidTransactionHandle((int) $e->getCode(), $e->getMessage())) {
@@ -533,7 +536,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            if (@fbird_commit_ret($this->firebirdActiveTransaction) !== false) {
+            if (fbird_commit_ret($this->firebirdActiveTransaction) !== false) {
                 return;
             }
 
@@ -580,7 +583,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             $lastError = null;
             $success   = false;
             try {
-                $success = @fbird_rollback($this->firebirdActiveTransaction);
+                $success = fbird_rollback($this->firebirdActiveTransaction);
 
                 if (! $success) {
                     // Capture error before resetting state
@@ -633,7 +636,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            if (! @fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            if (! fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
                 $this->checkLastApiCall();
 
                 throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
@@ -660,7 +663,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            if (! @fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            if (! fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
                 $this->checkLastApiCall();
 
                 throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
@@ -687,7 +690,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            if (! @fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
+            if (! fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
                 $this->checkLastApiCall();
 
                 throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
@@ -1037,7 +1040,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Check for static factory method (php-firebird v7.2.0+)
         if (method_exists(Batch::class, 'fromQuery')) {
-            $query = @fbird_prepare($this->connection, $transResource, $sql);
+            $query = fbird_prepare($this->connection, $transResource, $sql);
             if (! is_resource($query)) {
                 $this->checkLastApiCall();
 

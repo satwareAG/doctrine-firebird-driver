@@ -6,7 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\Exception as DriverException;
 use Exception as BaseException;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Throwable;
 
 use function fbird_sqlstate;

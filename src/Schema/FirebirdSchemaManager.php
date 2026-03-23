@@ -14,7 +14,7 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -123,7 +123,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         if (! is_resource($nativeConnection)) {
             // Suppress warning since we handle the error explicitly below
             try {
-                $nativeConnection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
+                $nativeConnection = fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
             } catch (Throwable $e) {
                 throw Exception::fromThrowable($e);
             }
@@ -152,7 +152,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         try {
-            $result = @fbird_drop_db($nativeConnection);
+            $result = fbird_drop_db($nativeConnection);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
