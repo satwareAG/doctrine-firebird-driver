@@ -45,13 +45,9 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      *
      * Note: signature uses untyped $param/$value/$type to match the parent
      * AbstractStatementMiddleware which was written before PHP 8 union types.
-     *
-     * @param int|string $param
-     * @param mixed      $value
-     * @param mixed      $type
      */
     #[Override]
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
+    public function bindValue(int|string $param, mixed $value, mixed $type = ParameterType::STRING): bool
     {
         $this->boundTypes[$param] = $type;
 
@@ -75,7 +71,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * @param array<int|string, mixed>|null $params
      */
     #[Override]
-    public function execute($params = null): ResultInterface
+    public function execute(array|null $params = null): ResultInterface
     {
         // If inline params are passed (deprecated path), encode them first
         if ($params !== null) {

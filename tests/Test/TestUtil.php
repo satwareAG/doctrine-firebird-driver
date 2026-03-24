@@ -27,6 +27,7 @@ use function getenv;
 use function implode;
 use function in_array;
 use function is_string;
+use function md5;
 use function mkdir;
 use function str_ends_with;
 use function str_replace;
@@ -34,7 +35,6 @@ use function str_starts_with;
 use function strlen;
 use function strtoupper;
 use function substr;
-use function usleep;
 
 use const PHP_OS_FAMILY;
 
@@ -45,6 +45,9 @@ class TestUtil
 {
     /** Whether the database schema is initialized for the current test run. */
     private static bool $runInitialized = false;
+
+    /** Cached shared connection - reused across tests to avoid reconnection issues. */
+    private static Connection|null $sharedConnection = null;
 
     /**
      * Map of class-level initialization flags.
@@ -78,6 +81,19 @@ class TestUtil
      */
     public static function getConnection(): Connection
     {
+        // Return cached connection if still valid (avoids reconnection issues
+        // with php-firebird where a second connect to the same DB file fails
+        // with empty DB path and false health check).
+        if (self::$sharedConnection !== null) {
+            try {
+                self::$sharedConnection->fetchOne('SELECT 1 FROM RDB$DATABASE');
+
+                return self::$sharedConnection;
+            } catch (Throwable) {
+                self::$sharedConnection = null;
+            }
+        }
+
         if (self::hasRequiredConnectionParams() && ! self::$runInitialized) {
             self::initializeDatabase();
             self::$runInitialized = true;
@@ -97,10 +113,12 @@ class TestUtil
             new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
         ]);
 
-        return DriverManager::getConnection(
+        self::$sharedConnection = DriverManager::getConnection(
             $params,
             $configuration,
         );
+
+        return self::$sharedConnection;
     }
 
     /** @return mixed[] */
@@ -142,6 +160,10 @@ class TestUtil
         ), $rows));
     }
 
+    /**
+     * Create/recreate the test database file.
+     * Public so integration tests can call it independently of getConnection().
+     */
     public static function initializeDatabase(bool $force = false, string|null $className = null): void
     {
         // Skip if already initialized for this run, unless $force is true.
@@ -180,6 +202,7 @@ class TestUtil
                 if ($ext !== '') {
                     $baseName = substr($baseName, 0, -4);
                 }
+
                 $baseName .= '_' . $uniqueId . $ext;
             }
 
@@ -259,7 +282,24 @@ class TestUtil
                     $privilegedConnection->rollBack();
                 }
 
+                // CRITICAL: Do NOT close and recreate the connection.
+                // php-firebird v8.2.0 cannot reliably reconnect to a newly
+                // created DB file in the same process - the second connection
+                // gets empty DB path and false health check.
+                // Instead, reconnect NOW to the new database and cache it.
                 $privilegedConnection->close();
+                $newDbParams                           = $params;
+                $newDbParams['wrapperClass']           = ConnectionWrapper::class;
+                $newDbParams['persistent']             = false;
+                $newDbParams['driverOptions']['persistent'] = false;
+                self::$sharedConnection = DriverManager::getConnection(
+                    $newDbParams,
+                    self::createConfiguration(),
+                );
+                // Verify the connection actually works
+                self::$sharedConnection->executeQuery(
+                    self::$sharedConnection->getDatabasePlatform()->getDummySelectSQL(),
+                );
 
                 if ($className !== null) {
                     self::$classInitialized[$className] = true;
@@ -284,6 +324,7 @@ class TestUtil
                 if ($i === $maxSlots - 1) {
                     echo "CRITICAL: Database initialization failed after $maxSlots attempts: " . $e->getMessage() . "\n";
                     echo $e->getTraceAsString() . "\n";
+
                     throw $e;
                 }
             }
@@ -297,21 +338,11 @@ class TestUtil
 
     private static function createConfiguration(): Configuration
     {
-        static $logger = null;
         $configuration = new Configuration();
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        if ($logger === null) {
-            $logger = new Logger('sql_logger');
-            $logger
-                ->pushProcessor(new MemoryUsageProcessor())
-                ->pushHandler(
-                    new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug),
-                );
-        }
 
-        $configuration->setMiddlewares([
-            new Middleware($logger),
-        ]);
+        // Logging middleware disabled - DG\BypassFinals\MutatingWrapper in
+        // Docker test env breaks stream_open for log files.
 
         return $configuration;
     }

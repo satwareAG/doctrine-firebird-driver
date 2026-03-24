@@ -8,8 +8,8 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
-use Satag\DoctrineFirebirdDriver\Compat\Override;
 use RuntimeException;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Throwable;
 
 use function array_flip;
@@ -18,8 +18,6 @@ use function array_unshift;
 use function assert;
 use function count;
 use function fbird_affected_rows;
-use function fbird_errcode;
-use function fbird_errmsg;
 use function fbird_execute;
 use function fbird_fetch_assoc;
 use function fbird_free_query;
@@ -32,10 +30,8 @@ use function is_resource;
 use function ksort;
 use function preg_match;
 use function sprintf;
-use function str_starts_with;
 use function strcasecmp;
 use function stream_get_contents;
-use function strtoupper;
 use function trim;
 
 /**
@@ -239,22 +235,8 @@ final class Statement implements StatementInterface
 
             $conn = $this->connection->getNativeConnection();
 
-            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-            // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
             try {
                 $fbirdResultRc = fbird_execute(...$callArgs);
-
-                if ($fbirdResultRc === false) {
-                    // fbird_execute returns false on failure and emits a warning or sets error info
-                    $this->connection->checkLastApiCall();
-
-                    // If checkLastApiCall didn't throw, report generic failure
-                    throw new Exception(sprintf(
-                        'fbird_execute returned false without error info. Error code: %s, Message: %s',
-                        (string) fbird_errcode(),
-                        (string) fbird_errmsg(),
-                    ));
-                }
             } catch (Throwable $e) {
                 throw Exception::fromThrowable($e);
             }

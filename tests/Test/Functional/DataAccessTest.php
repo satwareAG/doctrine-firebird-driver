@@ -437,7 +437,6 @@ class DataAccessTest extends FunctionalTestCase
         ], $row);
     }
 
-
     public function testQuoteSQLInjection(): void
     {
         $sql  = 'SELECT * FROM ' . $this->table . ' WHERE test_string = ' . $this->connection->quote("bar' OR '1'='1");

@@ -83,9 +83,11 @@ final class Driver extends FirebirdDriver
 
         try {
             if ($persistent) {
-                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
             } else {
-                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                // Suppress "I/O error ... no such file or directory" warning - handled below
+                // as a valid case (database doesn't exist yet, will be created by schema tool).
+                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
             }
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);

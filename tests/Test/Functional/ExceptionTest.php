@@ -6,8 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
-use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -20,12 +18,9 @@ use function array_merge;
 use function chmod;
 use function error_reporting;
 use function exec;
-use function file_exists;
 use function posix_geteuid;
 use function posix_getpwuid;
 use function sprintf;
-use function sys_get_temp_dir;
-use function touch;
 use function uniqid;
 use function unlink;
 
@@ -291,9 +286,7 @@ class ExceptionTest extends FunctionalTestCase
         $this->connection->executeQuery($sql);
     }
 
-    /**
-     * @param array<string, mixed> $params
-     */
+    /** @param array<string, mixed> $params */
     #[DataProvider('getConnectionParams')]
     public function testConnectionException(array $params): void
     {

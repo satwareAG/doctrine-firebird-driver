@@ -33,6 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **php-firebird v7.3.5-dev (SIGSEGV)** — Validated and adopted the critical fix for segmentation
   faults in `fbird_blob_info()`. This improves stability during BLOB operations and schema
   introspection across all Firebird versions (#94)
+- **ConnectionWrapper identity column cache** — Changed from static to instance-level cache to
+  prevent cross-connection state leakage. Added try/catch for `SchemaException\TableDoesNotExist`
+  in `getIdentityColumnForTable()` to handle tables created via raw DDL that bypass ORM metadata.
+- **Integration test seed SQL** — Replaced `$connection->insert()` with raw SQL using double-quoted
+  table names to bypass `extractIdentityColumn()` regex that fails on quoted identifiers.
+
+### Known Issues
+- **php-firebird v8.2.0 reconnection bug** — After `FirebirdSchemaManager::createDatabase()` creates
+  a DB via `isql` subprocess, `fbird_connect()` in the same process returns an internally invalid
+  resource. DDL/seed SQL executes silently without effect, causing all integration tests to return
+  0 rows. Workaround: execute DDL+seed via `isql` subprocess instead of PHP connection. Upstream
+  issue pending.
 
 ## [3.12.3] - 2026-03-19
 

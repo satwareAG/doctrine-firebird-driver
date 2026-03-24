@@ -25,6 +25,9 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
+    <FalsableReturnStatement>
+      <code><![CDATA[fbird_trans_start($this->connection, $options)]]></code>
+    </FalsableReturnStatement>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -63,11 +66,14 @@
       <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
     </TypeDoesNotContainType>
-    <UnusedVariable>
-      <code><![CDATA[$success]]></code>
-    </UnusedVariable>
   </file>
   <file src="src/Driver/Firebird/ConnectionWrapper.php">
+    <InternalMethod>
+      <code><![CDATA[getParams]]></code>
+    </InternalMethod>
+    <InvalidArrayOffset>
+      <code><![CDATA[$params['database']]]></code>
+    </InvalidArrayOffset>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -75,6 +81,15 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <RedundantCondition>
+      <code><![CDATA[$this->identityColumnCache]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA[[]]]></code>
+    </TypeDoesNotContainType>
+    <UnnecessaryVarAnnotation>
+      <code><![CDATA[array<string, array<string, string>|null>]]></code>
+    </UnnecessaryVarAnnotation>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
     <InvalidArrayOffset>
@@ -204,10 +219,8 @@
     </MissingOverrideAttribute>
     <PossiblyFalseArgument>
       <code><![CDATA[$callArgs]]></code>
+      <code><![CDATA[$fbirdResultRc]]></code>
     </PossiblyFalseArgument>
-    <RedundantCondition>
-      <code><![CDATA[$fbirdResultRc === true]]></code>
-    </RedundantCondition>
   </file>
   <file src="src/Driver/FirebirdDriver.php">
     <MissingOverrideAttribute>

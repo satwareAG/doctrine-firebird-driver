@@ -8,6 +8,7 @@ use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Schema\Exception as SchemaException;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
@@ -30,6 +31,9 @@ final class ConnectionWrapper extends Connection
     private int|null $lastInsertIdentityId  = null;
     private string|null $lastInsertSequence = null;
 
+    /** @var array<string, array<string, string>|null> Instance cache to avoid stale static across DB recreations */
+    private array $identityColumnCache = [];
+
     public function extractIdentityColumn(string $sql): string
     {
         $platform = $this->getDatabasePlatform();
@@ -38,8 +42,12 @@ final class ConnectionWrapper extends Connection
             return $sql;
         }
 
-        static $identityColumnTables = [];
-        $table                       = $this->getTableNameFromInsert($sql);
+        // Instance cache (not static) to avoid stale entries across DB recreations.
+        // When setUpBeforeClass drops+recreates the DB and reconnects, a new
+        // ConnectionWrapper instance is created and this cache starts empty.
+        /** @var array<string, array<string, string>|null> */
+        $identityColumnTables = $this->identityColumnCache ?? [];
+        $table                = $this->getTableNameFromInsert($sql);
         if ($table !== null) {
             if (! array_key_exists($table, $identityColumnTables)) {
                 $identityColumnTables[$table] = $this->getIdentityColumnForTable($table);
@@ -55,6 +63,8 @@ final class ConnectionWrapper extends Connection
                     $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
                 }
             }
+
+            $this->identityColumnCache = $identityColumnTables;
         }
 
         return $sql;
@@ -126,12 +136,40 @@ final class ConnectionWrapper extends Connection
     #[Override]
     public function getDatabase(): string|null
     {
-        static $database = null;
-        if ($database === null) {
-            $database = parent::getDatabase();
+        // Bypass parent::getDatabase() which has an assert(is_string($database) || $database === null)
+        // that fails when fetchOne() returns false (Firebird edge case where the query
+        // returns no rows or fails). Instead, execute the same query directly and handle false.
+        $query = 'SELECT ' . $this->getDatabasePlatform()->getCurrentDatabaseExpression();
+
+        try {
+            $database = $this->fetchOne($query);
+        } catch (Exception) {
+            return $this->resolveDatabaseFromParams();
+        }
+
+        if ($database === false) {
+            return $this->resolveDatabaseFromParams();
         }
 
         return $database;
+    }
+
+    /**
+     * Extract database name from connection params when the SQL query fails.
+     *
+     * For Firebird, 'dbname' is a file path (e.g. /var/lib/firebird/data/test.fdb).
+     * Return it as-is - the schema manager only requires a non-null string.
+     */
+    private function resolveDatabaseFromParams(): string|null
+    {
+        $params = $this->getParams();
+        $dbname = $params['dbname'] ?? $params['database'] ?? null;
+
+        if ($dbname === null || $dbname === '' || ! is_string($dbname)) {
+            return null;
+        }
+
+        return $dbname;
     }
 
     /**
@@ -143,8 +181,11 @@ final class ConnectionWrapper extends Connection
     {
         $schemaManager = $this->createSchemaManager();
 
-        // Get the columns for the table
-        $columns = $schemaManager->introspectTable($tableName)->getColumns();
+        try {
+            $columns = $schemaManager->introspectTable($tableName)->getColumns();
+        } catch (SchemaException\TableDoesNotExist) {
+            return null;
+        }
 
         foreach ($columns as $column) {
             if ($column->getAutoincrement()) {

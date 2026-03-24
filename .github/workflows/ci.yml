@@ -156,14 +156,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v7.3.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v8.2.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v7.3.0 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v7.3.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v8.2.0 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v8.2.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           git fetch --tags --depth 1
           phpize

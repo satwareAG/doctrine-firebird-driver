@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -112,7 +113,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
                 $driverConn = $this->_conn->getNativeConnection();
                 if (is_resource($driverConn)) {
                     $nativeConnection = $driverConn;
-                } elseif ($driverConn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                } elseif ($driverConn instanceof Connection) {
                     $nativeConnection = $driverConn->getNativeConnection();
                 }
             } catch (Throwable) {
@@ -160,6 +161,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         if (! $result) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
+
             throw new Exception($msg, null, $code);
         }
 

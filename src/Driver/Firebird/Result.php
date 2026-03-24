@@ -20,6 +20,7 @@ use function get_resource_type;
 use function in_array;
 use function is_array;
 use function is_numeric;
+use function is_resource;
 use function preg_replace;
 use function trim;
 
@@ -44,9 +45,8 @@ final class Result implements ResultInterface
      *
      * @throws Exception
      */
-    /**
-     * @param resource|int|null $firebirdResultResource
-     */
+
+    /** @param resource|int|null $firebirdResultResource */
     public function __construct(
         private mixed $firebirdResultResource,
         private readonly Connection $connection,
