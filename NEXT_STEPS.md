@@ -18,9 +18,11 @@
 
 **Root Cause:** php-firebird v8.2.0 internal state corruption after `isql` subprocess creates the DB. The `fbird_connect()` C function returns success but the resource is internally invalid.
 
+**GitHub Issue:** #96
+
 **Workaround Plan (for tomorrow):**
-1. Rewrite `AbstractIntegrationTestCase::installFirebirdDatabase()` to execute ALL DDL+seed SQL via `isql` subprocess (not PHP connection)
-2. Add `TestUtil::runIsql()` helper that reuses the `proc_open` pattern from `createDatabase()`
+1. Add `TestUtil::runIsql()` helper that reuses the `proc_open` pattern from `createDatabase()`
+2. Rewrite `AbstractIntegrationTestCase::installFirebirdDatabase()` to execute ALL DDL+seed SQL via `isql` subprocess
 3. After `isql` populates the DB, attempt ONE `fbird_connect()` for the actual test
 4. If single connect still fails: confirmed unworkable php-firebird bug, skip tests with clear message
 5. File upstream issue on php-firebird repo
