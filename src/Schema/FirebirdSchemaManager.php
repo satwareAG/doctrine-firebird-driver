@@ -236,6 +236,11 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return new FirebirdComparator($this->_platform);
     }
 
+    /**
+     * @param string $name Table name
+     *
+     * @return Doctrine\DBAL\Schema\Table
+     */
     #[Override]
     public function listTableDetails($name)
     {

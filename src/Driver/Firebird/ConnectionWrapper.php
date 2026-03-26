@@ -31,7 +31,11 @@ final class ConnectionWrapper extends Connection
     private int|null $lastInsertIdentityId  = null;
     private string|null $lastInsertSequence = null;
 
-    /** @var array<string, array<string, string>|null> Instance cache to avoid stale static across DB recreations */
+    /**
+     * Instance cache to avoid stale static across DB recreations.
+     *
+     * @var array<string, array<string, string>|null>
+     */
     private array $identityColumnCache = [];
 
     public function extractIdentityColumn(string $sql): string

@@ -47,7 +47,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * AbstractStatementMiddleware which was written before PHP 8 union types.
      */
     #[Override]
-    public function bindValue(int|string $param, mixed $value, mixed $type = ParameterType::STRING): bool
+    public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
         $this->boundTypes[$param] = $type;
 

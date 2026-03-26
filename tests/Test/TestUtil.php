@@ -8,13 +8,10 @@ use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
-use Monolog\Processor\MemoryUsageProcessor;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 use Throwable;
 
@@ -22,7 +19,10 @@ use function array_keys;
 use function array_map;
 use function array_values;
 use function basename;
+use function escapeshellarg;
+use function fclose;
 use function file_exists;
+use function file_put_contents;
 use function getenv;
 use function implode;
 use function in_array;
@@ -32,14 +32,18 @@ use function md5;
 use function mkdir;
 use function proc_close;
 use function proc_open;
-use function stream_get_contents;
+use function sprintf;
+use function str_contains;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
+use function stream_get_contents;
 use function strlen;
 use function strtoupper;
 use function substr;
+use function tempnam;
 use function trim;
+use function unlink;
 
 use const PHP_OS_FAMILY;
 
@@ -115,7 +119,7 @@ class TestUtil
         $configuration = self::createConfiguration();
 
         $configuration->setMiddlewares([
-            new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
+            new Middleware(0, ColumnCase::UPPER),
         ]);
 
         self::$sharedConnection = DriverManager::getConnection(
@@ -153,13 +157,13 @@ class TestUtil
      * the PHP connection to a newly created database silently fails (tables
      * not created, rows not inserted) despite no errors thrown.
      *
-     * @param string $sql     SQL statements (semicolon-terminated)
-     * @param string $dbname  Database file path (resolved, absolute)
-     * @param string $user    Firebird username
-     * @param string $password Firebird password
-     * @param string $host    Firebird host (for connect string)
+     * @param string      $database Firebird database path
+     * @param string      $sql      SQL to execute
+     * @param string      $user     Firebird user
+     * @param string      $password Firebird password
+     * @param string      $host     Firebird host (for connect string)
      *
-     * @throws \RuntimeException If isql returns non-zero exit code
+     * @throws RuntimeException If isql returns non-zero exit code
      */
     public static function runIsql(
         string $sql,
@@ -170,7 +174,7 @@ class TestUtil
     ): void {
         $isqlBin = '/opt/firebird/bin/isql';
         if (! file_exists($isqlBin)) {
-            throw new \RuntimeException("isql not found at $isqlBin");
+            throw new RuntimeException("isql not found at $isqlBin");
         }
 
         // Build Firebird connect string: host:/path/to/db.fdb
@@ -198,7 +202,8 @@ class TestUtil
         $process = proc_open($cmd, $descriptors, $pipes);
         if (! is_resource($process)) {
             @unlink($tmpFile);
-            throw new \RuntimeException('Failed to start isql process');
+
+            throw new RuntimeException('Failed to start isql process');
         }
 
         fclose($pipes[0]);
@@ -213,15 +218,15 @@ class TestUtil
         $output = trim($stdout . "\n" . $stderr);
 
         if ($exitCode !== 0) {
-            throw new \RuntimeException(
-                "isql failed (exit $exitCode): " . $output,
+            throw new RuntimeException(
+                'isql failed (exit ' . $exitCode . '): ' . $output,
                 $exitCode,
             );
         }
 
         // isql may return 0 but still have errors in output (e.g., "Statement failed")
         if (str_contains($output, 'Statement failed') || str_contains($output, 'Error:')) {
-            throw new \RuntimeException("isql reported error: " . $output);
+            throw new RuntimeException('isql reported error: ' . $output);
         }
     }
 
@@ -372,11 +377,11 @@ class TestUtil
                 // gets empty DB path and false health check.
                 // Instead, reconnect NOW to the new database and cache it.
                 $privilegedConnection->close();
-                $newDbParams                           = $params;
-                $newDbParams['wrapperClass']           = ConnectionWrapper::class;
-                $newDbParams['persistent']             = false;
+                $newDbParams                                = $params;
+                $newDbParams['wrapperClass']                = ConnectionWrapper::class;
+                $newDbParams['persistent']                  = false;
                 $newDbParams['driverOptions']['persistent'] = false;
-                self::$sharedConnection = DriverManager::getConnection(
+                self::$sharedConnection                     = DriverManager::getConnection(
                     $newDbParams,
                     self::createConfiguration(),
                 );
@@ -406,7 +411,7 @@ class TestUtil
                 }
 
                 if ($i === $maxSlots - 1) {
-                    echo "CRITICAL: Database initialization failed after $maxSlots attempts: " . $e->getMessage() . "\n";
+                    echo 'CRITICAL: Database initialization failed after ' . $maxSlots . ' attempts: ' . $e->getMessage() . "\n";
                     echo $e->getTraceAsString() . "\n";
 
                     throw $e;

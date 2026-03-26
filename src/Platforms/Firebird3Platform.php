@@ -387,6 +387,11 @@ ___query___;
         $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
     }
 
+    /**
+     * @param string $query  SQL query
+     * @param int|null $limit Maximum number of rows
+     * @param int $offset Row offset
+     */
     #[Override]
     protected function doModifyLimitQuery($query, $limit, $offset): string
     {
