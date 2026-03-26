@@ -130,13 +130,31 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
     protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, string|null $className = null): void
     {
-        // Use the connection from TestUtil::getConnection() directly.
-        // setUpBeforeClass() already called getConnection() which triggers
-        // initializeDatabase() - creating a fresh, empty DB. No need to
-        // close/reinitialize/reconnect; that double-init broke the Firebird
-        // connection state (health check returned false, DDL silently failed).
-        $connection->createSchemaManager();
+        // WORKAROUND: php-firebird v8.2.0 silently drops DDL/DML on newly
+        // created databases (tables not created, rows not inserted) despite
+        // no errors thrown. We execute all DDL + DML via isql subprocess which
+        // bypasses the PHP driver entirely and writes directly to the DB file.
 
+        // Get the actual DB path from the connection before it potentially breaks.
+        $dbPath = $connection->fetchOne("SELECT RDB\$GET_CONTEXT('SYSTEM', 'DB_NAME') FROM RDB\$DATABASE");
+        if (empty($dbPath)) {
+            // Fallback: try to resolve from connection params + host
+            $connParams = $connection->getParams();
+            $host       = $connParams['host'] ?? '127.0.0.1';
+            $dbname     = $connParams['dbname'] ?? 'test.fdb';
+            $dbPath     = $host . ':' . $dbname;
+        }
+
+        // Extract just the file path (strip host: prefix for isql)
+        $isqlDbPath = $dbPath;
+        if (str_contains($isqlDbPath, ':')) {
+            $isqlDbPath = substr(strstr($isqlDbPath, ':'), 1);
+        }
+        $host = $connection->getParams()['host'] ?? '127.0.0.1';
+        $user = self::DEFAULT_DATABASE_USERNAME;
+        $pass = self::DEFAULT_DATABASE_PASSWORD;
+
+        // Build schema
         $schema = new Schema();
         $tAlbum = $schema->createTable('ALBUM');
         $tAlbum->addColumn('id', 'integer', ['notnull' => true, 'autoincrement' => true]);
@@ -192,107 +210,70 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
-        $platform = $connection->getDatabasePlatform();
+        // Generate DDL SQL
+        $platform     = $connection->getDatabasePlatform();
+        $ddlStatements = $schema->toSql($platform);
 
-        $queriesInsert = $schema->toSql($platform);
-
-        // Verify connection health before DDL
-        try {
-            $healthCheck = $connection->fetchOne('SELECT 1 FROM RDB$DATABASE');
-            echo "[DIAG] Health check: " . var_export($healthCheck, true) . "\n";
-        } catch (Throwable $e) {
-            echo "[DIAG-ERROR] Health check failed: " . $e->getMessage() . "\n";
-        }
-
-        // Execute DDL without explicit beginTransaction/commit.
-        // Firebird auto-commits DDL statements. The explicit transaction
-        // wrapper was causing DDL to execute without error but not persist
-        // (likely due to php-firebird driver transaction state mismatch).
-        foreach ($queriesInsert as $idx => $sql) {
-            try {
-                $connection->executeStatement($sql);
-            } catch (Throwable $e) {
-                echo "[DIAG-ERROR] DDL #$idx failed: " . $e->getMessage() . "\n";
-                echo "[DIAG-ERROR] SQL: " . substr($sql, 0, 120) . "...\n";
-            }
-        }
-
-        // Seed INSERTs: commit per table group (same pattern as DDL above).
-        // Each $connection->insert() calls extractIdentityColumn() which triggers
-        // introspectTable() - if that throws TableDoesNotExist (now caught in
-        // ConnectionWrapper), the Firebird transaction may be marked as failed.
-        // Per-table commits isolate any such corruption.
-
+        // Build seed INSERT SQL (no parameter binding - pure SQL for isql)
         $seedGroups = [
-            $tArtistType->getName() => [
+            'ARTIST_TYPE' => [
                 ['name' => 'Unknown'], ['name' => 'Solo'], ['name' => 'Duo'],
                 ['name' => 'Trio'], ['name' => 'Quartet'], ['name' => 'Band'],
             ],
-            $tArtist->getName() => [
+            'ARTIST' => [
                 ['name' => 'Unknown', 'type_id' => 1],
                 ['name' => 'Britney Spears', 'type_id' => 2],
                 ['name' => 'Nickelback', 'type_id' => 6],
                 ['name' => 'AC/DC', 'type_id' => 6],
             ],
-            $tGenre->getName() => [
+            'GENRE' => [
                 ['name' => 'Unclassified genre'], ['name' => 'Rock'],
                 ['name' => 'Pop'], ['name' => 'Classical'],
             ],
-            $tAlbum->getName() => [
+            'ALBUM' => [
                 ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2],
                 ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3],
             ],
-            $tSong->getName() => [
+            'SONG' => [
                 ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0],
                 ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1],
             ],
-            $tAlbumSongmap->getName() => [
+            'Album_SongMap' => [
                 ['album_id' => 1, 'song_id' => 1],
                 ['album_id' => 1, 'song_id' => 2],
             ],
         ];
 
-        // Use raw SQL for seed to bypass ConnectionWrapper::extractIdentityColumn().
-        // That method uses regex INSERT INTO\s+([a-zA-Z0-9_]+) which fails when
-        // the table name is double-quoted ("ALBUM"), preventing RETURNING clauses
-        // from being added. Column names stay unquoted so Firebird uppercases them
-        // to match DDL-created columns (e.g., timeCreated → TIMECREATED).
-        // Execute seed DML without explicit beginTransaction/commit.
-        // Same reason as DDL above - explicit transaction wrapper prevented
-        // data from persisting in the php-firebird driver.
+        $seedSql = '';
         foreach ($seedGroups as $table => $rows) {
             foreach ($rows as $row) {
-                $columns      = implode(', ', array_keys($row));
-                $placeholders = implode(', ', array_fill(0, count($row), '?'));
-                $sql          = 'INSERT INTO "' . strtoupper($table) . '" (' . $columns . ') VALUES (' . $placeholders . ')';
-                $connection->executeStatement($sql, array_values($row));
+                $columns = [];
+                $values  = [];
+                foreach ($row as $col => $val) {
+                    $columns[] = strtoupper($col);
+                    if (is_string($val)) {
+                        $values[] = "'" . str_replace("'", "''", $val) . "'";
+                    } elseif (is_bool($val)) {
+                        $values[] = $val ? '1' : '0';
+                    } else {
+                        $values[] = (string) $val;
+                    }
+                }
+                $seedSql .= 'INSERT INTO "' . $table . '" (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
             }
         }
 
-        // Commit any implicit transaction holding DDL/DML changes.
-        // The php-firebird driver may keep statements in an implicit transaction
-        // that gets rolled back on close() unless explicitly committed.
-        if ($connection->isTransactionActive()) {
-            $connection->commit();
-        }
+        // Combine DDL + DML and execute via isql
+        $fullSql = implode(";\n", $ddlStatements) . ";\n" . $seedSql;
 
-        // DIAGNOSTIC: Verify actual DB path and seed data
-        $dbPath = $connection->fetchOne("SELECT RDB\$GET_CONTEXT('SYSTEM', 'DB_NAME') FROM RDB\$DATABASE");
-        echo "\n[DIAG] Actual DB path: " . $dbPath . "\n";
-        $connParams = $connection->getParams();
-        echo "[DIAG] Connection param dbname: " . var_export($connParams['dbname'] ?? 'NOT SET', true) . "\n";
-        $tables = $connection->fetchAllAssociative(
-            "SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS WHERE (RDB\$SYSTEM_FLAG IS NULL OR RDB\$SYSTEM_FLAG = 0) ORDER BY 1"
-        );
-        $tableNames = array_map(fn($r) => $r['RDB$RELATION_NAME'], $tables);
-        echo "[DIAG] Tables: " . json_encode($tableNames) . "\n";
+        TestUtil::runIsql($fullSql, $isqlDbPath, $user, $pass, $host);
+
+        // Verify seed data is visible through PHP connection
         $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
-        echo "[DIAG] ALBUM rows: $albumCount\n";
-
-        // Do NOT close the connection - it is cached in TestUtil::$sharedConnection.
-        // Closing it would invalidate the cache, and the next getConnection() call
-        // would create a new connection that fails with empty DB path (php-firebird
-        // reconnection bug). Per-test setUp() reuses this same cached connection.
+        echo "[DIAG] isql seeding complete. ALBUM rows: $albumCount\n";
+        if ($albumCount === 0) {
+            throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM after isql');
+        }
     }
 
     /**

@@ -26,15 +26,20 @@ use function file_exists;
 use function getenv;
 use function implode;
 use function in_array;
+use function is_resource;
 use function is_string;
 use function md5;
 use function mkdir;
+use function proc_close;
+use function proc_open;
+use function stream_get_contents;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
 use function strlen;
 use function strtoupper;
 use function substr;
+use function trim;
 
 use const PHP_OS_FAMILY;
 
@@ -139,6 +144,85 @@ class TestUtil
     public static function isDriverClassOneOf(string ...$names): bool
     {
         return in_array(self::getConnectionParams()['driverClass'], $names, true);
+    }
+
+    /**
+     * Execute SQL via isql subprocess, bypassing php-firebird driver entirely.
+     *
+     * Workaround for php-firebird v8.2.0 bug where DDL/DML executed through
+     * the PHP connection to a newly created database silently fails (tables
+     * not created, rows not inserted) despite no errors thrown.
+     *
+     * @param string $sql     SQL statements (semicolon-terminated)
+     * @param string $dbname  Database file path (resolved, absolute)
+     * @param string $user    Firebird username
+     * @param string $password Firebird password
+     * @param string $host    Firebird host (for connect string)
+     *
+     * @throws \RuntimeException If isql returns non-zero exit code
+     */
+    public static function runIsql(
+        string $sql,
+        string $dbname,
+        string $user,
+        string $password,
+        string $host = '127.0.0.1',
+    ): void {
+        $isqlBin = '/opt/firebird/bin/isql';
+        if (! file_exists($isqlBin)) {
+            throw new \RuntimeException("isql not found at $isqlBin");
+        }
+
+        // Build Firebird connect string: host:/path/to/db.fdb
+        $connectString = $host . ':' . $dbname;
+
+        // Write SQL to temp file to avoid shell escaping issues
+        $tmpFile = tempnam('/tmp', 'fb_isql_');
+        file_put_contents($tmpFile, $sql . "\nCOMMIT;\nQUIT;\n");
+
+        $cmd = sprintf(
+            '%s -z -user %s -password %s %s < %s 2>&1',
+            escapeshellarg($isqlBin),
+            escapeshellarg($user),
+            escapeshellarg($password),
+            escapeshellarg($connectString),
+            escapeshellarg($tmpFile),
+        );
+
+        $descriptors = [
+            0 => ['pipe', 'r'],  // stdin (unused, we redirect from file)
+            1 => ['pipe', 'w'],  // stdout
+            2 => ['pipe', 'w'],  // stderr
+        ];
+
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (! is_resource($process)) {
+            @unlink($tmpFile);
+            throw new \RuntimeException('Failed to start isql process');
+        }
+
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+        @unlink($tmpFile);
+
+        $output = trim($stdout . "\n" . $stderr);
+
+        if ($exitCode !== 0) {
+            throw new \RuntimeException(
+                "isql failed (exit $exitCode): " . $output,
+                $exitCode,
+            );
+        }
+
+        // isql may return 0 but still have errors in output (e.g., "Statement failed")
+        if (str_contains($output, 'Statement failed') || str_contains($output, 'Error:')) {
+            throw new \RuntimeException("isql reported error: " . $output);
+        }
     }
 
     /**
