@@ -71,7 +71,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * @param array<int|string, mixed>|null $params
      */
     #[Override]
-    public function execute(array|null $params = null): ResultInterface
+    public function execute($params = null): ResultInterface
     {
         // If inline params are passed (deprecated path), encode them first
         if ($params !== null) {
