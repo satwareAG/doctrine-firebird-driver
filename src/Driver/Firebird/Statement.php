@@ -41,6 +41,15 @@ use function trim;
  */
 final class Statement implements StatementInterface
 {
+    /**
+     * Valid resource types for Firebird statements.
+     * php-firebird v7.x+ uses 'Firebird query'.
+     */
+    private const VALID_STATEMENT_TYPES = ['interbase query', 'Firebird/InterBase query', 'firebird query', 'Firebird query'];
+
+    /** @var resource|false|null */
+    protected $statement = null;
+
     /** @var array<int, mixed> */
     private array $queryParamBindings = [];
 
@@ -72,8 +81,10 @@ final class Statement implements StatementInterface
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [], string $sql = '')
+    public function __construct(protected Connection $connection, $statement, private mixed $parameterMap = [], string $sql = '')
     {
+        $this->statement = $statement;
+
         if (is_resource($statement)) {
             // Determine if this is a DML statement by examining the SQL
             $this->isDml = $this->detectDmlStatement($sql);
@@ -90,7 +101,7 @@ final class Statement implements StatementInterface
 
     public function __destruct()
     {
-        if (! is_resource($this->statement)) {
+        if (! $this->isStatementValid()) {
             return;
         }
 
@@ -169,7 +180,7 @@ final class Statement implements StatementInterface
     #[Override]
     public function execute($params = null): ResultInterface
     {
-        assert(is_resource($this->statement));
+        assert($this->isStatementValid());
 
         if ($this->currentResult !== null) {
             try {
@@ -249,7 +260,7 @@ final class Statement implements StatementInterface
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
                     // For DML operations that return true, get affected rows count
-                    $postExecAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    $postExecAffectedRows = $this->connection->isConnectionValid() ? fbird_affected_rows($conn) : 0;
                     if ($postExecAffectedRows > 0) {
                         $fbirdResultRc = $postExecAffectedRows;
                     } elseif ($this->isInsert) {
@@ -312,7 +323,7 @@ final class Statement implements StatementInterface
 
                     // Get affected rows BEFORE commit - fbird_affected_rows returns count
                     // for the last DML operation in the current transaction
-                    $preCommitAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    $preCommitAffectedRows = $this->connection->isConnectionValid() ? fbird_affected_rows($conn) : 0;
 
                     // Commit the transaction
                     $this->connection->autoCommit();
@@ -428,5 +439,20 @@ final class Statement implements StatementInterface
     {
         // Check for RETURNING keyword (case-insensitive)
         return preg_match('/\bRETURNING\b/i', $sql) === 1;
+    }
+
+    /**
+     * Check if the statement resource is a valid Firebird statement resource.
+     *
+     * @psalm-assert-if-true resource $this->statement
+     * @phpstan-assert-if-true resource $this->statement
+     */
+    private function isStatementValid(): bool
+    {
+        if (! is_resource($this->statement)) {
+            return false;
+        }
+
+        return in_array(get_resource_type($this->statement), self::VALID_STATEMENT_TYPES, true);
     }
 }

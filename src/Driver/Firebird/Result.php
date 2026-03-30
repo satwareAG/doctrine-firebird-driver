@@ -29,11 +29,20 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
+    /** @var resource|int|null */
+    private mixed $firebirdResultResource = null;
+
     /**
      * Valid resource types for Firebird result sets.
      * php-firebird v6.x uses legacy names, v7.x+ uses 'firebird result'.
+     * v9.x+ uses 'Firebird query' for both statements and results.
      */
-    private const VALID_RESULT_TYPES = ['interbase result', 'Firebird/InterBase result', 'firebird result'];
+    private const VALID_RESULT_TYPES = [
+        'interbase result',
+        'Firebird/InterBase result',
+        'firebird result',
+        'Firebird query',
+    ];
 
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
@@ -48,11 +57,13 @@ final class Result implements ResultInterface
 
     /** @param resource|int|null $firebirdResultResource */
     public function __construct(
-        private mixed $firebirdResultResource,
+        $firebirdResultResource,
         private readonly Connection $connection,
         /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly Statement|null $statement = null,
     ) {
+        $this->firebirdResultResource = $firebirdResultResource;
+
         // If no insert column is expected (normal query), return early to allow user to fetch results.
         if ($this->connection->getConnectionInsertColumn() === null) {
             return;
@@ -82,7 +93,7 @@ final class Result implements ResultInterface
     #[Override]
     public function fetchNumeric()
     {
-        if (! $this->isResultResourceValid()) {
+        if (! $this->isResultValid()) {
             return false;
         }
 
@@ -110,7 +121,7 @@ final class Result implements ResultInterface
     #[Override]
     public function fetchAssociative(): array|false
     {
-        if (! $this->isResultResourceValid()) {
+        if (! $this->isResultValid()) {
             return false;
         }
 
@@ -168,7 +179,7 @@ final class Result implements ResultInterface
             return (int) $this->firebirdResultResource;
         }
 
-        if ($this->isResultResourceValid()) {
+        if ($this->isResultValid()) {
             return fbird_affected_rows($this->connection->getNativeConnection());
         }
 
@@ -178,7 +189,7 @@ final class Result implements ResultInterface
     #[Override]
     public function columnCount(): int
     {
-        if ($this->isResultResourceValid()) {
+        if ($this->isResultValid()) {
             /** @phpstan-ignore argument.type */
             return (int) fbird_num_fields($this->firebirdResultResource);
         }
@@ -202,7 +213,7 @@ final class Result implements ResultInterface
      */
     public function fetchNumericWithDateObjects(): array|false
     {
-        if (! $this->isResultResourceValid()) {
+        if (! $this->isResultValid()) {
             return false;
         }
 
@@ -237,7 +248,7 @@ final class Result implements ResultInterface
      */
     public function fetchAssociativeWithDateObjects(): array|false
     {
-        if (! $this->isResultResourceValid()) {
+        if (! $this->isResultValid()) {
             return false;
         }
 
@@ -280,7 +291,7 @@ final class Result implements ResultInterface
     #[Override]
     public function free(): void
     {
-        if (! $this->isResultResourceValid()) {
+        if (! $this->isResultValid()) {
             $this->firebirdResultResource = null;
 
             return;
@@ -309,9 +320,10 @@ final class Result implements ResultInterface
      * Firebird result type string. This prevents passing transaction resources
      * or invalidated ("Unknown") resources to fbird_* functions.
      *
-     * @psalm-assert resource $this->firebirdResultResource
+     * @psalm-assert-if-true resource $this->firebirdResultResource
+     * @phpstan-assert-if-true resource $this->firebirdResultResource
      */
-    private function isResultResourceValid(): bool
+    private function isResultValid(): bool
     {
         if (! is_resource($this->firebirdResultResource)) {
             return false;

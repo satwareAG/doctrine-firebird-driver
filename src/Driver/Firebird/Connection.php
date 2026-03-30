@@ -136,7 +136,10 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private int $fbirdTransactionLevel = 0;
 
     /** @var resource|null */
-    private mixed $firebirdActiveTransaction = null;
+    private $connection = null;
+
+    /** @var resource|null */
+    private $firebirdActiveTransaction = null;
 
     /**
      * Load Firebird OO API classes if they are available as PHP files.
@@ -150,9 +153,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * @throws Exception
      */
-    public function __construct(private $connection, private readonly string $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
+    public function __construct($connection, private readonly string $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
     {
         self::loadOoApi();
+
+        $this->connection = $connection;
 
         $this->parser        = new Parser(false);
         $this->executionMode = new ExecutionMode();
@@ -176,18 +181,22 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     public function __destruct()
     {
         $connectionClosable = false;
-        if (is_resource($this->connection)) {
+        if ($this->isConnectionValid()) {
             $type = get_resource_type($this->connection);
             if (in_array($type, self::RESOURCE_TYPES_CONNECTION, true)) {
                 $connectionClosable = true;
             } elseif (in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true)) {
                 $connectionClosable = false;
-            } elseif ($type === 'Unknown') {
-                $this->connection = null;
             }
         }
 
-        if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
+        // Fallback for "Unknown" resources during shutdown
+        /** @psalm-suppress DocblockTypeContradiction */
+        if (is_resource($this->connection) && get_resource_type($this->connection) === 'Unknown') {
+            $this->connection = null;
+        }
+
+        if ($this->isConnectionValid() && $this->isTransactionValid()) {
             $type = get_resource_type($this->firebirdActiveTransaction);
             if (in_array($type, self::RESOURCE_TYPES_TRANSACTION, true) && $this->fbirdTransactionLevel > 0) {
                 // Only attempt commit/rollback if there is an explicit transaction
@@ -485,7 +494,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             return;
         }
 
-        if (is_resource($this->firebirdActiveTransaction) === false) {
+        if (! $this->isTransactionValid()) {
             throw new RuntimeException(sprintf(
                 'No active transaction. $this->_fbirdTransactionLevel = %d',
                 $this->fbirdTransactionLevel,
@@ -579,8 +588,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new RuntimeException('No valid transaction resource.');
         }
 
-        assert(is_resource($this->firebirdActiveTransaction));
-
         try {
             fbird_savepoint($this->firebirdActiveTransaction, $savepoint);
         } catch (Throwable $e) {
@@ -601,8 +608,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new RuntimeException('No valid transaction resource.');
         }
 
-        assert(is_resource($this->firebirdActiveTransaction));
-
         try {
             fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint);
         } catch (Throwable $e) {
@@ -622,8 +627,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         if (! $this->isTransactionValid()) {
             throw new RuntimeException('No valid transaction resource.');
         }
-
-        assert(is_resource($this->firebirdActiveTransaction));
 
         try {
             fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint);
@@ -678,6 +681,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Check if the connection resource is valid.
      *
      * @return bool True if connection is a valid Firebird resource
+     *
+     * @psalm-assert-if-true resource $this->connection
+     * @phpstan-assert-if-true resource $this->connection
      */
     public function isConnectionValid(): bool
     {
@@ -704,6 +710,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Check if the active transaction resource is valid.
      *
      * @return bool True if transaction is a valid Firebird resource
+     *
+     * @psalm-assert-if-true resource $this->firebirdActiveTransaction
+     * @phpstan-assert-if-true resource $this->firebirdActiveTransaction
      */
     public function isTransactionValid(): bool
     {
@@ -727,7 +736,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function listTableBlockers(string $tableName): array|false
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             return false;
         }
 
@@ -750,7 +759,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function killAttachment(int $attachmentId): bool
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
@@ -776,7 +785,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function dropTableForce(string $tableName): bool
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
@@ -802,7 +811,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function executeAuto(string $sql, array|null $params = null): mixed
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
@@ -848,8 +857,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Invalid transaction resource.');
         }
 
-        // isConnectionValid() above guarantees $this->connection is a valid resource.
-        assert(is_resource($this->connection));
         try {
             return fbird_query_params_tx($this->connection, $transResource, $sql, $params);
         } catch (Throwable $e) {
@@ -1098,8 +1105,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        assert(is_resource($this->connection));
-
         try {
             return fbird_reconnect_transaction($this->connection, $transactionId);
         } catch (Throwable $e) {
@@ -1136,7 +1141,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     private function createTransaction()
     {
-        if (! is_resource($this->connection) || get_resource_type($this->connection) === 'Unknown') {
+        if (! $this->isConnectionValid()) {
             $this->checkLastApiCall();
         }
 
