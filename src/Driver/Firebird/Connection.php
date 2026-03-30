@@ -1168,10 +1168,20 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         try {
             /** @phpstan-ignore argument.type */
-            return fbird_trans_start($this->connection, $options);
+            $transaction = fbird_trans_start($this->connection, $options);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
+
+        if (! is_resource($transaction)) {
+            throw new DriverException(
+                (string) fbird_errmsg(),
+                null,
+                (int) fbird_errcode(),
+            );
+        }
+
+        return $transaction;
     }
 
     private static function loadOoApi(): void

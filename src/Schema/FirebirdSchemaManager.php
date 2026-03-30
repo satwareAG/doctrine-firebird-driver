@@ -239,7 +239,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * @param string $name Table name
      *
-     * @return Doctrine\DBAL\Schema\Table
+     * @return Table
      */
     #[Override]
     public function listTableDetails($name)

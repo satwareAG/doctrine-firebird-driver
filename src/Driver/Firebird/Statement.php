@@ -336,6 +336,14 @@ final class Statement implements StatementInterface
             }
         }
 
+        if ($fbirdResultRc === false) {
+            throw new Exception(
+                (string) fbird_errmsg(),
+                null,
+                (int) fbird_errcode(),
+            );
+        }
+
         $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
 
         return $this->currentResult;
