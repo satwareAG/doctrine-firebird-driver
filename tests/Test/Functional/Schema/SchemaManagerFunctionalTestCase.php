@@ -1830,6 +1830,12 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
      */
     private function cleanupSchemaTestTables(): void
     {
+        // Free Firebird cursor objects left over from the test method itself.
+        // Test methods like testListTablesWithFilter call listTableNames()/listTables()
+        // which create cursors holding metadata locks. These must be released
+        // before we can DROP tables in cleanup.
+        gc_collect_cycles();
+
         // First ensure any active transaction is rolled back to release locks
         $fbirdConnection = $this->getFirebirdConnection();
         if ($fbirdConnection !== null && $fbirdConnection->isConnectionValid()) {
