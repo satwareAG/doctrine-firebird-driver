@@ -320,6 +320,15 @@ class TransactionTest extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 100, 'val' => 'serializable']);
         $this->connection->commit();
 
+        // Reset to READ COMMITTED before verification query.
+        // After commit, the next auto-transaction would inherit SERIALIZABLE
+        // (SNAPSHOT TABLE STABILITY) which acquires exclusive locks on
+        // RDB$RELATIONS and causes "lock conflict on no wait transaction".
+        $fbirdConn->setAttribute(
+            FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
+            TransactionIsolationLevel::READ_COMMITTED,
+        );
+
         $count = $this->connection->fetchOne(
             'SELECT COUNT(*) FROM ' . self::TABLE . ' WHERE id = 100',
         );
