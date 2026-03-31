@@ -157,13 +157,13 @@ class TestUtil
      * the PHP connection to a newly created database silently fails (tables
      * not created, rows not inserted) despite no errors thrown.
      *
-     * @param string      $database Firebird database path
-     * @param string      $sql      SQL to execute
-     * @param string      $user     Firebird user
-     * @param string      $password Firebird password
-     * @param string      $host     Firebird host (for connect string)
+     * @param string $sql      SQL to execute
+     * @param string $dbname   Firebird database path
+     * @param string $user     Firebird user
+     * @param string $password Firebird password
+     * @param string $host     Firebird host (for connect string)
      *
-     * @throws RuntimeException If isql returns non-zero exit code
+     * @throws RuntimeException If isql returns non-zero exit code.
      */
     public static function runIsql(
         string $sql,
@@ -172,9 +172,13 @@ class TestUtil
         string $password,
         string $host = '127.0.0.1',
     ): void {
-        $isqlBin = '/opt/firebird/bin/isql';
+        $isqlBin = '/usr/bin/isql-fb';
         if (! file_exists($isqlBin)) {
-            throw new RuntimeException("isql not found at $isqlBin");
+            $isqlBin = '/opt/firebird/bin/isql';
+        }
+
+        if (! file_exists($isqlBin)) {
+            throw new RuntimeException('isql not found (checked /usr/bin/isql-fb and /opt/firebird/bin/isql)');
         }
 
         // Build Firebird connect string: host:/path/to/db.fdb

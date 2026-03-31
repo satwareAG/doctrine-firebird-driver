@@ -1,37 +1,54 @@
-# Implementation Plan: Quality Improvements
+# Implementation Plan
 
-Continue quality improvements from `docs/audit-code-quality-2026-03.md` on branch `001-quality-improvements`.
+[Overview]
+Consolidate and modernize resource type guards in `Connection.php`, `Statement.php`, and `Result.php` for `php-firebird` v10.3.x compatibility.
 
----
+The driver currently uses direct `is_resource()` and `get_resource_type()` checks scattered across several classes. This plan aims to consolidate these checks into semantic validation methods (`isConnectionValid()`, `isStatementValid()`, `isResultValid()`) and ensure they are used consistently. This improves type safety and prepares the codebase for the extension's eventual transition to object-based resources while maintaining strict compatibility with `php-firebird` v10.3.x.
 
-## ✅ Phase 4 - Remove Redundant @ Suppressions (COMPLETE)
-Remove all redundant `@` suppression operators from driver code, keeping only the existing `try-catch(Throwable)` blocks for error handling.
+[Types]
+Enhance `@psalm-assert-if-true` and `@phpstan-assert-if-true` annotations for resource validation methods.
 
-- **Status**: COMPLETE
-- **Outcome**: 0 `@fbird_` suppressions in codebase. Static analysis green. Unit tests green.
+Resource types for `php-firebird` v10.3.x:
+- Connection: `Firebird link`, `Firebird persistent link`
+- Transaction: `Firebird transaction`
+- Statement/Result: `Firebird query`, `firebird result`
 
----
+[Files]
+Modernize resource type guards in core driver files.
 
-## 🚀 Phase 5 - Modernize Resource Type Guards (TODO)
+Detailed breakdown:
+- `src/Driver/Firebird/Connection.php`: Update `isConnectionValid()` and ensure its consistent use.
+- `src/Driver/Firebird/Statement.php`: Implement/Update `isStatementValid()` and ensure its consistent use.
+- `src/Driver/Firebird/Result.php`: Update `isResultValid()` and ensure its consistent use.
+- `src/Driver/Firebird/TransactionManager.php`: Consolidate transaction resource validation.
 
-Replace legacy `is_resource()` checks and `get_resource_type()` string comparisons with modern patterns or helper methods to improve type safety and prepare for the Firebird extension's eventual move to object-based resources.
+[Functions]
+Update validation functions and their callers.
 
-### [Overview]
-The driver relies heavily on `is_resource()` which provides no information about the *type* of resource. Some comparisons also use `get_resource_type() === 'firebird result'`, which is fragile across extension versions. We will consolidate these checks.
+Detailed breakdown:
+- `Connection::isConnectionValid()`: Standardize resource type checks for `php-firebird` v10.3.x.
+- `Statement::isStatementValid()`: Implement semantic check for `Firebird query` resource.
+- `Result::isResultValid()`: Standardize checks for `firebird result` and `Firebird query`.
+- `TransactionManager::isTransactionValid()`: Standardize checks for `Firebird transaction`.
 
-### [Files to Modify]
-- `src/Driver/Firebird/Connection.php`
-- `src/Driver/Firebird/Statement.php`
-- `src/Driver/Firebird/Result.php`
+[Classes]
+No new classes are required; existing driver classes will be modified.
 
-### [Implementation Steps]
-1.  **Consolidate Resource Checks**: Ensure all resource checks in `Connection.php` use `isConnectionValid()` or `isTransactionValid()`.
-2.  **Modernize Type Checks**: Replace literal string comparisons for resource types with class constants.
-3.  **Improve Property Typing**: Update `@var` annotations to be more specific where possible.
-4.  **Verify**: Run PHPStan (Level 8) and Psalm to ensure no type regressions.
-5.  **Test**: Run unit and functional tests.
+Detailed breakdown:
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection`: Consistent use of `isConnectionValid()`.
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement`: Consistent use of `isStatementValid()`.
+- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Result`: Consistent use of `isResultValid()`.
 
-### [Success Criteria]
-- Reduced number of raw `is_resource()` calls in favor of semantic methods.
-- No literal string comparisons for `get_resource_type()`.
-- Static analysis remains clean.
+[Dependencies]
+Compatibility must be maintained with `php-firebird` v10.3.x only.
+
+[Implementation Order]
+Step-by-step modernization of resource guards.
+
+task_progress Items:
+- [ ] Step 1: Update `Connection::isConnectionValid()` and ensure all methods use it.
+- [ ] Step 2: Implement/Update `Statement::isStatementValid()` and ensure all methods use it.
+- [ ] Step 3: Update `Result::isResultValid()` and ensure all methods use it.
+- [ ] Step 4: Verify and update `TransactionManager::isTransactionValid()`.
+- [ ] Step 5: Run static analysis (PHPStan/Psalm) to verify type safety.
+- [ ] Step 6: Run functional tests to ensure no regressions.

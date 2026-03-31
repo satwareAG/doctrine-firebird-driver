@@ -388,9 +388,7 @@ ___query___;
     }
 
     /**
-     * @param string $query  SQL query
-     * @param int|null $limit Maximum number of rows
-     * @param int $offset Row offset
+     * {@inheritDoc}
      */
     #[Override]
     protected function doModifyLimitQuery($query, $limit, $offset): string

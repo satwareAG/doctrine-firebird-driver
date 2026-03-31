@@ -29,9 +29,6 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
-    /** @var resource|int|null */
-    private mixed $firebirdResultResource = null;
-
     /**
      * Valid resource types for Firebird result sets.
      * php-firebird v6.x uses legacy names, v7.x+ uses 'firebird result'.
@@ -43,6 +40,9 @@ final class Result implements ResultInterface
         'firebird result',
         'Firebird query',
     ];
+
+    /** @var resource|int|null */
+    private mixed $firebirdResultResource = null;
 
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
@@ -323,7 +323,7 @@ final class Result implements ResultInterface
      * @psalm-assert-if-true resource $this->firebirdResultResource
      * @phpstan-assert-if-true resource $this->firebirdResultResource
      */
-    private function isResultValid(): bool
+    public function isResultValid(): bool
     {
         if (! is_resource($this->firebirdResultResource)) {
             return false;

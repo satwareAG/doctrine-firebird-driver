@@ -24,6 +24,11 @@
       <code><![CDATA[FirebirdConnection]]></code>
     </UnusedClass>
   </file>
+  <file src="src/Driver/Firebird/BlobHandler.php">
+    <UnusedParam>
+      <code><![CDATA[$type]]></code>
+    </UnusedParam>
+  </file>
   <file src="src/Driver/Firebird/Connection.php">
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
@@ -39,11 +44,9 @@
     <NoValue>
       <code><![CDATA[$this->connection]]></code>
     </NoValue>
-    <PossiblyNullArgument>
-      <code><![CDATA[$this->connection]]></code>
-    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
       <code><![CDATA[createIndependentTransaction]]></code>
+      <code><![CDATA[createSavepoint]]></code>
       <code><![CDATA[dropTableForce]]></code>
       <code><![CDATA[executeAuto]]></code>
       <code><![CDATA[executeBatch]]></code>
@@ -55,10 +58,15 @@
       <code><![CDATA[listTableBlockers]]></code>
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
+      <code><![CDATA[releaseSavepoint]]></code>
+      <code><![CDATA[rollbackSavepoint]]></code>
     </PossiblyUnusedMethod>
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[is_resource($this->connection)]]></code>
     </RedundantConditionGivenDocblockType>
+    <TooFewArguments>
+      <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
+    </TooFewArguments>
     <TypeDoesNotContainType>
       <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
@@ -78,15 +86,6 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
-    <RedundantCondition>
-      <code><![CDATA[$this->identityColumnCache]]></code>
-    </RedundantCondition>
-    <TypeDoesNotContainType>
-      <code><![CDATA[[]]]></code>
-    </TypeDoesNotContainType>
-    <UnnecessaryVarAnnotation>
-      <code><![CDATA[array<string, array<string, string>|null>]]></code>
-    </UnnecessaryVarAnnotation>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
     <InvalidArrayOffset>
@@ -113,6 +112,11 @@
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+  </file>
+  <file src="src/Driver/Firebird/Enum/TransactionState.php">
+    <UnusedClass>
+      <code><![CDATA[TransactionState]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
     <MissingOverrideAttribute>
@@ -214,9 +218,6 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
-    <PossiblyFalseArgument>
-      <code><![CDATA[$callArgs]]></code>
-    </PossiblyFalseArgument>
   </file>
   <file src="src/Driver/FirebirdDriver.php">
     <MissingOverrideAttribute>
@@ -402,6 +403,12 @@
     </MissingOverrideAttribute>
   </file>
   <file src="src/Schema/FirebirdSchemaManager.php">
+    <InvalidArgument>
+      <code><![CDATA[[
+                    'charset' => $charset,
+                    'page_size' => (int) $pageSize,
+                ]]]></code>
+    </InvalidArgument>
     <LessSpecificImplementedReturnType>
       <code><![CDATA[array]]></code>
     </LessSpecificImplementedReturnType>
