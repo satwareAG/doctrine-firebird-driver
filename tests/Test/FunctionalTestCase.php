@@ -345,6 +345,12 @@ abstract class FunctionalTestCase extends TestCase
                 // Ignore rollback errors during cleanup
             }
 
+            // Free PHP cursor/result objects before attempting DDL.
+            // Firebird holds metadata locks until all PHP objects referencing
+            // the table's result sets are destroyed. Without this, DROP TABLE
+            // fails with "object is in use" because cursor references survive.
+            gc_collect_cycles();
+
             foreach ($this->createdTables as $tableName) {
                 try {
                     $this->dropTableIfExists($tableName);
