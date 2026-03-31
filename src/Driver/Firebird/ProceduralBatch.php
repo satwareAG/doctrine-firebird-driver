@@ -120,6 +120,7 @@ final class ProceduralBatch
             throw new DriverException('Batch execution failed.');
         }
 
+        /** @var array{total_processed: int, success_count: int, error_count: int} $result */
         return new ProceduralBatchResult($result);
     }
 
