@@ -220,4 +220,28 @@ class QueryInTransactionTest extends FunctionalTestCase
 
         parent::tearDown();
     }
+
+    /**
+     * Skip test when Firebird server < 4.0 or TBuilder class unavailable.
+     *
+     * The php-firebird extension defines TBuilder even when connected to
+     * Firebird 3.0, but the server does not support independent transactions,
+     * causing "Invalid transaction resource" errors.
+     */
+    private function requireFirebird4OrHigher(): void
+    {
+        if (! class_exists('Firebird\TBuilder')) {
+            self::markTestSkipped('Firebird\TBuilder requires php-firebird v7.1+ OO API.');
+        }
+
+        $version = $this->connection->fetchOne(
+            "SELECT rdb\$get_context('SYSTEM', 'ENGINE_VERSION') FROM RDB\$DATABASE",
+        );
+
+        if (version_compare((string) $version, '4.0', '>=')) {
+            return;
+        }
+
+        self::markTestSkipped('Independent transactions require Firebird 4.0+ server (found ' . $version . ').');
+    }
 }
