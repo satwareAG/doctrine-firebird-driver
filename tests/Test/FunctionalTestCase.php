@@ -17,6 +17,7 @@ use Throwable;
 
 use function array_merge;
 use function assert;
+use function gc_collect_cycles;
 use function method_exists;
 use function str_contains;
 use function usleep;
@@ -165,26 +166,28 @@ abstract class FunctionalTestCase extends TestCase
 
         // Retry logic: dropTableIfExists() may silently fail when the table is
         // locked by a lingering connection (it swallows "in use" errors after
-        // retries). If createTable() hits "already exists", force a fresh
-        // drop-commit-create cycle.
+        // retries). If createTable() hits "already exists", close the DBAL
+        // connection to force Firebird to release all metadata locks, then
+        // reconnect and retry drop+create with a clean slate.
         try {
             $schemaManager->createTable($table);
         } catch (Throwable $e) {
-            if (! str_contains($e->getMessage(), 'already exists')
+            if (
+                ! str_contains($e->getMessage(), 'already exists')
                 && ! str_contains($e->getMessage(), 'ALREADY EXISTS')
             ) {
                 throw $e;
             }
 
-            // Table survived the first drop — retry with a fresh connection state
-            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
-                try {
-                    $fbirdConn->rollBack();
-                } catch (Throwable) {
-                }
-            }
+            // Force-release all Firebird metadata locks by closing + GC
+            $this->connection->close();
+            gc_collect_cycles();
+            usleep(200_000); // 200ms — let Firebird server release locks
 
-            usleep(100_000); // 100ms — let Firebird release metadata locks
+            // Reconnect (DBAL lazy-reconnects on next query)
+            $schemaManager = $this->connection->createSchemaManager();
+            $fbirdConn     = $this->getFirebirdConnection();
+
             $this->dropTableIfExists($tableName);
 
             if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
