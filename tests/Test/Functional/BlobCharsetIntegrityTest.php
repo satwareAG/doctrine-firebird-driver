@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function base64_encode;
 use function chr;
@@ -111,11 +112,26 @@ class BlobCharsetIntegrityTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('blob_charset_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('data', Types::BLOB);
-        $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
+        // Avoid DROP+CREATE on every test to prevent Firebird metadata lock
+        // corruption. See BinaryDataAccessTest for full rationale.
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM blob_charset_test');
+            $tableReady = true;
+        } catch (Throwable) {
+            // Table doesn't exist yet - create it
+        }
+
+        if (! $tableReady) {
+            $table = new Table('blob_charset_test');
+            $table->addColumn('id', Types::INTEGER);
+            $table->addColumn('data', Types::BLOB);
+            $table->setPrimaryKey(['id']);
+            $this->dropAndCreateTable($table);
+        }
+
+        // Prevent disconnect() from dropping the table between tests.
+        $this->createdTables = [];
     }
 
     protected function tearDown(): void
