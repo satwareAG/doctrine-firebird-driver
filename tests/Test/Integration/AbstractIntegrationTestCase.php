@@ -54,6 +54,17 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     private static Connection|null $integrationConnection = null;
 
     /**
+     * Guard flag: install database schema + seed data only ONCE per process.
+     *
+     * Multiple test classes extend AbstractIntegrationTestCase. Each calls
+     * setUpBeforeClass() which invokes installFirebirdDatabase(). Without this
+     * guard, the second call fails to DROP tables (Firebird metadata lock from
+     * the still-open PHP connection) but the INSERT statements succeed, doubling
+     * the seed data. Transaction rollback in tearDown() keeps each test isolated.
+     */
+    private static bool $databaseInstalled = false;
+
+    /**
      * Install database schema ONCE per test class (not per test method).
      */
     public static function setUpBeforeClass(): void
@@ -148,6 +159,13 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
     protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, string|null $className = null): void
     {
+        // Skip re-installation if already done in this process.
+        // All integration test classes share the same database and connection.
+        // Transaction rollback in tearDown() provides per-test isolation.
+        if (self::$databaseInstalled) {
+            return;
+        }
+
         // WORKAROUND: php-firebird v8.2.0 silently drops DDL/DML on newly
         // created databases (tables not created, rows not inserted) despite
         // no errors thrown. We execute all DDL + DML via isql subprocess which
@@ -357,6 +375,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         if ($albumCount === 0) {
             throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM after isql');
         }
+
+        self::$databaseInstalled = true;
     }
 
     /**

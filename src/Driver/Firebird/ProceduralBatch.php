@@ -67,6 +67,8 @@ final class ProceduralBatch
      * Add a row of parameters to the batch.
      *
      * @throws DriverException
+     *
+     * @psalm-suppress PossiblyUnusedReturnValue
      */
     public function add(mixed ...$args): bool
     {

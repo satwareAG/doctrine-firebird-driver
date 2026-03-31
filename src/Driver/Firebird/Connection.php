@@ -666,6 +666,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         } else {
             $transResource = $transaction;
 
+            /** @psalm-suppress DocblockTypeContradiction */
             if (! is_resource($transResource) || get_resource_type($transResource) !== 'Firebird transaction') {
                 throw new DriverException('Invalid transaction resource.');
             }
