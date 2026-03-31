@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function fopen;
 use function str_repeat;
@@ -178,13 +179,28 @@ class BlobTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('blob_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
-        $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        // Avoid DROP+CREATE on every test to prevent Firebird metadata lock
+        // corruption. See BinaryDataAccessTest for full rationale.
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM blob_table');
+            $tableReady = true;
+        } catch (Throwable) {
+            // Table doesn't exist or has wrong schema - create it
+        }
 
-        $this->dropAndCreateTable($table);
+        if (! $tableReady) {
+            $table = new Table('blob_table');
+            $table->addColumn('id', Types::INTEGER);
+            $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
+            $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
+            $table->setPrimaryKey(['id']);
+
+            $this->dropAndCreateTable($table);
+        }
+
+        // Prevent disconnect() from dropping the table between tests.
+        $this->createdTables = [];
     }
 
     private function assertBlobContains(string $text): void
