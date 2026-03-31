@@ -151,21 +151,35 @@ class BlobTest extends FunctionalTestCase
 
     public function testBlobBindingDoesNotOverwritePrevious(): void
     {
-        $table = new Table('blob_table');
+        // Use a separate table name to avoid DDL on the shared blob_table,
+        // which would trigger dropTableForce() and corrupt OO API pointers.
+        $table = new Table('blob_table_multi');
         $table->addColumn('id', 'integer');
         $table->addColumn('blobcolumn1', 'blob', ['notnull' => false]);
         $table->addColumn('blobcolumn2', 'blob', ['notnull' => false]);
         $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
+
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM blob_table_multi');
+            $tableReady = true;
+        } catch (Throwable) {
+        }
+
+        if (! $tableReady) {
+            $this->dropAndCreateTable($table);
+        }
+
+        $this->createdTables = [];
 
         $params = ['test1', 'test2'];
         $this->connection->executeStatement(
-            'INSERT INTO blob_table(id, blobcolumn1, blobcolumn2) VALUES (1, ?, ?)',
+            'INSERT INTO blob_table_multi(id, blobcolumn1, blobcolumn2) VALUES (1, ?, ?)',
             $params,
             [ParameterType::LARGE_OBJECT, ParameterType::LARGE_OBJECT],
         );
 
-        $blobs = $this->connection->fetchNumeric('SELECT blobcolumn1, blobcolumn2 FROM blob_table');
+        $blobs = $this->connection->fetchNumeric('SELECT blobcolumn1, blobcolumn2 FROM blob_table_multi');
         self::assertIsArray($blobs);
 
         $actual = [];
