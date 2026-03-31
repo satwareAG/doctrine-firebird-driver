@@ -31,8 +31,8 @@
   </file>
   <file src="src/Driver/Firebird/Connection.php">
     <DocblockTypeContradiction>
-      <code><![CDATA[$this->connection]]></code>
-      <code><![CDATA[$transResource]]></code>
+      <code><![CDATA[$this->connection instanceof FirebirdConnection]]></code>
+      <code><![CDATA[is_resource($transResource)]]></code>
     </DocblockTypeContradiction>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
@@ -76,6 +76,7 @@
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[is_object($resource)]]></code>
       <code><![CDATA[is_object($this->connection)]]></code>
+      <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_resource($this->connection)]]></code>
       <code><![CDATA[$this->connection instanceof FirebirdConnection]]></code>
     </RedundantConditionGivenDocblockType>
@@ -86,6 +87,25 @@
       <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
     </TypeDoesNotContainType>
+  </file>
+  <file src="src/Driver/Firebird/ProceduralBatch.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$connection]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[addBlob]]></code>
+      <code><![CDATA[cancel]]></code>
+      <code><![CDATA[count]]></code>
+    </PossiblyUnusedMethod>
+    <PossiblyUnusedReturnValue>
+      <code><![CDATA[add]]></code>
+    </PossiblyUnusedReturnValue>
+  </file>
+  <file src="src/Driver/Firebird/ProceduralBatchResult.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[hasErrors]]></code>
+      <code><![CDATA[isComplete]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Driver/Firebird/ConnectionWrapper.php">
     <InternalMethod>
