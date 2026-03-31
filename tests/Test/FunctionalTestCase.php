@@ -66,19 +66,11 @@ abstract class FunctionalTestCase extends TestCase
             $existenceUnknown = true;
         }
 
-        // Optimization: Try to force drop using driver native function to kill blocking attachments
-        // We only try this once - if it fails, we fall back to standard drop
-        if ($fbirdConnection !== null) {
-            try {
-                if ($fbirdConnection->dropTableForce($name)) {
-                    $fbirdConnection->commit();
-
-                    return;
-                }
-            } catch (Throwable) {
-                // Ignore force drop errors and fall back to standard drop with retry
-            }
-        }
+        // NOTE: We intentionally do NOT call dropTableForce() here.
+        // That C-extension function can invalidate the OO API connection
+        // pointers on the shared connection, causing "OO API connection/
+        // transaction pointers are NULL" on subsequent queries.
+        // Instead we rely on the standard schema manager drop with retry.
 
         // Try up to 3 times with delay to handle "object is in use" errors
         $success = false;
