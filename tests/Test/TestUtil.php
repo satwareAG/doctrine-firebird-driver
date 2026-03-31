@@ -182,13 +182,28 @@ class TestUtil
         string $password,
         string $host = '127.0.0.1',
     ): void {
-        $isqlBin = '/usr/bin/isql-fb';
-        if (! file_exists($isqlBin)) {
-            $isqlBin = '/opt/firebird/bin/isql';
+        $isqlBin = null;
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Chocolatey installs Firebird to C:\Program Files\Firebird\Firebird_*
+            $fbDirs = glob('C:\\Program Files\\Firebird\\Firebird_*\\isql.exe');
+            if ($fbDirs !== false && $fbDirs !== []) {
+                $isqlBin = $fbDirs[0];
+            }
+        } else {
+            foreach (['/usr/bin/isql-fb', '/opt/firebird/bin/isql'] as $candidate) {
+                if (file_exists($candidate)) {
+                    $isqlBin = $candidate;
+                    break;
+                }
+            }
         }
 
-        if (! file_exists($isqlBin)) {
-            throw new RuntimeException('isql not found (checked /usr/bin/isql-fb and /opt/firebird/bin/isql)');
+        if ($isqlBin === null) {
+            throw new RuntimeException(
+                'isql not found (checked /usr/bin/isql-fb, /opt/firebird/bin/isql'
+                . (PHP_OS_FAMILY === 'Windows' ? ', C:\\Program Files\\Firebird\\Firebird_*\\isql.exe' : '')
+                . ')',
+            );
         }
 
         // Build Firebird connect string: host:/path/to/db.fdb

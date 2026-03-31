@@ -147,9 +147,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             firebird-dev \
             firebird3.0-common \
+            firebird3.0-utils \
             libfbclient2 \
             netcat-openbsd
-          echo "Firebird client libraries installed"
+          echo "Firebird client libraries installed (including isql-fb)"
 
       - name: Cache php-firebird extension
         id: cache-php-firebird
@@ -224,7 +225,7 @@ jobs:
           composer update --prefer-stable --prefer-dist --no-progress \
             --ignore-platform-req=ext-firebird
 
-      - name: Prepare PHPUnit configuration for CI
+      - name: Verify PHPUnit configuration for CI
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
@@ -232,18 +233,12 @@ jobs:
           
           cd tests
           
-          # Use /tmp for test databases (default writable location)
-          # IMPORTANT: Run this BEFORE the firebird[0-9]* replacement to avoid
-          # /firebird/data being corrupted to /127.0.0.1/data
-          sed -i 's|/firebird/data/|/tmp/|g' "${PHPUNIT_CONFIG}"
-
-          # Update PHPUnit config to use localhost (service container networking)
-          # Service containers are accessible via localhost when using ports mapping
-          sed -i 's|firebird[0-9]*/3050|127.0.0.1/3050|g' "${PHPUNIT_CONFIG}"
-          sed -i 's|firebird[0-9]*|127.0.0.1|g' "${PHPUNIT_CONFIG}"
-          
-          echo "Modified PHPUnit config (${PHPUNIT_CONFIG}):"
-          grep -E 'db_host|db_dbname' "${PHPUNIT_CONFIG}" || true
+          # PHPUnit configs already have db_host=127.0.0.1 for GitHub Actions.
+          # DB paths (e.g. /firebird/data/test.fdb) must NOT be changed — they
+          # reference paths INSIDE the Docker service container, resolved by the
+          # Firebird server over TCP.
+          echo "PHPUnit config (${PHPUNIT_CONFIG}):"
+          grep -E 'db_host|db_dbname|db_port' "${PHPUNIT_CONFIG}" || true
 
       - name: Run PHPUnit tests (Unit)
         env:
@@ -423,16 +418,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v10.3.9-php8.4-default
+          # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
+          key: php-firebird-v10.3.9-php8.4-v40-quality
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v10.3.9 for PHP 8.4 (quality-checks)"
+          echo "Building php-firebird v10.3.9 for PHP 8.4 (quality-checks, FB_API_VER=40)"
           git clone --depth 1 --branch v10.3.9 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
+          # Enable FB_API_VER=40 so all functions (including fbird_batch_*) are compiled.
+          # Quality-checks doesn't connect to Firebird, so API version doesn't matter at runtime.
+          export CPPFLAGS="-DFB_API_VER=40"
           ./configure --with-firebird
           make -j"$(nproc)"
           mkdir -p /tmp/php-firebird-bin/Firebird
