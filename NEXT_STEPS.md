@@ -1,8 +1,8 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last session:** 2026-03-31 (Phase 1 complete - test suite stabilization)
+**Last session:** 2026-03-31 (v10.3.7 security upgrade + validation)
 **Branch:** `001-quality-improvements` (based on `3.10.x`)
-**Extension:** php-firebird v10.3.6 (`ext-firebird: ^10.3.2`)
+**Extension:** php-firebird v10.3.7 (`ext-firebird: ^10.3.2`)
 **Status:** Active - Phase 2 resource type guard completion
 
 ---
@@ -10,6 +10,12 @@
 ## Current State (2026-03-31)
 
 ### Completed This Session
+- Upgraded php-firebird v10.3.6 -> v10.3.7 (security fix: SQL injection, SPB overflow, bounds checks - #181)
+- Validated v10.3.7: #183/#184/#185 were auto-closed with release but NOT actually fixed
+- Reopened upstream issues #183, #184, #185 with validation evidence
+- All existing workarounds remain in place (BatchTest skipIfKnownBatchHandleIssue)
+
+### Previously Completed
 - Fixed FB4 SIGFPE crash in BatchTest (fbird_batch_create on parameterless statements)
 - Filed upstream issue [php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180)
 - Fixed FB5 phpunit config (wrong db_dbname path)
@@ -22,17 +28,16 @@
 - PHPStan Level 8: 0 errors, empty baseline
 - `@fbird_*` suppressions in src/: 0 (all removed)
 - Connection.php: 903 LOC (down from 1320, TransactionManager extracted)
-- Commits: 1c06ade, 04e5807, 96c31cc, dff12a9, 651c7a2
+- php-firebird: v10.3.7 (security fix #181)
 
-### Test Baseline (2026-03-31)
+### Test Baseline (2026-03-31, v10.3.7)
 
 | Suite | FB4 | FB5 | Notes |
 |-------|-----|-----|-------|
 | **Unit** | 1569 OK (21S, 4I) | 1569 OK (21S, 4I) | No DB required |
-| **Integration-ReadOnly** | 6/6 pass + SIGSEGV at exit | 15/24 pass, 9 errors | OO API handle loss in tearDown |
-| **Integration-Write** | Not yet baselined | Not yet baselined | Runs in full suite to 65% |
-| **Functional** | ~646 tests pass individually | ~646 tests pass individually | BatchTest 3/3 skipped (php-firebird#180) |
-| **Full suite** | 1525/2336 pass then SIGSEGV | 1525/2336 pass then SIGSEGV | Crash at ~65% during Integration tearDown |
+| **Integration-ReadOnly** | 24 tests, 9 errors | 24 tests, 9 errors | OO API handle loss (#184) |
+| **BatchTest** | 3/3 skipped | - | IBatch invalidation (#185) |
+| **Full suite** | ~1525/2336 then SIGSEGV | ~1525/2336 then SIGSEGV | Crash at ~65% (#183) |
 
 **Known blockers (all upstream php-firebird):**
 - SIGSEGV at PHP shutdown after test suite completion ([php-firebird#183](https://github.com/satwareAG/php-firebird/issues/183))
