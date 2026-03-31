@@ -295,6 +295,24 @@ abstract class FunctionalTestCase extends TestCase
             }
         }
 
+        // Verify the connection can actually execute queries. The Firebird
+        // extension's OO API pointers may become NULL after rollBack() sequences
+        // even though isConnectionValid() still returns true.
+        if (! $needNewConnection && self::$sharedConnection instanceof Connection) {
+            try {
+                self::$sharedConnection->executeQuery('SELECT 1 FROM RDB$DATABASE');
+            } catch (Throwable) {
+                try {
+                    self::$sharedConnection->close();
+                } catch (Throwable) {
+                }
+
+                self::$sharedConnection = null;
+                TestUtil::resetSharedConnection();
+                $needNewConnection = true;
+            }
+        }
+
         if ($needNewConnection) {
             self::$sharedConnection = TestUtil::getConnection();
         }
