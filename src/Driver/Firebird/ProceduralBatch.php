@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
 
@@ -30,9 +31,9 @@ final class ProceduralBatch
     private int $rowCount = 0;
 
     /**
-     * @param resource|\Firebird\Connection $connection    Native connection resource or object
-     * @param string                        $sql           INSERT statement with placeholders
-     * @param resource                      $transResource Transaction resource
+     * @param resource|Connection $connection    Native connection resource or object
+     * @param string              $sql           INSERT statement with placeholders
+     * @param resource            $transResource Transaction resource
      *
      * @throws DriverException
      */

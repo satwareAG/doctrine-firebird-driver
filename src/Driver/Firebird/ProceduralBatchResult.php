@@ -16,9 +16,7 @@ final class ProceduralBatchResult
     public readonly int $errorCount;
     public readonly int $totalProcessed;
 
-    /**
-     * @param array{total_processed: int, success_count: int, error_count: int} $result
-     */
+    /** @param array{total_processed: int, success_count: int, error_count: int} $result */
     public function __construct(array $result)
     {
         $this->totalProcessed = $result['total_processed'] ?? 0;

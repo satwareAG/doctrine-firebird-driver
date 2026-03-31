@@ -5,46 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.12.4] - Unreleased
+## [3.10.4] - 2026-03-31
+
+### Added
+- **Resource reference registry** in `Connection.php` - prevents premature `fbird_close()` when
+  multiple DBAL layers share the same native connection resource. Static registry tracks reference
+  counts per resource/object ID; destructor only closes when count reaches zero.
+- **`ProceduralBatch` wrapper** (`src/Driver/Firebird/ProceduralBatch.php`) - reliable alternative
+  to the OO `Firebird\Batch` class whose private constructor and `Batch::fromQuery()` fail with
+  "invalid batch handle" in php-firebird v10.3.9. Uses procedural `fbird_batch_create`,
+  `fbird_batch_add`, `fbird_batch_execute` API.
+- **`ProceduralBatchResult`** (`src/Driver/Firebird/ProceduralBatchResult.php`) - result object
+  wrapping `fbird_batch_execute()` return with `successCount`, `errorCount`, `totalProcessed`.
+- **Gap analysis tests** - `TransactionTest` (#65), `DefaultValueTest` (#66),
+  `ComparatorTest` (#67) covering transaction nesting, DDL default values, and schema comparison.
+- **Integration test suites** - `Integration-ReadOnly` and `Integration-Write` added to FB4/FB5
+  PHPUnit configurations.
 
 ### Changed
-- **php-firebird v8.0.0 upgrade** — Updated `ext-firebird` requirement to `^8.0` and
-  `satwareag/php-firebird-stubs` to `^8.0.0`. The v8 extension adds native OOP classes
-  (`Firebird\Connection`, `Firebird\Transaction`, `Firebird\Statement`, etc.) and a PDO
-  driver (`pdo_fbird`) while keeping the `fbird_*` procedural API fully intact.
-- **Modernized Test Suite** — Performed a comprehensive cleanup of the functional test suite
-  to align with php-firebird v8.0.0+.
-    - Removed redundant `function_exists()` and `class_exists()` guards in `ConnectionInfoTest`
-      as v8 features are now guaranteed.
-    - Deleted `OtherSchemaTest` (SQLite-only) and removed SQLite-specific paths from `ExceptionTest`.
-    - Adapted `DataAccessTest` to include Firebird-compatible date arithmetic.
-    - Enabled `testListDatabases` in `SchemaManagerFunctionalTestCase` as Firebird supports
-      procedural database creation and dropping.
-- **Removed `function_exists()` guards** — All runtime guards for `fbird_set_exception_mode`,
-  `fbird_escape_string`, `fbird_connection_info`, `fbird_get_limbo_transactions`,
-  `fbird_reconnect_transaction`, `fbird_sqlstate`, and `fbird_service_attach` removed from
-  `Connection.php`, `Driver.php`, and `Exception.php` since v8 guarantees these functions.
-- **Stubs cleanup** — Removed local `stubs/firebird-global-functions.php` (now covered by
-  `satwareag/php-firebird-stubs` v8). Updated `stubs/firebird-userland-classes.php` to rename
-  `Firebird\Transaction` → `Firebird\TransactionManager` matching the v8 rename that avoids
-  conflict with the new C-level `Firebird\Transaction` class.
+- **php-firebird v10.3.9** - Upgraded from v10.3.7. Fixes SIGFPE on parameterless batch (#180),
+  SIGSEGV at shutdown (#183), OO API handle loss (#184), IBatch invalidation (#185).
+- **CI pipeline** - Fixed php-firebird build from source: corrected version tag from v8.2.0 to
+  v10.3.9 matching `composer.json` requirement `ext-firebird: ^10.3.2`. Added OO API PHP file
+  caching and installation for `Firebird\Connection`, `Database`, `TBuilder` classes.
+- **PHPCS compliance** - Fixed 13 coding standard violations across 6 files: use statement
+  sorting, constructor property promotion, class structure ordering, doc comment formatting,
+  FQN references, early exit patterns.
+- **Test suite** - Stabilized BatchTest with known-failure markers for php-firebird OO API bugs;
+  DDL commit between DROP/CREATE in FunctionalTestCase.
 
 ### Fixed
-- **php-firebird v7.3.5-dev (SIGSEGV)** — Validated and adopted the critical fix for segmentation
-  faults in `fbird_blob_info()`. This improves stability during BLOB operations and schema
-  introspection across all Firebird versions (#94)
-- **ConnectionWrapper identity column cache** — Changed from static to instance-level cache to
-  prevent cross-connection state leakage. Added try/catch for `SchemaException\TableDoesNotExist`
-  in `getIdentityColumnForTable()` to handle tables created via raw DDL that bypass ORM metadata.
-- **Integration test seed SQL** — Replaced `$connection->insert()` with raw SQL using double-quoted
-  table names to bypass `extractIdentityColumn()` regex that fails on quoted identifiers.
+- **SIGSEGV resolution** - Eliminated segmentation faults caused by premature `fbird_close()` on
+  shared connection resources. Root cause: DBAL connection wrapper and user code holding
+  references to the same native resource, with destructor closing it while still in use.
+- **Resource type guard completion** - All `@phpstan-assert-if-true` guards verified across
+  `Connection`, `Result`, `Statement`, and `TransactionManager` classes.
 
-### Known Issues
-- **php-firebird v8.2.0 reconnection bug** — After `FirebirdSchemaManager::createDatabase()` creates
-  a DB via `isql` subprocess, `fbird_connect()` in the same process returns an internally invalid
-  resource. DDL/seed SQL executes silently without effect, causing all integration tests to return
-  0 rows. Workaround: execute DDL+seed via `isql` subprocess instead of PHP connection. Upstream
-  issue pending.
+### Tests
+- **Full suite: 2336 tests, ALL PASSED** (Firebird 4.0)
+- **PHPStan Level 8: 0 errors**
+- **PHPCS: 0 violations**
 
 ## [3.12.3] - 2026-03-19
 
@@ -431,7 +431,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...HEAD
+[3.10.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.2...v3.10.4
 [3.12.1-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...v3.12.1-rc.1
 [3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
 [3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2

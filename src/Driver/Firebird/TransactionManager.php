@@ -9,7 +9,6 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\ExecutionMode;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
 
-use function assert;
 use function fbird_commit;
 use function fbird_commit_ret;
 use function fbird_errcode;

@@ -24,6 +24,7 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use Throwable;
 use UnexpectedValueException;
 
+use function assert;
 use function class_exists;
 use function fbird_close;
 use function fbird_commit;
@@ -55,8 +56,8 @@ use function is_resource;
 use function is_scalar;
 use function is_string;
 use function method_exists;
-use function spl_object_id;
 use function preg_match;
+use function spl_object_id;
 use function sprintf;
 use function str_contains;
 use function version_compare;
@@ -762,6 +763,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         // Use procedural fbird_batch_* API via ProceduralBatch wrapper.
         // The OO Firebird\Batch class has a private constructor and Batch::fromQuery()
         // fails with "invalid batch handle" in php-firebird v10.3.9.
+
         /** @phpstan-ignore argument.type (connection validated above; transResource null-checked above) */
         return new ProceduralBatch($this->connection, $sql, $transResource);
     }
@@ -864,6 +866,24 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     // =========================================================================
 
     /**
+     * Get the reference count for a native resource (for testing/debugging).
+     *
+     * @param resource|object $resource Native connection resource or object
+     */
+    public static function getResourceRefCount(mixed $resource): int
+    {
+        if (is_resource($resource)) {
+            $id = get_resource_id($resource);
+        } elseif (is_object($resource)) {
+            $id = spl_object_id($resource);
+        } else {
+            return 0;
+        }
+
+        return self::$resourceRegistry[$id] ?? 0;
+    }
+
+    /**
      * Get the unique ID for the current native connection resource/object.
      */
     private function getResourceId(): int|null
@@ -889,9 +909,20 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private function registerResource(): void
     {
         $id = $this->getResourceId();
-        if ($id !== null) {
-            self::$resourceRegistry[$id] = (self::$resourceRegistry[$id] ?? 0) + 1;
+        if ($id === null) {
+            return;
         }
+
+        self::$resourceRegistry[$id] = (self::$resourceRegistry[$id] ?? 0) + 1;
+    }
+
+    /** @param resource $resource */
+    private function isResourceTypeValid($resource): bool
+    {
+        $type = get_resource_type($resource);
+
+        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
+            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
     }
 
     /**
@@ -904,36 +935,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         self::$resourceRegistry[$resourceId]--;
-        if (self::$resourceRegistry[$resourceId] <= 0) {
-            unset(self::$resourceRegistry[$resourceId]);
-        }
-    }
-
-    /**
-     * Get the reference count for a native resource (for testing/debugging).
-     *
-     * @param resource|object $resource Native connection resource or object
-     */
-    public static function getResourceRefCount(mixed $resource): int
-    {
-        if (is_resource($resource)) {
-            $id = get_resource_id($resource);
-        } elseif (is_object($resource)) {
-            $id = spl_object_id($resource);
-        } else {
-            return 0;
+        if (self::$resourceRegistry[$resourceId] > 0) {
+            return;
         }
 
-        return self::$resourceRegistry[$id] ?? 0;
-    }
-
-    /** @param resource $resource */
-    private function isResourceTypeValid($resource): bool
-    {
-        $type = get_resource_type($resource);
-
-        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
-            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
+        unset(self::$resourceRegistry[$resourceId]);
     }
 
     private static function loadOoApi(): void

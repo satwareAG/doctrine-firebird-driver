@@ -57,9 +57,6 @@ final class Statement implements StatementInterface
     /** @var array<int|string, mixed> */
     private array $boundValues = [];
 
-    /** @var resource|false|null */
-    private $statement;
-
     private Result|null $currentResult = null;
 
     /** @var bool True if this statement is a DML operation (INSERT/UPDATE/DELETE/MERGE) */
@@ -77,9 +74,8 @@ final class Statement implements StatementInterface
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, $statement = null, private mixed $parameterMap = [], string $sql = '')
+    public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], string $sql = '')
     {
-        $this->statement   = $statement;
         $this->blobHandler = new BlobHandler();
 
         if (is_resource($this->statement)) {
@@ -311,6 +307,21 @@ final class Statement implements StatementInterface
     }
 
     /**
+     * Check if the statement resource is a valid Firebird statement resource.
+     *
+     * @psalm-assert-if-true resource $this->statement
+     * @phpstan-assert-if-true resource $this->statement
+     */
+    public function isStatementValid(): bool
+    {
+        if (! is_resource($this->statement)) {
+            return false;
+        }
+
+        return in_array(get_resource_type($this->statement), self::VALID_STATEMENT_TYPES, true);
+    }
+
+    /**
      * Internal method to bind a value to a parameter.
      * This contains the core binding logic used by both bindValue() and bindParam().
      */
@@ -371,20 +382,5 @@ final class Statement implements StatementInterface
             '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is',
             trim($sql),
         );
-    }
-
-    /**
-     * Check if the statement resource is a valid Firebird statement resource.
-     *
-     * @psalm-assert-if-true resource $this->statement
-     * @phpstan-assert-if-true resource $this->statement
-     */
-    public function isStatementValid(): bool
-    {
-        if (! is_resource($this->statement)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->statement), self::VALID_STATEMENT_TYPES, true);
     }
 }

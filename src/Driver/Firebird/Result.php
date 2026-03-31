@@ -303,17 +303,6 @@ final class Result implements ResultInterface
     }
 
     /**
-     * Check if DateTimeImmutable fetch is available.
-     *
-     * Always returns true since php-firebird v7.0.0+ (minimum supported version)
-     * guarantees FBIRD_FETCH_DATE_OBJ availability.
-     */
-    public static function isDateObjectFetchAvailable(): bool
-    {
-        return true;
-    }
-
-    /**
      * Check if the result resource is a valid Firebird result resource.
      *
      * Validates both that the value is a resource AND that it has a valid
@@ -330,6 +319,17 @@ final class Result implements ResultInterface
         }
 
         return in_array(get_resource_type($this->firebirdResultResource), self::VALID_RESULT_TYPES, true);
+    }
+
+    /**
+     * Check if DateTimeImmutable fetch is available.
+     *
+     * Always returns true since php-firebird v7.0.0+ (minimum supported version)
+     * guarantees FBIRD_FETCH_DATE_OBJ availability.
+     */
+    public static function isDateObjectFetchAvailable(): bool
+    {
+        return true;
     }
 
     /**

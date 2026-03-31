@@ -156,16 +156,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v8.2.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v10.3.9-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v8.2.0 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v8.2.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v10.3.9 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v10.3.9 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
-          git fetch --tags --depth 1
           phpize
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
             echo "Enabling FB_API_VER=40 for Firebird ${{ matrix.firebird.version }}"
@@ -173,8 +172,10 @@ jobs:
           fi
           ./configure --with-firebird
           make -j"$(nproc)"
-          mkdir -p /tmp/php-firebird-bin
+          mkdir -p /tmp/php-firebird-bin/Firebird
           cp modules/firebird.so /tmp/php-firebird-bin/
+          # Cache OO API PHP files (Firebird\Connection, Database, TBuilder, etc.)
+          cp src/Firebird/*.php /tmp/php-firebird-bin/Firebird/ 2>/dev/null || true
 
       - name: Install php-firebird extension
         run: |
@@ -184,6 +185,12 @@ jobs:
           sudo cp /tmp/php-firebird-bin/firebird.so "${PHP_EXT_DIR}/firebird.so"
           sudo mkdir -p "${PHP_INI_SCAN_DIR}"
           echo "extension=${PHP_EXT_DIR}/firebird.so" | sudo tee "${PHP_INI_SCAN_DIR}/99-firebird.ini"
+          # Install OO API PHP files (Firebird\Connection, Database, TBuilder, etc.)
+          if [ -d /tmp/php-firebird-bin/Firebird ]; then
+            sudo mkdir -p /usr/local/lib/php/Firebird
+            sudo cp /tmp/php-firebird-bin/Firebird/*.php /usr/local/lib/php/Firebird/
+            echo "✅ OO API PHP files installed to /usr/local/lib/php/Firebird/"
+          fi
           php -m | grep -qiE 'firebird|interbase'
           php -r "
               \$ver = phpversion('firebird') ?: phpversion('interbase');
