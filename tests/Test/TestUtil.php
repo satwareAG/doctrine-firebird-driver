@@ -340,6 +340,12 @@ class TestUtil
                             $isqlPath = substr((string) strstr($isqlPath, ':'), 1);
                         }
 
+                        // Close connection to release metadata locks.
+                        // Firebird refuses DDL (DROP TABLE) via isql when another
+                        // connection holds an active implicit transaction.
+                        // DBAL auto-reconnects on the next query after close().
+                        $ciConn->close();
+
                         // Drop all FKs first, then all user tables via EXECUTE BLOCK
                         $cleanupSql = "EXECUTE BLOCK AS\n"
                             . "  DECLARE cname VARCHAR(63);\n"

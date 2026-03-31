@@ -172,6 +172,12 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $user = self::DEFAULT_DATABASE_USERNAME;
         $pass = self::DEFAULT_DATABASE_PASSWORD;
 
+        // Close connection to release metadata locks before isql DDL.
+        // Firebird refuses DDL (DROP TABLE, CREATE TABLE) via isql when another
+        // connection holds an active implicit transaction from prior queries.
+        // DBAL auto-reconnects on the next query after close().
+        $connection->close();
+
         // Clean existing objects first (idempotent re-creation).
         // Uses WHEN ANY DO inside loops so individual failures don't abort the block.
         $cleanupSql = "EXECUTE BLOCK AS\n"
