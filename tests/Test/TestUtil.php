@@ -309,6 +309,8 @@ class TestUtil
         //    that may not exist (employee)
         // 3. The DB is already fresh (new container per CI run)
         // Integration tests handle schema creation via isql in installFirebirdDatabase().
+        // NOTE: DB_DBNAME env var must be set in CI to the full container path
+        // (e.g. /firebird/data/test.fdb) since bare filenames don't resolve over TCP.
         if (getenv('CI') && PHP_OS_FAMILY !== 'Windows') {
             $ciParams                                = $baseParams;
             $ciParams['persistent']                  = false;
@@ -377,8 +379,8 @@ class TestUtil
 
                 return;
             } catch (Throwable $e) {
-                // Docker DB not reachable — fall through to normal initialization
-                echo '[CI] Pre-created DB not reachable (' . $e->getMessage() . "), falling through to create\n";
+                // Docker DB not reachable - fall through to normal initialization
+                echo '[CI] Pre-created DB not reachable (' . $e->getMessage() . "), falling through\n";
             }
         }
 
