@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function array_change_key_case;
 
@@ -495,6 +496,22 @@ class TransactionTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
+        // Reset isolation level to READ COMMITTED before cleanup.
+        // testSetIsolationLevelSerializable sets SERIALIZABLE which uses
+        // "no wait" mode - this causes lock conflicts on RDB$RELATIONS
+        // when parent::tearDown() queries system tables for cleanup.
+        $fbirdConn = $this->getFirebirdConnection();
+        if ($fbirdConn !== null) {
+            try {
+                $fbirdConn->setAttribute(
+                    FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
+                    TransactionIsolationLevel::READ_COMMITTED,
+                );
+            } catch (Throwable) {
+                // Ignore - connection may already be closed
+            }
+        }
+
         $this->markConnectionNotReusable();
 
         parent::tearDown();
