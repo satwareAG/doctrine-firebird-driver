@@ -21,8 +21,6 @@ use const CASE_LOWER;
 
 class BinaryDataAccessTest extends FunctionalTestCase
 {
-    private static bool $tableCreated = false;
-
     public function testPrepareWithBindValue(): void
     {
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
@@ -334,20 +332,12 @@ class BinaryDataAccessTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        // Create table only once per process to avoid Firebird metadata lock
-        // issues when markConnectionNotReusable() forces connection cycling.
-        if (! self::$tableCreated) {
-            $table = new Table('binary_fetch_table');
-            $table->addColumn('test_int', 'integer');
-            $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
-            $table->setPrimaryKey(['test_int']);
+        $table = new Table('binary_fetch_table');
+        $table->addColumn('test_int', 'integer');
+        $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
+        $table->setPrimaryKey(['test_int']);
 
-            $this->dropAndCreateTable($table);
-            self::$tableCreated = true;
-        } else {
-            // Clean up data from previous test (DML only, no DDL locks)
-            $this->connection->executeStatement('DELETE FROM binary_fetch_table');
-        }
+        $this->dropAndCreateTable($table);
 
         $this->connection->insert('binary_fetch_table', [
             'test_int' => 1,
@@ -355,5 +345,12 @@ class BinaryDataAccessTest extends FunctionalTestCase
         ], [
             'test_binary' => ParameterType::BINARY,
         ]);
+
+        // Remove from createdTables so disconnect() won't drop it between
+        // tests. Firebird DDL acquires metadata locks that cause "already
+        // exists" errors when the same connection runs DROP+CREATE in rapid
+        // succession. Keeping the table alive means each setUp() only does
+        // one DROP+CREATE cycle via dropAndCreateTable().
+        $this->createdTables = [];
     }
 }
