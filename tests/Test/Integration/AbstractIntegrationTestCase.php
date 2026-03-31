@@ -203,6 +203,17 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
             . "    WHEN ANY DO BEGIN /* ignore */ END\n"
             . "  END\n"
+            . "END;\n"
+            . "EXECUTE BLOCK AS\n"
+            . "  DECLARE gname VARCHAR(63);\n"
+            . "BEGIN\n"
+            . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
+            . "      WHERE RDB\$SYSTEM_FLAG = 0\n"
+            . "      INTO :gname DO\n"
+            . "  BEGIN\n"
+            . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
+            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+            . "  END\n"
             . "END;\n";
 
         try {
@@ -327,7 +338,18 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         // Combine DDL + DML and execute via isql
         $fullSql = implode(";\n", $ddlStatements) . ";\n" . $seedSql;
 
-        TestUtil::runIsql($fullSql, $isqlDbPath, $user, $pass, $host);
+        try {
+            TestUtil::runIsql($fullSql, $isqlDbPath, $user, $pass, $host);
+        } catch (\RuntimeException $e) {
+            // Tolerate "Index already exists" errors (SQLSTATE 42S11).
+            // Firebird auto-creates indexes for FK constraints, but Doctrine's
+            // Schema::toSql() also generates explicit CREATE INDEX statements
+            // for the same FKs, causing harmless duplicates. isql continues
+            // executing after these warnings - tables and data are created.
+            if (! str_contains($e->getMessage(), '42S11')) {
+                throw $e;
+            }
+        }
 
         // Verify seed data is visible through PHP connection
         $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');

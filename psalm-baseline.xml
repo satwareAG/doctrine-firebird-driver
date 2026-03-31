@@ -30,6 +30,10 @@
     </UnusedParam>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
+    <DocblockTypeContradiction>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$transResource]]></code>
+    </DocblockTypeContradiction>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -44,6 +48,13 @@
     <NoValue>
       <code><![CDATA[$this->connection]]></code>
     </NoValue>
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$this->connection]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyNullArgument>
+      <code><![CDATA[$transResource]]></code>
+      <code><![CDATA[$transResource]]></code>
+    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
       <code><![CDATA[createIndependentTransaction]]></code>
       <code><![CDATA[createSavepoint]]></code>
@@ -54,6 +65,7 @@
       <code><![CDATA[getConnectionInfo]]></code>
       <code><![CDATA[getLimboTransactions]]></code>
       <code><![CDATA[getOOWrapper]]></code>
+      <code><![CDATA[getResourceRefCount]]></code>
       <code><![CDATA[killAttachment]]></code>
       <code><![CDATA[listTableBlockers]]></code>
       <code><![CDATA[queryInTransaction]]></code>
@@ -62,7 +74,10 @@
       <code><![CDATA[rollbackSavepoint]]></code>
     </PossiblyUnusedMethod>
     <RedundantConditionGivenDocblockType>
+      <code><![CDATA[is_object($resource)]]></code>
+      <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_resource($this->connection)]]></code>
+      <code><![CDATA[$this->connection instanceof FirebirdConnection]]></code>
     </RedundantConditionGivenDocblockType>
     <TooFewArguments>
       <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>

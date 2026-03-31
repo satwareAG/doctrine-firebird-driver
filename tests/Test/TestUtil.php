@@ -346,7 +346,7 @@ class TestUtil
                         // DBAL auto-reconnects on the next query after close().
                         $ciConn->close();
 
-                        // Drop all FKs first, then all user tables via EXECUTE BLOCK
+                        // Drop all FKs, then tables, then generators/sequences
                         $cleanupSql = "EXECUTE BLOCK AS\n"
                             . "  DECLARE cname VARCHAR(63);\n"
                             . "  DECLARE tname VARCHAR(63);\n"
@@ -355,7 +355,10 @@ class TestUtil
                             . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
                             . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
                             . "      INTO :cname, :tname DO\n"
+                            . "  BEGIN\n"
                             . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
+                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                            . "  END\n"
                             . "END;\n"
                             . "EXECUTE BLOCK AS\n"
                             . "  DECLARE tname VARCHAR(63);\n"
@@ -363,7 +366,21 @@ class TestUtil
                             . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
                             . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
                             . "      INTO :tname DO\n"
+                            . "  BEGIN\n"
                             . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
+                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                            . "  END\n"
+                            . "END;\n"
+                            . "EXECUTE BLOCK AS\n"
+                            . "  DECLARE gname VARCHAR(63);\n"
+                            . "BEGIN\n"
+                            . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
+                            . "      WHERE RDB\$SYSTEM_FLAG = 0\n"
+                            . "      INTO :gname DO\n"
+                            . "  BEGIN\n"
+                            . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
+                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                            . "  END\n"
                             . "END;\n";
 
                         try {
