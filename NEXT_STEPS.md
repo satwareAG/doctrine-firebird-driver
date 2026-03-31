@@ -35,10 +35,11 @@
 | **Full suite** | 1525/2336 pass then SIGSEGV | 1525/2336 pass then SIGSEGV | Crash at ~65% during Integration tearDown |
 
 **Known blockers (all upstream php-firebird):**
-- SIGSEGV at PHP shutdown after test suite completion
-- OO API handle loss after connection tearDown/reconnect cycles
-- BatchTest invalid batch handle lifecycle (php-firebird#180)
-- Stale DDL tables after SIGSEGV prevents Functional tearDown
+- SIGSEGV at PHP shutdown after test suite completion ([php-firebird#183](https://github.com/satwareAG/php-firebird/issues/183))
+- OO API handle loss after connection tearDown/reconnect cycles ([php-firebird#184](https://github.com/satwareAG/php-firebird/issues/184))
+- IBatch handle becomes invalid before execute() ([php-firebird#185](https://github.com/satwareAG/php-firebird/issues/185))
+- SIGFPE crash on parameterless batch statements ([php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180))
+- Stale DDL tables after SIGSEGV prevents Functional tearDown (consequence of #183)
 
 ---
 
@@ -77,9 +78,10 @@
 | Issue | Description | Impact |
 |-------|-------------|--------|
 | [#180](https://github.com/satwareAG/php-firebird/issues/180) | `fbird_batch_create()` SIGFPE on parameterless statements | BatchTest must use parameterized queries |
+| [#183](https://github.com/satwareAG/php-firebird/issues/183) | SIGSEGV during PHP shutdown after connection usage | Non-blocking - tests complete before crash |
+| [#184](https://github.com/satwareAG/php-firebird/issues/184) | OO API handle loss after tearDown/reconnect cycles | 9 Integration-ReadOnly tests fail on FB5 |
+| [#185](https://github.com/satwareAG/php-firebird/issues/185) | IBatch handle becomes invalid before execute() | BatchTest 3/3 skipped |
 | [#96](https://github.com/satwareAG/doctrine-firebird-driver/issues/96) | v8.2.0 reconnection bug (workaround: isql subprocess) | Integration tests use isql for DDL/DML seeding |
-| OO API handle loss | Connection loses OO API handle after many operations | 1 Integration-ReadOnly test fails |
-| SIGSEGV at exit | Segfault during PHP shutdown after test suite | Non-blocking - tests complete before crash |
 
 ---
 
