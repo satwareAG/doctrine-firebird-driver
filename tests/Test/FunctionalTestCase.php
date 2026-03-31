@@ -166,9 +166,8 @@ abstract class FunctionalTestCase extends TestCase
 
         // Retry logic: dropTableIfExists() may silently fail when the table is
         // locked by a lingering connection (it swallows "in use" errors after
-        // retries). If createTable() hits "already exists", close the DBAL
-        // connection to force Firebird to release all metadata locks, then
-        // reconnect and retry drop+create with a clean slate.
+        // retries). If createTable() hits "already exists", roll back, run GC,
+        // and retry drop+create after a delay.
         try {
             $schemaManager->createTable($table);
         } catch (Throwable $e) {
@@ -179,14 +178,21 @@ abstract class FunctionalTestCase extends TestCase
                 throw $e;
             }
 
-            // Force-release all Firebird metadata locks by closing + GC
-            $this->connection->close();
-            gc_collect_cycles();
-            usleep(200_000); // 200ms — let Firebird server release locks
+            // Release Firebird metadata locks by committing/rolling back and
+            // running GC to free any PHP objects holding cursor references.
+            // Do NOT call $this->connection->close() here — it invalidates
+            // the shared connection's native Firebird pointers and causes
+            // "OO API connection/transaction pointers are NULL" on the next
+            // query through DBAL middleware.
+            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+                try {
+                    $fbirdConn->rollBack();
+                } catch (Throwable) {
+                }
+            }
 
-            // Reconnect (DBAL lazy-reconnects on next query)
-            $schemaManager = $this->connection->createSchemaManager();
-            $fbirdConn     = $this->getFirebirdConnection();
+            gc_collect_cycles();
+            usleep(500_000); // 500ms — let Firebird server release locks
 
             $this->dropTableIfExists($tableName);
 
