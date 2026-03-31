@@ -13,6 +13,7 @@ use Doctrine\DBAL\Types\Types;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function array_keys;
 use function array_merge;
@@ -132,8 +133,15 @@ class PortabilityTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        // Free cursor/result objects that hold Firebird metadata locks
+        // Free cursor/result objects that hold Firebird metadata locks,
+        // then drop the table while the connection is still open.
         gc_collect_cycles();
+
+        try {
+            $this->connection->executeStatement('DROP TABLE portability_table');
+        } catch (Throwable) {
+            // Table may not exist if test failed early
+        }
 
         // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
         // see https://github.com/doctrine/dbal/issues/4515
