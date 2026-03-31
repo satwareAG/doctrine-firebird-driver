@@ -29,13 +29,7 @@ class BatchTest extends FunctionalTestCase
         $batch->add('Bob', 200);
         $batch->add('Charlie', 300);
 
-        try {
-            $result = $batch->execute();
-        } catch (Throwable $e) {
-            $this->skipIfKnownBatchHandleIssue($e);
-
-            throw $e;
-        }
+        $result = $batch->execute();
 
         self::assertEquals(3, $result->successCount);
         self::assertFalse($result->hasErrors());
@@ -55,13 +49,7 @@ class BatchTest extends FunctionalTestCase
         $blobId = $batch->addBlob('Hello, World!');
         $batch->add('test', $blobId);
 
-        try {
-            $result = $batch->execute();
-        } catch (Throwable $e) {
-            $this->skipIfKnownBatchHandleIssue($e);
-
-            throw $e;
-        }
+        $result = $batch->execute();
 
         self::assertEquals(1, $result->successCount);
     }
@@ -84,13 +72,7 @@ class BatchTest extends FunctionalTestCase
             $batch->add('name_' . $i, $i);
         }
 
-        try {
-            $result = $batch->execute();
-        } catch (Throwable $e) {
-            $this->skipIfKnownBatchHandleIssue($e);
-
-            throw $e;
-        }
+        $result = $batch->execute();
 
         $elapsed = microtime(true) - $start;
 
@@ -127,25 +109,15 @@ class BatchTest extends FunctionalTestCase
             $batch = $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE WHERE 1=?');
             unset($batch); // Let destructor cancel the batch
         } catch (Throwable $e) {
-            if (str_contains($e->getMessage(), 'FB_API_VER') || str_contains($e->getMessage(), 'Class "Firebird\Batch" not found')) {
-                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40 and Firebird\Batch class');
+            if (
+                str_contains($e->getMessage(), 'FB_API_VER')
+                || str_contains($e->getMessage(), 'Class "Firebird\Batch" not found')
+                || str_contains($e->getMessage(), 'fbird_batch_create')
+            ) {
+                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
             }
 
             throw $e;
-        }
-    }
-
-    /**
-     * Skip test if the failure is the known php-firebird batch handle lifecycle issue.
-     *
-     * @see https://github.com/nickel715/php-firebird/issues/180
-     */
-    private function skipIfKnownBatchHandleIssue(Throwable $e): void
-    {
-        if (str_contains($e->getMessage(), 'invalid batch handle') || str_contains($e->getMessage(), 'batch')) {
-            $this->markTestSkipped(
-                'Known php-firebird batch handle lifecycle issue (php-firebird#180): ' . $e->getMessage(),
-            );
         }
     }
 

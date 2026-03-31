@@ -1,108 +1,213 @@
 # Implementation Plan
 
 [Overview]
-Upgrade php-firebird from v10.3.6 to v10.3.7 and validate fixes for three upstream bugs (#183, #184, #185).
+Fix three DBAL-layer test failures in doctrine-firebird-driver caused by connection handle lifecycle issues and OO wrapper incompatibilities with php-firebird v10.3.9.
 
-php-firebird v10.3.7 was released with fixes for three bugs filed by the doctrine-firebird-driver team during Phase 1 test stabilization. The fixes address: SIGSEGV during PHP shutdown (#183), OO API handle loss after tearDown/reconnect (#184), and IBatch handle invalidation before execute (#185). This plan upgrades the Docker test environment, removes the workarounds added in Phase 1, re-runs the full test suite on FB4 and FB5 to validate the fixes, and closes the upstream issues. See GitHub issue: https://github.com/satwareAG/doctrine-firebird-driver/issues/97
+The php-firebird C extension v10.3.8/v10.3.9 fixes work correctly at the procedural API level (verified via `tests/debug/verify-v10.3.9-fixes.php`). The remaining failures are in our Doctrine DBAL driver layer:
 
-Current state (pre-upgrade):
-- php-firebird v10.3.6 in `tests/app/Dockerfile`
-- BatchTest has `skipIfKnownBatchHandleIssue()` workaround for #185
-- Full suite crashes at ~65% with SIGSEGV (#183)
-- Integration-ReadOnly has 9 errors on FB5 from OO API handle loss (#184)
-- Branch: `001-quality-improvements` at commit 412401c
+1. **Integration-ReadOnly 9 errors**: `fbird_trans_start()` throws "Connection has no OO API handle" because the native resource's internal `fbc_connection` C struct pointer has been nullified by a prior `fbird_close()` call from `Connection::__destruct()`.
 
-Expected state (post-upgrade):
-- php-firebird v10.3.7 in Dockerfile
-- BatchTest workaround removed (tests should pass natively)
-- Full suite completes without SIGSEGV
-- Integration-ReadOnly passes all 24 tests on FB5
-- Upstream issues #183, #184, #185 closed
+2. **BatchTest 3 errors**: The OO wrapper `Batch::fromQuery()` uses a different code path than the procedural `fbird_batch_create()` and fails with "invalid batch handle".
+
+3. **Full-suite SIGSEGV at ~65%**: PHPUnit crashes during integration test setup - likely accumulated resource corruption from Bug 1.
+
+**Root Cause Analysis (Bug 1)**: When DBAL's `Connection::close()` is called (or when a DBAL Connection object is garbage-collected), it drops the reference to the driver-level `Connection`. Our `Connection::__destruct()` then calls `fbird_close($this->connection)`, which sets the C-level `fbc_connection = NULL` (in `fbird_connection.c:176`). Any subsequent `fbird_trans_start()` call on this resource triggers the error because it dereferences the now-NULL pointer. The fix is to prevent `fbird_close()` from being called on shared resources and add a static connection registry for reference tracking.
+
+**Architecture**: The DBAL middleware chain is:
+- `ConnectionWrapper` (extends `Doctrine\DBAL\Connection`) - DBAL level
+- `Portability\Connection` (extends `AbstractConnectionMiddleware`) - from `Middleware(0, ColumnCase::UPPER)`
+- `Connection` (our driver, implements `ServerInfoAwareConnection`) - holds `fbird_connect()` resource
+- `TransactionManager` - manages `fbird_trans_start()` / `fbird_commit()` / `fbird_rollback()`
+
+The test lifecycle uses shared connections:
+- `TestUtil::$sharedConnection` - cached DBAL Connection
+- `FunctionalTestCase::$sharedConnection` - per-test-class cached reference
+- `AbstractIntegrationTestCase::$integrationConnection` - per-integration-suite cached reference
 
 [Types]
-No type changes required.
+No new types are introduced. Existing enum `ExecutionMode` and exception classes remain unchanged.
+
+The only type-level change is adding a static `array<int, int>` property to `Connection` for the reference counting registry, keyed by resource ID with reference count as value.
 
 [Files]
-Update Dockerfile, BatchTest, and documentation files.
+Six files will be modified and two new diagnostic/test files created.
 
-Files to modify:
-- `tests/app/Dockerfile` (lines 7, 32, 40, 43) - Update version from v10.3.6 to v10.3.7 with changelog comment
-- `tests/Test/Functional/BatchTest.php` - Remove `skipIfKnownBatchHandleIssue()` method and all try/catch wrappers around `$batch->execute()` calls. The setUp() SIGFPE guard for #180 (parameterless statements) must remain since #180 is NOT fixed in v10.3.7.
-- `NEXT_STEPS.md` - Update extension version, test baseline, known blockers table
-- `implementation_plan.md` - This file (replaced with current plan)
+**Files to modify:**
 
-Files to create:
-- None
+1. `src/Driver/Firebird/Connection.php` - Core fix: add static connection registry for reference counting to prevent premature `fbird_close()` in `__destruct()`. Also replace `Batch::fromQuery()` with procedural `fbird_batch_create()` call.
 
-Files to delete:
-- None
+2. `src/Driver/Firebird/TransactionManager.php` - Add defensive reconnection in `createTransaction()` when native resource has been invalidated (detect "Unknown" resource type and throw descriptive exception instead of passing invalid resource to `fbird_trans_start()`).
+
+3. `tests/Test/FunctionalTestCase.php` - Remove aggressive `close()` call in `connect()` validation path; replace with graceful reconnection that doesn't destroy shared resources.
+
+4. `tests/Test/Integration/AbstractIntegrationTestCase.php` - Add defensive connection validation in `setUp()` before `beginTransaction()` with automatic reconnection fallback.
+
+5. `tests/Test/Functional/BatchTest.php` - Remove `skipIfKnownBatchHandleIssue()` workaround after batch fix is verified.
+
+6. `NEXT_STEPS.md` - Update test baselines and mark Phase 2.5 items as completed.
+
+**New files:**
+
+7. `tests/debug/trace-handle-lifecycle.php` - Diagnostic script that reproduces the exact connection lifecycle of integration tests, logging every `fbird_close()` and `fbird_trans_start()` call with resource IDs.
+
+8. `tests/debug/compare-batch-paths.php` - Diagnostic script that compares `Batch::fromQuery()` vs `fbird_batch_create()` on the same prepared statement.
 
 [Functions]
-Remove BatchTest workaround functions.
+Core function modifications to fix all three bugs.
 
-Removed functions:
-- `BatchTest::skipIfKnownBatchHandleIssue(Throwable $e): void` in `tests/Test/Functional/BatchTest.php` - No longer needed since php-firebird#185 is fixed in v10.3.7
+**New functions in `src/Driver/Firebird/Connection.php`:**
 
-Modified functions:
-- `BatchTest::testBatchInsertBasic()` - Remove try/catch wrapper, call `$batch->execute()` directly
-- `BatchTest::testBatchInsertWithBlob()` - Remove try/catch wrapper, call `$batch->execute()` directly
-- `BatchTest::testBatchInsertPerformance()` - Remove try/catch wrapper, call `$batch->execute()` directly
+1. `Connection::registerResource(resource $resource): void` (private static)
+   - Registers a native fbird resource in the static registry
+   - Increments reference count for the resource ID
+   - Called in `__construct()` after successful connection
+
+2. `Connection::unregisterResource(resource $resource): bool` (private static)
+   - Decrements reference count for the resource ID
+   - Returns `true` if count reaches 0 (safe to close), `false` otherwise
+   - Called in `__destruct()` before deciding whether to call `fbird_close()`
+
+3. `Connection::getResourceRefCount(resource $resource): int` (public static)
+   - Returns current reference count for a resource (for diagnostics/testing)
+   - Used by diagnostic scripts to verify registry behavior
+
+**Modified functions in `src/Driver/Firebird/Connection.php`:**
+
+4. `Connection::__construct()` - Add `self::registerResource($this->connection)` call after storing the connection resource.
+
+5. `Connection::__destruct()` - Replace direct `fbird_close()` call with `if (self::unregisterResource($this->connection))` guard. Only close when reference count reaches 0.
+
+6. `Connection::createBatch(string $sql, TransactionManager|null $transaction): Batch` - Replace `Batch::fromQuery($query)` with `fbird_batch_create($query)` procedural call, wrapped in a thin `Batch` adapter if the return type requires it. If `Batch::fromQuery()` is the required return type, create a fallback path that tries OO first, then procedural.
+
+**Modified functions in `src/Driver/Firebird/TransactionManager.php`:**
+
+7. `TransactionManager::createTransaction()` - Add pre-check: after `$conn = $this->connection->getNativeConnection()`, verify `get_resource_type($conn)` is not `"Unknown"` before passing to `fbird_trans_start()`. Throw descriptive `DriverException` if resource is invalidated, rather than letting the C extension crash.
+
+**Modified functions in `tests/Test/FunctionalTestCase.php`:**
+
+8. `FunctionalTestCase::connect()` - When detecting an invalid Firebird connection, DO NOT call `self::$sharedConnection->close()`. Instead, set `self::$sharedConnection = null` and `TestUtil::resetSharedConnection()` (new method) to properly clear the cache without triggering `fbird_close()` on the shared resource.
+
+**New function in `tests/Test/TestUtil.php`:**
+
+9. `TestUtil::resetSharedConnection(): void` (public static) - Nulls out `self::$sharedConnection` without calling `close()`, preventing cascading `__destruct` calls that invalidate shared resources.
+
+**Modified functions in `tests/Test/Integration/AbstractIntegrationTestCase.php`:**
+
+10. `AbstractIntegrationTestCase::setUp()` - Add try/catch around `$this->connection->beginTransaction()`. On "OO API handle" or "Unknown" resource error, attempt to reset and recreate the driver-level transaction before failing.
 
 [Classes]
-No class changes.
+No new classes are introduced. All changes are method-level modifications to existing classes.
+
+**Modified classes:**
+
+1. `Connection` (`src/Driver/Firebird/Connection.php`)
+   - Add `private static array $resourceRegistry = []` property
+   - Add 3 new static methods for reference counting (`registerResource`, `unregisterResource`, `getResourceRefCount`)
+   - Modify `__construct()` to register resources
+   - Modify `__destruct()` to check reference count before closing
+   - Modify `createBatch()` to use procedural API fallback
+
+2. `TransactionManager` (`src/Driver/Firebird/TransactionManager.php`)
+   - Modify `createTransaction()` to validate resource type before `fbird_trans_start()`
+
+3. `FunctionalTestCase` (`tests/Test/FunctionalTestCase.php`)
+   - Modify `connect()` to avoid destructive `close()` on shared connections
+
+4. `AbstractIntegrationTestCase` (`tests/Test/Integration/AbstractIntegrationTestCase.php`)
+   - Modify `setUp()` with defensive connection recovery
+
+5. `TestUtil` (`tests/Test/TestUtil.php`)
+   - Add `resetSharedConnection()` static method
+
+6. `BatchTest` (`tests/Test/Functional/BatchTest.php`)
+   - Remove `skipIfKnownBatchHandleIssue()` workaround (after fix verification)
 
 [Dependencies]
-No dependency changes. `composer.json` already has `"ext-firebird": "^10.3.2"` which covers v10.3.7.
+No dependency changes required.
+
+The fix operates entirely within the existing dependency set:
+- `doctrine/dbal: ^3.6` (unchanged)
+- `ext-firebird: ^10.3.2` (unchanged, using v10.3.9)
+- No new Composer packages
+- No new PHP extensions
+
+The procedural functions `fbird_batch_create()`, `fbird_batch_add()`, `fbird_batch_execute()` are already available in php-firebird v10.3.9 and already imported in the codebase stubs (`stubs/firebird-stubs.php`).
 
 [Testing]
-Rebuild Docker app container and re-run full test suites on FB4 and FB5 to validate upstream fixes.
+Three-phase testing strategy: diagnostic scripts first, then unit/functional verification, then full suite regression.
 
-Validation commands:
+**Phase 1: Diagnostic Scripts (pre-fix verification)**
+
+1. `tests/debug/trace-handle-lifecycle.php` - Run inside Docker to confirm the exact point where `fbird_close()` invalidates the shared resource. Must be run BEFORE any code changes to establish baseline.
+
+2. `tests/debug/compare-batch-paths.php` - Run inside Docker to confirm `Batch::fromQuery()` fails while `fbird_batch_create()` succeeds on the same prepared statement.
+
+**Phase 2: Existing test suite verification (post-fix)**
+
+Run these suites to verify each fix:
+
 ```bash
-# Rebuild app container with v10.3.7
-cd tests && docker compose build --no-cache app
+# Bug 1 verification - should go from 9 errors to 0
+./tests/phpunit.sh -v 4 -- --testsuite Integration-ReadOnly
 
-# Verify extension version
-docker compose exec -T app php -r "echo phpversion('firebird') . PHP_EOL;"
-# Expected: 10.3.7
+# Bug 2 verification - should go from 3 errors to 0
+./tests/phpunit.sh -v 4 -- --filter BatchTest
 
-# FB4 Unit (quick sanity check)
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --testsuite=Unit 2>&1 | tail -5"
-
-# FB4 Integration-ReadOnly (validates #184 fix)
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --testsuite=Integration-ReadOnly 2>&1 | tail -10"
-
-# FB4 Functional with BatchTest (validates #185 fix)
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --filter=BatchTest 2>&1 | tail -15"
-
-# FB5 Full suite (validates #183 fix - should complete without SIGSEGV)
-docker compose exec -T -e DB_HOST=firebird5 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird5.xml 2>&1 | tail -10"
-
-# FB4 Full suite
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml 2>&1 | tail -10"
+# Unit tests - must remain at 1569 OK
+./tests/phpunit.sh -v 4 -- --testsuite Unit
 ```
 
-Expected results after v10.3.7:
-- Unit: 1569 OK (unchanged)
-- Integration-ReadOnly: 24/24 pass on both FB4 and FB5 (was 15/24 on FB5)
-- Functional BatchTest: 3/3 pass (was 3/3 skipped)
-- Full suite: Completes with exit code 0 (was SIGSEGV at 65%)
+**Phase 3: Full suite regression (after Bug 1 + Bug 2 fixes)**
+
+```bash
+# Bug 3 verification - should complete without SIGSEGV
+./tests/phpunit.sh -v 4 --
+```
+
+**Phase 4: Static analysis**
+
+```bash
+# PHPStan Level 8 must remain at 0 errors
+docker compose -f tests/docker-compose.yml run --rm -T app \
+  php vendor/bin/phpstan analyse -c phpstan.neon.dist --memory-limit=512M
+```
+
+**Modified test files:**
+- `tests/Test/Functional/BatchTest.php` - Remove `skipIfKnownBatchHandleIssue()` calls from all 3 test methods after batch fix is verified working.
+
+**Success criteria:**
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Integration-ReadOnly errors | 9 | 0 |
+| BatchTest errors | 3 | 0 |
+| Full-suite SIGSEGV | Crash at ~65% | Complete run |
+| Unit tests | 1569 OK | 1569 OK |
+| PHPStan Level 8 | 0 errors | 0 errors |
 
 [Implementation Order]
-Sequential steps to minimize risk with validation at each stage.
+Ordered sequence to minimize conflicts: diagnostics first, then Bug 1 (highest impact), Bug 2 (independent), then Bug 3 verification.
 
-1. Update `tests/app/Dockerfile` to checkout v10.3.7 (update version comments and git checkout tag)
-2. Rebuild Docker app container (`docker compose build --no-cache app`)
-3. Verify php-firebird 10.3.7 is loaded in container
-4. Run FB4 Unit suite (quick sanity - should remain 1569 OK)
-5. Run FB4 Integration-ReadOnly (validates #184 OO API handle fix)
-6. Run FB4 BatchTest only (validates #185 IBatch fix - expect pass not skip)
-7. Remove `skipIfKnownBatchHandleIssue()` and try/catch wrappers from BatchTest
-8. Run FB4 BatchTest again to confirm tests pass without workaround
-9. Run FB5 full suite (validates #183 SIGSEGV fix - expect clean exit)
-10. Run FB4 full suite (validate clean exit)
-11. Update NEXT_STEPS.md with new baseline and v10.3.7 status
-12. Commit all changes
-13. Close upstream issues #183, #184, #185 with validation results
-14. Close doctrine-firebird-driver #97
-15. Push to origin
+1. **Create diagnostic scripts** (`tests/debug/trace-handle-lifecycle.php` and `tests/debug/compare-batch-paths.php`). Run both inside Docker to confirm hypotheses before making code changes.
+
+2. **Add connection reference registry to `Connection`** - Add `$resourceRegistry` static property and `registerResource()`, `unregisterResource()`, `getResourceRefCount()` methods. Modify `__construct()` to register. Modify `__destruct()` to check count before `fbird_close()`.
+
+3. **Add resource validation to `TransactionManager::createTransaction()`** - Check `get_resource_type($conn) !== 'Unknown'` before calling `fbird_trans_start()`. Throw descriptive `DriverException` on invalid resource.
+
+4. **Fix `FunctionalTestCase::connect()` reconnection path** - Replace destructive `close()` with graceful `null` assignment. Add `TestUtil::resetSharedConnection()` method.
+
+5. **Add defensive recovery to `AbstractIntegrationTestCase::setUp()`** - Wrap `beginTransaction()` in try/catch with resource recovery fallback.
+
+6. **Run Integration-ReadOnly suite** - Verify 24 tests pass with 0 errors.
+
+7. **Fix `Connection::createBatch()` to use procedural API** - Replace `Batch::fromQuery($query)` with `fbird_batch_create($query)` fallback path.
+
+8. **Run BatchTest suite** - Verify 3 tests pass with 0 errors. Remove `skipIfKnownBatchHandleIssue()` workaround.
+
+9. **Run full test suite** - Verify no SIGSEGV. If crash persists, investigate with `--stop-on-error` and GDB.
+
+10. **Run PHPStan Level 8** - Verify 0 errors.
+
+11. **Update `NEXT_STEPS.md`** - Mark Phase 2.5 items 11-14 as completed, update test baselines.
+
+12. **Commit and push** - Atomic commit per fix (Bug 1, Bug 2, cleanup) on `001-quality-improvements` branch.

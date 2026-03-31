@@ -345,9 +345,20 @@ final class TransactionManager
             $options['lock_timeout']    = $this->waitTimeout;
         }
 
+        $conn = $this->connection->getNativeConnection();
+
+        // Validate the native resource before passing to fbird_trans_start().
+        // If fbird_close() was called on a shared resource, the C struct's
+        // fbc_connection pointer is NULL, causing "Connection has no OO API handle".
+        if (! is_resource($conn) || get_resource_type($conn) === 'Unknown') {
+            throw new DriverException(
+                'Native connection resource is invalid (closed or destroyed). '
+                . 'This typically happens when a shared connection resource was closed '
+                . 'by another Connection object\'s destructor.',
+            );
+        }
+
         try {
-            $conn = $this->connection->getNativeConnection();
-            assert(is_resource($conn));
             /** @phpstan-ignore argument.type */
             $transaction = fbird_trans_start($conn, $options);
         } catch (Throwable $e) {

@@ -232,15 +232,13 @@ abstract class FunctionalTestCase extends TestCase
             }
 
             if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
-                // Connection resource is invalid - need to reconnect
-                try {
-                    self::$sharedConnection?->close();
-                } catch (Throwable) {
-                    // Ignore close errors on invalid connection
-                }
-
+                // Connection resource is invalid - need to reconnect.
+                // Use graceful null assignment instead of close() to avoid
+                // triggering __destruct() which calls fbird_close() on the
+                // shared native resource, invalidating it for other objects.
                 self::$sharedConnection = null;
-                $needNewConnection      = true;
+                TestUtil::resetSharedConnection();
+                $needNewConnection = true;
             }
         }
 

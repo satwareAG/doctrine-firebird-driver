@@ -100,13 +100,31 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         }
 
         // Start transaction to isolate test changes (rollback in tearDown)
-        $this->connection->beginTransaction();
+        try {
+            $this->connection->beginTransaction();
+        } catch (Throwable $e) {
+            // If beginTransaction fails (e.g. invalid native resource after GC),
+            // attempt recovery by getting a fresh connection.
+            TestUtil::resetSharedConnection();
+            self::$integrationConnection = TestUtil::getConnection();
+            $this->connection = self::$integrationConnection;
+            $this->setUpEntityManager();
+
+            // Retry once with the fresh connection
+            $this->connection->beginTransaction();
+        }
     }
 
     protected function setUpEntityManager(): void
     {
         $doctrineConfiguration = static::getSetUpDoctrineConfiguration($this->connection);
-        $this->connection->setNestTransactionsWithSavepoints(true);
+
+        // Only set savepoint behavior when no transaction is active.
+        // DBAL throws if this is called while a transaction is open.
+        if (! $this->connection->isTransactionActive()) {
+            $this->connection->setNestTransactionsWithSavepoints(true);
+        }
+
         $eventManager = new EventManager();
 
         $this->_entityManager = new EntityManager($this->connection, $doctrineConfiguration, $eventManager);

@@ -238,7 +238,7 @@ class Database
  */
 class Batch
 {
-    public function __construct(mixed $connection, string $sql, mixed $transResource) {}
+    private function __construct() {}
 
     /**
      * Create a Batch from a prepared query resource.

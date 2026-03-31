@@ -10,8 +10,6 @@ use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
-use Firebird\Batch;
-use Firebird\BatchResult;
 use Firebird\Connection as FirebirdConnection;
 use Firebird\Database;
 use Firebird\DbInfo;
@@ -46,6 +44,7 @@ use function fbird_reconnect_transaction;
 use function fbird_rollback;
 use function fbird_set_exception_mode;
 use function file_exists;
+use function get_resource_id;
 use function get_resource_type;
 use function in_array;
 use function is_dir;
@@ -56,6 +55,7 @@ use function is_resource;
 use function is_scalar;
 use function is_string;
 use function method_exists;
+use function spl_object_id;
 use function preg_match;
 use function sprintf;
 use function str_contains;
@@ -90,6 +90,14 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private readonly TransactionManager $transactionManager;
 
     /**
+     * Static registry tracking how many Connection objects reference each native resource.
+     * Prevents premature fbird_close() when multiple DBAL layers share the same resource.
+     *
+     * @var array<int, int> Resource/object ID => reference count
+     */
+    private static array $resourceRegistry = [];
+
+    /**
      * Load Firebird OO API classes if they are available as PHP files.
      * Some extension releases provide them in /usr/local/lib/php/Firebird.
      */
@@ -109,6 +117,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         array $params,
     ) {
         self::loadOoApi();
+
+        // Register this Connection object's reference to the native resource
+        $this->registerResource();
 
         $this->parser             = new Parser(false);
         $this->transactionManager = new TransactionManager($this);
@@ -131,6 +142,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     public function __destruct()
     {
+        // Save resource ID early for registry cleanup (before any nullification)
+        $resourceId = $this->getResourceId();
+
         $connectionClosable = false;
         if ($this->isConnectionValid()) {
             // php-firebird v10.0.0+: Connection objects are always closable (non-persistent)
@@ -170,12 +184,21 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             $this->transactionManager->reset();
         }
 
+        // Unregister this Connection's reference to the native resource
+        self::unregisterResourceById($resourceId);
+
+        // Only close the native resource if no other Connection objects reference it
         if ($connectionClosable) {
-            /** @phpstan-ignore argument.type (v10.0.0+: fbird_close() accepts Connection objects) */
-            fbird_close($this->connection);
+            $remainingRefs = $resourceId !== null
+                ? (self::$resourceRegistry[$resourceId] ?? 0)
+                : 0;
+
+            if ($remainingRefs === 0) {
+                /** @phpstan-ignore argument.type (v10.0.0+: fbird_close() accepts Connection objects) */
+                fbird_close($this->connection);
+            }
         }
 
-        unset($this->connection);
         $this->connection = null;
     }
 
@@ -697,11 +720,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * @param string                  $sql         INSERT statement with placeholders
      * @param TransactionManager|null $transaction Optional transaction (uses active if null)
      *
-     * @return Batch Batch object for adding rows and executing
+     * @return ProceduralBatch Batch object for adding rows and executing
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function createBatch(string $sql, TransactionManager|null $transaction = null): Batch
+    public function createBatch(string $sql, TransactionManager|null $transaction = null): ProceduralBatch
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
@@ -736,14 +759,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
         }
 
-        try {
-            /** @phpstan-ignore arguments.count */
-            $query = fbird_prepare_ex($this->connection, $sql, $transResource);
-        } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
-        }
-
-        return Batch::fromQuery($query);
+        // Use procedural fbird_batch_* API via ProceduralBatch wrapper.
+        // The OO Firebird\Batch class has a private constructor and Batch::fromQuery()
+        // fails with "invalid batch handle" in php-firebird v10.3.9.
+        /** @phpstan-ignore argument.type (connection validated above; transResource null-checked above) */
+        return new ProceduralBatch($this->connection, $sql, $transResource);
     }
 
     /**
@@ -753,11 +773,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
      * @param TransactionManager|null              $transaction Optional transaction
      *
-     * @return BatchResult Result with row counts and any errors
+     * @return ProceduralBatchResult Result with row counts and any errors
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function executeBatch(string $sql, array $rows, TransactionManager|null $transaction = null): BatchResult
+    public function executeBatch(string $sql, array $rows, TransactionManager|null $transaction = null): ProceduralBatchResult
     {
         $batch = $this->createBatch($sql, $transaction);
 
@@ -837,6 +857,74 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
+    }
+
+    // =========================================================================
+    // Resource Reference Registry - prevents premature fbird_close()
+    // =========================================================================
+
+    /**
+     * Get the unique ID for the current native connection resource/object.
+     */
+    private function getResourceId(): int|null
+    {
+        if ($this->connection === null) {
+            return null;
+        }
+
+        if (is_resource($this->connection)) {
+            return get_resource_id($this->connection);
+        }
+
+        if (is_object($this->connection)) {
+            return spl_object_id($this->connection);
+        }
+
+        return null;
+    }
+
+    /**
+     * Register this Connection object's reference to the native resource.
+     */
+    private function registerResource(): void
+    {
+        $id = $this->getResourceId();
+        if ($id !== null) {
+            self::$resourceRegistry[$id] = (self::$resourceRegistry[$id] ?? 0) + 1;
+        }
+    }
+
+    /**
+     * Unregister a resource reference by its ID.
+     */
+    private static function unregisterResourceById(int|null $resourceId): void
+    {
+        if ($resourceId === null || ! isset(self::$resourceRegistry[$resourceId])) {
+            return;
+        }
+
+        self::$resourceRegistry[$resourceId]--;
+        if (self::$resourceRegistry[$resourceId] <= 0) {
+            unset(self::$resourceRegistry[$resourceId]);
+        }
+    }
+
+    /**
+     * Get the reference count for a native resource (for testing/debugging).
+     *
+     * @param resource|object $resource Native connection resource or object
+     */
+    public static function getResourceRefCount(mixed $resource): int
+    {
+        if (is_resource($resource)) {
+            $id = get_resource_id($resource);
+        } elseif (is_object($resource)) {
+            $id = spl_object_id($resource);
+        } else {
+            return 0;
+        }
+
+        return self::$resourceRegistry[$id] ?? 0;
     }
 
     /** @param resource $resource */

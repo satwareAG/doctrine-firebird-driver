@@ -130,6 +130,16 @@ class TestUtil
         return self::$sharedConnection;
     }
 
+    /**
+     * Reset the shared connection cache without calling close().
+     * Used when the underlying native resource has been invalidated
+     * and we need a fresh connection on next getConnection() call.
+     */
+    public static function resetSharedConnection(): void
+    {
+        self::$sharedConnection = null;
+    }
+
     /** @return mixed[] */
     public static function getConnectionParams(): array
     {
