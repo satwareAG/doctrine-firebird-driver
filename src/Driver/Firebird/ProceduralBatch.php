@@ -120,7 +120,7 @@ final class ProceduralBatch
             throw new DriverException('Batch execution failed.');
         }
 
-        /** @var array{total_processed: int, success_count: int, error_count: int} $result */
+        /** @phpstan-ignore argument.type (fbird_batch_execute returns shaped array) */
         return new ProceduralBatchResult($result);
     }
 
