@@ -10,7 +10,6 @@ use Doctrine\DBAL\Types\Types;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
-use Throwable;
 
 use function array_change_key_case;
 
@@ -320,12 +319,15 @@ class TransactionTest extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 100, 'val' => 'serializable']);
         $this->connection->commit();
 
-        // No verification query here: Firebird SERIALIZABLE (SNAPSHOT TABLE
-        // STABILITY) acquires exclusive locks on RDB$RELATIONS. The auto-commit
-        // transaction created after commit() inherits SERIALIZABLE through
-        // DBAL's multi-layer middleware, causing lock conflicts on any
-        // subsequent query. The successful insert + commit above is sufficient
-        // proof that SERIALIZABLE mode works correctly.
+        // Close the connection immediately to discard the SERIALIZABLE
+        // auto-commit transaction. TransactionManager::commit() creates a new
+        // auto-commit tx using the CURRENT isolation level (SERIALIZABLE),
+        // which acquires exclusive locks on RDB$RELATIONS (SNAPSHOT TABLE
+        // STABILITY). setAttribute() only affects future transaction creation,
+        // not the already-running auto-commit tx. Closing forces DBAL to
+        // reconnect fresh with READ_COMMITTED when needed.
+        $this->connection->close();
+
         self::assertTrue(true);
     }
 
@@ -499,20 +501,6 @@ class TransactionTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        // Close the connection before parent::tearDown() to prevent lock
-        // conflicts after SERIALIZABLE tests. TransactionManager::commit()
-        // immediately creates a new auto-commit transaction using the CURRENT
-        // isolation level. setAttribute() only changes the property for future
-        // transaction creation - it cannot fix an already-running SERIALIZABLE
-        // auto-commit transaction. Closing forces DBAL to reconnect fresh
-        // with the default READ_COMMITTED isolation when parent::tearDown()
-        // queries system tables for cleanup.
-        try {
-            $this->connection->close();
-        } catch (Throwable) {
-            // Ignore - connection may already be closed
-        }
-
         $this->markConnectionNotReusable();
 
         parent::tearDown();
