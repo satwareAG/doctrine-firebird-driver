@@ -138,6 +138,26 @@ jobs:
           php -r "if (!extension_loaded('firebird')) { exit(1); }"
           Write-Host "✅ php-firebird extension loaded successfully"
 
+      - name: Create test database
+        shell: pwsh
+        run: |
+          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
+          $dbPath = "C:\firebird_tests\test.fdb"
+          
+          if (-not (Test-Path $dbPath)) {
+            Write-Host "Creating test database at $dbPath..."
+            $sql = "CREATE DATABASE '$dbPath' user 'SYSDBA' password 'masterkey' DEFAULT CHARACTER SET UTF8;"
+            echo $sql | & "$fbDir\isql.exe" -q 2>&1
+            if (Test-Path $dbPath) {
+              Write-Host "✅ Test database created"
+            } else {
+              Write-Warning "Database file not created, trying alternative method..."
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -e -i NUL -input "CREATE DATABASE 'localhost:$dbPath' user 'SYSDBA' password 'masterkey' DEFAULT CHARACTER SET UTF8;" 2>&1
+            }
+          } else {
+            Write-Host "✅ Test database already exists"
+          }
+
       - name: Install dependencies
         run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
