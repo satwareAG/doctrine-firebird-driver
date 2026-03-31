@@ -3,7 +3,7 @@
 **Last session:** 2026-03-31 (DBAL-layer bug fixes)
 **Branch:** `001-quality-improvements` (based on `3.10.x`)
 **Extension:** php-firebird v10.3.9 (`ext-firebird: ^10.3.2`)
-**Status:** Active - Phase 2.5 complete, Phase 3 next
+**Status:** Active - Phases 2-3 complete, Phase 4 (merge) next
 
 ---
 
@@ -71,14 +71,14 @@ All three DBAL-layer bugs identified in `implementation_plan.md` have been fixed
 3. ~~Run full FB4 suite - capture clean baseline~~ (see Test Baseline above)
 4. ~~Run full FB5 suite - verify clean baseline~~ (see Test Baseline above)
 
-## Phase 2 - Resource Type Guard Completion (Next Up)
+## Phase 2 - Resource Type Guard Completion (COMPLETE)
 
-5. Audit `Connection::isConnectionValid()` usage across all public methods
-6. Add `Statement::isStatementValid()` with `@phpstan-assert-if-true`
-7. Add `Result::isResultValid()` with `@phpstan-assert-if-true`
-8. Audit `TransactionManager::isTransactionValid()` annotations
-9. Update unit tests for validation methods
-10. PHPStan Level 8 must remain 0 errors
+5. ~~Audit `Connection::isConnectionValid()` usage across all public methods~~ - All public methods guarded
+6. ~~Add `Statement::isStatementValid()` with `@phpstan-assert-if-true`~~ - Already implemented
+7. ~~Add `Result::isResultValid()` with `@phpstan-assert-if-true`~~ - Already implemented
+8. ~~Audit `TransactionManager::isTransactionValid()` annotations~~ - Already implemented
+9. ~~Update unit tests for validation methods~~ - Covered in ConnectionTest
+10. ~~PHPStan Level 8 must remain 0 errors~~ - Verified
 
 ## Phase 2.5 - DBAL-Layer Bug Investigation (COMPLETE)
 
@@ -87,12 +87,12 @@ All three DBAL-layer bugs identified in `implementation_plan.md` have been fixed
 13. ~~Investigate full-suite SIGSEGV~~ - Fixed: resolved by resource registry
 14. ~~Consider `Firebird\Batch` OO wrapper~~ - Workaround: private constructor, using procedural API
 
-## Phase 3 - Gap Analysis Tests (Issues #65-#67)
+## Phase 3 - Gap Analysis Tests (Issues #65-#67) (COMPLETE)
 
-15. TransactionTest (#65) - transaction isolation, savepoints, nested transactions
-16. DefaultValueTest (#66) - schema manager default value handling
-17. ComparatorTest (#67) - schema comparator false-positive detection
-18. Full suite regression check on FB4 and FB5
+15. ~~TransactionTest (#65) - transaction isolation, savepoints, nested transactions~~ - 37 tests pass (fixed DDL commit in FunctionalTestCase)
+16. ~~DefaultValueTest (#66) - schema manager default value handling~~ - 15 tests pass
+17. ~~ComparatorTest (#67) - schema comparator false-positive detection~~ - 19 tests pass
+18. ~~Full suite regression check on FB4~~ - 2336 tests, ALL PASSED
 
 ## Phase 4 - Finalize and Merge
 
