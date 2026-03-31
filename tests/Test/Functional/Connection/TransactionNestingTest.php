@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
-use ReflectionClass;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
@@ -65,18 +64,14 @@ class TransactionNestingTest extends FunctionalTestCase
 
         $conn = $this->getFirebirdConnection();
         if ($conn) {
-            $ref   = new ReflectionClass($conn);
-            $prop  = $ref->getProperty('fbirdTransactionLevel');
-            $level = $prop->getValue($conn);
-
-            while ($level > 0) {
+            // Roll back any nested transactions (bounded loop instead of
+            // Reflection on internal properties that may be refactored).
+            for ($i = 0; $i < 10; $i++) {
                 try {
                     $conn->rollBack();
                 } catch (Throwable) {
                     break;
                 }
-
-                $level--;
             }
         }
 
