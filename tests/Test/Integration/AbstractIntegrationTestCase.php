@@ -235,8 +235,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                 ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3],
             ],
             'SONG' => [
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => 0],
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => 1],
+                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => false],
+                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => true],
             ],
             'Album_SongMap' => [
                 ['album_id' => 1, 'song_id' => 1],
@@ -254,12 +254,16 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                     if (is_string($val)) {
                         $values[] = "'" . str_replace("'", "''", $val) . "'";
                     } elseif (is_bool($val)) {
-                        $values[] = $val ? '1' : '0';
+                        $values[] = $val ? 'TRUE' : 'FALSE';
                     } else {
                         $values[] = (string) $val;
                     }
                 }
-                $seedSql .= 'INSERT INTO "' . $table . '" (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
+                // Use uppercase table name without quotes - Firebird stores unquoted
+                // identifiers as uppercase, and the DDL from Schema::toSql() generates
+                // unquoted table names. Using "Album_SongMap" (quoted mixed-case) would
+                // fail because the catalog entry is ALBUM_SONGMAP.
+                $seedSql .= 'INSERT INTO ' . strtoupper($table) . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
             }
         }
 
