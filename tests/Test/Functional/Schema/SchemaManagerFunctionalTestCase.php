@@ -1857,6 +1857,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $platform = $this->connection->getDatabasePlatform();
 
+        // Reset any schema assets filter set by tests (e.g. testListTablesWithFilter).
+        // Without this, listTableNames() below would only return filtered results,
+        // causing tables like FILTER_TEST_2 to be missed and not dropped.
+        $this->connection->getConfiguration()->setSchemaAssetsFilter(null);
+
         // OPTIMIZATION: Query existing tables/views once to avoid exception overhead
         try {
             $existingTables = array_map('strtolower', $this->schemaManager->listTableNames());
