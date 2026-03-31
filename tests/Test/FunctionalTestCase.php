@@ -163,7 +163,40 @@ abstract class FunctionalTestCase extends TestCase
             }
         }
 
-        $schemaManager->createTable($table);
+        // Retry logic: dropTableIfExists() may silently fail when the table is
+        // locked by a lingering connection (it swallows "in use" errors after
+        // retries). If createTable() hits "already exists", force a fresh
+        // drop-commit-create cycle.
+        try {
+            $schemaManager->createTable($table);
+        } catch (Throwable $e) {
+            if (! str_contains($e->getMessage(), 'already exists')
+                && ! str_contains($e->getMessage(), 'ALREADY EXISTS')
+            ) {
+                throw $e;
+            }
+
+            // Table survived the first drop — retry with a fresh connection state
+            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+                try {
+                    $fbirdConn->rollBack();
+                } catch (Throwable) {
+                }
+            }
+
+            usleep(100_000); // 100ms — let Firebird release metadata locks
+            $this->dropTableIfExists($tableName);
+
+            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+                try {
+                    $fbirdConn->commit();
+                } catch (Throwable) {
+                }
+            }
+
+            $schemaManager->createTable($table);
+        }
+
         $this->createdTables[] = $tableName;
     }
 
