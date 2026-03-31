@@ -172,6 +172,39 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $user = self::DEFAULT_DATABASE_USERNAME;
         $pass = self::DEFAULT_DATABASE_PASSWORD;
 
+        // Clean existing objects first (idempotent re-creation).
+        // Uses WHEN ANY DO inside loops so individual failures don't abort the block.
+        $cleanupSql = "EXECUTE BLOCK AS\n"
+            . "  DECLARE cname VARCHAR(63);\n"
+            . "  DECLARE tname VARCHAR(63);\n"
+            . "BEGIN\n"
+            . "  FOR SELECT rc.RDB\$CONSTRAINT_NAME, rc.RDB\$RELATION_NAME\n"
+            . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
+            . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
+            . "      INTO :cname, :tname DO\n"
+            . "  BEGIN\n"
+            . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
+            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+            . "  END\n"
+            . "END;\n"
+            . "EXECUTE BLOCK AS\n"
+            . "  DECLARE tname VARCHAR(63);\n"
+            . "BEGIN\n"
+            . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+            . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
+            . "      INTO :tname DO\n"
+            . "  BEGIN\n"
+            . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
+            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+            . "  END\n"
+            . "END;\n";
+
+        try {
+            TestUtil::runIsql($cleanupSql, $isqlDbPath, $user, $pass, $host);
+        } catch (Throwable) {
+            // Cleanup errors are non-fatal (tables may not exist yet)
+        }
+
         // Build schema
         $schema = new Schema();
         $tAlbum = $schema->createTable('ALBUM');
