@@ -131,6 +131,9 @@ class PortabilityTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
+        // Free cursor/result objects that hold Firebird metadata locks
+        gc_collect_cycles();
+
         // the connection that overrides the shared one has to be manually closed prior to 4.0.0 to prevent leak
         // see https://github.com/doctrine/dbal/issues/4515
         $this->markConnectionNotReusable();

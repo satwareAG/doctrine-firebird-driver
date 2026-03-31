@@ -77,21 +77,19 @@ class ConnectionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection->getWrappedConnection();
 
+        // Access TransactionManager via Reflection, then use its public API
         $reflectionObject = new ReflectionObject($connection);
+        $tmProperty = $reflectionObject->getProperty('transactionManager');
+        $transactionManager = $tmProperty->getValue($connection);
 
-        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty('fbirdTransactionLevel');
-        $level = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
-
-        $reflectionPropertyIbaseTransactionLevel = $reflectionObject->getProperty('fbirdTransactionLevel');
-        $level                                    = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
-        $reflectionPropertyIbaseActiveTransaction = $reflectionObject->getProperty('firebirdActiveTransaction');
-        $transactionA = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
+        $level = $transactionManager->getLevel();
+        $transactionA = $transactionManager->getActiveTransaction();
         self::assertSame(0, $level);
         self::assertIsResource($transactionA);
 
         $connection->beginTransaction();
-        $level        = $reflectionPropertyIbaseTransactionLevel->getValue($connection);
-        $transactionB = $reflectionPropertyIbaseActiveTransaction->getValue($connection);
+        $level = $transactionManager->getLevel();
+        $transactionB = $transactionManager->getActiveTransaction();
         self::assertSame(1, $level);
         self::assertIsResource($transactionB);
         self::assertNotSame($transactionA, $transactionB);
