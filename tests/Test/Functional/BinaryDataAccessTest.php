@@ -21,10 +21,7 @@ use const CASE_LOWER;
 
 class BinaryDataAccessTest extends FunctionalTestCase
 {
-    public function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-    }
+    private static bool $tableCreated = false;
 
     public function testPrepareWithBindValue(): void
     {
@@ -337,12 +334,20 @@ class BinaryDataAccessTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('binary_fetch_table');
-        $table->addColumn('test_int', 'integer');
-        $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
-        $table->setPrimaryKey(['test_int']);
+        // Create table only once per process to avoid Firebird metadata lock
+        // issues when markConnectionNotReusable() forces connection cycling.
+        if (! self::$tableCreated) {
+            $table = new Table('binary_fetch_table');
+            $table->addColumn('test_int', 'integer');
+            $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
+            $table->setPrimaryKey(['test_int']);
 
-        $this->dropAndCreateTable($table);
+            $this->dropAndCreateTable($table);
+            self::$tableCreated = true;
+        } else {
+            // Clean up data from previous test (DML only, no DDL locks)
+            $this->connection->executeStatement('DELETE FROM binary_fetch_table');
+        }
 
         $this->connection->insert('binary_fetch_table', [
             'test_int' => 1,
