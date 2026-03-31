@@ -166,6 +166,22 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             return;
         }
 
+        // Cross-process guard: each CI step runs a separate PHPUnit process,
+        // so static $databaseInstalled resets. Check the DB directly: if seed
+        // data already exists with the correct count, skip re-installation.
+        // This avoids double-seeding (ALBUM rows: 4) caused by isql cleanup
+        // failing to DROP tables when metadata locks persist.
+        try {
+            $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
+            if ($albumCount === 2) {
+                self::$databaseInstalled = true;
+                echo "[DIAG] Database already seeded (ALBUM rows: {$albumCount}), skipping re-installation\n";
+                return;
+            }
+        } catch (Throwable) {
+            // Table doesn't exist yet - proceed with installation
+        }
+
         // WORKAROUND: php-firebird v8.2.0 silently drops DDL/DML on newly
         // created databases (tables not created, rows not inserted) despite
         // no errors thrown. We execute all DDL + DML via isql subprocess which
