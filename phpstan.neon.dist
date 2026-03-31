@@ -13,7 +13,7 @@ parameters:
     scanFiles:
         - vendor/satwareag/php-firebird-stubs/firebird-stubs.php
         - vendor/satwareag/php-firebird-stubs/firebird-classes.php
-        - stubs/firebird-stubs.php
+        - stubs/firebird-batch-stubs.php
         - stubs/firebird-userland-classes.php
         - stubs/firebird-v10-functions.php
     bootstrapFiles:
