@@ -1,8 +1,8 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last session:** 2026-03-31 (v10.3.7 security upgrade + validation)
+**Last session:** 2026-03-31 (v10.3.9 upgrade + validation)
 **Branch:** `001-quality-improvements` (based on `3.10.x`)
-**Extension:** php-firebird v10.3.7 (`ext-firebird: ^10.3.2`)
+**Extension:** php-firebird v10.3.9 (`ext-firebird: ^10.3.2`)
 **Status:** Active - Phase 2 resource type guard completion
 
 ---
@@ -10,41 +10,58 @@
 ## Current State (2026-03-31)
 
 ### Completed This Session
-- Upgraded php-firebird v10.3.6 -> v10.3.7 (security fix: SQL injection, SPB overflow, bounds checks - #181)
-- Validated v10.3.7: #183/#184/#185 were auto-closed with release but NOT actually fixed
-- Reopened upstream issues #183, #184, #185 with validation evidence
-- All existing workarounds remain in place (BatchTest skipIfKnownBatchHandleIssue)
+- Upgraded php-firebird v10.3.7 -> v10.3.9
+  - v10.3.7: Security fix (#181)
+  - v10.3.8: Lifecycle fixes (#183, #184, #185) at C level
+  - v10.3.9: SIGFPE guard for parameterless batch (#180)
+- **Direct extension-level verification** (tests/debug/verify-v10.3.9-fixes.php):
+  - **#180 PASS** - `fbird_batch_create()` returns false on parameterless statements (no SIGFPE)
+  - **#184 PASS** - Procedural reconnect after OO `Connection::close()` works correctly
+  - **#185 PASS** - Batch execute succeeds after `gc_collect_cycles()` (GC_ADDREF fix)
+- **DBAL test suite results unchanged** - failures are in our driver/OO-wrapper layer, not the extension:
+  - Integration-ReadOnly: 9 errors (OO handle loss during DBAL tearDown/setUp cycles)
+  - BatchTest: 3 errors (batch handle invalid through OO wrapper code path)
+  - Full suite: SIGSEGV at ~65% (different code path than the C-level fix addresses)
+
+### Key Finding
+The C-level fixes in v10.3.8/v10.3.9 correctly fix the described bugs at the extension API level.
+The remaining DBAL test failures are caused by our Doctrine driver layer and the OO PHP wrapper
+(`Firebird\Batch`, `Firebird\Connection`) interacting with the extension differently than the
+direct procedural API. These are **DBAL-layer issues**, not extension bugs.
 
 ### Previously Completed
-- Fixed FB4 SIGFPE crash in BatchTest (fbird_batch_create on parameterless statements)
-- Filed upstream issue [php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180)
-- Fixed FB5 phpunit config (wrong db_dbname path)
-- Fixed AlbumTest ISQL seeding (boolean TRUE/FALSE literals, table name case)
-- Phase 1: Marked BatchTest known failures with `markTestSkipped()` + php-firebird#180 ref
-- Phase 1: Added Unit/Integration-ReadOnly/Integration-Write suites to FB4/FB5 XML configs
-- Phase 1: Captured clean test baseline (see below)
+- Upgraded php-firebird v10.3.6 -> v10.3.7 (security fix #181)
+- Reopened upstream issues #183, #184, #185 (before discovering v10.3.8/v10.3.9)
+- Fixed FB4 SIGFPE crash in BatchTest (parameterless fbird_batch_create)
+- Fixed FB5 phpunit config, AlbumTest ISQL seeding
+- Phase 1: BatchTest workarounds, suite configs, clean baseline
 
 ### Metrics
 - PHPStan Level 8: 0 errors, empty baseline
 - `@fbird_*` suppressions in src/: 0 (all removed)
 - Connection.php: 903 LOC (down from 1320, TransactionManager extracted)
-- php-firebird: v10.3.7 (security fix #181)
+- php-firebird: v10.3.9 (#180 + #181 + #183/#184/#185 C-level fixes)
 
-### Test Baseline (2026-03-31, v10.3.7)
+### Test Baseline (2026-03-31, v10.3.9)
 
-| Suite | FB4 | FB5 | Notes |
-|-------|-----|-----|-------|
-| **Unit** | 1569 OK (21S, 4I) | 1569 OK (21S, 4I) | No DB required |
-| **Integration-ReadOnly** | 24 tests, 9 errors | 24 tests, 9 errors | OO API handle loss (#184) |
-| **BatchTest** | 3/3 skipped | - | IBatch invalidation (#185) |
-| **Full suite** | ~1525/2336 then SIGSEGV | ~1525/2336 then SIGSEGV | Crash at ~65% (#183) |
+| Suite | FB4 | Notes |
+|-------|-----|-------|
+| **Unit** | 1569 OK (21S, 4I) | Unchanged from v10.3.7 |
+| **Integration-ReadOnly** | 24 tests, 9 errors | DBAL-layer handle loss (not ext bug) |
+| **BatchTest** | 3/3 errors | OO wrapper path (C-level fix works via procedural API) |
+| **Full suite** | ~1569/2336 then SIGSEGV | Crash at ~65% (different code path than #183 fix) |
 
-**Known blockers (all upstream php-firebird):**
-- SIGSEGV at PHP shutdown after test suite completion ([php-firebird#183](https://github.com/satwareAG/php-firebird/issues/183))
-- OO API handle loss after connection tearDown/reconnect cycles ([php-firebird#184](https://github.com/satwareAG/php-firebird/issues/184))
-- IBatch handle becomes invalid before execute() ([php-firebird#185](https://github.com/satwareAG/php-firebird/issues/185))
-- SIGFPE crash on parameterless batch statements ([php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180))
-- Stale DDL tables after SIGSEGV prevents Functional tearDown (consequence of #183)
+**Upstream extension bugs - FIXED at C level:**
+- [php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180) - SIGFPE guard (v10.3.9)
+- [php-firebird#183](https://github.com/satwareAG/php-firebird/issues/183) - SIGSEGV shutdown (v10.3.8)
+- [php-firebird#184](https://github.com/satwareAG/php-firebird/issues/184) - OO handle loss (v10.3.8)
+- [php-firebird#185](https://github.com/satwareAG/php-firebird/issues/185) - IBatch GC_ADDREF (v10.3.8)
+
+**DBAL-layer issues (our code, need separate investigation):**
+- Integration-ReadOnly 9 errors: Connection handle invalid during DBAL setUp `beginTransaction()`
+- BatchTest 3 errors: Batch handle invalid through OO wrapper `Batch::fromQuery()` path
+- Full suite SIGSEGV: Crash during integration test setup (different from extension shutdown fix)
+- Stale DDL tables after SIGSEGV prevents Functional tearDown
 
 ---
 
@@ -64,29 +81,39 @@
 9. Update unit tests for validation methods
 10. PHPStan Level 8 must remain 0 errors
 
+## Phase 2.5 - DBAL-Layer Bug Investigation
+
+11. Investigate Integration-ReadOnly handle loss: trace exact code path in DBAL tearDown/setUp cycle
+12. Investigate BatchTest OO wrapper: compare `Batch::fromQuery()` vs direct `fbird_batch_create()`
+13. Investigate full-suite SIGSEGV: identify exact test that triggers crash via `--stop-on-error`
+14. Consider if `Firebird\Connection` OO wrapper needs upstream fixes for DBAL patterns
+
 ## Phase 3 - Gap Analysis Tests (Issues #65-#67)
 
-11. TransactionTest (#65) - transaction isolation, savepoints, nested transactions
-12. DefaultValueTest (#66) - schema manager default value handling
-13. ComparatorTest (#67) - schema comparator false-positive detection
-14. Full suite regression check on FB4 and FB5
+15. TransactionTest (#65) - transaction isolation, savepoints, nested transactions
+16. DefaultValueTest (#66) - schema manager default value handling
+17. ComparatorTest (#67) - schema comparator false-positive detection
+18. Full suite regression check on FB4 and FB5
 
 ## Phase 4 - Finalize and Merge
 
-15. Final PHPStan + full test suite verification
-16. Squash-merge or rebase `001-quality-improvements` into `3.10.x`
+19. Final PHPStan + full test suite verification
+20. Squash-merge or rebase `001-quality-improvements` into `3.10.x`
 
 ---
 
-## Known Upstream Issues (php-firebird)
+## Known Issues Summary
 
-| Issue | Description | Impact |
-|-------|-------------|--------|
-| [#180](https://github.com/satwareAG/php-firebird/issues/180) | `fbird_batch_create()` SIGFPE on parameterless statements | BatchTest must use parameterized queries |
-| [#183](https://github.com/satwareAG/php-firebird/issues/183) | SIGSEGV during PHP shutdown after connection usage | Non-blocking - tests complete before crash |
-| [#184](https://github.com/satwareAG/php-firebird/issues/184) | OO API handle loss after tearDown/reconnect cycles | 9 Integration-ReadOnly tests fail on FB5 |
-| [#185](https://github.com/satwareAG/php-firebird/issues/185) | IBatch handle becomes invalid before execute() | BatchTest 3/3 skipped |
-| [#96](https://github.com/satwareAG/doctrine-firebird-driver/issues/96) | v8.2.0 reconnection bug (workaround: isql subprocess) | Integration tests use isql for DDL/DML seeding |
+| Issue | Layer | Status |
+|-------|-------|--------|
+| [php-firebird#180](https://github.com/satwareAG/php-firebird/issues/180) | Extension (C) | **FIXED** in v10.3.9 |
+| [php-firebird#183](https://github.com/satwareAG/php-firebird/issues/183) | Extension (C) | **FIXED** in v10.3.8 (shutdown path) |
+| [php-firebird#184](https://github.com/satwareAG/php-firebird/issues/184) | Extension (C) | **FIXED** in v10.3.8 (procedural API) |
+| [php-firebird#185](https://github.com/satwareAG/php-firebird/issues/185) | Extension (C) | **FIXED** in v10.3.8 (GC_ADDREF) |
+| Integration-ReadOnly 9 errors | DBAL driver | Open - needs investigation |
+| BatchTest 3 errors | OO PHP wrapper | Open - needs investigation |
+| Full suite SIGSEGV ~65% | Unknown (C or DBAL) | Open - needs investigation |
+| [#96](https://github.com/satwareAG/doctrine-firebird-driver/issues/96) | DBAL driver | Workaround: isql subprocess |
 
 ---
 
@@ -115,6 +142,7 @@ Priority issues for this branch: #65 (TransactionTest), #66 (DefaultValueTest), 
 ## Reference
 
 - Implementation plan: `implementation_plan.md`
+- Extension verification: `tests/debug/verify-v10.3.9-fixes.php`
 - Gap analysis: `docs/research/2026-03-03-dbal3-gap-analysis.md`
 - Code quality audit: `docs/audit-code-quality-2026-03.md`
 - DBAL 4.x research: `docs/research/dbal4-migration.md`

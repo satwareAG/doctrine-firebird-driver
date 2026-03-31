@@ -1,140 +1,108 @@
 # Implementation Plan
 
 [Overview]
-Stabilize the doctrine-firebird-driver test suite and complete quality improvements on the `001-quality-improvements` branch.
+Upgrade php-firebird from v10.3.6 to v10.3.7 and validate fixes for three upstream bugs (#183, #184, #185).
 
-After the php-firebird v10.3.6 upgrade and the three test failure fixes (FB4 SIGFPE, FB5 config, AlbumTest seeding), the driver needs stabilization across three areas: (1) mark known php-firebird upstream failures so the test suite produces a clean baseline, (2) complete the resource type guard modernization from `Connection.php`/`Statement.php`/`Result.php`, and (3) add missing functional test coverage from the DBAL 3.10.x gap analysis (issues #59-#68). The goal is a green CI pipeline with PHPStan Level 8, zero baseline errors, and clear separation between driver bugs and upstream extension bugs.
+php-firebird v10.3.7 was released with fixes for three bugs filed by the doctrine-firebird-driver team during Phase 1 test stabilization. The fixes address: SIGSEGV during PHP shutdown (#183), OO API handle loss after tearDown/reconnect (#184), and IBatch handle invalidation before execute (#185). This plan upgrades the Docker test environment, removes the workarounds added in Phase 1, re-runs the full test suite on FB4 and FB5 to validate the fixes, and closes the upstream issues. See GitHub issue: https://github.com/satwareAG/doctrine-firebird-driver/issues/97
 
-Current metrics (as of 2026-03-31):
-- PHPStan Level 8: 0 errors, empty baseline
-- `@fbird_*` suppressions in src/: 0 (all removed)
-- Connection.php: 903 LOC (down from 1320, TransactionManager extracted)
-- Open issues: #96 (reconnection bug), #59-#79 (gap analysis, all open)
-- FB4 Functional: ~646 tests, BatchTest crashes with invalid batch handle (php-firebird#180), SIGSEGV at exit
-- Integration-ReadOnly: 15/16 pass (1 OO API handle error - pre-existing)
-- Branch: `001-quality-improvements` based on `3.10.x`
+Current state (pre-upgrade):
+- php-firebird v10.3.6 in `tests/app/Dockerfile`
+- BatchTest has `skipIfKnownBatchHandleIssue()` workaround for #185
+- Full suite crashes at ~65% with SIGSEGV (#183)
+- Integration-ReadOnly has 9 errors on FB5 from OO API handle loss (#184)
+- Branch: `001-quality-improvements` at commit 412401c
+
+Expected state (post-upgrade):
+- php-firebird v10.3.7 in Dockerfile
+- BatchTest workaround removed (tests should pass natively)
+- Full suite completes without SIGSEGV
+- Integration-ReadOnly passes all 24 tests on FB5
+- Upstream issues #183, #184, #185 closed
 
 [Types]
-No new types required. Existing `Enum/ExecutionMode.php` and `Enum/TransactionState.php` are sufficient.
-
-The resource validation methods already exist but need audit for consistency:
-- `Connection::isConnectionValid()` - validates `Firebird link`/`Firebird persistent link`
-- `Connection::isTransactionValid()` - delegates to `TransactionManager`
-- `Statement` - needs `isStatementValid()` standardization
-- `Result` - needs `isResultValid()` standardization
-
-PHPStan `@phpstan-assert-if-true` annotations should be added to all validation methods.
+No type changes required.
 
 [Files]
-Modify existing driver files and add test infrastructure for known-failure marking.
+Update Dockerfile, BatchTest, and documentation files.
 
 Files to modify:
-- `src/Driver/Firebird/Connection.php` - Audit resource guards, ensure `isConnectionValid()` used consistently
-- `src/Driver/Firebird/Statement.php` - Add/standardize `isStatementValid()`, use before every `fbird_*` call
-- `src/Driver/Firebird/Result.php` - Add/standardize `isResultValid()`, use before every `fbird_*` call
-- `src/Driver/Firebird/TransactionManager.php` - Audit `isTransactionValid()` consistency
-- `tests/Test/Functional/BatchTest.php` - Mark tests that depend on php-firebird batch handle lifecycle as skipped with clear upstream reference
-- `tests/phpunit-firebird4.xml` - Add Integration test suites
-- `tests/phpunit-firebird5.xml` - Add Integration test suites
+- `tests/app/Dockerfile` (lines 7, 32, 40, 43) - Update version from v10.3.6 to v10.3.7 with changelog comment
+- `tests/Test/Functional/BatchTest.php` - Remove `skipIfKnownBatchHandleIssue()` method and all try/catch wrappers around `$batch->execute()` calls. The setUp() SIGFPE guard for #180 (parameterless statements) must remain since #180 is NOT fixed in v10.3.7.
+- `NEXT_STEPS.md` - Update extension version, test baseline, known blockers table
+- `implementation_plan.md` - This file (replaced with current plan)
 
 Files to create:
-- `tests/Test/Functional/Schema/DefaultValueTest.php` - Issue #66
-- `tests/Test/Functional/Schema/ComparatorTest.php` - Issue #67
-- `tests/Test/Functional/TransactionTest.php` - Issue #65 (if not already complete)
-- `tests/Test/Unit/Driver/ResultTest.php` - Already exists, extend with `isResultValid()` tests
-- `tests/Test/Unit/Driver/StatementTest.php` - Already exists, extend with `isStatementValid()` tests
+- None
 
 Files to delete:
 - None
 
 [Functions]
-Standardize resource validation and add missing test coverage.
-
-New functions:
-- `Statement::isStatementValid(): bool` in `src/Driver/Firebird/Statement.php` - Returns true if internal statement resource is valid Firebird query handle. Add `@phpstan-assert-if-true` annotation.
-- `Result::isResultValid(): bool` in `src/Driver/Firebird/Result.php` - Returns true if internal result resource is valid. Add `@phpstan-assert-if-true` annotation.
-
-Modified functions:
-- `Connection::isConnectionValid()` in `src/Driver/Firebird/Connection.php` - Audit callers, ensure every public method that touches `$this->connection` calls this first or handles invalid state gracefully.
-- `TransactionManager::isTransactionValid()` in `src/Driver/Firebird/TransactionManager.php` - Add `@phpstan-assert-if-true` annotation, audit all callers.
-- `Statement::execute()` in `src/Driver/Firebird/Statement.php` - Add pre-flight `isStatementValid()` check.
-- `Result::fetchNumeric()`, `Result::fetchAssociative()`, `Result::fetchOne()`, `Result::fetchAllNumeric()`, `Result::fetchAllAssociative()`, `Result::fetchFirstColumn()` in `src/Driver/Firebird/Result.php` - Add pre-flight `isResultValid()` check.
-- `BatchTest::testBatchInsertBasic()`, `testBatchInsertWithBlob()`, `testBatchInsertPerformance()` in `tests/Test/Functional/BatchTest.php` - Wrap in try/catch for known invalid batch handle errors, skip with upstream reference.
+Remove BatchTest workaround functions.
 
 Removed functions:
-- None
+- `BatchTest::skipIfKnownBatchHandleIssue(Throwable $e): void` in `tests/Test/Functional/BatchTest.php` - No longer needed since php-firebird#185 is fixed in v10.3.7
+
+Modified functions:
+- `BatchTest::testBatchInsertBasic()` - Remove try/catch wrapper, call `$batch->execute()` directly
+- `BatchTest::testBatchInsertWithBlob()` - Remove try/catch wrapper, call `$batch->execute()` directly
+- `BatchTest::testBatchInsertPerformance()` - Remove try/catch wrapper, call `$batch->execute()` directly
 
 [Classes]
-No new classes. Existing driver classes modified for consistency.
-
-Modified classes:
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection` (903 LOC) - Resource guard audit
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement` (390 LOC) - Add `isStatementValid()`, use consistently
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\Result` (380 LOC) - Add `isResultValid()`, use consistently
-- `Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager` (385 LOC) - Annotation improvements
-- `Satag\DoctrineFirebirdDriver\Test\Functional\BatchTest` - Known-failure handling
-- `Satag\DoctrineFirebirdDriver\Test\Functional\TransactionTest` - New or extended (Issue #65)
-- `Satag\DoctrineFirebirdDriver\Test\Functional\Schema\DefaultValueTest` - New (Issue #66)
-- `Satag\DoctrineFirebirdDriver\Test\Functional\Schema\ComparatorTest` - New (Issue #67)
+No class changes.
 
 [Dependencies]
-No dependency changes required.
-
-Current dependencies are correct:
-- `ext-firebird: ^10.3.2` (php-firebird v10.3.6 installed)
-- `doctrine/dbal: ^3.10` (DBAL 3.x series)
-- PHPStan Level 8 with strict-rules, doctrine, and deprecation-rules extensions
+No dependency changes. `composer.json` already has `"ext-firebird": "^10.3.2"` which covers v10.3.7.
 
 [Testing]
-Stabilize test suite to produce a clean, reproducible baseline across FB3/FB4/FB5.
-
-Test strategy:
-1. **Unit tests**: Extend `ConnectionTest`, `StatementTest`, `ResultTest`, `TransactionManagerTest` with validation method coverage
-2. **Functional tests**: Mark known php-firebird upstream failures (BatchTest batch handle lifecycle, SIGSEGV at exit) with `markTestSkipped()` and issue references
-3. **Integration tests**: Already working after AlbumTest seeding fix. Add Integration suite to FB4/FB5 configs.
-4. **New functional tests**: TransactionTest (#65), DefaultValueTest (#66), ComparatorTest (#67)
-5. **PHPStan**: Must remain at Level 8 with 0 errors and empty baseline after all changes
-6. **Target**: All Functional+Unit tests green on FB4, Integration-ReadOnly 16/16
+Rebuild Docker app container and re-run full test suites on FB4 and FB5 to validate upstream fixes.
 
 Validation commands:
 ```bash
-# PHPStan
-php vendor/bin/phpstan analyse -c phpstan.neon.dist --no-progress
+# Rebuild app container with v10.3.7
+cd tests && docker compose build --no-cache app
 
-# FB4 Functional
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml"
+# Verify extension version
+docker compose exec -T app php -r "echo phpversion('firebird') . PHP_EOL;"
+# Expected: 10.3.7
 
-# FB4 Integration-ReadOnly
-docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit.xml --testsuite=Integration-ReadOnly"
+# FB4 Unit (quick sanity check)
+docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --testsuite=Unit 2>&1 | tail -5"
 
-# FB5 Full
-docker compose exec -T -e DB_HOST=firebird5 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird5.xml"
+# FB4 Integration-ReadOnly (validates #184 fix)
+docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --testsuite=Integration-ReadOnly 2>&1 | tail -10"
+
+# FB4 Functional with BatchTest (validates #185 fix)
+docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml --filter=BatchTest 2>&1 | tail -15"
+
+# FB5 Full suite (validates #183 fix - should complete without SIGSEGV)
+docker compose exec -T -e DB_HOST=firebird5 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird5.xml 2>&1 | tail -10"
+
+# FB4 Full suite
+docker compose exec -T -e DB_HOST=firebird4 app bash -c "cd /app && php vendor/bin/phpunit --no-coverage -c tests/phpunit-firebird4.xml 2>&1 | tail -10"
 ```
 
+Expected results after v10.3.7:
+- Unit: 1569 OK (unchanged)
+- Integration-ReadOnly: 24/24 pass on both FB4 and FB5 (was 15/24 on FB5)
+- Functional BatchTest: 3/3 pass (was 3/3 skipped)
+- Full suite: Completes with exit code 0 (was SIGSEGV at 65%)
+
 [Implementation Order]
-Sequential phases to minimize risk and ensure each step is independently verifiable.
+Sequential steps to minimize risk with validation at each stage.
 
-Phase 1 - Test Suite Stabilization (Highest Priority):
-1. Mark BatchTest known failures with `markTestSkipped()` and php-firebird#180 reference
-2. Add Integration suites to `phpunit-firebird4.xml` and `phpunit-firebird5.xml`
-3. Run full FB4 suite and capture clean baseline (expected: all pass or skip, no crashes)
-4. Run full FB5 suite and verify clean baseline
-
-Phase 2 - Resource Type Guard Completion:
-5. Audit `Connection::isConnectionValid()` usage - ensure all public methods check first
-6. Add `Statement::isStatementValid()` with `@phpstan-assert-if-true` annotation
-7. Add `Result::isResultValid()` with `@phpstan-assert-if-true` annotation
-8. Audit `TransactionManager::isTransactionValid()` - add annotations
-9. Update unit tests for validation methods
-10. Run PHPStan Level 8 - must remain 0 errors
-
-Phase 3 - Gap Analysis Tests (Sprint 1-2 Issues):
-11. Implement TransactionTest (#65) - test transaction isolation, savepoints, nested transactions
-12. Implement DefaultValueTest (#66) - test schema manager default value handling
-13. Implement ComparatorTest (#67) - test schema comparator for false-positive detection
-14. Run full suite on FB4 and FB5 to verify no regressions
-
-Phase 4 - Finalize and Merge:
-15. Final PHPStan + full test suite verification
-16. Update NEXT_STEPS.md with current status
-17. Squash-merge or rebase `001-quality-improvements` into `3.10.x`
+1. Update `tests/app/Dockerfile` to checkout v10.3.7 (update version comments and git checkout tag)
+2. Rebuild Docker app container (`docker compose build --no-cache app`)
+3. Verify php-firebird 10.3.7 is loaded in container
+4. Run FB4 Unit suite (quick sanity - should remain 1569 OK)
+5. Run FB4 Integration-ReadOnly (validates #184 OO API handle fix)
+6. Run FB4 BatchTest only (validates #185 IBatch fix - expect pass not skip)
+7. Remove `skipIfKnownBatchHandleIssue()` and try/catch wrappers from BatchTest
+8. Run FB4 BatchTest again to confirm tests pass without workaround
+9. Run FB5 full suite (validates #183 SIGSEGV fix - expect clean exit)
+10. Run FB4 full suite (validate clean exit)
+11. Update NEXT_STEPS.md with new baseline and v10.3.7 status
+12. Commit all changes
+13. Close upstream issues #183, #184, #185 with validation results
+14. Close doctrine-firebird-driver #97
+15. Push to origin
