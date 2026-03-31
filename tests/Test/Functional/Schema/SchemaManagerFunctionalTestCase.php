@@ -53,6 +53,7 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
+use function gc_collect_cycles;
 use function in_array;
 use function sprintf;
 use function str_starts_with;
@@ -1863,6 +1864,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $existingTables = [];
             $existingViews  = [];
         }
+
+        // Free Firebird cursor objects from listTableNames/listViews above.
+        // Without this, the cursors hold metadata locks that prevent DROP TABLE.
+        gc_collect_cycles();
 
         // Drop tables in dependency order (foreign key constraints)
         // Tables with foreign keys should be dropped first
