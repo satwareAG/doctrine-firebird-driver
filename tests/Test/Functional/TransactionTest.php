@@ -499,20 +499,18 @@ class TransactionTest extends FunctionalTestCase
 
     protected function tearDown(): void
     {
-        // Reset isolation level to READ COMMITTED before cleanup.
-        // testSetIsolationLevelSerializable sets SERIALIZABLE which uses
-        // "no wait" mode - this causes lock conflicts on RDB$RELATIONS
-        // when parent::tearDown() queries system tables for cleanup.
-        $fbirdConn = $this->getFirebirdConnection();
-        if ($fbirdConn !== null) {
-            try {
-                $fbirdConn->setAttribute(
-                    FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
-                    TransactionIsolationLevel::READ_COMMITTED,
-                );
-            } catch (Throwable) {
-                // Ignore - connection may already be closed
-            }
+        // Close the connection before parent::tearDown() to prevent lock
+        // conflicts after SERIALIZABLE tests. TransactionManager::commit()
+        // immediately creates a new auto-commit transaction using the CURRENT
+        // isolation level. setAttribute() only changes the property for future
+        // transaction creation - it cannot fix an already-running SERIALIZABLE
+        // auto-commit transaction. Closing forces DBAL to reconnect fresh
+        // with the default READ_COMMITTED isolation when parent::tearDown()
+        // queries system tables for cleanup.
+        try {
+            $this->connection->close();
+        } catch (Throwable) {
+            // Ignore - connection may already be closed
         }
 
         $this->markConnectionNotReusable();
