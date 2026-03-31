@@ -20,6 +20,7 @@ use function array_map;
 use function array_values;
 use function basename;
 use function escapeshellarg;
+use function glob;
 use function fclose;
 use function file_exists;
 use function file_put_contents;
@@ -38,6 +39,7 @@ use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
 use function stream_get_contents;
+use function strstr;
 use function strlen;
 use function strtoupper;
 use function substr;
@@ -298,6 +300,87 @@ class TestUtil
 
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
         $baseName   = $baseParams['dbname'];
+
+        // In CI (GitHub Actions), the Firebird Docker service container pre-creates
+        // test.fdb on startup via FIREBIRD_DATABASE env var. We skip the drop/create
+        // cycle entirely because:
+        // 1. "employee" fallback DB doesn't exist in Docker images
+        // 2. dropDatabase() closes the connection, requiring reconnection to a DB
+        //    that may not exist (employee)
+        // 3. The DB is already fresh (new container per CI run)
+        // Integration tests handle schema creation via isql in installFirebirdDatabase().
+        if (getenv('CI') && PHP_OS_FAMILY !== 'Windows') {
+            $ciParams                                = $baseParams;
+            $ciParams['persistent']                  = false;
+            $ciParams['driverOptions']['persistent'] = false;
+
+            try {
+                $ciParams['wrapperClass'] = ConnectionWrapper::class;
+                $ciConn                   = DriverManager::getConnection($ciParams, self::createConfiguration());
+                $ciConn->executeQuery($ciConn->getDatabasePlatform()->getDummySelectSQL());
+
+                // When force=true (integration tests), clean all user objects so
+                // installFirebirdDatabase() can recreate schema from scratch.
+                if ($force) {
+                    $host = $ciParams['host'] ?? '127.0.0.1';
+                    $user = $ciParams['user'] ?? 'SYSDBA';
+                    $pass = $ciParams['password'] ?? 'masterkey';
+
+                    // Get DB path from connection for isql
+                    $dbPath = $ciConn->fetchOne(
+                        "SELECT RDB\$GET_CONTEXT('SYSTEM', 'DB_NAME') FROM RDB\$DATABASE",
+                    );
+
+                    if (! empty($dbPath)) {
+                        // Strip host: prefix for isql path
+                        $isqlPath = $dbPath;
+                        if (str_contains($isqlPath, ':')) {
+                            $isqlPath = substr((string) strstr($isqlPath, ':'), 1);
+                        }
+
+                        // Drop all FKs first, then all user tables via EXECUTE BLOCK
+                        $cleanupSql = "EXECUTE BLOCK AS\n"
+                            . "  DECLARE cname VARCHAR(63);\n"
+                            . "  DECLARE tname VARCHAR(63);\n"
+                            . "BEGIN\n"
+                            . "  FOR SELECT rc.RDB\$CONSTRAINT_NAME, rc.RDB\$RELATION_NAME\n"
+                            . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
+                            . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
+                            . "      INTO :cname, :tname DO\n"
+                            . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
+                            . "END;\n"
+                            . "EXECUTE BLOCK AS\n"
+                            . "  DECLARE tname VARCHAR(63);\n"
+                            . "BEGIN\n"
+                            . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+                            . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
+                            . "      INTO :tname DO\n"
+                            . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
+                            . "END;\n";
+
+                        try {
+                            self::runIsql($cleanupSql, $isqlPath, $user, $pass, $host);
+                        } catch (Throwable) {
+                            // Cleanup errors are non-fatal (tables may not exist yet)
+                        }
+                    }
+                }
+
+                self::$effectiveDbName  = $ciParams['dbname'];
+                self::$sharedConnection = $ciConn;
+
+                if ($className !== null) {
+                    self::$classInitialized[$className] = true;
+                } else {
+                    self::$runInitialized = true;
+                }
+
+                return;
+            } catch (Throwable $e) {
+                // Docker DB not reachable — fall through to normal initialization
+                echo '[CI] Pre-created DB not reachable (' . $e->getMessage() . "), falling through to create\n";
+            }
+        }
 
         // On Windows CI, ensure we use a simple writable path that Firebird likes
         if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
