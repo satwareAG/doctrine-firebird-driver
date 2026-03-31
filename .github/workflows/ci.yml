@@ -106,11 +106,6 @@ jobs:
       # Default Firebird credentials
       ISC_USER: SYSDBA
       ISC_PASSWORD: masterkey
-      # Full DB path inside the Docker service container.
-      # Bare filenames (e.g. test.fdb) don't resolve over TCP because the
-      # Firebird server inside Docker has no alias configured for them.
-      # All firebirdsql/firebird images store databases at /firebird/data/.
-      DB_DBNAME: /firebird/data/test.fdb
 
     steps:
       - name: Checkout repository
@@ -144,6 +139,34 @@ jobs:
             echo "❌ ERROR: Firebird did not start on localhost:3050" >&2
             exit 1
           fi
+
+      - name: Discover Firebird DB path
+        run: |
+          set -eu
+          
+          # Find the service container ID (GitHub Actions names it with a hash)
+          CONTAINER_ID=$(docker ps -q --filter "ancestor=firebirdsql/firebird:${{ matrix.firebird.docker-tag }}")
+          
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "❌ ERROR: Could not find Firebird service container" >&2
+            docker ps -a
+            exit 1
+          fi
+          
+          echo "Firebird container: $CONTAINER_ID"
+          
+          # Discover the actual path of test.fdb inside the container
+          DB_PATH=$(docker exec "$CONTAINER_ID" find / -name "test.fdb" -type f 2>/dev/null | head -1)
+          
+          if [ -z "$DB_PATH" ]; then
+            echo "❌ ERROR: test.fdb not found inside container" >&2
+            docker exec "$CONTAINER_ID" ls -la /firebird/data/ 2>/dev/null || true
+            docker exec "$CONTAINER_ID" ls -la /var/lib/firebird/ 2>/dev/null || true
+            exit 1
+          fi
+          
+          echo "✅ Found DB at: $DB_PATH"
+          echo "DB_DBNAME=$DB_PATH" >> "$GITHUB_ENV"
 
       - name: Install Firebird client libraries
         run: |
@@ -424,7 +447,8 @@ jobs:
         with:
           path: /tmp/php-firebird-bin
           # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
-          key: php-firebird-v10.3.9-php8.4-v40-quality
+          # v2: bust poisoned cache from aac4477 (built without FB_API_VER=40)
+          key: php-firebird-v10.3.9-php8.4-v40-quality-v2
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
