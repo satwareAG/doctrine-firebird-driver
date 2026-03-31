@@ -8,7 +8,7 @@ use Doctrine\DBAL\Driver\Middleware\AbstractStatementMiddleware;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function in_array;
 use function is_resource;
@@ -38,17 +38,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     }
 
     /**
-     * Encode string parameters from PHP encoding to database encoding before binding.
-     *
-     * For TEXT BLOB columns, stream resources are extracted and transcoded.
-     * Supported parameter types: STRING, ASCII, and LARGE_OBJECT.
-     *
-     * Note: signature uses untyped $param/$value/$type to match the parent
-     * AbstractStatementMiddleware which was written before PHP 8 union types.
-     *
-     * @param int|string $param
-     * @param mixed      $value
-     * @param mixed      $type
+     * {@inheritDoc}
      */
     #[Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
@@ -67,12 +57,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     }
 
     /**
-     * Execute the statement and wrap the result in CharsetResultMiddleware.
-     *
-     * Note: signature uses untyped $params to match the parent
-     * AbstractStatementMiddleware which was written before PHP 8 union types.
-     *
-     * @param array<int|string, mixed>|null $params
+     * {@inheritDoc}
      */
     #[Override]
     public function execute($params = null): ResultInterface

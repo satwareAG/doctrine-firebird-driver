@@ -13,18 +13,15 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
-use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\ExecutionMode;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExecutionMode;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use UnexpectedValueException;
 
 /**
  * Unit tests for Connection class.
- *
- * Tests validation methods, error handling paths, and methods
- * that can be tested without an actual database connection.
  */
 #[CoversClass(Connection::class)]
 class ConnectionTest extends TestCase
@@ -103,16 +100,7 @@ class ConnectionTest extends TestCase
     public function testIsTransactionValidReturnsFalseWhenTransactionIsNull(): void
     {
         $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
-
-        self::assertFalse($connection->isTransactionValid());
-    }
-
-    public function testIsTransactionValidReturnsFalseWhenTransactionIsNotResource(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', 'not a resource');
-
+        // TransactionManager is initialized in createConnectionThroughReflection()
         self::assertFalse($connection->isTransactionValid());
     }
 
@@ -213,6 +201,9 @@ class ConnectionTest extends TestCase
 
         $connection->setLastInsertId(123);
 
+        // Access private property to bypass native call in unit tests
+        $this->setPrivateProperty($connection, 'connection', null);
+
         self::assertSame(123, $connection->lastInsertId());
     }
 
@@ -224,24 +215,28 @@ class ConnectionTest extends TestCase
         self::assertFalse($connection->lastInsertId());
     }
 
+    public function testLastInsertIdReturnsValueWhenContainsDots(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+        $connection->setLastInsertId(456);
+
+        // Names containing dots should return cached value (v10 refactoring path)
+        self::assertSame(456, $connection->lastInsertId('schema.sequence'));
+    }
+
     public function testLastInsertIdThrowsExceptionForInvalidName(): void
     {
         $connection = $this->createConnectionThroughReflection();
+
+        // Ensure connection is NOT null to trigger validation logic
+        // (If connection is null, it returns cached value immediately)
+        $this->setPrivateProperty($connection, 'connection', 'fake resource');
 
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('regular expression');
 
         // Invalid generator name (too long, > 31 chars)
         $connection->lastInsertId('this_generator_name_is_way_too_long_for_firebird');
-    }
-
-    public function testLastInsertIdWithDotReturnsCachedValue(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        $connection->setLastInsertId(456);
-
-        // Names containing dots should return cached value
-        self::assertSame(456, $connection->lastInsertId('schema.sequence'));
     }
 
     public function testLastInsertIdThrowsExceptionForNonStringName(): void
@@ -299,8 +294,7 @@ class ConnectionTest extends TestCase
     public function testGetActiveTransactionReturnsNullWhenNotSet(): void
     {
         $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
-
+        // TransactionManager initialized with null active transaction
         self::assertNull($connection->getActiveTransaction());
     }
 
@@ -314,51 +308,6 @@ class ConnectionTest extends TestCase
         $this->setPrivateProperty($connection, 'connection', null);
 
         self::assertNull($connection->getNativeConnection());
-    }
-
-    // ==========================================================================
-    // createSavepoint() Tests
-    // ==========================================================================
-
-    public function testCreateSavepointThrowsExceptionWhenNoValidTransaction(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('No valid transaction resource');
-
-        $connection->createSavepoint('sp1');
-    }
-
-    // ==========================================================================
-    // releaseSavepoint() Tests
-    // ==========================================================================
-
-    public function testReleaseSavepointThrowsExceptionWhenNoValidTransaction(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('No valid transaction resource');
-
-        $connection->releaseSavepoint('sp1');
-    }
-
-    // ==========================================================================
-    // rollbackSavepoint() Tests
-    // ==========================================================================
-
-    public function testRollbackSavepointThrowsExceptionWhenNoValidTransaction(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('No valid transaction resource');
-
-        $connection->rollbackSavepoint('sp1');
     }
 
     // ==========================================================================
@@ -432,21 +381,6 @@ class ConnectionTest extends TestCase
         $this->expectExceptionMessage('Connection is not valid');
 
         $connection->prepare('SELECT 1 FROM RDB$DATABASE');
-    }
-
-    // ==========================================================================
-    // Transaction Level Tests (getSavepointName via reflection)
-    // ==========================================================================
-
-    public function testGetSavepointNameGeneratesCorrectFormat(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-
-        $reflectionMethod = new ReflectionMethod(Connection::class, 'getSavepointName');
-
-        self::assertSame('TARGET_SP_0', $reflectionMethod->invoke($connection, 0));
-        self::assertSame('TARGET_SP_1', $reflectionMethod->invoke($connection, 1));
-        self::assertSame('TARGET_SP_5', $reflectionMethod->invoke($connection, 5));
     }
 
     // ==========================================================================
@@ -661,42 +595,31 @@ class ConnectionTest extends TestCase
 
     public function testAutoCommitReturnsEarlyWhenAutoCommitDisabled(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode();
-        $executionMode->disableAutoCommit();
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 0);
-        // firebirdActiveTransaction null — would throw RuntimeException if reached
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $transactionManager->setExecutionMode(ExecutionMode::MANUAL_COMMIT);
 
-        // Should return early without reaching the RuntimeException check
+        // Should return early without reaching the exception check
         $connection->autoCommit();
         $this->assertTrue(true); // If we reach here, no exception was thrown
     }
 
     public function testAutoCommitReturnsEarlyWhenTransactionLevelIsOne(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode(); // autoCommit enabled by default
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 1);
-        // firebirdActiveTransaction null — would throw RuntimeException if reached
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $this->setPrivateProperty($transactionManager, 'level', 1);
 
-        // Should return early because fbirdTransactionLevel >= 1
+        // Should return early because level >= 1
         $connection->autoCommit();
         $this->assertTrue(true); // No exception means early return worked
     }
 
     public function testAutoCommitThrowsRuntimeExceptionWhenNoActiveTransaction(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode(); // autoCommit enabled by default
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 0);
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection = $this->createConnectionThroughReflection();
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DriverException::class);
         $this->expectExceptionMessage('No active transaction');
 
         $connection->autoCommit();
@@ -708,14 +631,11 @@ class ConnectionTest extends TestCase
 
     public function testCommitDecrementsLevelAndCallsReleaseSavepointForNestedTransaction(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode();
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 2);
-        // No valid transaction — releaseSavepoint will throw RuntimeException
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $this->setPrivateProperty($transactionManager, 'level', 2);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DriverException::class);
         $this->expectExceptionMessage('No valid transaction resource');
 
         // commit() should decrement level to 1, then call releaseSavepoint
@@ -728,14 +648,11 @@ class ConnectionTest extends TestCase
 
     public function testRollBackDecrementsLevelAndCallsRollbackSavepointForNestedTransaction(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode();
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 2);
-        // No valid transaction — rollbackSavepoint will throw RuntimeException
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $this->setPrivateProperty($transactionManager, 'level', 2);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DriverException::class);
         $this->expectExceptionMessage('No valid transaction resource');
 
         // rollBack() should decrement level to 1, then call rollbackSavepoint
@@ -748,15 +665,11 @@ class ConnectionTest extends TestCase
 
     public function testBeginTransactionCallsCreateSavepointForNestedLevel(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode();
-        $executionMode->disableAutoCommit(); // Already in a transaction
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 1);
-        // No valid transaction — createSavepoint will throw RuntimeException
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $this->setPrivateProperty($transactionManager, 'level', 1);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DriverException::class);
         $this->expectExceptionMessage('No valid transaction resource');
 
         // beginTransaction() at level 1 should attempt to create a savepoint
@@ -769,13 +682,11 @@ class ConnectionTest extends TestCase
 
     public function testCommitThrowsRuntimeExceptionWhenNoActiveTransactionAtLevelZero(): void
     {
-        $connection    = $this->createConnectionThroughReflection();
-        $executionMode = new ExecutionMode();
-        $this->setPrivateProperty($connection, 'executionMode', $executionMode);
-        $this->setPrivateProperty($connection, 'fbirdTransactionLevel', 1);
-        $this->setPrivateProperty($connection, 'firebirdActiveTransaction', null);
+        $connection         = $this->createConnectionThroughReflection();
+        $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
+        $this->setPrivateProperty($transactionManager, 'level', 1);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(DriverException::class);
         $this->expectExceptionMessage('No active transaction resource');
 
         // commit() decrements from 1 to 0, then checks for valid transaction resource
@@ -789,13 +700,24 @@ class ConnectionTest extends TestCase
     private function createConnectionThroughReflection(): Connection
     {
         $reflectionClass = new ReflectionClass(Connection::class);
+        $connection      = $reflectionClass->newInstanceWithoutConstructor();
 
-        return $reflectionClass->newInstanceWithoutConstructor();
+        $transactionManager = new TransactionManager($connection);
+        $this->setPrivateProperty($connection, 'transactionManager', $transactionManager);
+
+        return $connection;
     }
 
-    private function setPrivateProperty(Connection $connection, string $propertyName, mixed $value): void
+    private function setPrivateProperty(object $object, string $propertyName, mixed $value): void
     {
-        $reflection = new ReflectionProperty(Connection::class, $propertyName);
-        $reflection->setValue($connection, $value);
+        $reflection = new ReflectionProperty($object, $propertyName);
+        $reflection->setValue($object, $value);
+    }
+
+    private function getPrivateProperty(object $object, string $propertyName): mixed
+    {
+        $reflection = new ReflectionProperty($object, $propertyName);
+
+        return $reflection->getValue($object);
     }
 }

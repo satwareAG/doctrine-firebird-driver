@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="6.16.0@7cf3e8b988edd75e0766963b0b9e671b220f5785">
+<files psalm-version="6.16.1@f1f5de594dc76faf8784e02d3dc4716c91c6f6ac">
   <file src="src/Compat/Compat.php">
     <UnusedClass>
       <code><![CDATA[Compat]]></code>
     </UnusedClass>
+  </file>
+  <file src="src/DBAL/FirebirdBooleanType.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/DBAL/FirebirdConnection.php">
     <InternalMethod>
@@ -12,19 +17,36 @@
     <InvalidArrayOffset>
       <code><![CDATA[$params['firebird']]]></code>
     </InvalidArrayOffset>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <UnusedClass>
       <code><![CDATA[FirebirdConnection]]></code>
     </UnusedClass>
   </file>
+  <file src="src/Driver/Firebird/BlobHandler.php">
+    <UnusedParam>
+      <code><![CDATA[$type]]></code>
+    </UnusedParam>
+  </file>
   <file src="src/Driver/Firebird/Connection.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <NoValue>
       <code><![CDATA[$this->connection]]></code>
     </NoValue>
-    <PossiblyNullArgument>
-      <code><![CDATA[$this->connection]]></code>
-    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
       <code><![CDATA[createIndependentTransaction]]></code>
+      <code><![CDATA[createSavepoint]]></code>
       <code><![CDATA[dropTableForce]]></code>
       <code><![CDATA[executeAuto]]></code>
       <code><![CDATA[executeBatch]]></code>
@@ -36,17 +58,34 @@
       <code><![CDATA[listTableBlockers]]></code>
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
+      <code><![CDATA[releaseSavepoint]]></code>
+      <code><![CDATA[rollbackSavepoint]]></code>
     </PossiblyUnusedMethod>
     <RedundantConditionGivenDocblockType>
       <code><![CDATA[is_resource($this->connection)]]></code>
     </RedundantConditionGivenDocblockType>
+    <TooFewArguments>
+      <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
+    </TooFewArguments>
     <TypeDoesNotContainType>
       <code><![CDATA[is_object($this->connection)]]></code>
       <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
     </TypeDoesNotContainType>
-    <UnusedVariable>
-      <code><![CDATA[$success]]></code>
-    </UnusedVariable>
+  </file>
+  <file src="src/Driver/Firebird/ConnectionWrapper.php">
+    <InternalMethod>
+      <code><![CDATA[getParams]]></code>
+    </InternalMethod>
+    <InvalidArrayOffset>
+      <code><![CDATA[$params['database']]]></code>
+    </InvalidArrayOffset>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
     <InvalidArrayOffset>
@@ -54,21 +93,51 @@
       <code><![CDATA[$params['dialect']]]></code>
       <code><![CDATA[$params['firebird']]]></code>
     </InvalidArrayOffset>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Driver/Firebird/Driver/ConvertParameters.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Driver/Firebird/Driver/FirebirdConnectString.php">
     <InvalidOperand>
       <code><![CDATA[$params['port']]]></code>
     </InvalidOperand>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Driver/Firebird/Enum/TransactionState.php">
+    <UnusedClass>
+      <code><![CDATA[TransactionState]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Exception.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <PossiblyInvalidArgument>
       <code><![CDATA[$exception->getCode()]]></code>
     </PossiblyInvalidArgument>
+  </file>
+  <file src="src/Driver/Firebird/ExceptionConverter.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Driver/Firebird/FirebirdDriverMiddleware.php">
     <DeprecatedInterface>
       <code><![CDATA[class ($driver) extends AbstractDriverMiddleware {]]></code>
     </DeprecatedInterface>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <UnusedClass>
       <code><![CDATA[FirebirdDriverMiddleware]]></code>
     </UnusedClass>
@@ -77,16 +146,32 @@
     <DeprecatedInterface>
       <code><![CDATA[CharsetConnectionMiddleware]]></code>
     </DeprecatedInterface>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetMiddleware.php">
     <DeprecatedInterface>
       <code><![CDATA[class ($driver, $databaseEncoding, $phpEncoding) extends AbstractDriverMiddleware {]]></code>
     </DeprecatedInterface>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <UnusedClass>
       <code><![CDATA[CharsetMiddleware]]></code>
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <PossiblyFalseArgument>
       <code><![CDATA[$buffer]]></code>
       <code><![CDATA[$rest]]></code>
@@ -100,7 +185,24 @@
       <code><![CDATA[array_values]]></code>
     </RedundantFunctionCallGivenDocblockType>
   </file>
+  <file src="src/Driver/Firebird/Middleware/CharsetStatementMiddleware.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
   <file src="src/Driver/Firebird/Result.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <PossiblyUnusedMethod>
       <code><![CDATA[fetchAllAssociativeWithDateObjects]]></code>
       <code><![CDATA[fetchNumericWithDateObjects]]></code>
@@ -111,17 +213,63 @@
     </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/Statement.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[$callArgs]]></code>
-    </PossiblyFalseArgument>
-    <RedundantCondition>
-      <code><![CDATA[$fbirdResultRc === true]]></code>
-    </RedundantCondition>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Driver/FirebirdDriver.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/ORM/Mapping/FirebirdQuoteStrategy.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Platforms/Firebird3Platform.php">
     <InvalidOperand>
       <code><![CDATA[$sequence->getCache()]]></code>
     </InvalidOperand>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/Firebird4Platform.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/Firebird5Platform.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Platforms/FirebirdPlatform.php">
     <InternalProperty>
@@ -130,21 +278,161 @@
     <InvalidOperand>
       <code><![CDATA[$column['length']]]></code>
     </InvalidOperand>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <PossiblyFalseArgument>
       <code><![CDATA[$expression]]></code>
     </PossiblyFalseArgument>
+  </file>
+  <file src="src/Platforms/Keywords/Firebird3Keywords.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/Keywords/Firebird4Keywords.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/Keywords/Firebird5Keywords.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/Keywords/FirebirdKeywords.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Platforms/SQL/Builder/FirebirdSelectSQLBuilder.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Schema/FirebirdComparator.php">
     <InternalMethod>
       <code><![CDATA[parent::__construct($platform)]]></code>
     </InternalMethod>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Schema/FirebirdSchemaManager.php">
+    <InvalidArgument>
+      <code><![CDATA[[
+                    'charset' => $charset,
+                    'page_size' => (int) $pageSize,
+                ]]]></code>
+    </InvalidArgument>
     <LessSpecificImplementedReturnType>
       <code><![CDATA[array]]></code>
     </LessSpecificImplementedReturnType>
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
   </file>
   <file src="src/Schema/FirebirdSchemaManagerFactory.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[#[Override]]]></code>
+    </MissingOverrideAttribute>
     <UnusedClass>
       <code><![CDATA[FirebirdSchemaManagerFactory]]></code>
     </UnusedClass>

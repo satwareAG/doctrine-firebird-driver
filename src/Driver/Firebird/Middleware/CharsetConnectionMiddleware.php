@@ -8,7 +8,7 @@ use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function is_string;
 use function mb_convert_encoding;

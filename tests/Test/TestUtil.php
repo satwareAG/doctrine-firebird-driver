@@ -8,13 +8,10 @@ use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
-use Monolog\Processor\MemoryUsageProcessor;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 use Throwable;
 
@@ -22,19 +19,31 @@ use function array_keys;
 use function array_map;
 use function array_values;
 use function basename;
+use function escapeshellarg;
+use function fclose;
 use function file_exists;
+use function file_put_contents;
 use function getenv;
 use function implode;
 use function in_array;
+use function is_resource;
 use function is_string;
+use function md5;
 use function mkdir;
+use function proc_close;
+use function proc_open;
+use function sprintf;
+use function str_contains;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
+use function stream_get_contents;
 use function strlen;
 use function strtoupper;
 use function substr;
-use function usleep;
+use function tempnam;
+use function trim;
+use function unlink;
 
 use const PHP_OS_FAMILY;
 
@@ -45,6 +54,9 @@ class TestUtil
 {
     /** Whether the database schema is initialized for the current test run. */
     private static bool $runInitialized = false;
+
+    /** Cached shared connection - reused across tests to avoid reconnection issues. */
+    private static Connection|null $sharedConnection = null;
 
     /**
      * Map of class-level initialization flags.
@@ -78,6 +90,19 @@ class TestUtil
      */
     public static function getConnection(): Connection
     {
+        // Return cached connection if still valid (avoids reconnection issues
+        // with php-firebird where a second connect to the same DB file fails
+        // with empty DB path and false health check).
+        if (self::$sharedConnection !== null) {
+            try {
+                self::$sharedConnection->fetchOne('SELECT 1 FROM RDB$DATABASE');
+
+                return self::$sharedConnection;
+            } catch (Throwable) {
+                self::$sharedConnection = null;
+            }
+        }
+
         if (self::hasRequiredConnectionParams() && ! self::$runInitialized) {
             self::initializeDatabase();
             self::$runInitialized = true;
@@ -94,13 +119,25 @@ class TestUtil
         $configuration = self::createConfiguration();
 
         $configuration->setMiddlewares([
-            new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
+            new Middleware(0, ColumnCase::UPPER),
         ]);
 
-        return DriverManager::getConnection(
+        self::$sharedConnection = DriverManager::getConnection(
             $params,
             $configuration,
         );
+
+        return self::$sharedConnection;
+    }
+
+    /**
+     * Reset the shared connection cache without calling close().
+     * Used when the underlying native resource has been invalidated
+     * and we need a fresh connection on next getConnection() call.
+     */
+    public static function resetSharedConnection(): void
+    {
+        self::$sharedConnection = null;
     }
 
     /** @return mixed[] */
@@ -124,6 +161,90 @@ class TestUtil
     }
 
     /**
+     * Execute SQL via isql subprocess, bypassing php-firebird driver entirely.
+     *
+     * Workaround for php-firebird v8.2.0 bug where DDL/DML executed through
+     * the PHP connection to a newly created database silently fails (tables
+     * not created, rows not inserted) despite no errors thrown.
+     *
+     * @param string $sql      SQL to execute
+     * @param string $dbname   Firebird database path
+     * @param string $user     Firebird user
+     * @param string $password Firebird password
+     * @param string $host     Firebird host (for connect string)
+     *
+     * @throws RuntimeException If isql returns non-zero exit code.
+     */
+    public static function runIsql(
+        string $sql,
+        string $dbname,
+        string $user,
+        string $password,
+        string $host = '127.0.0.1',
+    ): void {
+        $isqlBin = '/usr/bin/isql-fb';
+        if (! file_exists($isqlBin)) {
+            $isqlBin = '/opt/firebird/bin/isql';
+        }
+
+        if (! file_exists($isqlBin)) {
+            throw new RuntimeException('isql not found (checked /usr/bin/isql-fb and /opt/firebird/bin/isql)');
+        }
+
+        // Build Firebird connect string: host:/path/to/db.fdb
+        $connectString = $host . ':' . $dbname;
+
+        // Write SQL to temp file to avoid shell escaping issues
+        $tmpFile = tempnam('/tmp', 'fb_isql_');
+        file_put_contents($tmpFile, $sql . "\nCOMMIT;\nQUIT;\n");
+
+        $cmd = sprintf(
+            '%s -z -user %s -password %s %s < %s 2>&1',
+            escapeshellarg($isqlBin),
+            escapeshellarg($user),
+            escapeshellarg($password),
+            escapeshellarg($connectString),
+            escapeshellarg($tmpFile),
+        );
+
+        $descriptors = [
+            0 => ['pipe', 'r'],  // stdin (unused, we redirect from file)
+            1 => ['pipe', 'w'],  // stdout
+            2 => ['pipe', 'w'],  // stderr
+        ];
+
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (! is_resource($process)) {
+            @unlink($tmpFile);
+
+            throw new RuntimeException('Failed to start isql process');
+        }
+
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+        @unlink($tmpFile);
+
+        $output = trim($stdout . "\n" . $stderr);
+
+        if ($exitCode !== 0) {
+            throw new RuntimeException(
+                'isql failed (exit ' . $exitCode . '): ' . $output,
+                $exitCode,
+            );
+        }
+
+        // isql may return 0 but still have errors in output (e.g., "Statement failed")
+        if (str_contains($output, 'Statement failed') || str_contains($output, 'Error:')) {
+            throw new RuntimeException('isql reported error: ' . $output);
+        }
+    }
+
+    /**
      * Generates a query that will return the given rows without the need to create a temporary table.
      *
      * @param array<int,array<string,mixed>> $rows
@@ -142,6 +263,10 @@ class TestUtil
         ), $rows));
     }
 
+    /**
+     * Create/recreate the test database file.
+     * Public so integration tests can call it independently of getConnection().
+     */
     public static function initializeDatabase(bool $force = false, string|null $className = null): void
     {
         // Skip if already initialized for this run, unless $force is true.
@@ -180,6 +305,7 @@ class TestUtil
                 if ($ext !== '') {
                     $baseName = substr($baseName, 0, -4);
                 }
+
                 $baseName .= '_' . $uniqueId . $ext;
             }
 
@@ -259,7 +385,24 @@ class TestUtil
                     $privilegedConnection->rollBack();
                 }
 
+                // CRITICAL: Do NOT close and recreate the connection.
+                // php-firebird v8.2.0 cannot reliably reconnect to a newly
+                // created DB file in the same process - the second connection
+                // gets empty DB path and false health check.
+                // Instead, reconnect NOW to the new database and cache it.
                 $privilegedConnection->close();
+                $newDbParams                                = $params;
+                $newDbParams['wrapperClass']                = ConnectionWrapper::class;
+                $newDbParams['persistent']                  = false;
+                $newDbParams['driverOptions']['persistent'] = false;
+                self::$sharedConnection                     = DriverManager::getConnection(
+                    $newDbParams,
+                    self::createConfiguration(),
+                );
+                // Verify the connection actually works
+                self::$sharedConnection->executeQuery(
+                    self::$sharedConnection->getDatabasePlatform()->getDummySelectSQL(),
+                );
 
                 if ($className !== null) {
                     self::$classInitialized[$className] = true;
@@ -282,8 +425,9 @@ class TestUtil
                 }
 
                 if ($i === $maxSlots - 1) {
-                    echo "CRITICAL: Database initialization failed after $maxSlots attempts: " . $e->getMessage() . "\n";
+                    echo 'CRITICAL: Database initialization failed after ' . $maxSlots . ' attempts: ' . $e->getMessage() . "\n";
                     echo $e->getTraceAsString() . "\n";
+
                     throw $e;
                 }
             }
@@ -297,21 +441,11 @@ class TestUtil
 
     private static function createConfiguration(): Configuration
     {
-        static $logger = null;
         $configuration = new Configuration();
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        if ($logger === null) {
-            $logger = new Logger('sql_logger');
-            $logger
-                ->pushProcessor(new MemoryUsageProcessor())
-                ->pushHandler(
-                    new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug),
-                );
-        }
 
-        $configuration->setMiddlewares([
-            new Middleware($logger),
-        ]);
+        // Logging middleware disabled - DG\BypassFinals\MutatingWrapper in
+        // Docker test env breaks stream_open for log files.
 
         return $configuration;
     }

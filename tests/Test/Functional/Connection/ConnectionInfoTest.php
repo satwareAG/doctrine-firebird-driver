@@ -6,12 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Connection;
 
 use Firebird\Database;
 use Firebird\DbInfo;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
-
-use function class_exists;
-use function function_exists;
-use function is_array;
 
 /**
  * Functional tests for Connection::getConnectionInfo() and Connection::getLimboTransactions().

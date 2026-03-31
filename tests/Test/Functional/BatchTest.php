@@ -72,7 +72,8 @@ class BatchTest extends FunctionalTestCase
             $batch->add('name_' . $i, $i);
         }
 
-        $result  = $batch->execute();
+        $result = $batch->execute();
+
         $elapsed = microtime(true) - $start;
 
         self::assertEquals($rowCount, $result->successCount);
@@ -101,12 +102,19 @@ class BatchTest extends FunctionalTestCase
         }
 
         // Also verify php-firebird was compiled with FB_API_VER >= 40
-        // by attempting to create a batch (will throw if not supported)
+        // by attempting to create a batch (will throw if not supported).
+        // NOTE: Must use a statement WITH input parameters - fbird_batch_create()
+        // crashes with SIGFPE on parameterless statements (php-firebird#180).
         try {
-            $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
+            $batch = $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE WHERE 1=?');
+            unset($batch); // Let destructor cancel the batch
         } catch (Throwable $e) {
-            if (str_contains($e->getMessage(), 'FB_API_VER') || str_contains($e->getMessage(), 'Class "Firebird\Batch" not found')) {
-                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40 and Firebird\Batch class');
+            if (
+                str_contains($e->getMessage(), 'FB_API_VER')
+                || str_contains($e->getMessage(), 'Class "Firebird\Batch" not found')
+                || str_contains($e->getMessage(), 'fbird_batch_create')
+            ) {
+                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
             }
 
             throw $e;

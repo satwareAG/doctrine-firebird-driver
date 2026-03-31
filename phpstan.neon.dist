@@ -13,6 +13,7 @@ parameters:
         - vendor/satwareag/php-firebird-stubs/firebird-stubs.php
         - vendor/satwareag/php-firebird-stubs/firebird-classes.php
         - stubs/firebird-userland-classes.php
+        - stubs/firebird-v10-functions.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false

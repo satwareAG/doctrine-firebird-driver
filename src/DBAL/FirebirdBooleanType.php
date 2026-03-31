@@ -6,7 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\BooleanType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 final class FirebirdBooleanType extends BooleanType

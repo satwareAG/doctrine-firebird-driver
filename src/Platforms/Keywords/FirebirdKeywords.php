@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 class FirebirdKeywords extends KeywordList
 {

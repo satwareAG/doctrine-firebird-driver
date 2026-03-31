@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -61,7 +61,7 @@ final class Driver extends FirebirdDriver
         $connectString = $this->buildConnectString($params);
 
         try {
-            $firebirdService = @fbird_service_attach($host, $username, $password);
+            $firebirdService = fbird_service_attach($host, $username, $password);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
@@ -83,9 +83,11 @@ final class Driver extends FirebirdDriver
 
         try {
             if ($persistent) {
-                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
             } else {
-                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                // Handle "I/O error ... no such file or directory" warning below as a valid case
+                // (database doesn't exist yet, will be created by schema tool).
+                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
             }
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);

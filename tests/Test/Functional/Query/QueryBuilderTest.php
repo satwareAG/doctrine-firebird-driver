@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Query;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;

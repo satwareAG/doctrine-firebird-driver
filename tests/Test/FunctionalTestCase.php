@@ -150,10 +150,21 @@ abstract class FunctionalTestCase extends TestCase
         $tableName     = $table->getQuotedName($platform);
 
         $this->dropTableIfExists($tableName);
+
+        // Firebird requires DDL changes to be committed before subsequent DDL
+        // can see them. Without this commit, CREATE TABLE may fail with
+        // "Table already exists" because the DROP hasn't been finalized yet.
+        $fbirdConn = $this->getFirebirdConnection();
+        if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+            try {
+                $fbirdConn->commit();
+            } catch (Throwable) {
+                // Ignore commit errors - auto-commit may have already committed
+            }
+        }
+
         $schemaManager->createTable($table);
         $this->createdTables[] = $tableName;
-        // Explicit commit removed to avoid hangs with Firebird auto-commit behavior
-        // $this->getFirebirdConnection()?->commit();
     }
 
     /**
@@ -232,15 +243,13 @@ abstract class FunctionalTestCase extends TestCase
             }
 
             if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
-                // Connection resource is invalid - need to reconnect
-                try {
-                    self::$sharedConnection?->close();
-                } catch (Throwable) {
-                    // Ignore close errors on invalid connection
-                }
-
+                // Connection resource is invalid - need to reconnect.
+                // Use graceful null assignment instead of close() to avoid
+                // triggering __destruct() which calls fbird_close() on the
+                // shared native resource, invalidating it for other objects.
                 self::$sharedConnection = null;
-                $needNewConnection      = true;
+                TestUtil::resetSharedConnection();
+                $needNewConnection = true;
             }
         }
 

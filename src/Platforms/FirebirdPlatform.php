@@ -23,7 +23,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;

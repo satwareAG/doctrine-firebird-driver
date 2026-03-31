@@ -27,6 +27,27 @@
     <ini name="memory_limit" value="4G"/>
   </php>
   <testsuites>
+    <testsuite name="Unit">
+      <directory>Test/Unit</directory>
+      <directory>Test/Platforms</directory>
+      <directory>Test/Tools</directory>
+    </testsuite>
+    <testsuite name="Integration-ReadOnly">
+      <file>Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php</file>
+      <file>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindTest.php</file>
+      <file>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindAllTest.php</file>
+      <file>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindByTest.php</file>
+      <file>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindOneByTest.php</file>
+    </testsuite>
+    <testsuite name="Integration-Write">
+      <directory>Test/Integration</directory>
+      <directory>Test/Driver</directory>
+      <exclude>Test/Integration/Doctrine/ORM/QueryBuilder/AlbumTest.php</exclude>
+      <exclude>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindTest.php</exclude>
+      <exclude>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindAllTest.php</exclude>
+      <exclude>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindByTest.php</exclude>
+      <exclude>Test/Integration/Doctrine/ORM/EntityManager/Repository/FindOneByTest.php</exclude>
+    </testsuite>
     <testsuite name="Functional">
       <directory>Test/Functional</directory>
     </testsuite>

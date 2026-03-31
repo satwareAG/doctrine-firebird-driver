@@ -14,7 +14,8 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -28,14 +29,13 @@ use function array_merge;
 use function dirname;
 use function fbird_close;
 use function fbird_connect;
+use function fbird_create_database;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function fbird_query;
 use function is_resource;
 use function json_decode;
 use function preg_match;
-use function sprintf;
 use function str_contains;
 use function strtolower;
 use function strtoupper;
@@ -43,7 +43,6 @@ use function trim;
 
 use const CASE_LOWER;
 use const CASE_UPPER;
-use const FBIRD_CREATE;
 
 /**
  * Firebird Schema Manager.
@@ -110,9 +109,11 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             // fbird_close() on the old DBAL link frees the new resource via zend_list_delete.
             try {
                 $driverConn = $this->_conn->getNativeConnection();
-                if (is_resource($driverConn)) {
+                if ($driverConn instanceof Connection && $driverConn->isConnectionValid()) {
+                    $nativeConnection = $driverConn->getNativeConnection();
+                } elseif (is_resource($driverConn)) {
                     $nativeConnection = $driverConn;
-                } elseif ($driverConn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                } elseif ($driverConn instanceof Connection) {
                     $nativeConnection = $driverConn->getNativeConnection();
                 }
             } catch (Throwable) {
@@ -120,15 +121,16 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             }
         }
 
-        if (! is_resource($nativeConnection)) {
+        // v10: fbird_connect returns \Firebird\Connection objects, not resources
+        if ($nativeConnection === null) {
             // Suppress warning since we handle the error explicitly below
             try {
-                $nativeConnection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
+                $nativeConnection = fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
             } catch (Throwable $e) {
                 throw Exception::fromThrowable($e);
             }
 
-            if (! is_resource($nativeConnection)) {
+            if ($nativeConnection === false) {
                 $code = (int) fbird_errcode();
                 $msg  = (string) fbird_errmsg();
                 if ($code === -902) {
@@ -152,7 +154,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         }
 
         try {
-            $result = @fbird_drop_db($nativeConnection);
+            $result = fbird_drop_db($nativeConnection);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
@@ -160,6 +162,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         if (! $result) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
+
             throw new Exception($msg, null, $code);
         }
 
@@ -201,24 +204,19 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        /** @psalm-suppress InvalidArgument */
         try {
-            $result = fbird_query(
-                FBIRD_CREATE, // @phpstan-ignore-line argument.type
-                sprintf(
-                    "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
-                    $dbname,
-                    (int) $pageSize,
-                    $user,
-                    $password,
-                    $charset,
-                ),
+            $result = fbird_create_database(
+                $dbname,
+                $user,
+                $password,
+                $charset,
+                (int) $pageSize,
             );
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
-        if (! is_resource($result)) {
+        if ($result === false) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
 
@@ -234,6 +232,9 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return new FirebirdComparator($this->_platform);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     #[Override]
     public function listTableDetails($name)
     {
