@@ -319,20 +319,13 @@ class TransactionTest extends FunctionalTestCase
         $this->connection->insert(self::TABLE, ['id' => 100, 'val' => 'serializable']);
         $this->connection->commit();
 
-        // Reset isolation to READ_COMMITTED and force a transaction cycle.
-        // TransactionManager::commit() above created a new auto-commit tx
-        // using SERIALIZABLE (SNAPSHOT TABLE STABILITY), which acquires
-        // exclusive locks on RDB$RELATIONS. setAttribute() only changes the
-        // property for future transaction creation. beginTransaction() then
-        // commits the SERIALIZABLE auto-commit tx (fbird_commit - safe, no
-        // queries) and creates a new READ_COMMITTED explicit tx. The final
-        // commit() creates a clean READ_COMMITTED auto-commit tx.
-        $fbirdConn->setAttribute(
-            FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
-            TransactionIsolationLevel::READ_COMMITTED,
-        );
-        $this->connection->beginTransaction();
-        $this->connection->commit();
+        // The successful insert + commit above proves SERIALIZABLE works.
+        // After commit(), TransactionManager creates a new auto-commit tx
+        // using SERIALIZABLE (SNAPSHOT TABLE STABILITY) which acquires
+        // exclusive locks on RDB$RELATIONS. The DBAL middleware chain
+        // prevents resetting isolation before the new tx is created.
+        // Mark connection not reusable so tearDown gets a fresh one.
+        $this->markConnectionNotReusable();
 
         self::assertTrue(true);
     }
