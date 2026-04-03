@@ -171,7 +171,7 @@ tests/
 ├── phpunit-firebird5.xml       # Firebird 5 configuration
 ├── phpunit-firebird25.xml      # Legacy FB 2.5 config (local only)
 ├── phpunit.sh                  # Optimized test runner script
-├── phpunit-all.sh              # Multi-version runner (3.0, 4.0, 5.0)
+├── phpunit-lowest-versions.sh  # Lowest-dependency compatibility runner
 ├── docker-compose.yml          # Test environment services
 ├── Test/
 │   ├── FunctionalTestCase.php # Base class for functional tests
@@ -269,18 +269,18 @@ docker compose down
 
 ### Using Test Runner Scripts
 
-**Single version (Firebird 2.5):**
+**Single version (default Firebird 3):**
 
 ```bash
 cd tests
 ./phpunit.sh
 ```
 
-**All versions (2.5, 3, 4, 5):**
+**All supported CI versions (3, 4, 5):**
 
 ```bash
 cd tests
-./phpunit-all.sh
+./phpunit.sh -v all
 ```
 
 ### Running Specific Test Suites
@@ -637,8 +637,8 @@ SQLSTATE[08006] [335544721] Unable to complete network request to host "firebird
    # For Firebird 3
    php vendor/bin/phpunit -c phpunit.xml  # Uses db_host="firebird3"
    
-   # For Firebird 2.5
-   php vendor/bin/phpunit -c phpunit-firebird25.xml  # Uses db_host="firebird25"
+   # For Firebird 4
+   php vendor/bin/phpunit -c phpunit-firebird4.xml  # Uses db_host="firebird4"
    ```
 
 3. **Services not fully started:**
@@ -722,7 +722,7 @@ The project supports Firebird 3.0, 4.0, and 5.0 in CI. Firebird 2.5 is supported
 
 ```bash
 # All supported versions sequentially (3, 4, 5)
-cd tests && ./phpunit-all.sh
+cd tests && ./phpunit.sh -v all
 
 # Individual versions
 docker exec --user=application -w /app/tests app-doctrine-firebird-driver \

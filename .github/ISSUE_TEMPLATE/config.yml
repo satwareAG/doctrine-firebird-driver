@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation and setup guide
+    url: https://github.com/satwareAG/doctrine-firebird-driver/blob/3.10.x/README.md
+    about: Review installation, configuration, and compatibility guidance before opening an issue.
+  - name: Testing guide
+    url: https://github.com/satwareAG/doctrine-firebird-driver/blob/3.10.x/docs/TESTING.md
+    about: Review Docker setup, multi-version test commands, and troubleshooting steps.

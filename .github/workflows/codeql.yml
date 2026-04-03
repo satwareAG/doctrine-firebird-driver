@@ -3,14 +3,12 @@ name: "CodeQL"
 on:
   push:
     branches:
-      - 'main'
-      - '3.0.*'
-      - '3.10-dev'
+      - '3.10.x'
+      - '4.4.x'
   pull_request:
     branches:
-      - 'main'
-      - '3.0.*'
-      - '3.10-dev'
+      - '3.10.x'
+      - '4.4.x'
   schedule:
     - cron: '0 3 * * 1'  # Weekly Monday 3 AM UTC
 
@@ -33,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

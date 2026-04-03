@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
     labels:
       - "CI"
-    target-branch: "3.10-dev"
+    target-branch: "3.10.x"
 
   # Check for Composer package updates in the root directory
   - package-ecosystem: "composer"
@@ -16,7 +16,7 @@ updates:
       interval: "weekly"
     labels:
       - "dependencies"
-    target-branch: "3.10-dev"
+    target-branch: "3.10.x"
 
   # Check for Composer package updates in vendor-bin/rector
   - package-ecosystem: "composer"
@@ -25,4 +25,4 @@ updates:
       interval: "weekly"
     labels:
       - "dependencies"
-    target-branch: "3.10-dev"
+    target-branch: "3.10.x"

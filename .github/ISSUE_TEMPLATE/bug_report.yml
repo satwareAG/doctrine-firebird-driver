@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a reproducible defect in the Doctrine Firebird driver
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report.
+
+        Please include a minimal reproduction and the exact Firebird and PHP versions.
+  - type: dropdown
+    id: branch_line
+    attributes:
+      label: Affected branch line
+      description: Which maintained line appears affected?
+      options:
+        - 3.10.x
+        - 4.4.x
+        - Unsure
+    validations:
+      required: true
+  - type: checkboxes
+    id: firebird_versions
+    attributes:
+      label: Affected Firebird version(s)
+      options:
+        - label: 3.0
+        - label: 4.0
+        - label: 5.0
+        - label: Legacy local-only 2.5 investigation
+  - type: input
+    id: php_version
+    attributes:
+      label: PHP version
+      placeholder: 8.2.27 / 8.4.6 / 8.5.x
+    validations:
+      required: true
+  - type: input
+    id: extension_version
+    attributes:
+      label: ext-firebird version
+      placeholder: 10.3.2
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the defect clearly.
+      placeholder: A clear description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Paste the smallest code or SQL sample that reproduces the problem.
+      render: php
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and logs
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked existing issues and pull requests.
+          required: true
+        - label: I can still reproduce this on the latest `3.10.x` code.
+          required: true
+        - label: I included version details and a minimal reproduction.
+          required: true

@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose an improvement for the Doctrine Firebird driver
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the use case first.
+
+        Requests that explain Firebird version constraints, DBAL implications, and migration impact
+        are much easier to review.
+  - type: dropdown
+    id: target_line
+    attributes:
+      label: Target line
+      description: Which line should this primarily affect?
+      options:
+        - 3.10.x
+        - 4.4.x
+        - Both eventually
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What limitation or pain point are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the API, behavior, or workflow you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing workarounds or rejected alternatives.
+  - type: checkboxes
+    id: versions
+    attributes:
+      label: Relevant Firebird versions
+      options:
+        - label: 3.0
+        - label: 4.0
+        - label: 5.0
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked existing issues and pull requests.
+          required: true
+        - label: I described the user-facing benefit, not only the implementation idea.
+          required: true
