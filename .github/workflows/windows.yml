@@ -98,10 +98,12 @@ jobs:
           $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
           
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
-          $releases = Invoke-RestMethod -Uri $apiUrl
+          $headers = @{}
+          if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "token $env:GITHUB_TOKEN" }
+          $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          $patterns = @("php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
+          $patterns = @("php-firebird-10\.6\.2-php${phpVer}-nts-windows.*x64.*\.zip", "php-firebird-.*-php${phpVer}-nts-.*x64.*\.zip", "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
