@@ -32,10 +32,10 @@ jobs:
       DB_DBNAME: test.fdb
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@728c6c6b8cf02c2e48117716a91ee48313958a19
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl
@@ -43,15 +43,27 @@ jobs:
           tools: composer:v2
 
       - name: Cache Firebird (Chocolatey)
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: C:\ProgramData\chocolatey\lib\firebird
           key: ${{ runner.os }}-choco-firebird-3.0.13
 
       - name: Install Firebird
+        shell: pwsh
         run: |
-          # Install Firebird 3.0 via Chocolatey with increased timeout
-          choco install firebird --version=3.0.13 -y --no-progress --timeout 600
+          # Install Firebird 3.0.13 via Chocolatey with retry + exponential backoff
+          $maxRetries = 3
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            try {
+              choco install firebird --version=3.0.13 --yes --no-progress --timeout 600
+              break
+            } catch {
+              if ($i -eq $maxRetries) { throw }
+              $wait = 10 * $i
+              Write-Warning "Chocolatey attempt $i failed, retrying in ${wait}s..."
+              Start-Sleep -Seconds $wait
+            }
+          }
           
           # Create dedicated directory for test databases and grant full permissions to Everyone
           if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
@@ -92,6 +104,8 @@ jobs:
 
       - name: Download and setup php-firebird DLL
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $phpVer = "${{ matrix.php }}"
           $arch = "x86_64"
