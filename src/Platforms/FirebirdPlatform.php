@@ -462,11 +462,8 @@ class FirebirdPlatform extends AbstractPlatform
     #[Override]
     public function getDropSequenceSQL(string $sequence): string
     {
-        if (! ($sequence instanceof Sequence)) {
-            $sequence = new Sequence($sequence);
-        }
-
-        $sequenceName = $sequence->getQuotedName($this);
+        $sequenceObj  = new Sequence($sequence);
+        $sequenceName = $sequenceObj->getQuotedName($this);
         if (stripos($sequenceName, '_D2IS') !== false) {
             // Seems to be a autoinc-sequence. Try to drop trigger before
             $triggerName = str_replace('_D2IS', '_D2IT', $sequenceName);
@@ -474,13 +471,13 @@ class FirebirdPlatform extends AbstractPlatform
             return $this->getExecuteBlockWithExecuteStatementsSql([
                 'statements' => [
                     $this->getDropTriggerIfExistsPSql($triggerName, true),
-                    $this->getDropSequenceIfExistsPSql($sequence, true),
+                    $this->getDropSequenceIfExistsPSql($sequenceObj, true),
                 ],
                 'formatLineBreak' => false,
             ]);
         }
 
-        return parent::getDropSequenceSQL($sequence->getQuotedName($this));
+        return parent::getDropSequenceSQL($sequenceName);
     }
 
     /**

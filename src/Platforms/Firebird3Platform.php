@@ -148,7 +148,7 @@ class Firebird3Platform extends FirebirdPlatform
         }
 
         foreach ($diff->getRenamedColumns() as $oldColumnName => $column) {
-            $oldColumnName = new Identifier($oldColumnName);
+            $oldColumnName = new Identifier((string) $oldColumnName);
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);

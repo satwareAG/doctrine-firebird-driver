@@ -54,7 +54,7 @@ abstract class PlatformTestCase extends TestCase
             self::markTestSkipped('Not working this way on mssql.');
         }
 
-        $c = $this->platform->getIdentifierQuoteCharacter();
+        $c = '"'; // Firebird uses double-quote; getIdentifierQuoteCharacter() removed in DBAL4
         self::assertSame($c . 'test' . $c, $this->platform->quoteIdentifier('test'));
         self::assertSame($c . 'test' . $c . '.' . $c . 'test' . $c, $this->platform->quoteIdentifier('test.test'));
         self::assertSame(str_repeat($c, 4), $this->platform->quoteIdentifier($c));
@@ -66,7 +66,7 @@ abstract class PlatformTestCase extends TestCase
             self::markTestSkipped('Not working this way on mssql.');
         }
 
-        $c = $this->platform->getIdentifierQuoteCharacter();
+        $c = '"'; // Firebird uses double-quote; getIdentifierQuoteCharacter() removed in DBAL4
         self::assertSame($c . 'test' . $c, $this->platform->quoteSingleIdentifier('test'));
         self::assertSame($c . 'test.test' . $c, $this->platform->quoteSingleIdentifier('test.test'));
         self::assertSame(str_repeat($c, 4), $this->platform->quoteSingleIdentifier($c));
@@ -164,25 +164,6 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
-    #[DataProvider('getIsCommentedDoctrineType')]
-    public function testIsCommentedDoctrineType(string $typeName): void
-    {
-        $type      = Type::getType($typeName);
-        $commented = $type->requiresSQLCommentHint($this->platform);
-        self::assertIsBool($commented);
-    }
-
-    /** @return mixed[] */
-    public static function getIsCommentedDoctrineType(): iterable
-    {
-        $data = [];
-
-        foreach (Type::getTypesMap() as $typeName => $className) {
-            $data[$typeName] = [$typeName];
-        }
-
-        return $data;
-    }
 
     public function testCreateWithNoColumns(): void
     {

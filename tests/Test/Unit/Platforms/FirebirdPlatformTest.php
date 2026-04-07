@@ -85,19 +85,19 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public function testQuoteIdentifier(): void
     {
-        $c = $this->_platform->getIdentifierQuoteCharacter();
+        $c = '"'; // Firebird uses double-quote as identifier quote character
         self::assertSame($c . 'test' . $c, $this->_platform->quoteIdentifier('test'));
         self::assertSame($c . 'test' . $c . '.' . $c . 'test' . $c, $this->_platform->quoteIdentifier('test.test'));
-        self::assertSame(str_repeat((string) $c, 4), $this->_platform->quoteIdentifier($c));
+        self::assertSame(str_repeat($c, 4), $this->_platform->quoteIdentifier($c));
     }
 
     #[Group('DDC-1360')]
     public function testQuoteSingleIdentifier(): void
     {
-        $c = $this->_platform->getIdentifierQuoteCharacter();
+        $c = '"'; // Firebird uses double-quote as identifier quote character
         self::assertSame($c . 'test' . $c, $this->_platform->quoteSingleIdentifier('test'));
         self::assertSame($c . 'test.test' . $c, $this->_platform->quoteSingleIdentifier('test.test'));
-        self::assertSame(str_repeat((string) $c, 4), $this->_platform->quoteSingleIdentifier($c));
+        self::assertSame(str_repeat($c, 4), $this->_platform->quoteSingleIdentifier($c));
     }
 
     public function testGetInvalidForeignKeyReferentialActionSQLThrowsException(): void
@@ -479,15 +479,8 @@ END
 
     public function testGetDropSequenceSQLWithSequence(): void
     {
-        $sequence = $this
-            ->getMockBuilder(Sequence::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $sequence
-            ->expects($this->atMost(2))
-            ->method('getQuotedName')
-            ->willReturn('foo');
-        $found = $this->_platform->getDropSequenceSQL($sequence);
+        // In DBAL4, getDropSequenceSQL() takes a string; pass the name directly
+        $found = $this->_platform->getDropSequenceSQL('foo');
         self::assertIsString($found);
         self::assertSame('DROP SEQUENCE foo', $found);
     }
@@ -957,20 +950,9 @@ END
     }
 
     #[Group('DBAL-553')]
-    public function testHasNativeJsonType(): void
-    {
-        self::assertFalse($this->_platform->hasNativeJsonType());
-    }
-
-    #[Group('DBAL-553')]
     public function testReturnsJsonTypeDeclarationSQL(): void
     {
         $column = ['length' => 666, 'notnull' => true, 'type' => Type::getType('json')];
         self::assertSame($this->_platform->getClobTypeDeclarationSQL($column), $this->_platform->getJsonTypeDeclarationSQL($column));
-    }
-
-    public function testGetStringLiteralQuoteCharacter(): void
-    {
-        self::assertSame("'", $this->_platform->getStringLiteralQuoteCharacter());
     }
 }
