@@ -68,8 +68,7 @@ class CharsetEncodingRoundTripTest extends TestCase
         $innerStmt = $this->createMock(DriverStatement::class);
         $innerStmt->expects(self::once())
             ->method('bindValue')
-            ->with(1, $win1252Bytes, ParameterType::STRING)
-            ->willReturn(true);
+            ->with(1, $win1252Bytes, ParameterType::STRING);
 
         $stmt = new CharsetStatementMiddleware($innerStmt, 'Windows-1252', 'UTF-8');
         $stmt->bindValue(1, $utf8String, ParameterType::STRING);

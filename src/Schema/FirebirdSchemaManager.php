@@ -561,8 +561,8 @@ SQL;
             [
                 'unsigned' => str_contains($dbType, 'unsigned'),
                 'fixed' => (bool) $fixed,
-                'scale' => null,
-                'precision' => null,
+                'scale' => 0,
+                'precision' => 0,
             ],
         );
 

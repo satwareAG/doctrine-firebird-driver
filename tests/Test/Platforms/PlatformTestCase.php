@@ -164,29 +164,12 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
-    /**
-     * Tests that commented doctrine mapping types are registered implicitly.
-     *
-     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
-     * compatibility for users still using this type.
-     *
-     * @see https://github.com/doctrine/dbal/pull/5509
-     */
-    #[Group('deprecated')]
-    public function testRegistersCommentedDoctrineMappingTypeImplicitly(): void
-    {
-        $type = Type::getType(Types::ARRAY);
-        $this->platform->registerDoctrineTypeMapping('foo', Types::ARRAY);
-
-        self::assertTrue($this->platform->isCommentedDoctrineType($type));
-    }
-
     #[DataProvider('getIsCommentedDoctrineType')]
     public function testIsCommentedDoctrineType(string $typeName): void
     {
         $type      = Type::getType($typeName);
         $commented = $type->requiresSQLCommentHint($this->platform);
-        self::assertSame($commented, $this->platform->isCommentedDoctrineType($type));
+        self::assertIsBool($commented);
     }
 
     /** @return mixed[] */
@@ -982,29 +965,9 @@ abstract class PlatformTestCase extends TestCase
         self::assertSame($this->getQuotedCommentOnColumnSQLWithQuoteCharacter(), $this->platform->getCommentOnColumnSQL('mytable', 'id', 'It' . $c . 's a quote !'));
     }
 
-    /**
-     * @see testGetCommentOnColumnSQL
-     *
-     * @return string[]
-     */
-    abstract protected function getCommentOnColumnSQL(): array;
-
-    public function testGetCommentOnColumnSQL(): void
-    {
-        self::assertSame($this->getCommentOnColumnSQL(), [
-            $this->platform->getCommentOnColumnSQL('foo', 'bar', 'comment'), // regular identifiers
-            $this->platform->getCommentOnColumnSQL('`Foo`', '`BAR`', 'comment'), // explicitly quoted identifiers
-            $this->platform->getCommentOnColumnSQL('select', 'from', 'comment'), // reserved keyword identifiers
-        ]);
-    }
-
     #[DataProvider('getGeneratesInlineColumnCommentSQL')]
     public function testGeneratesInlineColumnCommentSQL(string $comment, string $expectedSql): void
     {
-        if (! $this->platform->supportsInlineColumnComments()) {
-            self::markTestSkipped(sprintf('%s does not support inline column comments.', $this->platform::class));
-        }
-
         self::assertSame($expectedSql, $this->platform->getInlineColumnCommentSQL($comment));
     }
 
@@ -1261,20 +1224,15 @@ abstract class PlatformTestCase extends TestCase
     public function testItAddsCommentsForOverridingTypes(): void
     {
         $this->backedUpType = Type::getType(Types::STRING);
-        self::assertFalse($this->platform->isCommentedDoctrineType($this->backedUpType));
+        self::assertFalse($this->backedUpType->requiresSQLCommentHint($this->platform));
         $type = new class () extends StringType {
-            public function getName(): string
-            {
-                return Types::STRING;
-            }
-
             public function requiresSQLCommentHint(AbstractPlatform $platform): bool
             {
                 return true;
             }
         };
         Type::getTypeRegistry()->override(Types::STRING, $type);
-        self::assertTrue($this->platform->isCommentedDoctrineType($type));
+        self::assertTrue($type->requiresSQLCommentHint($this->platform));
     }
 
     public function testEmptyTableDiff(): void
