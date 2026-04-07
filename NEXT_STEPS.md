@@ -1,7 +1,7 @@
 # Next Steps - doctrine-firebird-driver
 
 **Last updated:** 2026-04-07
-**Branch:** `3.10.x` (HEAD: 91ea882)
+**Branch:** `3.10.x` (HEAD: 0f9f4c9)
 **Extension:** php-firebird v10.6.2 (`ext-firebird: ^10.6`)
 **Status:** All 3.10.x phases complete. Zero open issues. DBAL 3 + ORM 3 compatibility fully verified.
 
@@ -23,7 +23,13 @@
 
 | Metric | Value |
 |--------|-------|
-| Unit test suite | 1561 tests, OK (18 skipped, 4 incomplete) |
+| Unit test suite | 2324-2336 tests PASSED (PHP 8.4, php-firebird v10.6.2) |
+| Firebird 3 | ✅ 2324 tests PASSED |
+| Firebird 4 | ✅ 2336 tests PASSED |
+| Firebird 5 | ✅ 2336 tests PASSED |
+| DBAL version | 3.10.5 (latest 3.x) |
+| ORM version | 3.6.3 (latest 3.x) |
+| php-firebird | v10.6.2 (Docker test image updated) |
 | PHPStan Level 8 | 0 errors |
 | `@fbird_*` suppressions | 0 (all removed) |
 | Open issues | 0 |
@@ -33,6 +39,11 @@
 
 Spec: `specs/001-charset-transparency-middleware/spec.md` (Status: Implemented)
 Implementation: `src/Driver/Firebird/Middleware/Charset*.php` (4 classes)
+
+### Docker Test Image v10.6.2 (COMPLETE - 2026-04-07)
+
+Commit `0f9f4c9`: Updated `tests/app/Dockerfile` to use php-firebird v10.6.2 (previously pinned to v10.3.9).
+Full test suite verified: Firebird 3/4/5 all pass with PHP 8.4 + DBAL 3.10.5 + ORM 3.6.3.
 
 ### php-firebird v10.6.2 Upgrade (COMPLETE - 2026-04-03)
 
