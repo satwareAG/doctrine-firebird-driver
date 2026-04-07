@@ -1,9 +1,9 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last updated:** 2026-03-31
-**Branch:** `3.10.x` (HEAD: 797421e)
-**Extension:** php-firebird v10.3.9 (`ext-firebird: ^10.3.2`)
-**Status:** All phases complete. Zero open issues.
+**Last updated:** 2026-04-07
+**Branch:** `3.10.x` (HEAD: 91ea882)
+**Extension:** php-firebird v10.6.2 (`ext-firebird: ^10.6`)
+**Status:** All 3.10.x phases complete. Zero open issues. DBAL 3 + ORM 3 compatibility fully verified.
 
 ---
 
@@ -19,11 +19,11 @@
 | **3** | Gap analysis tests | #65 TransactionTest, #66 DefaultValueTest, #67 ComparatorTest |
 | **4** | Merge to 3.10.x | Commit 797421e, issues #65/#66/#67 auto-closed |
 
-### Metrics (2026-03-31)
+### Metrics (2026-04-07)
 
 | Metric | Value |
 |--------|-------|
-| Full suite | 2336 tests, ALL PASSED (FB4) |
+| Unit test suite | 1561 tests, OK (18 skipped, 4 incomplete) |
 | PHPStan Level 8 | 0 errors |
 | `@fbird_*` suppressions | 0 (all removed) |
 | Open issues | 0 |
@@ -33,6 +33,31 @@
 
 Spec: `specs/001-charset-transparency-middleware/spec.md` (Status: Implemented)
 Implementation: `src/Driver/Firebird/Middleware/Charset*.php` (4 classes)
+
+### php-firebird v10.6.2 Upgrade (COMPLETE - 2026-04-03)
+
+Five commits on `3.10.x`:
+
+1. `chore(deps)`: remove redundant `symfony/polyfill-php82`, bump `ext-firebird: ^10.6`
+2. `feat(ci)`: upgrade php-firebird to v10.6.2 in all CI workflows
+3. `chore(ci)`: pin GitHub Actions to immutable SHA digests
+4. `fix(tests)`: TransactionTest SERIALIZABLE race fixed via `markConnectionNotReusable()`
+5. GitHub housekeeping: milestone #14 created, issues #99-#106 triaged, PR #104 closed
+
+### DBAL 3 + ORM 3 Compatibility Audit (COMPLETE - 2026-04-07)
+
+Verified all requirements for PHP 8.2, 8.3, 8.4, and 8.5:
+
+| Area | Status |
+|------|--------|
+| All DBAL 3 driver interfaces | ✅ Fully implemented |
+| ORM 3 integration (QuoteStrategy, BooleanType, Connection, SchemaManager) | ✅ Present |
+| PHP 8.4 implicit nullable deprecation | ✅ No issues (DBAL interfaces are untyped) |
+| `Compat\Override` polyfill for PHP 8.2 | ✅ Correct |
+| CI matrix PHP 8.2/8.3/8.4/8.5 | ✅ All versions covered |
+| PHPStan Level 8 | ✅ 0 errors |
+| `doctrine/orm` | ✅ 3.6.3 (latest 3.x) |
+| `doctrine/dbal` | ✅ 3.10.5 (latest 3.x) |
 
 ### Additional Completed Items
 
@@ -45,6 +70,7 @@ Implementation: `src/Driver/Firebird/Middleware/Charset*.php` (4 classes)
 ## Future: DBAL 4.x Migration (4.4.x branch)
 
 Branch `4.4.x` exists but is not yet started. All 3.10.x stabilization is complete.
+Milestone: `4.4.0 - DBAL 4 Migration` (#14) - issues #99-#102 assigned.
 
 ### Documented Blockers
 
