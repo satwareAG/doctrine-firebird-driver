@@ -97,7 +97,7 @@ class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
         $child->addColumn('id', Types::INTEGER);
         $child->addColumn('parent_id', Types::INTEGER);
         $child->setPrimaryKey(['id']);
-        $child->addForeignKeyConstraint($parent, ['parent_id'], ['id']);
+        $child->addForeignKeyConstraint($parent->getName(), ['parent_id'], ['id']);
 
         $schemaManager->createTable($parent);
         $schemaManager->createTable($child);

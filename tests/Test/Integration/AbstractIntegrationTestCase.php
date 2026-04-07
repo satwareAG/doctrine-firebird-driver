@@ -151,13 +151,13 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addColumn('tophit', 'boolean', ['notnull' => true]);
         $tSong->setPrimaryKey(['id']);
 
-        $tAlbum->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Album_artist_id');
-        $tAlbumSongmap->addForeignKeyConstraint($tAlbum, ['album_id'], ['id'], [], 'FK_Album_SongMap_album_id');
-        $tAlbumSongmap->addForeignKeyConstraint($tSong, ['song_id'], ['id'], [], 'FK_Album_Songmap_song_id');
+        $tAlbum->addForeignKeyConstraint($tArtist->getName(), ['artist_id'], ['id'], [], 'FK_Album_artist_id');
+        $tAlbumSongmap->addForeignKeyConstraint($tAlbum->getName(), ['album_id'], ['id'], [], 'FK_Album_SongMap_album_id');
+        $tAlbumSongmap->addForeignKeyConstraint($tSong->getName(), ['song_id'], ['id'], [], 'FK_Album_Songmap_song_id');
         $tAlbumSongmap->addUniqueConstraint(['album_id', 'song_id'], 'UK_Album_SongMap');
-        $tCasesCascadingremove->addForeignKeyConstraint($tCasesCascadingremoveSubclass, ['subclass_id'], ['id'], [], 'UK_CASES_CASCREM_SUBCLASS_id');
-        $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
-        $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
+        $tCasesCascadingremove->addForeignKeyConstraint($tCasesCascadingremoveSubclass->getName(), ['subclass_id'], ['id'], [], 'UK_CASES_CASCREM_SUBCLASS_id');
+        $tSong->addForeignKeyConstraint($tGenre->getName(), ['genre_id'], ['id'], [], 'FK_Song_genre_id');
+        $tSong->addForeignKeyConstraint($tArtist->getName(), ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
         $platform = $connection->getDatabasePlatform();
         $schemaManager = $connection->createSchemaManager();

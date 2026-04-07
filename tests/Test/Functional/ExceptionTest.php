@@ -399,7 +399,7 @@ class ExceptionTest extends FunctionalTestCase
         $owningTable->addColumn('id', Types::INTEGER, []);
         $owningTable->addColumn('constraint_id', Types::INTEGER, []);
         $owningTable->setPrimaryKey(['id']);
-        $owningTable->addForeignKeyConstraint($table, ['constraint_id'], ['id']);
+        $owningTable->addForeignKeyConstraint($table->getName(), ['constraint_id'], ['id']);
 
         $schemaManager->createTable($table);
         $schemaManager->createTable($owningTable);

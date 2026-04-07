@@ -528,7 +528,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            $foreignTable->getName(),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -548,7 +548,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            $foreignTable->getName(),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -568,7 +568,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            $foreignTable->getName(),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -1117,8 +1117,8 @@ abstract class PlatformTestCase extends TestCase
         $primaryTable->addColumn('baz', Types::INTEGER);
         $primaryTable->addIndex(['foo'], 'idx_foo');
         $primaryTable->addIndex(['bar'], 'idx_bar');
-        $primaryTable->addForeignKeyConstraint($foreignTable, ['foo'], ['id'], [], 'fk_foo');
-        $primaryTable->addForeignKeyConstraint($foreignTable, ['bar'], ['id'], [], 'fk_bar');
+        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id'], [], 'fk_foo');
+        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['bar'], ['id'], [], 'fk_bar');
 
         $tableDiff = new TableDiff(
             $primaryTable,
