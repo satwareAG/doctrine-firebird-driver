@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -39,8 +38,8 @@ class ComparatorTest extends FunctionalTestCase
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
 
-        $diff = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'Platform comparator: no diff expected after create/introspect roundtrip');
+        $diff = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'Platform comparator: no diff expected after create/introspect roundtrip');
     }
 
     public function testNoFalsePositiveDiffGenericComparator(): void
@@ -52,8 +51,8 @@ class ComparatorTest extends FunctionalTestCase
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
 
-        $diff = (new Comparator())->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'Generic comparator: no diff expected after create/introspect roundtrip');
+        $diff = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'Generic comparator: no diff expected after create/introspect roundtrip');
     }
 
     public function testNoFalsePositiveDiffBothDirections(): void
@@ -68,11 +67,11 @@ class ComparatorTest extends FunctionalTestCase
 
         // Both directions should show no diff
         self::assertFalse(
-            $comparator->diffTable($onlineTable, $table),
+            $comparator->compareTables($onlineTable, $table),
             'online→offline: no diff expected',
         );
         self::assertFalse(
-            $comparator->diffTable($table, $onlineTable),
+            $comparator->compareTables($table, $onlineTable),
             'offline→online: no diff expected',
         );
     }
@@ -90,8 +89,8 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->addColumn('new_col', Types::INTEGER, ['notnull' => false]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff, 'Comparator should detect added column');
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty(), 'Comparator should detect added column');
 
         $addedColumns = $diff->getAddedColumns();
         self::assertCount(1, $addedColumns);
@@ -111,8 +110,8 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->dropColumn('str_col');
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff, 'Comparator should detect dropped column');
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty(), 'Comparator should detect dropped column');
 
         $droppedColumns = $diff->getDroppedColumns();
         self::assertCount(1, $droppedColumns);
@@ -132,8 +131,8 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->changeColumn('int_col', ['type' => Type::getType(Types::BIGINT)]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff, 'Comparator should detect type change');
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty(), 'Comparator should detect type change');
     }
 
     /**
@@ -149,8 +148,8 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->changeColumn('int_col', ['default' => 999]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff, 'Comparator should detect default value change');
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty(), 'Comparator should detect default value change');
     }
 
     /**
@@ -167,14 +166,14 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->addColumn('extra_col', Types::STRING, ['length' => 50, 'notnull' => false]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty());
         $schemaManager->alterTable($diff);
 
         // After applying, no further diff should be detected
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff2       = $schemaManager->createComparator()->diffTable($onlineTable, $newTable);
-        self::assertFalse($diff2, 'No diff expected after applying schema change');
+        $diff2       = $schemaManager->createComparator()->compareTables($onlineTable, $newTable);
+        self::assertTrue($diff2->isEmpty(), 'No diff expected after applying schema change');
     }
 
     public function testDropColumnAndVerifyNoDiff(): void
@@ -187,13 +186,13 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->dropColumn('str_col');
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty());
         $schemaManager->alterTable($diff);
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff2       = $schemaManager->createComparator()->diffTable($onlineTable, $newTable);
-        self::assertFalse($diff2, 'No diff expected after dropping column');
+        $diff2       = $schemaManager->createComparator()->compareTables($onlineTable, $newTable);
+        self::assertTrue($diff2->isEmpty(), 'No diff expected after dropping column');
     }
 
     /**
@@ -211,8 +210,8 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff        = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'No diff expected for table with index after roundtrip');
+        $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'No diff expected for table with index after roundtrip');
     }
 
     public function testDetectsAddedIndex(): void
@@ -228,8 +227,8 @@ class ComparatorTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->addIndex(['name'], 'idx_name_new');
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff, 'Comparator should detect added index');
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty(), 'Comparator should detect added index');
     }
 
     /**
@@ -252,8 +251,8 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff        = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'No diff expected for table with FK after roundtrip');
+        $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'No diff expected for table with FK after roundtrip');
     }
 
     /**
@@ -271,8 +270,8 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff        = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'No diff expected for table with unique index after roundtrip');
+        $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'No diff expected for table with unique index after roundtrip');
     }
 
     /**
@@ -295,8 +294,8 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
-        $diff        = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'No diff expected for multi-type table after roundtrip');
+        $diff        = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'No diff expected for multi-type table after roundtrip');
     }
 
     protected function setUp(): void

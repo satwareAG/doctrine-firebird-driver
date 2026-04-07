@@ -4,13 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
-use Doctrine\Common\EventManager;
-use Doctrine\DBAL\Event\SchemaAlterTableAddColumnEventArgs;
-use Doctrine\DBAL\Event\SchemaAlterTableChangeColumnEventArgs;
-use Doctrine\DBAL\Event\SchemaAlterTableRemoveColumnEventArgs;
-use Doctrine\DBAL\Event\SchemaAlterTableRenameColumnEventArgs;
-use Doctrine\DBAL\Events;
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
@@ -20,7 +14,6 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -189,8 +182,7 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         $seq = new Sequence('MY_SEQ', 5, 100); // allocationSize=5 → unsupported
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('allocation size > 1');
+        $this->expectException(NotSupported::class);
 
         $this->platform->getCreateSequenceSQL($seq);
     }
@@ -200,8 +192,7 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // Create sequence with allocationSize=1, initialValue=5, cache=10
         $seq = new Sequence('MY_SEQ', 1, 5, 10);
 
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('with cache not null');
+        $this->expectException(NotSupported::class);
 
         $this->platform->getCreateSequenceSQL($seq);
     }
@@ -247,11 +238,8 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
     public function testGetDropTableSQLAcceptsTableObject(): void
     {
-        $table = new Table('my_table');
-
-        // Deprecated path: passing Table object
-        // Should still return valid DROP TABLE SQL (as an EXECUTE BLOCK)
-        $sql = @$this->platform->getDropTableSQL($table);
+        // DBAL4: getDropTableSQL() only accepts string
+        $sql = $this->platform->getDropTableSQL('my_table');
 
         self::assertStringContainsString('MY_TABLE', $sql);
         self::assertStringContainsString('DROP TABLE', $sql);
@@ -266,10 +254,8 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
     public function testGetDropTableSQLThrowsOnInvalidArgument(): void
     {
-        // getDropTableSQL() with a non-string, non-Table argument hits the
-        // InvalidArgumentException branch (lines 575-577 in FirebirdPlatform).
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('expects $table parameter to be string or');
+        // DBAL4: getDropTableSQL(string $table) - passing non-string causes TypeError
+        $this->expectException(\TypeError::class);
 
         // @phpstan-ignore argument.type
         $this->platform->getDropTableSQL(42);
@@ -362,14 +348,13 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         $newCol = new Column('id', $intType);
         $newCol->setAutoincrement(true);
 
-        // changedProperties drives hasAutoIncrementChanged() = true
-        $colDiff = new ColumnDiff('id', $newCol, ['autoincrement'], $oldCol);
+        // ColumnDiff(Column $oldColumn, Column $newColumn) in DBAL4
+        $colDiff = new ColumnDiff($oldCol, $newCol);
 
         $fromTable = new Table('autoinc_tbl');
         $fromTable->addColumn('id', Types::INTEGER);
 
-        // @phpstan-ignore argument.type (deprecated TableDiff constructor, but correct for DBAL 3.x)
-        $diff = new TableDiff('autoinc_tbl', [], [$colDiff], [], [], [], [], $fromTable);
+        $diff = new TableDiff($fromTable, [], [$colDiff]);
         $sql  = $this->platform->getAlterTableSQL($diff);
 
         // When autoincrement is added, a CREATE SEQUENCE statement is generated
@@ -391,14 +376,13 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         $newCol = new Column('id', $intType);
         // autoincrement defaults to false → DROP DEFAULT path
 
-        // changedProperties drives hasAutoIncrementChanged() = true
-        $colDiff = new ColumnDiff('id', $newCol, ['autoincrement'], $oldCol);
+        // ColumnDiff(Column $oldColumn, Column $newColumn) in DBAL4
+        $colDiff = new ColumnDiff($oldCol, $newCol);
 
         $fromTable = new Table('autoinc_drop_tbl');
         $fromTable->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
 
-        // @phpstan-ignore argument.type (deprecated TableDiff constructor, but correct for DBAL 3.x)
-        $diff = new TableDiff('autoinc_drop_tbl', [], [$colDiff], [], [], [], [], $fromTable);
+        $diff = new TableDiff($fromTable, [], [$colDiff]);
         $sql  = $this->platform->getAlterTableSQL($diff);
 
         $allSql = implode(' ', $sql);
@@ -573,122 +557,4 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         self::assertInstanceOf(Identifier::class, $result);
     }
 
-    // -------------------------------------------------------------------------
-    // getAlterTableSQL — deprecated schema event hook continue paths (lines 633, 658, 667, 749)
-    // -------------------------------------------------------------------------
-
-    public function testGetAlterTableSQLAddColumnEventPreventsDefault(): void
-    {
-        // Registers an EventManager listener that calls preventDefault() for
-        // onSchemaAlterTableAddColumn → the `continue;` at line 633 is executed.
-        $em = new EventManager();
-        $em->addEventListener(
-            Events::onSchemaAlterTableAddColumn,
-            new class {
-                public function onSchemaAlterTableAddColumn(SchemaAlterTableAddColumnEventArgs $e): void
-                {
-                    $e->preventDefault();
-                }
-            },
-        );
-
-        $platform = new FirebirdPlatform();
-        $platform->setEventManager($em);
-
-        $fromTable = new Table('evt_tbl');
-        $newTable  = new Table('evt_tbl');
-        $newTable->addColumn('new_col', Types::STRING, ['length' => 10]);
-
-        $comparator = new Comparator($platform);
-        $diff       = $comparator->compareTables($fromTable, $newTable);
-        // Event prevents ADD COLUMN SQL; no exception should be thrown
-        $sql = $platform->getAlterTableSQL($diff);
-        // The event prevented default so ADD COLUMN SQL should be suppressed
-        $allSql = implode(' ', $sql);
-        self::assertStringNotContainsStringIgnoringCase('ADD', $allSql);
-    }
-
-    public function testGetAlterTableSQLDropColumnEventPreventsDefault(): void
-    {
-        // Registers listener for onSchemaAlterTableRemoveColumn → line 658.
-        $em = new EventManager();
-        $em->addEventListener(
-            Events::onSchemaAlterTableRemoveColumn,
-            new class {
-                public function onSchemaAlterTableRemoveColumn(SchemaAlterTableRemoveColumnEventArgs $e): void
-                {
-                    $e->preventDefault();
-                }
-            },
-        );
-
-        $platform = new FirebirdPlatform();
-        $platform->setEventManager($em);
-
-        $fromTable = new Table('evt_tbl2');
-        $fromTable->addColumn('col_to_drop', Types::STRING, ['length' => 10]);
-        $newTable = new Table('evt_tbl2');
-
-        $comparator = new Comparator($platform);
-        $diff       = $comparator->compareTables($fromTable, $newTable);
-        $sql        = $platform->getAlterTableSQL($diff);
-        $allSql     = implode(' ', $sql);
-        self::assertStringNotContainsStringIgnoringCase('DROP', $allSql);
-    }
-
-    public function testGetAlterTableSQLChangeColumnEventPreventsDefault(): void
-    {
-        // Registers listener for onSchemaAlterTableChangeColumn → line 667.
-        $em = new EventManager();
-        $em->addEventListener(
-            Events::onSchemaAlterTableChangeColumn,
-            new class {
-                public function onSchemaAlterTableChangeColumn(SchemaAlterTableChangeColumnEventArgs $e): void
-                {
-                    $e->preventDefault();
-                }
-            },
-        );
-
-        $platform = new FirebirdPlatform();
-        $platform->setEventManager($em);
-
-        $fromTable = new Table('evt_tbl3');
-        $fromTable->addColumn('col1', Types::STRING, ['length' => 10]);
-        $newTable = new Table('evt_tbl3');
-        $newTable->addColumn('col1', Types::STRING, ['length' => 20]);
-
-        $comparator = new Comparator($platform);
-        $diff       = $comparator->compareTables($fromTable, $newTable);
-        $sql        = $platform->getAlterTableSQL($diff);
-        // Change was suppressed - no ALTER TYPE statement
-        $allSql = implode(' ', $sql);
-        self::assertStringNotContainsStringIgnoringCase('ALTER COLUMN', $allSql);
-    }
-
-    public function testGetAlterTableSQLRenameColumnEventPreventsDefault(): void
-    {
-        // Registers listener for onSchemaAlterTableRenameColumn → line 749.
-        $em = new EventManager();
-        $em->addEventListener(
-            Events::onSchemaAlterTableRenameColumn,
-            new class {
-                public function onSchemaAlterTableRenameColumn(SchemaAlterTableRenameColumnEventArgs $e): void
-                {
-                    $e->preventDefault();
-                }
-            },
-        );
-
-        $platform = new FirebirdPlatform();
-        $platform->setEventManager($em);
-
-        $renamedCol = new Column('new_name', Type::getType(Types::STRING), ['length' => 10]);
-        // @phpstan-ignore argument.type
-        $diff = new TableDiff('evt_tbl4', [], [], [], [], [], [], null, [], [], [], ['old_name' => $renamedCol]);
-        $sql  = $platform->getAlterTableSQL($diff);
-        // Rename was suppressed
-        $allSql = implode(' ', $sql);
-        self::assertStringNotContainsString('new_name', $allSql);
-    }
 }

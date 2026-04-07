@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-
 use function array_merge;
 
 class Firebird3Keywords extends FirebirdKeywords
@@ -37,6 +36,7 @@ class Firebird3Keywords extends FirebirdKeywords
         return 'Firebird3';
     }
 
+    /** @return array<string> */
     protected function getKeywords(): array
     {
         return array_merge(parent::getKeywords(), [

@@ -69,7 +69,7 @@ final class FirebirdDriverConfigurationTest extends TestCase
 
     public function testGetDatabasePlatformWithDefaultConfiguration(): void
     {
-        $platform = $this->driver->getDatabasePlatform();
+        $platform = $this->driver->createDatabasePlatformForVersion('LI-V2.5.9.27139');
 
         self::assertInstanceOf(FirebirdPlatform::class, $platform);
         self::assertSame(255, $platform->getLikeCastLength());
@@ -79,7 +79,7 @@ final class FirebirdDriverConfigurationTest extends TestCase
     {
         $this->driver->setFirebirdOptions(['like_cast_length' => 500]);
 
-        $platform = $this->driver->getDatabasePlatform();
+        $platform = $this->driver->createDatabasePlatformForVersion('LI-V4.0.5.3116');
 
         self::assertInstanceOf(FirebirdPlatform::class, $platform);
         self::assertSame(500, $platform->getLikeCastLength());
@@ -110,7 +110,7 @@ final class FirebirdDriverConfigurationTest extends TestCase
         $this->driver->setFirebirdOptions(['like_cast_length' => 1500]);
 
         $versionedPlatform = $this->driver->createDatabasePlatformForVersion('LI-V5.0.2.1533');
-        $defaultPlatform   = $this->driver->getDatabasePlatform();
+        $defaultPlatform   = $this->driver->createDatabasePlatformForVersion('LI-V3.0.10.33601');
 
         self::assertSame(1500, $versionedPlatform->getLikeCastLength());
         self::assertSame(1500, $defaultPlatform->getLikeCastLength());

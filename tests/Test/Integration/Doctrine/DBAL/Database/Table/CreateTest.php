@@ -31,11 +31,11 @@ class CreateTest extends AbstractIntegrationTestCase
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(1, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = "SELECT 1 FROM RDB\$RELATIONS WHERE RDB\$RELATION_NAME = '{$tableName}'";
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         self::assertSame(1, $result->fetchOne(), 'Table creation failure. SQL: ' . self::statementArrayToText($statements));
     }
@@ -55,7 +55,7 @@ class CreateTest extends AbstractIntegrationTestCase
         }
 
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = (
@@ -66,7 +66,7 @@ class CreateTest extends AbstractIntegrationTestCase
             WHERE RC.RDB\$CONSTRAINT_TYPE = 'PRIMARY KEY'
             AND RC.RDB\$RELATION_NAME = '{$tableName}'"
         );
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         self::assertSame(1, $result->fetchOne(), 'Primary key "id" not found');
     }
@@ -86,7 +86,7 @@ class CreateTest extends AbstractIntegrationTestCase
         }
 
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         if ($this->_platform instanceof Firebird3Platform) {
@@ -100,14 +100,14 @@ class CreateTest extends AbstractIntegrationTestCase
         } else {
             $triggerName = "{$tableName}_D2IT";
             $sql         = "SELECT 1 FROM RDB\$TRIGGERS WHERE RDB\$TRIGGER_NAME = '{$triggerName}'";
-            $result      = $connection->query($sql);
+            $result      = $connection->executeQuery($sql);
             self::assertInstanceOf(Result::class, $result);
             self::assertSame(1, $result->fetchOne(), 'Trigger creation failure. SQL: ' . self::statementArrayToText($statements));
 
             $sequenceName = "{$tableName}_D2IS";
             foreach ([1, 2] as $id) {
                 $sql    = "SELECT NEXT VALUE FOR {$sequenceName} FROM RDB\$DATABASE;";
-                $result = $connection->query($sql);
+                $result = $connection->executeQuery($sql);
                 self::assertInstanceOf(Result::class, $result);
                 self::assertSame($id, $result->fetchOne(), 'Incorrect autoincrement value');
             }
@@ -124,7 +124,7 @@ class CreateTest extends AbstractIntegrationTestCase
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         preg_match('/^CREATE INDEX (IDX_.+?) /', (string) $statements[1], $match);
@@ -167,7 +167,7 @@ class CreateTest extends AbstractIntegrationTestCase
             );
         }
 
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         self::assertSame(1, $result->fetchOne(), 'Index creation failure. SQL: ' . self::statementArrayToText($statements));
     }
@@ -182,7 +182,7 @@ class CreateTest extends AbstractIntegrationTestCase
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         preg_match('/^CREATE UNIQUE INDEX (UNIQ_.+?) /', (string) $statements[1], $match);
@@ -199,7 +199,7 @@ class CreateTest extends AbstractIntegrationTestCase
             AND IX.RDB\$RELATION_NAME STARTING WITH '{$tableName}'
             AND SG.RDB\$FIELD_NAME = 'FOO'"
         );
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         self::assertSame(1, $result->fetchOne(), 'Unique index creation failure. SQL: ' . self::statementArrayToText($statements));
     }
@@ -214,7 +214,7 @@ class CreateTest extends AbstractIntegrationTestCase
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = (
@@ -225,7 +225,7 @@ class CreateTest extends AbstractIntegrationTestCase
             AND RF.RDB\$FIELD_NAME = 'FOO'
             AND RF.RDB\$DESCRIPTION = '{$comment}'"
         );
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         self::assertSame(1, $result->fetchOne(), 'Comment creation failure. SQL: ' . self::statementArrayToText($statements));
     }

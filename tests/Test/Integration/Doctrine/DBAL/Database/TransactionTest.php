@@ -72,7 +72,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
             $connection->beginTransaction();
@@ -200,7 +200,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
             $connection->beginTransaction();
@@ -244,12 +244,12 @@ class TransactionTest extends ModifyingIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
-            $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
+            $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
         }
 
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
         self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
 
         $expectedTransactionLevel = 0;
@@ -257,21 +257,21 @@ class TransactionTest extends ModifyingIntegrationTestCase
             $connection->beginTransaction();
             $expectedTransactionLevel++;
             self::assertSame($expectedTransactionLevel, $connection->getTransactionNestingLevel(), 'Expected transaction level');
-            $connection->exec("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
+            $connection->executeStatement("UPDATE {$tableName} SET id = {$idAfter} WHERE id = {$idBefore}");
         }
 
         $connection->rollback();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
         self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 44]], $stmt->fetchAll());
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
 
         $connection->rollback();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
         self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
 
         $connection->rollback();
-        $stmt = $connection->query("SELECT id FROM {$tableName}");
+        $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
         self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
         try {
@@ -285,7 +285,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
-        $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
+        $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44, 45] as $id) {
             $connection->beginTransaction();

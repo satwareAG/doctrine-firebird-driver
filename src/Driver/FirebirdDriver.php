@@ -131,9 +131,7 @@ abstract class FirebirdDriver implements Driver
         return new Firebird\ExceptionConverter();
     }
 
-    /**
-     * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
-     */
+    /** @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead. */
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(

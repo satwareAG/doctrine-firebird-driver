@@ -45,25 +45,13 @@ class ConnectionTest extends TestCase
         self::assertSame("'''key'", $connection->quote("'key"));
     }
 
-    public function testQuoteReturnsIntegerUnchanged(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        self::assertSame(42, $connection->quote(42));
-    }
-
-    public function testQuoteReturnsFloatUnchanged(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-        self::assertSame(3.14, $connection->quote(3.14));
-    }
-
-    public function testQuoteThrowsExceptionForNonScalar(): void
+    public function testQuoteThrowsTypeErrorForNonString(): void
     {
         $connection = $this->createConnectionThroughReflection();
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Given value is not scalar');
+        $this->expectException(\TypeError::class);
 
+        /** @phpstan-ignore argument.type */
         $connection->quote(['array']);
     }
 
@@ -216,15 +204,16 @@ class ConnectionTest extends TestCase
         self::assertSame(123, $connection->lastInsertId());
     }
 
-    public function testLastInsertIdReturnsFalseWhenNotSet(): void
+    public function testLastInsertIdReturnsZeroWhenNotSet(): void
     {
         $connection = $this->createConnectionThroughReflection();
         $this->setPrivateProperty($connection, 'connectionInsertId', null);
 
-        self::assertFalse($connection->lastInsertId());
+        // DBAL4: lastInsertId(): int|string - cannot return false; returns 0 when no insert occurred
+        self::assertSame(0, $connection->lastInsertId());
     }
 
-    public function testLastInsertIdThrowsExceptionForInvalidName(): void
+    public function testLastInsertIdBySequenceThrowsExceptionForInvalidName(): void
     {
         $connection = $this->createConnectionThroughReflection();
 
@@ -232,27 +221,15 @@ class ConnectionTest extends TestCase
         $this->expectExceptionMessage('regular expression');
 
         // Invalid generator name (too long, > 31 chars)
-        $connection->lastInsertId('this_generator_name_is_way_too_long_for_firebird');
+        $connection->lastInsertIdBySequence('this_generator_name_is_way_too_long_for_firebird');
     }
 
-    public function testLastInsertIdWithDotReturnsCachedValue(): void
+    public function testLastInsertIdReturnsCachedValue(): void
     {
         $connection = $this->createConnectionThroughReflection();
         $connection->setLastInsertId(456);
 
-        // Names containing dots should return cached value
-        self::assertSame(456, $connection->lastInsertId('schema.sequence'));
-    }
-
-    public function testLastInsertIdThrowsExceptionForNonStringName(): void
-    {
-        $connection = $this->createConnectionThroughReflection();
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('must be null or a string');
-
-        // @phpstan-ignore argument.type
-        $connection->lastInsertId(123);
+        self::assertSame(456, $connection->lastInsertId());
     }
 
     // ==========================================================================
@@ -454,7 +431,7 @@ class ConnectionTest extends TestCase
     // ==========================================================================
 
     #[DataProvider('isolationLevelProvider')]
-    public function testSetAttributeIsolationLevels(int $level): void
+    public function testSetAttributeIsolationLevels(TransactionIsolationLevel $level): void
     {
         $connection = $this->createConnectionThroughReflection();
 
@@ -470,7 +447,7 @@ class ConnectionTest extends TestCase
     }
 
     /**
-     * @return array<string, array{int}>
+     * @return array<string, array{TransactionIsolationLevel}>
      */
     public static function isolationLevelProvider(): array
     {

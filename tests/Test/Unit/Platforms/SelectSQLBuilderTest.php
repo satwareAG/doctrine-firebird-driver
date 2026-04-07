@@ -154,7 +154,7 @@ class SelectSQLBuilderTest extends TestCase
         $forUpdate = new ForUpdate(ConflictResolutionMode::ORDINARY);
         $query     = $this->makeQuery(columns: ['id'], from: ['users'], forUpdate: $forUpdate);
 
-        $this->expectException(Exception::class);
+        $this->expectException(\Doctrine\DBAL\Platforms\Exception\NotSupported::class);
         $builder->buildSQL($query);
     }
 

@@ -19,8 +19,8 @@ final class ComparatorTestUtils
         AbstractSchemaManager $schemaManager,
         Comparator $comparator,
         Table $desiredTable,
-    ): TableDiff|false {
-        return $comparator->diffTable(
+    ): TableDiff {
+        return $comparator->compareTables(
             $schemaManager->introspectTable($desiredTable->getName()),
             $desiredTable,
         );
@@ -31,8 +31,8 @@ final class ComparatorTestUtils
         AbstractSchemaManager $schemaManager,
         Comparator $comparator,
         Table $desiredTable,
-    ): TableDiff|false {
-        return $comparator->diffTable(
+    ): TableDiff {
+        return $comparator->compareTables(
             $desiredTable,
             $schemaManager->introspectTable($desiredTable->getName()),
         );
@@ -44,21 +44,17 @@ final class ComparatorTestUtils
 
         $diff = self::diffFromActualToDesiredTable($schemaManager, $comparator, $table);
 
-        TestCase::assertNotFalse($diff);
+        TestCase::assertFalse($diff->isEmpty());
 
         $schemaManager->alterTable($diff);
 
-        TestCase::assertFalse(self::diffFromActualToDesiredTable($schemaManager, $comparator, $table));
-        TestCase::assertFalse(self::diffFromDesiredToActualTable($schemaManager, $comparator, $table));
+        TestCase::assertTrue(self::diffFromActualToDesiredTable($schemaManager, $comparator, $table)->isEmpty());
+        TestCase::assertTrue(self::diffFromDesiredToActualTable($schemaManager, $comparator, $table)->isEmpty());
     }
 
     /** @return iterable<string,array<callable(AbstractSchemaManager):Comparator>> */
     public static function comparatorProvider(): iterable
     {
-        yield 'Generic comparator' => [
-            static fn (): Comparator => new Comparator(),
-        ];
-
         yield 'Platform-specific comparator' => [
             static fn (AbstractSchemaManager $schemaManager): Comparator => $schemaManager->createComparator(),
         ];

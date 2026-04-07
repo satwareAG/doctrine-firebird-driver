@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -31,10 +30,10 @@ class RenameColumnTest extends FunctionalTestCase
             ->addColumn($newColumnName, Types::STRING);
 
         $sm         =  $this->connection->createSchemaManager();
-        $comparator = new Comparator();
-        $diff       = $comparator->diffTable($sm->introspectTable($this->table), $table);
+        $comparator = $sm->createComparator();
+        $diff       = $comparator->compareTables($sm->introspectTable($this->table), $table);
 
-        self::assertNotFalse($diff);
+        self::assertFalse($diff->isEmpty());
         $sm->alterTable($diff);
 
         $table = $sm->introspectTable($this->table);

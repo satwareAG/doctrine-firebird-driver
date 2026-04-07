@@ -86,7 +86,7 @@ class ExceptionConverterTest extends FunctionalTestCase
 
         // Attempt to insert NULL into NOT NULL field
 
-            $this->connection->exec(
+            $this->connection->executeStatement(
                 'INSERT INTO notnull_constraint_table (notnull_field) VALUES (NULL)',
             );
 

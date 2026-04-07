@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -182,8 +181,8 @@ class DefaultValueTest extends FunctionalTestCase
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
 
         // Platform-specific comparator should detect no differences
-        $diff = $schemaManager->createComparator()->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'No schema diff expected after create/introspect roundtrip');
+        $diff = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'No schema diff expected after create/introspect roundtrip');
     }
 
     public function testDefaultValueRoundtripGenericComparator(): void
@@ -200,8 +199,8 @@ class DefaultValueTest extends FunctionalTestCase
         $onlineTable = $schemaManager->introspectTable(self::TABLE);
 
         // Generic comparator should also detect no differences
-        $diff = (new Comparator())->diffTable($onlineTable, $table);
-        self::assertFalse($diff, 'Generic comparator: no schema diff expected after create/introspect roundtrip');
+        $diff = $schemaManager->createComparator()->compareTables($onlineTable, $table);
+        self::assertTrue($diff->isEmpty(), 'Generic comparator: no schema diff expected after create/introspect roundtrip');
     }
 
     /**
@@ -225,8 +224,8 @@ class DefaultValueTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->changeColumn('col', ['default' => null]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty());
         $schemaManager->alterTable($diff);
 
         $columns = $schemaManager->listTableColumns(self::TABLE);
@@ -251,8 +250,8 @@ class DefaultValueTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->changeColumn('col', ['default' => 7]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty());
         $schemaManager->alterTable($diff);
 
         $columns = $schemaManager->listTableColumns(self::TABLE);
@@ -272,8 +271,8 @@ class DefaultValueTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->changeColumn('col', ['default' => 'new_default']);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
-        self::assertNotFalse($diff);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
+        self::assertFalse($diff->isEmpty());
         $schemaManager->alterTable($diff);
 
         $columns = $schemaManager->listTableColumns(self::TABLE);

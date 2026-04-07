@@ -93,12 +93,16 @@ class CharsetEncodingRoundTripTest extends TestCase
 
         $innerStmt = $this->createMock(DriverStatement::class);
         $innerStmt->expects(self::once())
+            ->method('bindValue')
+            ->with(1, $win1252Bytes, ParameterType::STRING);
+        $innerStmt->expects(self::once())
             ->method('execute')
-            ->with([$win1252Bytes, 42])
             ->willReturn($innerResult);
 
-        $stmt   = new CharsetStatementMiddleware($innerStmt, 'Windows-1252', 'UTF-8');
-        $result = $stmt->execute([$utf8String, 42]);
+        // DBAL4: inline execute([...]) params removed - use bindValue() instead
+        $stmt = new CharsetStatementMiddleware($innerStmt, 'Windows-1252', 'UTF-8');
+        $stmt->bindValue(1, $utf8String, ParameterType::STRING);
+        $result = $stmt->execute();
 
         self::assertSame($utf8String, $result->fetchOne());
     }
@@ -362,17 +366,16 @@ class CharsetEncodingRoundTripTest extends TestCase
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, $win1252Bytes, ParameterType::STRING)
-            ->willReturn(true);
+            ->with(1, $win1252Bytes, ParameterType::STRING);
 
+        // DBAL4: bindValue() returns void
         $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-
-        self::assertTrue($stmt->bindValue(1, $utf8String, ParameterType::STRING));
+        $stmt->bindValue(1, $utf8String, ParameterType::STRING);
     }
 
     /**
-     * Verifies that inline params in execute() are encoded, covering raw queries
-     * such as: $conn->fetchAssociative('SELECT ... WHERE col = ?', [$searchTerm]).
+     * Verifies that search params are encoded via bindValue() for WHERE clause parameters.
+     * DBAL4: inline execute([...]) params removed - use bindValue() instead.
      */
     #[DataProvider('amicronSpecialStringProvider')]
     public function testExecuteInlineParamEncodesSearchTermToWin1252(string $utf8String): void
@@ -382,12 +385,15 @@ class CharsetEncodingRoundTripTest extends TestCase
         $innerResult = $this->createMock(DriverResult::class);
         $inner       = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
+            ->method('bindValue')
+            ->with(1, $win1252Bytes, ParameterType::STRING);
+        $inner->expects(self::once())
             ->method('execute')
-            ->with([$win1252Bytes])
             ->willReturn($innerResult);
 
         $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $stmt->execute([$utf8String]);
+        $stmt->bindValue(1, $utf8String, ParameterType::STRING);
+        $stmt->execute();
     }
 
     // -----------------------------------------------------------------------
@@ -402,27 +408,14 @@ class CharsetEncodingRoundTripTest extends TestCase
         $innerConnection = $this->createMock(DriverConnection::class);
         $innerConnection->expects(self::once())
             ->method('quote')
-            ->with($win1252Bytes, ParameterType::STRING)
+            ->with($win1252Bytes)
             ->willReturn("'" . $win1252Bytes . "'");
 
+        // DBAL4: quote(string $value) - only 1 parameter
         $conn = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
 
-        $quoted = $conn->quote($utf8String, ParameterType::STRING);
+        $quoted = $conn->quote($utf8String);
         // The quoted value wraps WIN1252 bytes (database-side quoting)
         self::assertStringContainsString($win1252Bytes, (string) $quoted);
-    }
-
-    public function testQuotePassesThroughNonStringValuesUnchanged(): void
-    {
-        $innerConnection = $this->createMock(DriverConnection::class);
-        $innerConnection->expects(self::once())
-            ->method('quote')
-            ->with(null, ParameterType::STRING)
-            ->willReturn('NULL');
-
-        $conn   = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
-        $result = $conn->quote(null, ParameterType::STRING);
-
-        self::assertSame('NULL', $result);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator;
@@ -83,9 +84,9 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * @inheritDoc
      */
     #[Override]
-    public function dropDatabase($database): void
+    public function dropDatabase(string $database): void
     {
-        $params           = $this->_conn->getParams();
+        $params           = $this->connection->getParams();
         $params['dbname'] = $database;
 
         $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
@@ -107,7 +108,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             throw new Exception($msg, null, $code);
         }
 
-        $this->_conn->close();
+        $this->connection->close();
         try {
             $result = fbird_drop_db(
                 $connection,
@@ -123,22 +124,10 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         fbird_close($connection);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    public function dropTable($name): void
+    public function createDatabase(string $database): void
     {
-        parent::dropTable($name);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    #[Override]
-    public function createDatabase($database): void
-    {
-        $params  = $this->_conn->getParams();
+        $params  = $this->connection->getParams();
         $charset = $params['charset'] ?? 'UTF8';
         $user    = $params['user'] ?? '';
 
@@ -188,24 +177,24 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     #[Override]
     public function createComparator(): Comparator
     {
-        return new FirebirdComparator($this->_platform);
+        return new FirebirdComparator($this->platform);
     }
 
-    #[Override]
-    public function listTableDetails($name): Table
+    /**
+     * Returns table details including columns, indexes, and foreign keys.
+     *
+     * @deprecated This method is not part of the DBAL 4 AbstractSchemaManager interface.
+     *             Use listTableColumns(), listTableIndexes(), and listTableForeignKeys() separately.
+     */
+    public function listTableDetails(string $name): Table
     {
-        $database       = $this->_conn->getDatabase() ?? '';
+        $database       = $this->connection->getDatabase() ?? '';
         $normalizedName = $this->normalizeName($name);
         $tableOptions   = $this->fetchTableOptionsByTable($database, $normalizedName);
 
         $columns     = $this->listTableColumns($name);
-        $foreignKeys = [];
-
-        if ($this->_platform->supportsForeignKeyConstraints()) {
-            $foreignKeys = $this->listTableForeignKeys($name);
-        }
-
-        $indexes = $this->listTableIndexes($name);
+        $foreignKeys = $this->listTableForeignKeys($name);
+        $indexes     = $this->listTableIndexes($name);
 
         $table = new Table($name, $columns, $indexes, [], $foreignKeys);
 
@@ -236,11 +225,207 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         ];
     }
 
+    /* -------------------------------------------------------------------------
+     * DBAL 4 abstract method implementations
+     * ------------------------------------------------------------------------- */
+
+    /**
+     * Selects all user-defined table names from Firebird system tables (RDB$RELATIONS).
+     */
+    #[Override]
+    protected function selectTableNames(string $databaseName): Result
+    {
+        $sql = <<<'SQL'
+SELECT TRIM(RDB$RELATION_NAME) AS RDB$RELATION_NAME
+FROM RDB$RELATIONS
+WHERE (RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL)
+  AND RDB$VIEW_BLR IS NULL
+ORDER BY RDB$RELATION_NAME
+SQL;
+
+        return $this->connection->executeQuery($sql);
+    }
+
+    #[Override]
+    protected function selectTableColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        $identitySelect  = '';
+        $identityGroupBy = '';
+        if ($this->platform instanceof Firebird3Platform) {
+            $identitySelect  = ",\nTRIM(r.RDB\$IDENTITY_TYPE) AS \"IDENTITY_TYPE\"";
+            $identityGroupBy = ', "IDENTITY_TYPE"';
+        }
+
+        if ($tableName !== null) {
+            $whereClause = 'UPPER(r.RDB$RELATION_NAME) = UPPER(?)';
+            $params      = [$tableName];
+            $joinClause  = '';
+        } else {
+            $joinClause  = "INNER JOIN RDB\$RELATIONS rel ON rel.RDB\$RELATION_NAME = r.RDB\$RELATION_NAME\n     AND (rel.RDB\$SYSTEM_FLAG = 0 OR rel.RDB\$SYSTEM_FLAG IS NULL)\n     AND rel.RDB\$VIEW_BLR IS NULL";
+            $whereClause = '1=1';
+            $params      = [];
+        }
+
+        $sql = <<<SQL
+SELECT
+TRIM(r.RDB\$RELATION_NAME) AS "RDB\$RELATION_NAME",
+TRIM(r.RDB\$FIELD_NAME) AS "FIELD_NAME",
+TRIM(f.RDB\$FIELD_NAME) AS "FIELD_DOMAIN",
+TRIM(f.RDB\$FIELD_TYPE) AS "FIELD_TYPE",
+TRIM(typ.RDB\$TYPE_NAME) AS "FIELD_TYPE_NAME",
+f.RDB\$FIELD_SUB_TYPE AS "FIELD_SUB_TYPE",
+f.RDB\$FIELD_LENGTH AS "FIELD_LENGTH",
+f.RDB\$CHARACTER_LENGTH AS "FIELD_CHAR_LENGTH",
+f.RDB\$FIELD_PRECISION AS "FIELD_PRECISION",
+f.RDB\$FIELD_SCALE AS "FIELD_SCALE",
+MIN(TRIM(rc.RDB\$CONSTRAINT_TYPE)) AS "FIELD_CONSTRAINT_TYPE",
+MIN(TRIM(i.RDB\$INDEX_NAME)) AS "FIELD_INDEX_NAME",
+r.RDB\$NULL_FLAG AS "FIELD_NOT_NULL_FLAG",
+r.RDB\$DEFAULT_SOURCE AS "FIELD_DEFAULT_SOURCE",
+r.RDB\$FIELD_POSITION AS "FIELD_POSITION",
+r.RDB\$DESCRIPTION AS "FIELD_DESCRIPTION",
+f.RDB\$CHARACTER_SET_ID AS "CHARACTER_SET_ID",
+TRIM(cs.RDB\$CHARACTER_SET_NAME) AS "CHARACTER_SET_NAME",
+f.RDB\$COLLATION_ID AS "COLLATION_ID",
+TRIM(cl.RDB\$COLLATION_NAME) AS "COLLATION_NAME"{$identitySelect}
+FROM RDB\$RELATION_FIELDS r
+{$joinClause}
+LEFT OUTER JOIN RDB\$FIELDS f ON r.RDB\$FIELD_SOURCE = f.RDB\$FIELD_NAME
+LEFT OUTER JOIN RDB\$INDEX_SEGMENTS s ON s.RDB\$FIELD_NAME = r.RDB\$FIELD_NAME
+LEFT OUTER JOIN RDB\$INDICES i ON i.RDB\$INDEX_NAME = s.RDB\$INDEX_NAME
+                              AND i.RDB\$RELATION_NAME = r.RDB\$RELATION_NAME
+LEFT OUTER JOIN RDB\$RELATION_CONSTRAINTS rc ON rc.RDB\$INDEX_NAME = s.RDB\$INDEX_NAME
+                                            AND rc.RDB\$INDEX_NAME = i.RDB\$INDEX_NAME
+                                            AND rc.RDB\$RELATION_NAME = i.RDB\$RELATION_NAME
+LEFT OUTER JOIN RDB\$REF_CONSTRAINTS REFC ON rc.RDB\$CONSTRAINT_NAME = refc.RDB\$CONSTRAINT_NAME
+LEFT OUTER JOIN RDB\$TYPES typ ON typ.RDB\$FIELD_NAME = 'RDB\$FIELD_TYPE'
+                              AND typ.RDB\$TYPE = f.RDB\$FIELD_TYPE
+LEFT OUTER JOIN RDB\$TYPES sub ON sub.RDB\$FIELD_NAME = 'RDB\$FIELD_SUB_TYPE'
+                              AND sub.RDB\$TYPE = f.RDB\$FIELD_SUB_TYPE
+LEFT OUTER JOIN RDB\$CHARACTER_SETS cs ON cs.RDB\$CHARACTER_SET_ID = f.RDB\$CHARACTER_SET_ID
+LEFT OUTER JOIN RDB\$COLLATIONS cl ON cl.RDB\$CHARACTER_SET_ID = f.RDB\$CHARACTER_SET_ID
+                                  AND cl.RDB\$COLLATION_ID = f.RDB\$COLLATION_ID
+WHERE {$whereClause}
+GROUP BY "RDB\$RELATION_NAME", "FIELD_NAME", "FIELD_DOMAIN", "FIELD_TYPE", "FIELD_TYPE_NAME",
+         "FIELD_SUB_TYPE", "FIELD_LENGTH", "FIELD_CHAR_LENGTH", "FIELD_PRECISION", "FIELD_SCALE",
+         "FIELD_NOT_NULL_FLAG", "FIELD_DEFAULT_SOURCE", "FIELD_POSITION", "FIELD_DESCRIPTION",
+         "CHARACTER_SET_ID", "CHARACTER_SET_NAME", "COLLATION_ID", "COLLATION_NAME"{$identityGroupBy}
+ORDER BY "RDB\$RELATION_NAME", "FIELD_POSITION"
+SQL;
+
+        return $this->connection->executeQuery($sql, $params);
+    }
+
+    #[Override]
+    protected function selectIndexColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        if ($tableName !== null) {
+            $whereClause = 'UPPER(RDB$INDICES.RDB$RELATION_NAME) = UPPER(?)';
+            $params      = [$tableName];
+        } else {
+            $whereClause = "RDB\$INDICES.RDB\$RELATION_NAME IN (\n"
+                . "    SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+                . "    WHERE (RDB\$SYSTEM_FLAG = 0 OR RDB\$SYSTEM_FLAG IS NULL) AND RDB\$VIEW_BLR IS NULL\n"
+                . ')';
+            $params      = [];
+        }
+
+        $sql = <<<SQL
+SELECT
+    TRIM(RDB\$INDICES.RDB\$RELATION_NAME) AS RDB\$RELATION_NAME,
+    TRIM(RDB\$INDEX_SEGMENTS.RDB\$FIELD_NAME) AS field_name,
+    TRIM(RDB\$INDICES.RDB\$DESCRIPTION) AS description,
+    TRIM(RDB\$RELATION_CONSTRAINTS.RDB\$CONSTRAINT_NAME) AS constraint_name,
+    TRIM(RDB\$RELATION_CONSTRAINTS.RDB\$CONSTRAINT_TYPE) AS constraint_type,
+    TRIM(RDB\$INDICES.RDB\$INDEX_NAME) AS index_name,
+    RDB\$INDICES.RDB\$UNIQUE_FLAG AS unique_flag,
+    RDB\$INDICES.RDB\$INDEX_TYPE AS index_type,
+    (RDB\$INDEX_SEGMENTS.RDB\$FIELD_POSITION + 1) AS field_position,
+    RDB\$INDICES.RDB\$INDEX_INACTIVE AS index_inactive,
+    TRIM(RDB\$INDICES.RDB\$FOREIGN_KEY) AS foreign_key
+FROM RDB\$INDEX_SEGMENTS
+LEFT JOIN RDB\$INDICES ON RDB\$INDICES.RDB\$INDEX_NAME = RDB\$INDEX_SEGMENTS.RDB\$INDEX_NAME
+LEFT JOIN RDB\$RELATION_CONSTRAINTS ON RDB\$RELATION_CONSTRAINTS.RDB\$INDEX_NAME = RDB\$INDEX_SEGMENTS.RDB\$INDEX_NAME
+WHERE {$whereClause}
+ORDER BY RDB\$INDICES.RDB\$RELATION_NAME, RDB\$INDICES.RDB\$INDEX_NAME,
+         RDB\$RELATION_CONSTRAINTS.RDB\$CONSTRAINT_NAME, RDB\$INDEX_SEGMENTS.RDB\$FIELD_POSITION
+SQL;
+
+        return $this->connection->executeQuery($sql, $params);
+    }
+
+    #[Override]
+    protected function selectForeignKeyColumns(string $databaseName, string|null $tableName = null): Result
+    {
+        if ($tableName !== null) {
+            $whereClause = "rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY' AND UPPER(i.RDB\$RELATION_NAME) = UPPER(?)";
+            $params      = [$tableName];
+        } else {
+            $whereClause = "rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
+                . "  AND i.RDB\$RELATION_NAME IN (\n"
+                . "    SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+                . "    WHERE (RDB\$SYSTEM_FLAG = 0 OR RDB\$SYSTEM_FLAG IS NULL) AND RDB\$VIEW_BLR IS NULL\n"
+                . '  )';
+            $params      = [];
+        }
+
+        $sql = <<<SQL
+SELECT
+    TRIM(i.RDB\$RELATION_NAME) AS RDB\$RELATION_NAME,
+    TRIM(rc.RDB\$CONSTRAINT_NAME) AS constraint_name,
+    TRIM(i.RDB\$RELATION_NAME) AS table_name,
+    TRIM(s.RDB\$FIELD_NAME) AS field_name,
+    TRIM(i.RDB\$DESCRIPTION) AS description,
+    TRIM(rc.RDB\$DEFERRABLE) AS is_deferrable,
+    TRIM(rc.RDB\$INITIALLY_DEFERRED) AS is_deferred,
+    TRIM(refc.RDB\$UPDATE_RULE) AS on_update,
+    TRIM(refc.RDB\$DELETE_RULE) AS on_delete,
+    TRIM(refc.RDB\$MATCH_OPTION) AS match_type,
+    TRIM(i2.RDB\$RELATION_NAME) AS references_table,
+    TRIM(s2.RDB\$FIELD_NAME) AS references_field,
+    (s.RDB\$FIELD_POSITION + 1) AS field_position
+FROM RDB\$INDEX_SEGMENTS s
+LEFT JOIN RDB\$INDICES i ON i.RDB\$INDEX_NAME = s.RDB\$INDEX_NAME
+LEFT JOIN RDB\$RELATION_CONSTRAINTS rc ON rc.RDB\$INDEX_NAME = s.RDB\$INDEX_NAME
+LEFT JOIN RDB\$REF_CONSTRAINTS refc ON rc.RDB\$CONSTRAINT_NAME = refc.RDB\$CONSTRAINT_NAME
+LEFT JOIN RDB\$RELATION_CONSTRAINTS rc2 ON rc2.RDB\$CONSTRAINT_NAME = refc.RDB\$CONST_NAME_UQ
+LEFT JOIN RDB\$INDICES i2 ON i2.RDB\$INDEX_NAME = rc2.RDB\$INDEX_NAME
+LEFT JOIN RDB\$INDEX_SEGMENTS s2 ON i2.RDB\$INDEX_NAME = s2.RDB\$INDEX_NAME
+                                AND s.RDB\$FIELD_POSITION = s2.RDB\$FIELD_POSITION
+WHERE {$whereClause}
+ORDER BY rc.RDB\$CONSTRAINT_NAME, s.RDB\$FIELD_POSITION
+SQL;
+
+        return $this->connection->executeQuery($sql, $params);
+    }
+
+    #[Override]
+    protected function _getPortableTableForeignKeyDefinition(array $tableForeignKey): ForeignKeyConstraint
+    {
+        // This method is called by the default _getPortableTableForeignKeysList implementation.
+        // Our override of _getPortableTableForeignKeysList handles multi-row grouping directly,
+        // so this method is only a fallback stub.
+        return new ForeignKeyConstraint(
+            $tableForeignKey['local'] ?? [],
+            $tableForeignKey['foreignTable'] ?? $tableForeignKey['references_table'] ?? '',
+            $tableForeignKey['foreign'] ?? [],
+            $tableForeignKey['name'] ?? $tableForeignKey['constraint_name'] ?? null,
+            [
+                'onDelete' => $tableForeignKey['onDelete'] ?? $tableForeignKey['on_delete'] ?? null,
+                'onUpdate' => $tableForeignKey['onUpdate'] ?? $tableForeignKey['on_update'] ?? null,
+            ],
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Portable definition methods
+    // -------------------------------------------------------------------------
+
     /**
      * {@inheritDoc}
      */
     #[Override]
-    protected function _getPortableTableDefinition($table): string
+    protected function _getPortableTableDefinition(array $table): string
     {
         $table = array_change_key_case($table, CASE_LOWER);
 
@@ -251,7 +436,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * {@inheritDoc}
      */
     #[Override]
-    protected function _getPortableViewDefinition($view): View
+    protected function _getPortableViewDefinition(array $view): View
     {
         $view = array_change_key_case($view, CASE_LOWER);
 
@@ -267,7 +452,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * @todo Read current generator value
      */
     #[Override]
-    protected function _getPortableSequenceDefinition($sequence)
+    protected function _getPortableSequenceDefinition($sequence): Sequence
     {
         $sequence = array_change_key_case($sequence, CASE_LOWER);
         $comment  = (string) $sequence['comment'];
@@ -285,14 +470,14 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * {@inheritDoc}
      */
     #[Override]
-    protected function _getPortableDatabaseDefinition($database)
+    protected function _getPortableDatabaseDefinition(array $database): string
     {
         return $database['Database'];
     }
 
     /** {@inheritDoc} */
     #[Override]
-    protected function _getPortableTableColumnDefinition($tableColumn)
+    protected function _getPortableTableColumnDefinition(array $tableColumn): Column
     {
         $options = [];
 
@@ -314,7 +499,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             $options['length'] = $tableColumn['FIELD_CHAR_LENGTH'];
         }
 
-        $type = $this->_platform->getDoctrineTypeMapping($dbType);
+        $type = $this->platform->getDoctrineTypeMapping($dbType);
 
         switch ($tableColumn['FIELD_TYPE']) {
             case self::META_FIELD_TYPE_CHAR:
@@ -347,12 +532,8 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             $type = 'binary';
         }
 
-        // Override detected type if a type hint is specified
-
-        $type = $this->extractDoctrineTypeFromComment($tableColumn['FIELD_DESCRIPTION'], $type);
-
         if ($tableColumn['FIELD_DESCRIPTION'] !== null) {
-            $options['comment'] = $this->removeDoctrineTypeFromComment($tableColumn['FIELD_DESCRIPTION'], $type);
+            $options['comment'] = $tableColumn['FIELD_DESCRIPTION'];
             if ($options['comment'] === '') {
                 $options['comment'] = null;
             }
@@ -397,7 +578,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * {@inheritDoc}
      */
     #[Override]
-    protected function _getPortableTableForeignKeysList($tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
     {
         $list = [];
         foreach ($tableForeignKeys as $value) {
@@ -446,10 +627,9 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      * {@inheritDoc}
      *
      * @param array<mixed> $tableIndexes
-     * @param string|null  $tableName
      */
     #[Override]
-    protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array
+    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
     {
         $mangledData = [];
         foreach ($tableIndexes as $tableIndex) {
@@ -498,7 +678,7 @@ ___query___;
         }
 
         /** @var array<int,array<string,mixed>> $metadata */
-        $metadata = $this->_conn->executeQuery($sql)
+        $metadata = $this->connection->executeQuery($sql)
             ->fetchAllAssociative();
 
         $tableOptions = [];
@@ -533,7 +713,7 @@ ___query___;
     private function getQuotedIdentifierName(string $identifier): string
     {
         if (preg_match('/[a-z]/', $identifier) === 1) {
-            return $this->_platform->quoteIdentifier($identifier);
+            return $this->platform->quoteIdentifier($identifier);
         }
 
         return $identifier;

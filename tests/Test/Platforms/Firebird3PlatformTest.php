@@ -314,11 +314,11 @@ END
         $table1 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER))]);
         $table2 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER), ['comment' => 'baz'])]);
 
-        $comparator = new Comparator();
+        $comparator = new Comparator($this->platform);
 
-        $tableDiff = $comparator->diffTable($table1, $table2);
+        $tableDiff = $comparator->compareTables($table1, $table2);
 
-        self::assertInstanceOf(TableDiff::class, $tableDiff);
+        self::assertFalse($tableDiff->isEmpty());
         self::assertSame(['COMMENT ON COLUMN "foo"."bar" IS \'baz\''], $this->platform->getAlterTableSQL($tableDiff));
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -26,10 +25,10 @@ class AlterColumnTest extends FunctionalTestCase
             ->setType(Type::getType(Types::STRING));
 
         $sm         = $this->connection->createSchemaManager();
-        $comparator = new Comparator();
-        $diff       = $comparator->diffTable($sm->introspectTable('test_alter'), $table);
+        $comparator = $sm->createComparator();
+        $diff       = $comparator->compareTables($sm->introspectTable('test_alter'), $table);
 
-        self::assertNotFalse($diff);
+        self::assertFalse($diff->isEmpty());
         $sm->alterTable($diff);
 
         $table = $sm->introspectTable('test_alter');

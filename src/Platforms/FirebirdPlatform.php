@@ -6,8 +6,9 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
+use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ColumnDiff;
@@ -24,9 +25,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use Override;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
-use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
@@ -175,7 +176,7 @@ class FirebirdPlatform extends AbstractPlatform
      * @param int               $maxLength   Length limit to check. Usually the result of
      *                                           {@link getMaxIdentifierLength()} should be passed
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function checkIdentifierLength(Identifier|string $aIdentifier, int|null $maxLength = null): void
     {
@@ -184,7 +185,7 @@ class FirebirdPlatform extends AbstractPlatform
                 $aIdentifier->getName() : $aIdentifier;
 
         if (strlen($name) > $maxLength) {
-            throw new \InvalidArgumentException('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $maxLength);
+            throw new InvalidArgumentException('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $maxLength);
         }
     }
 
@@ -445,9 +446,6 @@ class FirebirdPlatform extends AbstractPlatform
         ]);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function getEmptyIdentityInsertSQL(string $quotedTableName, string $quotedIdentifierColumnName): string
     {
@@ -885,9 +883,7 @@ class FirebirdPlatform extends AbstractPlatform
         return parent::getCreateTableSQL($table, $createFlags);
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
         $sql = [];
@@ -1070,11 +1066,10 @@ ___query___;
         return 'rdb$get_context(\'SYSTEM\', \'DB_NAME\')';
     }
 
-    /** @inheritDoc */
     #[Override]
     public function getRenameTableSQL(string $oldName, string $newName): string
     {
-        throw new \RuntimeException(__METHOD__ . ' Cannot rename tables because firebird does not support it');
+        throw new RuntimeException(__METHOD__ . ' Cannot rename tables because firebird does not support it');
         // return parent::getRenameTableSQL($oldName, $newName);
     }
 
@@ -1228,12 +1223,17 @@ SQL
         return $this->getVarcharMaxCastLength();
     }
 
+    #[Override]
+    public function createReservedKeywordsList(): KeywordList
+    {
+        return new FirebirdKeywords();
+    }
 
     public static function assertValidIdentifier(string $identifier): void
     {
         $pattern = '(^(([a-zA-Z]{1}[a-zA-Z0-9_$#]{0,})|("[^"]+"))$)';
         if (preg_match($pattern, $identifier) === 0) {
-            throw new \InvalidArgumentException(sprintf('Invalid Firebird identifier %s provided', $identifier));
+            throw new InvalidArgumentException(sprintf('Invalid Firebird identifier %s provided', $identifier));
         }
     }
 
@@ -1301,9 +1301,6 @@ SQL
         return $this->generateIdentifier([$aTable], 'PK', $this->getMaxConstraintIdentifierLength())->getQuotedName($this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     protected function getDateArithmeticIntervalExpression(
         string $date,
@@ -1564,12 +1561,6 @@ SQL
         ];
     }
 
-    #[Override]
-    public function createReservedKeywordsList(): KeywordList
-    {
-        return new FirebirdKeywords();
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -1579,11 +1570,8 @@ SQL
         return '';
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    protected function getCharTypeDeclarationSQLSnippet(?int $length): string
+    protected function getCharTypeDeclarationSQLSnippet(int|null $length): string
     {
         if ($length !== null && $length > 0) {
             return 'CHAR(' . $length . ')';
@@ -1592,11 +1580,8 @@ SQL
         return 'CHAR(255)';
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    protected function getVarcharTypeDeclarationSQLSnippet(?int $length): string
+    protected function getVarcharTypeDeclarationSQLSnippet(int|null $length): string
     {
         if ($length !== null && $length > 0) {
             return 'VARCHAR(' . $length . ')';
@@ -1605,11 +1590,8 @@ SQL
         return 'VARCHAR(255)';
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    protected function getBinaryTypeDeclarationSQLSnippet(?int $length): string
+    protected function getBinaryTypeDeclarationSQLSnippet(int|null $length): string
     {
         if ($length !== null && $length > $this->getBinaryMaxLength()) {
             return 'BLOB';
@@ -1628,7 +1610,7 @@ SQL
      * Varchars character set binary are used for small blob/binary fields.
      */
     #[Override]
-    protected function getVarbinaryTypeDeclarationSQLSnippet(?int $length): string
+    protected function getVarbinaryTypeDeclarationSQLSnippet(int|null $length): string
     {
         if ($length !== null && $length > $this->getBinaryMaxLength()) {
             return 'BLOB';
@@ -1675,9 +1657,11 @@ SQL
         // Extract column-level CHECK constraints (DBAL4's getCheckDeclarationSQL() handles min/max only)
         $checkConstraints = [];
         foreach ($columns as $column) {
-            if (! empty($column['check'])) {
-                $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
+            if (empty($column['check'])) {
+                continue;
             }
+
+            $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
         }
 
         if (! empty($checkConstraints)) {

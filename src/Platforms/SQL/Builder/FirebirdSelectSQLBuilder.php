@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder;
 
-use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\SelectQuery;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
@@ -25,7 +25,7 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
     {
     }
 
-    /** @throws Exception */
+    /** @throws NotSupported */
     #[Override]
     public function buildSQL(SelectQuery $query): string
     {
@@ -81,14 +81,14 @@ final class FirebirdSelectSQLBuilder implements SelectSQLBuilder
 
         if ($forUpdate !== null) {
             if ($this->forUpdateSQL === null) {
-                throw Exception::notSupported('FOR UPDATE');
+                throw NotSupported::new('FOR UPDATE');
             }
 
             $sql .=  ' ' . $this->forUpdateSQL;
 
             if ($forUpdate->getConflictResolutionMode() === ConflictResolutionMode::SKIP_LOCKED) {
                 if ($this->skipLockedSQL === null) {
-                    throw Exception::notSupported('SKIP LOCKED');
+                    throw NotSupported::new('SKIP LOCKED');
                 }
 
                 $sql .= ' ' . $this->skipLockedSQL;

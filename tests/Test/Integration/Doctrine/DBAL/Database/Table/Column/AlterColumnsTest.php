@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\T
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
-use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Iterator;
@@ -45,31 +45,27 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         $tableName      = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap()[$expectedFieldType];
         $sql            = "CREATE TABLE {$tableName} ({$createColumnSql})";
-        $connection->exec($sql);
-        $columns = $sm->listTableColumns($tableName);
+        $connection->executeStatement($sql);
+        $oldTable = $sm->introspectTable($tableName);
+        $columns  = $oldTable->getColumns();
         self::assertIsArray($columns);
         self::assertCount(1, $columns);
         self::assertArrayHasKey('foo', $columns);
-        $previousColumn    = $columns['foo'];
-        $replacingColumn   = new Column(
-            'bar',
+        $previousColumn  = $columns['foo'];
+        $replacingColumn = new Column(
+            'foo',
             Type::getType($columnTypeName),
             $options,
         );
-        $comparator        = new Comparator();
-        $changedProperties = $comparator->diffColumn($previousColumn, $replacingColumn);
 
-        $tableDiff                        = new TableDiff($tableName);
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'foo',
-            $replacingColumn,
-            $changedProperties,
-            $previousColumn,
+        $tableDiff  = new TableDiff(
+            $oldTable,
+            changedColumns: [new ColumnDiff($previousColumn, $replacingColumn)],
         );
-        $statements                       = $this->_platform->getAlterTableSQL($tableDiff);
+        $statements = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertGreaterThanOrEqual(2, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = (
@@ -79,9 +75,9 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
             WHERE RF.RDB\$RELATION_NAME = '{$tableName}'
             AND RF.RDB\$FIELD_NAME = 'FOO'"
         );
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
-        $row = $result->fetch();
+        $row = $result->fetchAssociative();
         self::assertIsArray($row);
         self::assertArrayHasKey('RDB$FIELD_TYPE', $row);
         self::assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], 'Invalid field type. SQL: ' . self::statementArrayToText($statements));

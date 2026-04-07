@@ -122,9 +122,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, 'test_value', ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 'test_value', ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -132,9 +132,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => ':name']);
 
-        $result = $statement->bindValue(':name', 'test_value', ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(':name', 'test_value', ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -161,17 +161,17 @@ class StatementTest extends TestCase
 
     #[Test]
     #[DataProvider('parameterTypeProvider')]
-    public function bindValueWithDifferentTypes(int $type, mixed $value): void
+    public function bindValueWithDifferentTypes(ParameterType $type, mixed $value): void
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, $value, $type);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, $value, $type);
+        $this->assertTrue(true);
     }
 
     /**
-     * @return array<string, array{int, mixed}>
+     * @return array<string, array{ParameterType, mixed}>
      */
     public static function parameterTypeProvider(): array
     {
@@ -192,10 +192,8 @@ class StatementTest extends TestCase
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
         $statement->bindValue(1, 'first_value', ParameterType::STRING);
-        $result = $statement->bindValue(1, 'second_value', ParameterType::STRING);
+        $statement->bindValue(1, 'second_value', ParameterType::STRING);
 
-        $this->assertTrue($result);
-        
         // Verify via reflection that the new value is stored
         $reflection = new ReflectionClass($statement);
         $boundValuesProp = $reflection->getProperty('boundValues');
@@ -213,10 +211,9 @@ class StatementTest extends TestCase
         fwrite($stream, 'stream_content');
         rewind($stream);
 
-        $result = $statement->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
 
-        $this->assertTrue($result);
-        
         // Verify the stream was converted to string
         $reflection = new ReflectionClass($statement);
         $bindingsProp = $reflection->getProperty('queryParamBindings');
@@ -231,9 +228,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, null, ParameterType::LARGE_OBJECT);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, null, ParameterType::LARGE_OBJECT);
+        $this->assertTrue(true);
     }
 
     // ====================================
@@ -246,9 +243,9 @@ class StatementTest extends TestCase
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
         $variable = 'test_value';
-        $result = @$statement->bindParam(1, $variable, ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindParam() returns void - success means no exception thrown
+        @$statement->bindParam(1, $variable, ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -440,9 +437,11 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?', 2 => '?', 3 => '?']);
 
-        $this->assertTrue($statement->bindValue(1, 'value1', ParameterType::STRING));
-        $this->assertTrue($statement->bindValue(2, 42, ParameterType::INTEGER));
-        $this->assertTrue($statement->bindValue(3, null, ParameterType::NULL));
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 'value1', ParameterType::STRING);
+        $statement->bindValue(2, 42, ParameterType::INTEGER);
+        $statement->bindValue(3, null, ParameterType::NULL);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -454,9 +453,11 @@ class StatementTest extends TestCase
             3 => ':active',
         ]);
 
-        $this->assertTrue($statement->bindValue(':name', 'John', ParameterType::STRING));
-        $this->assertTrue($statement->bindValue(':value', 100, ParameterType::INTEGER));
-        $this->assertTrue($statement->bindValue(':active', true, ParameterType::BOOLEAN));
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(':name', 'John', ParameterType::STRING);
+        $statement->bindValue(':value', 100, ParameterType::INTEGER);
+        $statement->bindValue(':active', true, ParameterType::BOOLEAN);
+        $this->assertTrue(true);
     }
 
     // ====================================
@@ -468,9 +469,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, '', ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, '', ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -478,9 +479,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, 0, ParameterType::INTEGER);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 0, ParameterType::INTEGER);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -488,9 +489,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, -42, ParameterType::INTEGER);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, -42, ParameterType::INTEGER);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -498,9 +499,9 @@ class StatementTest extends TestCase
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
-        $result = $statement->bindValue(1, 3.14159, ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 3.14159, ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     #[Test]
@@ -509,9 +510,9 @@ class StatementTest extends TestCase
         $statement = $this->createStatementWithParameterMap([1 => '?']);
 
         $largeString = str_repeat('x', 100000);
-        $result = $statement->bindValue(1, $largeString, ParameterType::STRING);
-
-        $this->assertTrue($result);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, $largeString, ParameterType::STRING);
+        $this->assertTrue(true);
     }
 
     // ====================================

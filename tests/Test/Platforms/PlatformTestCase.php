@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
-use Doctrine\Common\EventManager;
-use Doctrine\DBAL\Events;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\InvalidLockMode;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -28,7 +26,6 @@ use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use Satag\DoctrineFirebirdDriver\Test\SchemaEventListener;
 
 use function count;
 use function implode;
@@ -367,100 +364,6 @@ abstract class PlatformTestCase extends TestCase
         self::assertSame('foo MEDIUMINT(6) UNSIGNED', $this->platform->getColumnDeclarationSQL('foo', ['columnDefinition' => 'MEDIUMINT(6) UNSIGNED']));
     }
 
-    public function testGetCreateTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaCreateTable');
-        $listenerMock
-            ->expects(self::exactly(2))
-            ->method('onSchemaCreateTableColumn');
-
-        $eventManager = new EventManager();
-        $eventManager->addEventListener([
-            Events::onSchemaCreateTable,
-            Events::onSchemaCreateTableColumn,
-        ], $listenerMock);
-
-        $this->platform->setEventManager($eventManager);
-
-        $table = new Table('test');
-        $table->addColumn('foo', Types::STRING, ['notnull' => false, 'length' => 255]);
-        $table->addColumn('bar', Types::STRING, ['notnull' => false, 'length' => 255]);
-
-        $this->platform->getCreateTableSQL($table);
-    }
-
-    public function testGetDropTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaDropTable');
-
-        $eventManager = new EventManager();
-        $eventManager->addEventListener([Events::onSchemaDropTable], $listenerMock);
-
-        $this->platform->setEventManager($eventManager);
-
-        $this->platform->getDropTableSQL('TABLE');
-    }
-
-    public function testGetAlterTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaAlterTable');
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaAlterTableAddColumn');
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaAlterTableRemoveColumn');
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaAlterTableChangeColumn');
-        $listenerMock
-            ->expects(self::once())
-            ->method('onSchemaAlterTableRenameColumn');
-
-        $eventManager = new EventManager();
-        $events       = [
-            Events::onSchemaAlterTable,
-            Events::onSchemaAlterTableAddColumn,
-            Events::onSchemaAlterTableRemoveColumn,
-            Events::onSchemaAlterTableChangeColumn,
-            Events::onSchemaAlterTableRenameColumn,
-        ];
-        $eventManager->addEventListener($events, $listenerMock);
-
-        $this->platform->setEventManager($eventManager);
-
-        $table = new Table('mytable');
-        $table->addColumn('removed', Types::INTEGER);
-        $table->addColumn('changed', Types::INTEGER);
-        $table->addColumn('renamed', Types::INTEGER);
-
-        $tableDiff                            = new TableDiff('mytable');
-        $tableDiff->fromTable                 = $table;
-        $tableDiff->addedColumns['added']     = new Column('added', Type::getType(Types::INTEGER), []);
-        $tableDiff->removedColumns['removed'] = new Column('removed', Type::getType(Types::INTEGER), []);
-        $tableDiff->changedColumns['changed'] = new ColumnDiff(
-            'changed',
-            new Column(
-                'changed2',
-                Type::getType(Types::STRING),
-                [],
-            ),
-            ['type'],
-        );
-        $tableDiff->renamedColumns['renamed'] = new Column('renamed2', Type::getType(Types::INTEGER), []);
-
-        $this->platform->getAlterTableSQL($tableDiff);
-    }
-
     public function testCreateTableColumnComments(): void
     {
         $table = new Table('test');
@@ -472,28 +375,16 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableColumnComments(): void
     {
-        $tableDiff                        = new TableDiff('mytable');
-        $tableDiff->addedColumns['quota'] = new Column(
-            'quota',
-            Type::getType(Types::INTEGER),
-            ['comment' => 'A comment'],
-        );
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'foo',
-            new Column(
-                'foo',
-                Type::getType(Types::STRING),
-            ),
-            ['comment'],
-        );
-        $tableDiff->changedColumns['bar'] = new ColumnDiff(
-            'bar',
-            new Column(
-                'baz',
-                Type::getType(Types::STRING),
-                ['comment' => 'B comment'],
-            ),
-            ['comment'],
+        $oldTable = new Table('mytable');
+        $oldTable->addColumn('foo', Types::INTEGER);
+        $oldTable->addColumn('bar', Types::INTEGER);
+        $tableDiff = new TableDiff(
+            $oldTable,
+            addedColumns: [new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment'])],
+            changedColumns: [
+                new ColumnDiff(new Column('foo', Type::getType(Types::INTEGER)), new Column('foo', Type::getType(Types::STRING))),
+                new ColumnDiff(new Column('bar', Type::getType(Types::INTEGER)), new Column('baz', Type::getType(Types::STRING), ['comment' => 'B comment'])),
+            ],
         );
 
         self::assertEquals($this->getAlterTableColumnCommentsSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -764,15 +655,11 @@ abstract class PlatformTestCase extends TestCase
         $table = new Table('mytable');
         $table->addColumn('select', Types::INTEGER);
 
-        $tableDiff                           = new TableDiff('mytable');
-        $tableDiff->fromTable                = $table;
-        $tableDiff->changedColumns['select'] = new ColumnDiff(
-            'select',
-            new Column(
-                'select',
-                Type::getType(Types::STRING),
-            ),
-            ['type'],
+        $tableDiff = new TableDiff(
+            $table,
+            changedColumns: [
+                new ColumnDiff(new Column('select', Type::getType(Types::INTEGER)), new Column('select', Type::getType(Types::STRING))),
+            ],
         );
 
         self::assertStringContainsString($this->platform->quoteIdentifier('select'), implode(';', $this->platform->getAlterTableSQL($tableDiff)));
@@ -846,13 +733,13 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableRenameIndex(): void
     {
-        $tableDiff            = new TableDiff('mytable');
-        $tableDiff->fromTable = new Table('mytable');
-        $tableDiff->fromTable->addColumn('id', Types::INTEGER);
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'idx_foo' => new Index('idx_bar', ['id']),
-        ];
+        $fromTable = new Table('mytable');
+        $fromTable->addColumn('id', Types::INTEGER);
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+        );
 
         self::assertSame($this->getAlterTableRenameIndexSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
@@ -868,14 +755,13 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableRenameIndex(): void
     {
-        $tableDiff            = new TableDiff('table');
-        $tableDiff->fromTable = new Table('table');
-        $tableDiff->fromTable->addColumn('id', Types::INTEGER);
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'create' => new Index('select', ['id']),
-            '`foo`'  => new Index('`bar`', ['id']),
-        ];
+        $fromTable = new Table('table');
+        $fromTable->addColumn('id', Types::INTEGER);
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+        );
 
         self::assertSame($this->getQuotedAlterTableRenameIndexSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
@@ -936,8 +822,8 @@ abstract class PlatformTestCase extends TestCase
         // quoted -> quoted
         $toTable->addColumn('`baz`', Types::INTEGER, ['comment' => 'Quoted 3']);
 
-        $diff = (new Comparator())->diffTable($fromTable, $toTable);
-        self::assertNotFalse($diff);
+        // DBAL4: diffTable() → compareTables() which always returns TableDiff
+        $diff = (new Comparator($this->platform))->compareTables($fromTable, $toTable);
 
         self::assertEquals($this->getQuotedAlterTableRenameColumnSQL(), $this->platform->getAlterTableSQL($diff));
     }
@@ -971,8 +857,8 @@ abstract class PlatformTestCase extends TestCase
         $toTable->addColumn('table', Types::STRING, ['comment' => 'Reserved keyword 2', 'length' => 255]);
         $toTable->addColumn('select', Types::STRING, ['comment' => 'Reserved keyword 3', 'length' => 255]);
 
-        $diff = (new Comparator())->diffTable($fromTable, $toTable);
-        self::assertNotFalse($diff);
+        // DBAL4: diffTable() → compareTables() which always returns TableDiff
+        $diff = (new Comparator($this->platform))->compareTables($fromTable, $toTable);
 
         self::assertEquals($this->getQuotedAlterTableChangeColumnLengthSQL(), $this->platform->getAlterTableSQL($diff));
     }
@@ -986,13 +872,13 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableRenameIndexInSchema(): void
     {
-        $tableDiff            = new TableDiff('myschema.mytable');
-        $tableDiff->fromTable = new Table('myschema.mytable');
-        $tableDiff->fromTable->addColumn('id', Types::INTEGER);
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'idx_foo' => new Index('idx_bar', ['id']),
-        ];
+        $fromTable = new Table('myschema.mytable');
+        $fromTable->addColumn('id', Types::INTEGER);
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+        );
 
         self::assertSame($this->getAlterTableRenameIndexInSchemaSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
@@ -1008,14 +894,13 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
-        $tableDiff            = new TableDiff('`schema`.table');
-        $tableDiff->fromTable = new Table('`schema`.table');
-        $tableDiff->fromTable->addColumn('id', Types::INTEGER);
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'create' => new Index('select', ['id']),
-            '`foo`'  => new Index('`bar`', ['id']),
-        ];
+        $fromTable = new Table('`schema`.table');
+        $fromTable->addColumn('id', Types::INTEGER);
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+        );
 
         self::assertSame($this->getQuotedAlterTableRenameIndexInSchemaSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
@@ -1213,12 +1098,14 @@ abstract class PlatformTestCase extends TestCase
             ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
         );
 
-        $tableDiff                        = new TableDiff('foo');
-        $tableDiff->fromTable             = $table;
-        $tableDiff->renamedColumns['bar'] = new Column(
-            'baz',
-            Type::getType(Types::INTEGER),
-            ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
+        $tableDiff = new TableDiff(
+            $table,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('bar', Type::getType(Types::INTEGER), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                    new Column('baz', Type::getType(Types::INTEGER), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                ),
+            ],
         );
 
         self::assertSame($this->getAlterTableRenameColumnSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -1232,17 +1119,14 @@ abstract class PlatformTestCase extends TestCase
         $table = new Table('mytable');
         $table->addColumn('name', Types::STRING, ['length' => 2]);
 
-        $tableDiff            = new TableDiff('mytable');
-        $tableDiff->fromTable = $table;
-
-        $tableDiff->changedColumns['name'] = new ColumnDiff(
-            'name',
-            new Column(
-                'name',
-                Type::getType(Types::STRING),
-                ['fixed' => true, 'length' => 2],
-            ),
-            ['fixed'],
+        $tableDiff = new TableDiff(
+            $table,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('name', Type::getType(Types::STRING), ['length' => 2]),
+                    new Column('name', Type::getType(Types::STRING), ['fixed' => true, 'length' => 2]),
+                ),
+            ],
         );
 
         $sql = $this->platform->getAlterTableSQL($tableDiff);
@@ -1273,9 +1157,10 @@ abstract class PlatformTestCase extends TestCase
         $primaryTable->addForeignKeyConstraint($foreignTable, ['foo'], ['id'], [], 'fk_foo');
         $primaryTable->addForeignKeyConstraint($foreignTable, ['bar'], ['id'], [], 'fk_bar');
 
-        $tableDiff                            = new TableDiff('mytable');
-        $tableDiff->fromTable                 = $primaryTable;
-        $tableDiff->renamedIndexes['idx_foo'] = new Index('idx_foo_renamed', ['foo']);
+        $tableDiff = new TableDiff(
+            $primaryTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_foo_renamed', ['foo'])],
+        );
 
         $sql      = $this->platform->getAlterTableSQL($tableDiff);
         $expected = $this->getGeneratesAlterTableRenameIndexUsedByForeignKeySQL();
@@ -1394,7 +1279,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testEmptyTableDiff(): void
     {
-        $diff = new TableDiff('test');
+        $diff = new TableDiff(new Table('test'));
 
         self::assertTrue($diff->isEmpty());
         self::assertSame([], $this->platform->getAlterTableSQL($diff));

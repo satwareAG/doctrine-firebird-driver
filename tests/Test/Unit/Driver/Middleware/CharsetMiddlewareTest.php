@@ -90,24 +90,11 @@ class CharsetMiddlewareTest extends TestCase
         $innerConnection = $this->createMock(DriverConnection::class);
         $innerConnection->expects(self::once())
             ->method('quote')
-            ->willReturnCallback(static fn ($value, $type) => "'" . $value . "'");
+            ->willReturnCallback(static fn ($value) => "'" . $value . "'");
 
         $conn   = new CharsetConnectionMiddleware($innerConnection, 'UTF-8', 'UTF-8');
         $result = $conn->quote('hello');
         self::assertStringContainsString('hello', (string) $result);
-    }
-
-    public function testCharsetConnectionMiddlewareQuotePassesThroughNonStrings(): void
-    {
-        $innerConnection = $this->createMock(DriverConnection::class);
-        $innerConnection->expects(self::once())
-            ->method('quote')
-            ->with(42, ParameterType::INTEGER)
-            ->willReturn('42');
-
-        $conn   = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
-        $result = $conn->quote(42, ParameterType::INTEGER);
-        self::assertSame('42', $result);
     }
 
     // ---------------------------------------------------------------------------
@@ -118,12 +105,10 @@ class CharsetMiddlewareTest extends TestCase
     {
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
-            ->method('bindValue')
-            ->willReturn(true);
+            ->method('bindValue');
 
-        $stmt   = new CharsetStatementMiddleware($inner, 'UTF-8', 'UTF-8');
-        $result = $stmt->bindValue(1, 'hello', ParameterType::STRING);
-        self::assertTrue($result);
+        $stmt = new CharsetStatementMiddleware($inner, 'UTF-8', 'UTF-8');
+        $stmt->bindValue(1, 'hello', ParameterType::STRING);
     }
 
     public function testCharsetStatementBindValuePassesThroughNonStringValue(): void
@@ -131,12 +116,10 @@ class CharsetMiddlewareTest extends TestCase
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, 42, ParameterType::INTEGER)
-            ->willReturn(true);
+            ->with(1, 42, ParameterType::INTEGER);
 
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->bindValue(1, 42, ParameterType::INTEGER);
-        self::assertTrue($result);
+        $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
+        $stmt->bindValue(1, 42, ParameterType::INTEGER);
     }
 
     public function testCharsetStatementBindValuePassesThroughBinaryType(): void
@@ -144,12 +127,10 @@ class CharsetMiddlewareTest extends TestCase
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, 'raw', ParameterType::BINARY)
-            ->willReturn(true);
+            ->with(1, 'raw', ParameterType::BINARY);
 
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->bindValue(1, 'raw', ParameterType::BINARY);
-        self::assertTrue($result);
+        $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
+        $stmt->bindValue(1, 'raw', ParameterType::BINARY);
     }
 
     public function testCharsetStatementBindValuePassesThroughASCII(): void
@@ -160,77 +141,23 @@ class CharsetMiddlewareTest extends TestCase
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, $win1252Bytes, ParameterType::ASCII)
-            ->willReturn(true);
+            ->with(1, $win1252Bytes, ParameterType::ASCII);
 
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->bindValue(1, $utf8String, ParameterType::ASCII);
-        self::assertTrue($result);
+        $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
+        $stmt->bindValue(1, $utf8String, ParameterType::ASCII);
     }
 
-    public function testCharsetStatementExecuteWithNullParams(): void
+    public function testCharsetStatementExecuteReturnsWrappedResult(): void
     {
         $innerResult = $this->createMock(DriverResult::class);
         $inner       = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('execute')
-            ->with(null)
             ->willReturn($innerResult);
 
         $stmt   = new CharsetStatementMiddleware($inner, 'UTF-8', 'UTF-8');
-        $result = $stmt->execute(null);
+        $result = $stmt->execute();
         // Returns a CharsetResultMiddleware wrapping the inner result
-        self::assertInstanceOf(DriverResult::class, $result);
-    }
-
-    public function testCharsetStatementExecuteEncodesStringParams(): void
-    {
-        $innerResult = $this->createMock(DriverResult::class);
-        $inner       = $this->createMock(DriverStatement::class);
-        $inner->expects(self::once())
-            ->method('execute')
-            ->willReturn($innerResult);
-
-        $stmt   = new CharsetStatementMiddleware($inner, 'UTF-8', 'UTF-8');
-        $result = $stmt->execute(['hello', 42]); // string encoded, int passed through
-        self::assertInstanceOf(DriverResult::class, $result);
-    }
-
-    public function testCharsetStatementExecuteEncodesStreamParams(): void
-    {
-        $utf8String   = 'Hällo World';
-        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
-
-        $stream = fopen('php://temp', 'r+');
-        self::assertIsResource($stream);
-        fwrite($stream, $utf8String);
-        rewind($stream);
-
-        $innerResult = $this->createMock(DriverResult::class);
-        $inner       = $this->createMock(DriverStatement::class);
-        $inner->expects(self::once())
-            ->method('execute')
-            ->with([$win1252Bytes, 42])
-            ->willReturn($innerResult);
-
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->execute([$stream, 42]);
-        self::assertInstanceOf(DriverResult::class, $result);
-
-        fclose($stream);
-    }
-
-    public function testCharsetStatementExecutePassesThroughNonStringInlineParams(): void
-    {
-        $innerResult = $this->createMock(DriverResult::class);
-        $inner       = $this->createMock(DriverStatement::class);
-        $inner->expects(self::once())
-            ->method('execute')
-            ->with([42, true, null])
-            ->willReturn($innerResult);
-
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->execute([42, true, null]);
         self::assertInstanceOf(DriverResult::class, $result);
     }
 
@@ -247,12 +174,10 @@ class CharsetMiddlewareTest extends TestCase
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, $win1252Bytes, ParameterType::LARGE_OBJECT)
-            ->willReturn(true);
+            ->with(1, $win1252Bytes, ParameterType::LARGE_OBJECT);
 
-        $stmt   = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
-        $result = $stmt->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
-        self::assertTrue($result);
+        $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
+        $stmt->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
 
         fclose($stream);
     }

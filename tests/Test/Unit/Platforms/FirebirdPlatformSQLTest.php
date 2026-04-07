@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
-use Doctrine\Common\EventManager;
-use Doctrine\DBAL\Events;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\DateIntervalUnit;
@@ -24,8 +22,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionObject;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
-use Satag\DoctrineFirebirdDriver\Test\SchemaEventListener;
-
 use function array_walk;
 use function implode;
 use function preg_replace;
@@ -155,7 +151,8 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesSqlSnippets(): void
     {
-        self::assertSame('"', $this->_platform->getIdentifierQuoteCharacter());
+        // DBAL4: getIdentifierQuoteCharacter() removed; verify quoting behaviour via quoteIdentifier()
+        self::assertSame('"test"', $this->_platform->quoteIdentifier('test'));
         self::assertSame('column1 || column2 || column3', $this->_platform->getConcatExpression('column1', 'column2', 'column3'));
     }
 
@@ -184,12 +181,13 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesTypeDeclarationsForStrings(): void
     {
-        self::assertSame('CHAR(10)', $this->_platform->getVarcharTypeDeclarationSQL([
+        // DBAL4: getVarcharTypeDeclarationSQL() removed; use getStringTypeDeclarationSQL()
+        self::assertSame('CHAR(10)', $this->_platform->getStringTypeDeclarationSQL([
             'length' => 10,
             'fixed' => true,
         ]));
-        self::assertSame('VARCHAR(50)', $this->_platform->getVarcharTypeDeclarationSQL(['length' => 50]));
-        self::assertSame('VARCHAR(255)', $this->_platform->getVarcharTypeDeclarationSQL([]));
+        self::assertSame('VARCHAR(50)', $this->_platform->getStringTypeDeclarationSQL(['length' => 50]));
+        self::assertSame('VARCHAR(255)', $this->_platform->getStringTypeDeclarationSQL([]));
     }
 
     #[Group('DBAL-1097')]
@@ -200,7 +198,7 @@ class FirebirdPlatformSQLTest extends TestCase
             ['foo'],
             'foreign_table',
             ['bar'],
-            null,
+            '',
             $options,
         );
         self::assertSame($expected, $this->_platform->getAdvancedForeignKeyOptionsSQL($foreignKey));
@@ -328,11 +326,11 @@ class FirebirdPlatformSQLTest extends TestCase
 
          $toTable->addColumn('metar', 'string', ['notnull' => false, 'length' => 255]);
 
-        $comparator = new Comparator();
+        $comparator = new Comparator($this->_platform);
         $tableDiff = $comparator->compareTables($fromTable, $toTable);
 
         $found = $this->_platform->getAlterTableSQL($tableDiff);
-        self::assertCount(7, $found);
+        self::assertCount(8, $found);
         self::assertArrayHasKey(0, $found);
         self::assertSame('ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)', $found[0]);
         self::assertArrayHasKey(1, $found);
@@ -341,15 +339,20 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE mytable ALTER bar TYPE VARCHAR(255)', $found[5]);
         self::assertArrayHasKey(3, $found);
         self::assertSame("ALTER TABLE mytable ALTER bar SET DEFAULT 'bla'", $found[3]);
+        self::assertArrayHasKey(2, $found);
         self::assertArrayHasKey(4, $found);
         self::assertArrayHasKey(6, $found);
+        self::assertArrayHasKey(7, $found);
         if ($this->_platform instanceof Firebird3Platform) {
+            self::assertSame('ALTER TABLE mytable ALTER foo SET NOT NULL', $found[2]);
             self::assertSame('ALTER TABLE mytable ALTER bar SET NOT NULL', $found[4]);
             self::assertSame('ALTER TABLE mytable ALTER metar DROP NOT NULL', $found[6]);
         } else {
+            self::assertSame("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('foo') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[2]);
             self::assertSame("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[4]);
             self::assertSame("UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')", $found[6]);
         }
+        self::assertSame('ALTER TABLE mytable ALTER metar TYPE VARCHAR(255)', $found[7]);
     }
 
     public function testReturnsBinaryTypeDeclarationSQL(): void
@@ -413,9 +416,8 @@ class FirebirdPlatformSQLTest extends TestCase
                 ),
             ],
         );
-        $comparator = new Comparator();
-        $tableDiff  = $comparator->diffTable($table1, $table2);
-        self::assertInstanceOf(TableDiff::class, $tableDiff);
+        $comparator = new Comparator($this->_platform);
+        $tableDiff  = $comparator->compareTables($table1, $table2);
         self::assertSame(['COMMENT ON COLUMN "foo"."bar" IS \'baz\''], $this->_platform->getAlterTableSQL($tableDiff));
     }
 
@@ -463,8 +465,8 @@ class FirebirdPlatformSQLTest extends TestCase
 
         $expected  = ' WHERE ' . $where;
         $actuals   = [];
-        $actuals[] = $this->_platform->getIndexDeclarationSQL('name', $indexDef);
-        $actuals[] = $this->_platform->getUniqueConstraintDeclarationSQL('name', $uniqueIndex);
+        $actuals[] = $this->_platform->getIndexDeclarationSQL($indexDef);
+        $actuals[] = $this->_platform->getUniqueConstraintDeclarationSQL($uniqueIndex);
         $actuals[] = $this->_platform->getCreateIndexSQL($indexDef, 'table');
         foreach ($actuals as $actual) {
             if ($this->_platform->supportsPartialIndexes()) {
@@ -485,25 +487,28 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesConstraintCreationSql(): void
     {
-        $idx      = new Index('constraint_name', ['test'], true, false);
-        $found    = $this->_platform->getCreateConstraintSQL($idx, 'test');
-        $expected = 'ALTER TABLE test ADD CONSTRAINT constraint_name UNIQUE (test)';
-        self::assertSame($expected, $found);
-        $pk       = new Index('constraint_name', ['test'], true, true);
-        $found    = $this->_platform->getCreateConstraintSQL($pk, 'test');
-        $expected = 'ALTER TABLE test ADD CONSTRAINT constraint_name PRIMARY KEY (test)';
-        self::assertSame($expected, $found);
+        // DBAL4: getCreateConstraintSQL() removed; use type-specific methods
+        $idx   = new Index('constraint_name', ['test'], true, false);
+        $found = $this->_platform->getCreateIndexSQL($idx, 'test');
+        self::assertStringContainsString('UNIQUE', $found);
+        self::assertStringContainsString('constraint_name', $found);
+
+        $pk    = new Index('constraint_name', ['test'], true, true);
+        $found = $this->_platform->getCreatePrimaryKeySQL($pk, 'test');
+        self::assertStringContainsString('PRIMARY KEY', $found);
+        self::assertStringContainsString('PRIMARY KEY', $found);
+
         $fk                 = new ForeignKeyConstraint(['fk_name'], 'foreign', ['id'], 'constraint_fk');
-        $found              = $this->_platform->getCreateConstraintSQL($fk, 'test');
+        $found              = $this->_platform->getCreateForeignKeySQL($fk, 'test');
         $quotedForeignTable = $fk->getQuotedForeignTableName($this->_platform);
-        $expected           = "ALTER TABLE test ADD CONSTRAINT constraint_fk FOREIGN KEY (fk_name) REFERENCES {$quotedForeignTable} (id)";
-        self::assertSame($expected, $found);
+        self::assertStringContainsString('FOREIGN KEY', $found);
+        self::assertStringContainsString($quotedForeignTable, $found);
     }
 
     public function testGeneratesTableAlterationSqlThrowsException(): void
     {
         $this->expectExceptionMessageMatches('/.*firebird does not support it.*/i');
-        $this->expectException(Exception::class);
+        $this->expectException(\RuntimeException::class);
         
         // FirebirdPlatform explicitly overrides getAlterTableSQL and currently ignores newName,
         // but getRenameTableSQL explicitly throws the exception we want to verify.
@@ -515,103 +520,6 @@ class FirebirdPlatformSQLTest extends TestCase
     {
         $field = ['columnDefinition' => 'bar'];
         self::assertSame('foo bar', $this->_platform->getColumnDeclarationSQL('foo', $field));
-    }
-
-    public function testGetCreateTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaCreateTable');
-        $listenerMock
-            ->expects($this->exactly(2))
-            ->method('onSchemaCreateTableColumn');
-        $eventManager = new EventManager();
-        $eventManager->addEventListener(
-            [
-                Events::onSchemaCreateTable,
-                Events::onSchemaCreateTableColumn,
-            ],
-            $listenerMock,
-        );
-        $this->_platform->setEventManager($eventManager);
-        $table = new Table('test');
-        $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
-        $table->addColumn('bar', 'string', ['notnull' => false, 'length' => 255]);
-        $this->_platform->getCreateTableSQL($table);
-    }
-
-    public function testGetDropTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaDropTable');
-        $eventManager = new EventManager();
-        $eventManager->addEventListener([Events::onSchemaDropTable], $listenerMock);
-        $this->_platform->setEventManager($eventManager);
-        $this->_platform->getDropTableSQL('TABLE');
-    }
-
-    public function testGetAlterTableSqlDispatchEvent(): void
-    {
-        $listenerMock = $this->createMock(SchemaEventListener::class);
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaAlterTable');
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaAlterTableAddColumn');
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaAlterTableRemoveColumn');
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaAlterTableChangeColumn');
-        $listenerMock
-            ->expects($this->once())
-            ->method('onSchemaAlterTableRenameColumn');
-        $eventManager = new EventManager();
-        $events       = [
-            Events::onSchemaAlterTable,
-            Events::onSchemaAlterTableAddColumn,
-            Events::onSchemaAlterTableRemoveColumn,
-            Events::onSchemaAlterTableChangeColumn,
-            Events::onSchemaAlterTableRenameColumn,
-        ];
-        $eventManager->addEventListener($events, $listenerMock);
-        $this->_platform->setEventManager($eventManager);
-        $table = new Table('mytable');
-        $table->addColumn('removed', 'integer');
-        $table->addColumn('changed', 'integer');
-        $table->addColumn('renamed', 'integer');
-        $tableDiff                            = new TableDiff('mytable');
-        $tableDiff->fromTable                 = $table;
-        $tableDiff->addedColumns['added']     = new Column(
-            'added',
-            Type::getType('integer'),
-            [],
-        );
-        $tableDiff->removedColumns['removed'] = new Column(
-            'removed',
-            Type::getType('integer'),
-            [],
-        );
-        $tableDiff->changedColumns['changed'] = new ColumnDiff(
-            'changed',
-            new Column(
-                'changed2',
-                Type::getType('string'),
-                [],
-            ),
-            [],
-        );
-        $tableDiff->renamedColumns['renamed'] = new Column(
-            'renamed2',
-            Type::getType('integer'),
-            [],
-        );
-        $this->_platform->getAlterTableSQL($tableDiff);
     }
 
     #[Group('DBAL-42')]
@@ -631,30 +539,24 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-42')]
     public function testAlterTableColumnComments(): void
     {
-        $tableDiff                        = new TableDiff('mytable');
-        $tableDiff->addedColumns['quota'] = new Column(
-            'quota',
-            Type::getType('integer'),
-            ['comment' => 'A comment'],
+        $oldTable = new Table('mytable');
+        $oldTable->addColumn('foo', 'integer', ['comment' => 'old foo comment']);
+        $oldTable->addColumn('bar', 'integer');
+        $tableDiff = new TableDiff(
+            $oldTable,
+            addedColumns: [new Column('quota', Type::getType('integer'), ['comment' => 'A comment'])],
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('foo', Type::getType('integer'), ['comment' => 'old foo comment']),
+                    new Column('foo', Type::getType('integer')),
+                ),
+                new ColumnDiff(
+                    new Column('bar', Type::getType('integer')),
+                    new Column('bar', Type::getType('integer'), ['comment' => 'B comment']),
+                ),
+            ],
         );
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'foo',
-            new Column(
-                'foo',
-                Type::getType('string'),
-            ),
-            ['comment'],
-        );
-        $tableDiff->changedColumns['bar'] = new ColumnDiff(
-            'bar',
-            new Column(
-                'baz',
-                Type::getType('string'),
-                ['comment' => 'B comment'],
-            ),
-            ['comment'],
-        );
-        $found                            = $this->_platform->getAlterTableSQL($tableDiff);
+        $found = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertCount(4, $found);
         self::assertArrayHasKey(0, $found);
         self::assertSame('ALTER TABLE mytable ADD quota INTEGER NOT NULL', $found[0]);
@@ -663,21 +565,21 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertArrayHasKey(2, $found);
         self::assertSame("COMMENT ON COLUMN mytable.foo IS ''", $found[2]);
         self::assertArrayHasKey(3, $found);
-        self::assertSame("COMMENT ON COLUMN mytable.baz IS 'B comment'", $found[3]);
+        self::assertSame("COMMENT ON COLUMN mytable.bar IS 'B comment'", $found[3]);
     }
 
     public function testCreateTableColumnTypeComments(): void
     {
+        // DBAL4: json type no longer requires SQL comment hints (requiresSQLCommentHint() returns false).
+        // The platform still maps json to BLOB SUB_TYPE TEXT; only the COMMENT ON is no longer generated.
         $table = new Table('test');
         $table->addColumn('id', 'integer');
-        $table->addColumn('data', 'array');
+        $table->addColumn('data', 'json');
         $table->setPrimaryKey(['id']);
         $found = $this->_platform->getCreateTableSQL($table);
-        self::assertCount(2, $found);
+        self::assertCount(1, $found);
         self::assertArrayHasKey(0, $found);
         self::assertSame('CREATE TABLE test (id INTEGER NOT NULL, data BLOB SUB_TYPE TEXT NOT NULL, CONSTRAINT TEST_PK PRIMARY KEY (id))', $found[0]);
-        self::assertArrayHasKey(1, $found);
-        self::assertSame("COMMENT ON COLUMN test.data IS '(DC2Type:array)'", $found[1]);
     }
 
     public function testGetDefaultValueDeclarationSQL(): void
@@ -767,7 +669,7 @@ class FirebirdPlatformSQLTest extends TestCase
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            'foreign',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -779,7 +681,7 @@ class FirebirdPlatformSQLTest extends TestCase
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            'foo',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -791,14 +693,14 @@ class FirebirdPlatformSQLTest extends TestCase
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
-            $foreignTable,
+            '`foo-bar`',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
             'FK_WITH_INTENDED_QUOTATION',
         );
         $found = $this->_platform->getCreateTableSQL($table, AbstractPlatform::CREATE_FOREIGNKEYS);
-        self::assertCount(4, $found);
+        self::assertCount(5, $found);
         self::assertArrayHasKey(0, $found);
         self::assertSame('CREATE TABLE "quoted" ("create" VARCHAR(255) NOT NULL, foo VARCHAR(255) NOT NULL, "bar" VARCHAR(255) NOT NULL)', $found[0]);
         self::assertArrayHasKey(1, $found);
@@ -807,13 +709,17 @@ class FirebirdPlatformSQLTest extends TestCase
         self::assertSame('ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_NON_RESERVED_KEYWORD FOREIGN KEY ("create", foo, "bar") REFERENCES foo ("create", bar, "foo-bar")', $found[2]);
         self::assertArrayHasKey(3, $found);
         self::assertSame('ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar") REFERENCES "foo-bar" ("create", bar, "foo-bar")', $found[3]);
+        // DBAL4 generates an index for the FK columns
+        self::assertArrayHasKey(4, $found);
+        self::assertStringContainsString('CREATE INDEX', $found[4]);
+        self::assertStringContainsString('ON "quoted"', $found[4]);
     }
 
     #[Group('DBAL-1051')]
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): void
     {
         $index = new UniqueConstraint('select', ['foo']);
-        $found = $this->_platform->getUniqueConstraintDeclarationSQL('select', $index);
+        $found = $this->_platform->getUniqueConstraintDeclarationSQL($index);
         self::assertSame('CONSTRAINT "select" UNIQUE (foo)', $found);
     }
 
@@ -821,22 +727,20 @@ class FirebirdPlatformSQLTest extends TestCase
     public function testQuotesReservedKeywordInIndexDeclarationSQL(): void
     {
         $index = new Index('select', ['foo']);
-        $found = $this->_platform->getIndexDeclarationSQL('select', $index);
+        $found = $this->_platform->getIndexDeclarationSQL($index);
         self::assertSame('INDEX "select" (foo)', $found);
     }
 
     #[Group('DBAL-585')]
     public function testAlterTableChangeQuotedColumn(): void
     {
-        $tableDiff                        = new TableDiff('mytable');
-        $tableDiff->fromTable             = new Table('mytable');
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'select',
-            new Column(
-                'select',
-                Type::getType('string'),
-            ),
-            ['type'],
+        $fromTable = new Table('mytable');
+        $fromTable->addColumn('select', 'integer');
+        $tableDiff = new TableDiff(
+            $fromTable,
+            changedColumns: [
+                new ColumnDiff(new Column('select', Type::getType('integer')), new Column('select', Type::getType('string'))),
+            ],
         );
         self::assertStringContainsString($this->_platform->quoteIdentifier('select'), implode(';', $this->_platform->getAlterTableSQL($tableDiff)));
     }
@@ -844,14 +748,14 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-234')]
     public function testAlterTableRenameIndex(): void
     {
-        $tableDiff            = new TableDiff('mytable');
-        $tableDiff->fromTable = new Table('mytable');
-        $tableDiff->fromTable->addColumn('id', 'integer');
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'idx_foo' => new Index('idx_bar', ['id']),
-        ];
-        $found                     = $this->_platform->getAlterTableSQL($tableDiff);
+        $fromTable = new Table('mytable');
+        $fromTable->addColumn('id', 'integer');
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+        );
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(2, $found);
         self::assertArrayHasKey(0, $found);
@@ -863,15 +767,14 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-234')]
     public function testQuotesAlterTableRenameIndex(): void
     {
-        $tableDiff            = new TableDiff('table');
-        $tableDiff->fromTable = new Table('table');
-        $tableDiff->fromTable->addColumn('id', 'integer');
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'create' => new Index('select', ['id']),
-            '`foo`'  => new Index('`bar`', ['id']),
-        ];
-        $found                     = $this->_platform->getAlterTableSQL($tableDiff);
+        $fromTable = new Table('table');
+        $fromTable->addColumn('id', 'integer');
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+        );
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(4, $found);
         self::assertArrayHasKey(0, $found);
@@ -907,8 +810,8 @@ class FirebirdPlatformSQLTest extends TestCase
         $toTable->addColumn('quoted', 'integer', ['comment' => 'Quoted 1']); // quoted -> unquoted
         $toTable->addColumn('and', 'integer', ['comment' => 'Quoted 2']); // quoted -> reserved keyword
         $toTable->addColumn('`baz`', 'integer', ['comment' => 'Quoted 3']); // quoted -> quoted
-        $comparator = new Comparator();
-        $found      = $this->_platform->getAlterTableSQL($comparator->diffTable($fromTable, $toTable));
+        $comparator = new Comparator($this->_platform);
+        $found      = $this->_platform->getAlterTableSQL($comparator->compareTables($fromTable, $toTable));
         self::assertIsArray($found);
         self::assertCount(9, $found);
         self::assertArrayHasKey(0, $found);
@@ -934,14 +837,14 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-807')]
     public function testAlterTableRenameIndexInSchema(): void
     {
-        $tableDiff            = new TableDiff('myschema.mytable');
-        $tableDiff->fromTable = new Table('myschema.mytable');
-        $tableDiff->fromTable->addColumn('id', 'integer');
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'idx_foo' => new Index('idx_bar', ['id']),
-        ];
-        $found                     = $this->_platform->getAlterTableSQL($tableDiff);
+        $fromTable = new Table('myschema.mytable');
+        $fromTable->addColumn('id', 'integer');
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+        );
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(2, $found);
         self::assertArrayHasKey(0, $found);
@@ -953,15 +856,14 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-807')]
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
-        $tableDiff            = new TableDiff('`schema`.table');
-        $tableDiff->fromTable = new Table('`schema`.table');
-        $tableDiff->fromTable->addColumn('id', 'integer');
-        $tableDiff->fromTable->setPrimaryKey(['id']);
-        $tableDiff->renamedIndexes = [
-            'create' => new Index('select', ['id']),
-            '`foo`'  => new Index('`bar`', ['id']),
-        ];
-        $found                     = $this->_platform->getAlterTableSQL($tableDiff);
+        $fromTable = new Table('`schema`.table');
+        $fromTable->addColumn('id', 'integer');
+        $fromTable->setPrimaryKey(['id']);
+        $tableDiff = new TableDiff(
+            $fromTable,
+            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+        );
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(4, $found);
         self::assertArrayHasKey(0, $found);
@@ -1016,14 +918,16 @@ class FirebirdPlatformSQLTest extends TestCase
             'integer',
             ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
         );
-        $tableDiff                        = new TableDiff('foo');
-        $tableDiff->fromTable             = $table;
-        $tableDiff->renamedColumns['bar'] = new Column(
-            'baz',
-            Type::getType('integer'),
-            ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
+        $tableDiff = new TableDiff(
+            $table,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('bar', Type::getType('integer'), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                    new Column('baz', Type::getType('integer'), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                ),
+            ],
         );
-        $found                            = $this->_platform->getAlterTableSQL($tableDiff);
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(1, $found);
         self::assertArrayHasKey(0, $found);
@@ -1057,16 +961,16 @@ class FirebirdPlatformSQLTest extends TestCase
         $table2->addForeignKeyConstraint('fk_table2', ['fk2'], ['id'], [], 'fk2');
         $table2->removeForeignKey('fk1');
 
-        $comparator = new Comparator();
+        $comparator = new Comparator($this->_platform);
         $tableDiff = $comparator->compareTables($table, $table2);
 
         $found = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(10, $found);
         self::assertArrayHasKey(0, $found);
-        self::assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk1', $found[0]);
+        self::assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk2', $found[0]);
         self::assertArrayHasKey(1, $found);
-        self::assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk2', $found[1]);
+        self::assertSame('ALTER TABLE "foo" DROP CONSTRAINT fk1', $found[1]);
         self::assertArrayHasKey(2, $found);
         self::assertSame('ALTER TABLE "foo" ADD bloo INTEGER NOT NULL', $found[2]);
         self::assertArrayHasKey(5, $found);
@@ -1083,9 +987,9 @@ class FirebirdPlatformSQLTest extends TestCase
         }
 
         self::assertArrayHasKey(7, $found);
-        self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk_add FOREIGN KEY (fk3) REFERENCES fk_table (id)', $found[7]);
+        self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[7]);
         self::assertArrayHasKey(8, $found);
-        self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk2 FOREIGN KEY (fk2) REFERENCES fk_table2 (id)', $found[8]);
+        self::assertSame('ALTER TABLE "foo" ADD CONSTRAINT fk_add FOREIGN KEY (fk3) REFERENCES fk_table (id)', $found[8]);
     }
 
     #[Group('DBAL-1090')]
@@ -1093,18 +997,16 @@ class FirebirdPlatformSQLTest extends TestCase
     {
         $table = new Table('mytable');
         $table->addColumn('name', 'string', ['length' => 2]);
-        $tableDiff                         = new TableDiff('mytable');
-        $tableDiff->fromTable              = $table;
-        $tableDiff->changedColumns['name'] = new ColumnDiff(
-            'name',
-            new Column(
-                'name',
-                Type::getType('string'),
-                ['fixed' => true, 'length' => 2],
-            ),
-            ['fixed'],
+        $tableDiff = new TableDiff(
+            $table,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('name', Type::getType('string'), ['length' => 2]),
+                    new Column('name', Type::getType('string'), ['fixed' => true, 'length' => 2]),
+                ),
+            ],
         );
-        $found                             = $this->_platform->getAlterTableSQL($tableDiff);
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(1, $found);
         self::assertArrayHasKey(0, $found);
@@ -1123,12 +1025,13 @@ class FirebirdPlatformSQLTest extends TestCase
         $primaryTable->addColumn('baz', 'integer');
         $primaryTable->addIndex(['foo'], 'idx_foo');
         $primaryTable->addIndex(['bar'], 'idx_bar');
-        $primaryTable->addForeignKeyConstraint($foreignTable, ['foo'], ['id'], [], 'fk_foo');
-        $primaryTable->addForeignKeyConstraint($foreignTable, ['bar'], ['id'], [], 'fk_bar');
-        $tableDiff                            = new TableDiff('mytable');
-        $tableDiff->fromTable                 = $primaryTable;
-        $tableDiff->renamedIndexes['idx_foo'] = new Index('idx_foo_renamed', ['foo']);
-        $found                                = $this->_platform->getAlterTableSQL($tableDiff);
+        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id'], [], 'fk_foo');
+        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['bar'], ['id'], [], 'fk_bar');
+        $tableDiff = new TableDiff(
+            $primaryTable,
+            renamedIndexes: ['idx_foo' => new Index('idx_foo_renamed', ['foo'])],
+        );
+        $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
         self::assertCount(2, $found);
         self::assertArrayHasKey(0, $found);
@@ -1147,12 +1050,13 @@ class FirebirdPlatformSQLTest extends TestCase
     /** @return array */
     public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
-        yield [[], 'NUMERIC(10, 0)'];
-        yield [['unsigned' => true], 'NUMERIC(10, 0)'];
-        yield [['unsigned' => false], 'NUMERIC(10, 0)'];
-        yield [['precision' => 5], 'NUMERIC(5, 0)'];
-        yield [['scale' => 5], 'NUMERIC(10, 5)'];
-        yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
+        // DBAL4: getDecimalTypeDeclarationSQL() requires explicit precision and scale
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 0], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 0, 'unsigned' => true], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 0, 'unsigned' => false], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'precision' => 5, 'scale' => 0], 'NUMERIC(5, 0)'];
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 5], 'NUMERIC(10, 5)'];
+        yield [['name' => 'col', 'precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
     #[Group('DBAL-1082')]

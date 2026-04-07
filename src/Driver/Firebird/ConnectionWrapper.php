@@ -97,9 +97,6 @@ final class ConnectionWrapper extends Connection
         return parent::executeStatement($sql, $params, $types);
     }
 
-    /**
-     * @inheritDoc
-     */
     #[Override]
     public function lastInsertId(): int|string
     {

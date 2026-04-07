@@ -13,6 +13,7 @@ class FirebirdKeywords extends KeywordList
         return 'Firebird';
     }
 
+    /** @return array<string> */
     protected function getKeywords(): array
     {
         return [

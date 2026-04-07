@@ -7,8 +7,10 @@ namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\T
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 
@@ -32,14 +34,16 @@ class AlterTest extends AbstractIntegrationTestCase
         $sql        = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);
 
-        $tableDiff                        = new TableDiff($tableName);
-        $tableDiff->changedColumns['foo'] = new ColumnDiff(
-            'foo',
-            new Column(
-                'bar',
-                Type::getType('string'),
-            ),
-            ['type'],
+        $oldTable = new Table($tableName);
+        $oldTable->addColumn('foo', Types::INTEGER, ['default' => 0, 'notnull' => true]);
+        $tableDiff = new TableDiff(
+            $oldTable,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('foo', Type::getType(Types::INTEGER), ['default' => 0, 'notnull' => true]),
+                    new Column('foo', Type::getType('string')),
+                ),
+            ],
         );
         $statements                       = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertCount(1, $statements);

@@ -7,17 +7,14 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
-use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
-use Doctrine\Deprecations\Deprecation;
 use Firebird\Batch;
 use Firebird\BatchResult;
 use Firebird\Database;
 use Firebird\DbInfo;
 use Firebird\TBuilder;
 use Firebird\Transaction;
-use InvalidArgumentException;
 use Override;
 use PDO;
 use RuntimeException;
@@ -58,11 +55,8 @@ use function function_exists;
 use function get_resource_type;
 use function in_array;
 use function is_dir;
-use function is_float;
-use function is_int;
 use function is_object;
 use function is_resource;
-use function is_scalar;
 use function method_exists;
 use function preg_match;
 use function sprintf;
@@ -340,9 +334,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         return $this->prepare($sql)->execute();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function quote(string $value): string
     {
@@ -524,7 +515,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      *
      * @throws RuntimeException
      */

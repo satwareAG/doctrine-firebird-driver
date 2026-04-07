@@ -54,7 +54,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(1, $statements);
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = (
@@ -64,9 +64,9 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             WHERE RF.RDB\$RELATION_NAME = '{$tableName}'
             AND RF.RDB\$FIELD_NAME = 'FOO'"
         );
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
-        $row = $result->fetch();
+        $row = $result->fetchAssociative();
         self::assertIsArray($row);
         self::assertArrayHasKey('RDB$FIELD_TYPE', $row);
         self::assertSame($expectedFieldType, $row['RDB$FIELD_TYPE'], 'Invalid field type.');
@@ -211,7 +211,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         }
 
         foreach ($statements as $statement) {
-            $connection->exec($statement);
+            $connection->executeStatement($statement);
         }
 
         $sql    = (
@@ -221,7 +221,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             WHERE RF.RDB\$RELATION_NAME = '{$tableName}'"
         );
 
-        $result = $connection->query($sql);
+        $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
         $rows = $result->fetchAll();
         self::assertIsArray($rows);
