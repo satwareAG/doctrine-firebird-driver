@@ -6,6 +6,7 @@ on:
       - '3.10.x'
       - '3.10.x-dev'
       - '3.0.*'
+      - '4.4.x'
       - 'main'
       - 'feature/*'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - '3.10.x'
       - '3.10.x-dev'
       - '3.0.*'
+      - '4.4.x'
       - 'main'
   schedule:
     - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
