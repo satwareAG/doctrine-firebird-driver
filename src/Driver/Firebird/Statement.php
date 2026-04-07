@@ -127,11 +127,11 @@ final class Statement implements StatementInterface
     }
 
     /**
-     * {@inheritDoc}
-     *
      * @deprecated Use bindValue() instead.
+     *
+     * bindParam() was removed from Doctrine\DBAL\Driver\Statement in DBAL 4.
+     * This method is kept for backward compatibility only.
      */
-    #[Override]
     public function bindParam(int|string $param, mixed &$variable, ParameterType $type = ParameterType::STRING, int|null $length = null): void
     {
         Deprecation::trigger(
@@ -152,7 +152,7 @@ final class Statement implements StatementInterface
      * @throws RuntimeException
      */
     #[Override]
-    public function execute($params = null): ResultInterface
+    public function execute(): ResultInterface
     {
         assert(is_resource($this->statement));
 
@@ -172,24 +172,6 @@ final class Statement implements StatementInterface
         if ($resourceType === 'Firebird transaction') {
             $fbirdResultRc = 1;
         } else {
-            if ($params !== null) {
-                Deprecation::trigger(
-                    'doctrine/dbal',
-                    'https://github.com/doctrine/dbal/pull/5556',
-                    'Passing $params to Statement::execute() is deprecated. Bind parameters using'
-                    . ' Statement::bindParam() or Statement::bindValue() instead.',
-                );
-
-                foreach ($params as $key => $val) {
-                    if (is_int($key)) {
-                        $this->bindValue($key + 1, $val, ParameterType::STRING);
-                    } else {
-                        $check = array_flip($this->parameterMap);
-                        $this->bindValue($check[':' . $key] ?? 0, $val, ParameterType::STRING);
-                    }
-                }
-            }
-
             // Execute statement
             foreach ($this->queryParamTypes as $param => $type) {
                 if ($type !== ParameterType::LARGE_OBJECT) {

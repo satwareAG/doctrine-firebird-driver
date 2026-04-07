@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-use Override;
 
 use function array_merge;
 
@@ -17,19 +16,17 @@ use function array_merge;
  */
 final class Firebird5Keywords extends Firebird4Keywords
 {
-    #[Override]
-    public function getName(): string
-    {
-        return 'Firebird5';
-    }
-
     /**
      * {@inheritDoc}
      *
      * Firebird 5.0 added the following reserved keywords:
      * - LATERAL (lateral derived tables, SQL:1999)
      */
-    #[Override]
+    public function getName(): string
+    {
+        return 'Firebird5';
+    }
+
     protected function getKeywords(): array
     {
         return array_merge(parent::getKeywords(), ['LATERAL']);

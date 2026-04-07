@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-04-07
+
+### Added
+- **DBAL 4.x Support** — Full compatibility with `doctrine/dbal` 4.4.x. This is the first release
+  targeting DBAL 4 as the primary supported version.
+
+### Changed
+- **`doctrine/dbal` requirement** — Upgraded from `^3.10` to `^4.4`.
+- **`TransactionIsolationLevel`** — Property type changed from `int` to `TransactionIsolationLevel`
+  enum (backed enum in DBAL 4). Integer values passed via `setAttribute()` are still accepted and
+  converted automatically for backward compatibility.
+- **`getEmptyIdentityInsertSQL()`** — Parameter types tightened to `string` in `FirebirdPlatform`
+  to match the DBAL 4 parent signature.
+- **`getDropTableSQL()`** — Parameter type tightened to `string` in `FirebirdPlatform`; the
+  deprecated `Table` object overload (removed in DBAL 4) has been dropped.
+
+### Removed
+- **`KeywordList::getName()`** — Removed from `Firebird3/4/5Keywords` (method removed in DBAL 4).
+- **`AbstractPlatform::isCommentedDoctrineType()`** — Removed override from `Firebird3Platform`;
+  DBAL 4 uses `Type::requiresSQLCommentHint()` instead.
+- **`onSchemaAlterTable*()` hooks** — Removed from `getAlterTableSQL()` in `Firebird3Platform`
+  (the entire event hook system was removed in DBAL 4).
+- **`TableDiff::getName()` / `ColumnDiff::getOldColumnName()`** — Removed deprecated usages;
+  replaced with `getOldTable()` / `getOldColumn()->getQuotedName()`.
+- **`Connection::lastInsertId($name)` with argument** — Method signature updated to take zero
+  parameters as required by DBAL 4. Sequence fallback uses direct `GEN_ID()` query.
+
+### Fixed
+- **`getReservedKeywordsClass()` removed** — Replaced the DBAL 3 template-method pattern with
+  direct `createReservedKeywordsList()` overrides in `FirebirdPlatform`, `Firebird3Platform`,
+  `Firebird4Platform`, and `Firebird5Platform`. The base method was removed in DBAL 4.
+- **Column-level CHECK constraints** — DBAL 4's `getCheckDeclarationSQL()` no longer processes
+  the `check` key in column definitions (it now only handles `min`/`max` range constraints).
+  `FirebirdPlatform::_getCreateTableSQL()` now extracts column-level `check` constraints
+  directly to preserve this capability.
+- **PHPStan** — Regenerated baseline against DBAL 4; `[OK] No errors` at level 8 (157 known
+  pre-existing warnings captured in baseline).
+
 ## [3.12.2] - 2026-03-18
 
 ### Added

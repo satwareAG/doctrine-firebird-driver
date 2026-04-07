@@ -15,6 +15,7 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  * presenting them in formats that are meaningful to the application and its users and handling any exceptions
  * arising from decoding and encoding them.
  */
+use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Types\Types;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
@@ -68,9 +69,9 @@ class Firebird4Platform extends Firebird3Platform
     }
 
     #[Override]
-    protected function getReservedKeywordsClass(): string
+    public function createReservedKeywordsList(): KeywordList
     {
-        return Firebird4Keywords::class;
+        return new Firebird4Keywords();
     }
 
     #[Override]

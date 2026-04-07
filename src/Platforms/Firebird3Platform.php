@@ -10,8 +10,8 @@ use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
@@ -32,21 +32,15 @@ class Firebird3Platform extends FirebirdPlatform
     /**
      * {@inheritDoc}
      */
-    #[Override]
     public function getAlterTableSQL(TableDiff $diff): array
     {
         $sql         = [];
         $commentsSQL = [];
-        $columnSql   = [];
 
-        $table        = $diff->getOldTable() ?? $diff->getName($this);
+        $table        = $diff->getOldTable();
         $tableNameSQL = $table->getQuotedName($this);
 
         foreach ($diff->getAddedColumns() as $addedColumn) {
-            if ($this->onSchemaAlterTableAddColumn($addedColumn, $diff, $columnSql)) {
-                continue;
-            }
-
             $query = 'ADD ' . $this->getColumnDeclarationSQL(
                 $addedColumn->getQuotedName($this),
                 $addedColumn->toArray(),
@@ -54,9 +48,9 @@ class Firebird3Platform extends FirebirdPlatform
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
 
-            $comment = $this->getColumnComment($addedColumn);
+            $comment = $addedColumn->getComment() ?? '';
 
-            if ($comment === null || $comment === '') {
+            if ($comment === '') {
                 continue;
             }
 
@@ -68,23 +62,15 @@ class Firebird3Platform extends FirebirdPlatform
         }
 
         foreach ($diff->getDroppedColumns() as $droppedColumn) {
-            if ($this->onSchemaAlterTableRemoveColumn($droppedColumn, $diff, $columnSql)) {
-                continue;
-            }
-
             $query = 'DROP ' . $droppedColumn->getQuotedName($this);
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
         foreach ($diff->getModifiedColumns() as $columnDiff) {
-            if ($this->onSchemaAlterTableChangeColumn($columnDiff, $diff, $columnSql)) {
-                continue;
-            }
-
             $oldColumn = $columnDiff->getOldColumn();
             $newColumn = $columnDiff->getNewColumn();
 
-            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $columnDiff->getOldColumnName()->getQuotedName($this);
+            $oldColumnName = $oldColumn->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()
@@ -139,11 +125,11 @@ class Firebird3Platform extends FirebirdPlatform
                 // $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD PRIMARY KEY ('. $oldColumnName . ')';
             }
 
-            $oldComment = $this->getOldColumnComment($columnDiff);
-            $newComment = $this->getColumnComment($newColumn);
+            $oldComment = $oldColumn->getComment() ?? '';
+            $newComment = $newColumn->getComment() ?? '';
             if (
                 $columnDiff->hasCommentChanged()
-                || ($columnDiff->getOldColumn() !== null && $oldComment !== $newComment)
+                || $oldComment !== $newComment
             ) {
                 $commentsSQL[] = $this->getCommentOnColumnSQL(
                     $tableNameSQL,
@@ -162,29 +148,19 @@ class Firebird3Platform extends FirebirdPlatform
         }
 
         foreach ($diff->getRenamedColumns() as $oldColumnName => $column) {
-            if ($this->onSchemaAlterTableRenameColumn($oldColumnName, $column, $diff, $columnSql)) {
-                continue;
-            }
-
             $oldColumnName = new Identifier($oldColumnName);
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL .
                     ' ALTER COLUMN ' . $oldColumnName->getQuotedName($this) . ' TO ' . $column->getQuotedName($this);
         }
 
-        $tableSql = [];
+        $sql = array_merge($sql, $commentsSQL);
 
-        if (! $this->onSchemaAlterTable($diff, $tableSql)) {
-            $sql = array_merge($sql, $commentsSQL);
-
-            $sql = array_merge(
-                $this->getPreAlterTableIndexForeignKeySQL($diff),
-                $sql,
-                $this->getPostAlterTableIndexForeignKeySQL($diff),
-            );
-        }
-
-        return array_values(array_merge($sql, $tableSql, $columnSql));
+        return array_values(array_merge(
+            $this->getPreAlterTableIndexForeignKeySQL($diff),
+            $sql,
+            $this->getPostAlterTableIndexForeignKeySQL($diff),
+        ));
     }
 
     #[Override]
@@ -193,20 +169,17 @@ class Firebird3Platform extends FirebirdPlatform
         return true;
     }
 
-    #[Override]
     public function prefersIdentityColumns(): bool
     {
         return true;
     }
 
     /** @return string[] */
-    #[Override]
     public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array
     {
         return [];
     }
 
-    #[Override]
     public function getDropAutoincrementSql(string $table): string
     {
         return '';
@@ -218,7 +191,6 @@ class Firebird3Platform extends FirebirdPlatform
      * @param mixed       $table
      * @param string|null $database
      */
-    #[Override]
     public function getListTableColumnsSQL($table, $database = null): string
     {
         $table = $this->normalizeIdentifier($table);
@@ -271,7 +243,6 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    #[Override]
     public function usesSequenceEmulatedIdentityColumns(): bool
     {
         return false;
@@ -318,24 +289,16 @@ ___query___;
         ]);
     }
 
-    #[Override]
-    public function isCommentedDoctrineType(Type $doctrineType): bool
-    {
-        return AbstractPlatform::isCommentedDoctrineType($doctrineType);
-    }
-
     /**
      * {@inheritDoc}
      */
     #[Override]
-    public function getEmptyIdentityInsertSQL($quotedTableName, $quotedIdentifierColumnName): string
+    public function getEmptyIdentityInsertSQL(string $quotedTableName, string $quotedIdentifierColumnName): string
     {
         return 'INSERT INTO ' . $quotedTableName . ' DEFAULT VALUES';
     }
 
-    /** @inheritDoc */
-    #[Override]
-    public function getIdentitySequenceName($tableName, $columnName): string
+    public function getIdentitySequenceName(string $tableName, string $columnName): string
     {
         return sprintf(
             '%s.%s',
@@ -344,9 +307,8 @@ ___query___;
         );
     }
 
-    /** @inheritDoc */
     #[Override]
-    public function getDropTableSQL($table): string
+    public function getDropTableSQL(string $table): string
     {
         $statements   = [];
         $statements[] = $this->getDropAllViewsOfTablePSqlSnippet($table, true);
@@ -360,9 +322,9 @@ ___query___;
     }
 
     #[Override]
-    protected function getReservedKeywordsClass(): string
+    public function createReservedKeywordsList(): KeywordList
     {
-        return Firebird3Keywords::class;
+        return new Firebird3Keywords();
     }
 
     /**

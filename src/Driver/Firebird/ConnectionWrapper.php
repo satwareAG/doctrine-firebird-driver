@@ -99,20 +99,24 @@ final class ConnectionWrapper extends Connection
 
     /**
      * @inheritDoc
-     * @psalm-suppress DocblockTypeContradiction
-     * */
+     */
     #[Override]
-    public function lastInsertId(string|null $name = null): string|int
+    public function lastInsertId(): int|string
     {
-        if ($this->lastInsertIdentityId !== null && $name === null) {
+        if ($this->lastInsertIdentityId !== null) {
             return $this->lastInsertIdentityId;
         }
 
-        if ($this->lastInsertSequence !== null && $name === null) {
-            $name = $this->lastInsertSequence;
+        if ($this->lastInsertSequence !== null) {
+            // Look up sequence value directly via a query
+            $sql     = 'SELECT GEN_ID(' . $this->lastInsertSequence . ', 0) LAST_VAL FROM RDB$DATABASE';
+            $lastVal = $this->fetchOne($sql);
+            if ($lastVal !== false && $lastVal !== null) {
+                return (int) $lastVal;
+            }
         }
 
-        return parent::lastInsertId($name);
+        return parent::lastInsertId();
     }
 
     #[Override]

@@ -7,10 +7,8 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware;
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Statement;
-use Doctrine\DBAL\ParameterType;
 use Override;
 
-use function is_string;
 use function mb_convert_encoding;
 
 /**
@@ -43,24 +41,13 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
     /**
      * Encode string values from PHP encoding to database encoding before quoting.
      *
-     * Note: signature uses untyped $value/$type and no return type hint to
-     * match the parent AbstractConnectionMiddleware which was written before
-     * PHP 8 union types.
-     *
      * {@inheritDoc}
-     *
-     * @param mixed $value
-     * @param mixed $type
-     *
-     * @return mixed
      */
     #[Override]
-    public function quote($value, $type = ParameterType::STRING)
+    public function quote(string $value): string
     {
-        if (is_string($value)) {
-            $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
-        }
+        $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
 
-        return parent::quote($value, $type);
+        return parent::quote($value);
     }
 }

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
+use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\Deprecations\Deprecation;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird5Keywords;
 
 final class Firebird5Platform extends Firebird4Platform
 {
-    #[Override]
     public function getName(): string
     {
         Deprecation::triggerIfCalledFromOutside(
@@ -23,8 +23,8 @@ final class Firebird5Platform extends Firebird4Platform
     }
 
     #[Override]
-    protected function getReservedKeywordsClass(): string
+    public function createReservedKeywordsList(): KeywordList
     {
-        return Firebird5Keywords::class;
+        return new Firebird5Keywords();
     }
 }

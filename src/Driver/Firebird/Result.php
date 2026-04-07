@@ -73,7 +73,7 @@ final class Result implements ResultInterface
      * @return false|list<mixed>
      */
     #[Override]
-    public function fetchNumeric()
+    public function fetchNumeric(): array|false
     {
         if (is_resource($this->firebirdResultResource)) {
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled

@@ -7,9 +7,10 @@ namespace Satag\DoctrineFirebirdDriver\Driver;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
-use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\ServerVersionProvider;
 use Doctrine\Deprecations\Deprecation;
+use InvalidArgumentException;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
@@ -56,13 +57,11 @@ abstract class FirebirdDriver implements Driver
      *
      * @throws Exception If the given version string could not be evaluated.
      */
-    #[Override]
     public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {
         if (! is_string($version)) {
-            throw Exception::invalidPlatformVersionSpecified(
-                (string) $version,
-                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
+            throw new InvalidArgumentException(
+                'Invalid platform version specified: ' . (string) $version . '. Expected: LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
             );
         }
 
@@ -93,9 +92,8 @@ abstract class FirebirdDriver implements Driver
             $patchVersion = $versionParts['patch'] ?? 0;
             $buildVersion = $versionParts['build'] ?? 0;
         } else {
-            throw Exception::invalidPlatformVersionSpecified(
-                $version,
-                'LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
+            throw new InvalidArgumentException(
+                'Invalid platform version specified: ' . $version . '. Expected: LI|WI-V<major_version>.<minor_version>.<patch_version>.<build_version>',
             );
         }
 
@@ -115,12 +113,16 @@ abstract class FirebirdDriver implements Driver
     }
 
     #[Override]
-    public function getDatabasePlatform(): FirebirdPlatform
+    public function getDatabasePlatform(ServerVersionProvider $versionProvider): AbstractPlatform
     {
-        $platform = new FirebirdPlatform();
-        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
+        try {
+            return $this->createDatabasePlatformForVersion($versionProvider->getServerVersion());
+        } catch (InvalidArgumentException) {
+            $platform = new FirebirdPlatform();
+            $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
 
-        return $platform;
+            return $platform;
+        }
     }
 
     #[Override]
@@ -130,11 +132,8 @@ abstract class FirebirdDriver implements Driver
     }
 
     /**
-     * {@inheritDoc}
-     *
      * @deprecated Use {@link FirebirdPlatform::createSchemaManager()} instead.
      */
-    #[Override]
     public function getSchemaManager(Connection $conn, AbstractPlatform $platform): FirebirdSchemaManager
     {
         Deprecation::triggerIfCalledFromOutside(

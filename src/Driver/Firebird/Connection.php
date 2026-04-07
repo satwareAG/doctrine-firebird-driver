@@ -109,7 +109,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     /**
      * Isolation level used when a transaction is started.
      */
-    private int $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
+    private TransactionIsolationLevel $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
 
     /**
      * Wait timeout used in transactions
@@ -235,7 +235,9 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     {
         switch ($attribute) {
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
-                $this->attrDcTransIsolationLevel = $value;
+                $this->attrDcTransIsolationLevel = $value instanceof TransactionIsolationLevel
+                    ? $value
+                    : TransactionIsolationLevel::from((int) $value);
                 break;
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT:
                 $this->attrDcTransWait = $value;
@@ -246,7 +248,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         }
     }
 
-    public function getAttribute(string|int $attribute): int|bool|null
+    public function getAttribute(string|int $attribute): TransactionIsolationLevel|int|bool|null
     {
         return match ($attribute) {
             FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL
@@ -356,7 +358,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     }
 
     #[Override]
-    public function exec(string $sql): int
+    public function exec(string $sql): int|string
     {
         return $this->prepare($sql)->execute()->rowCount();
     }
@@ -364,30 +366,33 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     /**
      * {@inheritDoc}
      *
-     * @throws InvalidArgumentException
-     * @throws UnexpectedValueException
-     *
-     * @psalm-suppress DocblockTypeContradiction
+     * Returns the ID of the last inserted row.
+     * For Firebird, this returns the last auto-increment value captured by the driver.
+     * Use lastInsertIdBySequence() for sequence-based lookups.
      */
     #[Override]
-    public function lastInsertId(string|null $name = null): string|int
+    public function lastInsertId(): int|string
     {
-        if ($name === null) {
-            return $this->connectionInsertId ?? 0;
-        }
+        return $this->connectionInsertId ?? 0;
+    }
 
-        Deprecation::triggerIfCalledFromOutside(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/issues/4687',
-            'The usage of Connection::lastInsertId() with a sequence name is deprecated.',
-        );
-
+    /**
+     * Returns the last insert ID for a specific Firebird generator/sequence.
+     *
+     * This is a Firebird-specific extension that looks up the current value
+     * of a named generator. Use this instead of lastInsertId() when working
+     * with explicit Firebird sequences.
+     *
+     * @throws UnexpectedValueException
+     */
+    public function lastInsertIdBySequence(string $name): int|string|false
+    {
         if (str_contains($name, '.')) {
             return $this->connectionInsertId ?? false;
         }
 
         if (str_starts_with($name, 'SELECT RDB')) {
-            $name = $this->query($name)->fetchOne();
+            $name = (string) $this->query($name)->fetchOne();
         } else {
             $maxGeneratorLength = 31;
             $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
@@ -412,7 +417,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     }
 
     #[Override]
-    public function beginTransaction(): bool
+    public function beginTransaction(): void
     {
         if ($this->fbirdTransactionLevel === 0) {
             // as Firebird always generates a transaction, we have to commit everything now.
@@ -444,12 +449,10 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
         $this->fbirdTransactionLevel++;
         $this->executionMode->disableAutoCommit();
-
-        return true;
     }
 
     #[Override]
-    public function commit(): bool
+    public function commit(): void
     {
         if ($this->fbirdTransactionLevel > 0) {
             $this->fbirdTransactionLevel--;
@@ -488,8 +491,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             // Nested transaction: release savepoint
             $this->releaseSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
         }
-
-        return true;
     }
 
     /**
@@ -523,12 +524,12 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     }
 
     /**
-     * {@inheritdoc)
+     * {@inheritdoc}
      *
      * @throws RuntimeException
      */
     #[Override]
-    public function rollBack(): bool
+    public function rollBack(): void
     {
         if ($this->fbirdTransactionLevel > 0) {
             $this->fbirdTransactionLevel--;
@@ -552,7 +553,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
                 $this->executionMode->enableAutoCommit();
 
-                return true;
+                return;
             }
 
             // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
@@ -591,8 +592,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             // Nested transaction: rollback to savepoint
             $this->rollbackSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
         }
-
-        return true;
     }
 
     /**
@@ -712,8 +711,8 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @return resource|null */
-    public function getNativeConnection()
+    /** @return object|resource|null */
+    public function getNativeConnection(): mixed
     {
         return $this->connection;
     }

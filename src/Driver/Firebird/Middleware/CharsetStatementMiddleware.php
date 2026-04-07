@@ -21,12 +21,12 @@ use function stream_get_contents;
  * before sending to Firebird.
  *
  * This middleware wraps every Statement so that raw DBAL bindValue() calls
- * (and execute() with inline params) transparently encode strings to the
- * database wire encoding, regardless of whether the ORM type system is used.
+ * transparently encode strings to the database wire encoding, regardless of
+ * whether the ORM type system is used.
  */
 final class CharsetStatementMiddleware extends AbstractStatementMiddleware
 {
-    /** @var array<int|string, int> */
+    /** @var array<int|string, ParameterType> */
     private array $boundTypes = [];
 
     public function __construct(
@@ -43,15 +43,10 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * For TEXT BLOB columns, stream resources are extracted and transcoded.
      * Supported parameter types: STRING, ASCII, and LARGE_OBJECT.
      *
-     * Note: signature uses untyped $param/$value/$type to match the parent
-     * AbstractStatementMiddleware which was written before PHP 8 union types.
-     *
-     * @param int|string $param
-     * @param mixed      $value
-     * @param mixed      $type
+     * {@inheritDoc}
      */
     #[Override]
-    public function bindValue($param, $value, $type = ParameterType::STRING): bool
+    public function bindValue(string|int $param, mixed $value, ParameterType $type): void
     {
         $this->boundTypes[$param] = $type;
 
@@ -63,37 +58,19 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
             $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
         }
 
-        return parent::bindValue($param, $value, $type);
+        parent::bindValue($param, $value, $type);
     }
 
     /**
      * Execute the statement and wrap the result in CharsetResultMiddleware.
      *
-     * Note: signature uses untyped $params to match the parent
-     * AbstractStatementMiddleware which was written before PHP 8 union types.
-     *
-     * @param array<int|string, mixed>|null $params
+     * {@inheritDoc}
      */
     #[Override]
-    public function execute($params = null): ResultInterface
+    public function execute(): ResultInterface
     {
-        // If inline params are passed (deprecated path), encode them first
-        if ($params !== null) {
-            foreach ($params as $key => $value) {
-                if (is_resource($value)) {
-                    $value = stream_get_contents($value);
-                }
-
-                if (! is_string($value)) {
-                    continue;
-                }
-
-                $params[$key] = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
-            }
-        }
-
         return new CharsetResultMiddleware(
-            parent::execute($params),
+            parent::execute(),
             $this->databaseEncoding,
             $this->phpEncoding,
             $this->boundTypes,

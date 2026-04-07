@@ -22,24 +22,21 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms\Keywords;
 
-use Override;
 
 use function array_merge;
 
 class Firebird3Keywords extends FirebirdKeywords
 {
-    #[Override]
-    public function getName(): string
-    {
-        return 'Firebird3';
-    }
-
     /**
      * {@inheritDoc}
      *
      * @link https://firebirdsql.org/refdocs/langrefupd25-reskeywords-full-reswords.html
      */
-    #[Override]
+    public function getName(): string
+    {
+        return 'Firebird3';
+    }
+
     protected function getKeywords(): array
     {
         return array_merge(parent::getKeywords(), [
