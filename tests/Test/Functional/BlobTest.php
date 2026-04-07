@@ -131,23 +131,6 @@ class BlobTest extends FunctionalTestCase
         $this->assertBlobContains('test2');
     }
 
-    public function testBindParamProcessesStream(): void
-    {
-        $stream = null;
-        $stmt   = $this->connection->prepare(
-            "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)",
-        );
-
-        $stmt->bindParam(1, $stream, ParameterType::LARGE_OBJECT);
-
-        // Bind param does late binding (bind by reference), so create the stream only now:
-        $stream = fopen('data://text/plain,test', 'r');
-
-        $stmt->execute();
-
-        $this->assertBlobContains('test');
-    }
-
     public function testBlobBindingDoesNotOverwritePrevious(): void
     {
         $table = new Table('blob_table');

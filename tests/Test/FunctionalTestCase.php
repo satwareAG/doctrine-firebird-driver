@@ -13,12 +13,12 @@ use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 use Throwable;
 
 use function array_merge;
 use function assert;
 use function gc_collect_cycles;
-use function method_exists;
 use function str_contains;
 use function usleep;
 
@@ -173,27 +173,11 @@ abstract class FunctionalTestCase extends TestCase
 
     public function getFirebirdConnection(): FirebirdConnection|null
     {
-        // Traverse DBAL middleware layers to find the underlying FirebirdConnection object.
-        // In DBAL 3.x, we must walk the getWrappedConnection() chain to reach the
-        // driver-level object that provides isConnectionValid(), dropTableForce(), etc.
         $connection = $this->connection;
 
-        // Try to get the driver connection directly if it's already unwrapped
-        try {
-            $driverConn = $connection->getNativeConnection();
-            if ($driverConn instanceof FirebirdConnection) {
-                return $driverConn;
-            }
-        } catch (Throwable) {
-            // getNativeConnection might fail or return a resource
-        }
-
-        while (method_exists($connection, 'getWrappedConnection')) {
-            // @phpstan-ignore-next-line (getWrappedConnection() is deprecated but required to traverse DBAL 3.x middleware to reach FirebirdConnection)
-            $connection = $connection->getWrappedConnection();
-            if ($connection instanceof FirebirdConnection) {
-                return $connection;
-            }
+        // DBAL4: ConnectionWrapper exposes the driver connection directly
+        if ($connection instanceof ConnectionWrapper) {
+            return $connection->getFirebirdDriverConnection();
         }
 
         return null;
@@ -217,16 +201,9 @@ abstract class FunctionalTestCase extends TestCase
 
         // Check if existing shared connection's underlying Firebird connection is still valid
         if (! $needNewConnection) {
-            $fbirdConn = null;
-            $conn      = self::$sharedConnection;
-            while (method_exists($conn, 'getWrappedConnection')) {
-                // @phpstan-ignore-next-line (getWrappedConnection() is deprecated but required to traverse DBAL 3.x middleware to reach FirebirdConnection)
-                $conn = $conn->getWrappedConnection();
-                if ($conn instanceof FirebirdConnection) {
-                    $fbirdConn = $conn;
-                    break;
-                }
-            }
+            $fbirdConn = self::$sharedConnection instanceof ConnectionWrapper
+                ? self::$sharedConnection->getFirebirdDriverConnection()
+                : null;
 
             if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
                 // Connection resource is invalid - need to reconnect

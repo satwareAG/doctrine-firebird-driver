@@ -151,7 +151,22 @@ final class ConnectionWrapper extends Connection
         return null;
     }
 
-    /** @throws Exception */
+    /**
+     * Returns the underlying Firebird driver-level connection.
+     * In DBAL4, getWrappedConnection() was removed; this provides equivalent access
+     * to the native driver connection for tests and low-level operations.
+     */
+    public function getFirebirdDriverConnection(): ?\Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection
+    {
+        if ($this->_conn === null) {
+            $this->connect();
+        }
+
+        return $this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection
+            ? $this->_conn
+            : null;
+    }
+
     private function addSequenceNameForTable(string $tableName): void
     {
         static $tableSequences = [];

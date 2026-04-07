@@ -58,8 +58,9 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
-        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
+        // DBAL4: bindParam() removed, use bindValue()
+        $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
         $row = $stmt->execute()->fetchAssociative();
 
@@ -76,8 +77,9 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
-        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
+        // DBAL4: bindParam() removed, use bindValue()
+        $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
         $rows    = $stmt->execute()->fetchAllAssociative();
         $rows[0] = array_change_key_case($rows[0], CASE_LOWER);
@@ -92,8 +94,9 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT test_int FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt = $this->connection->prepare($sql);
 
-        $stmt->bindParam(1, $paramInt, ParameterType::INTEGER);
-        $stmt->bindParam(2, $paramStr, ParameterType::STRING);
+        // DBAL4: bindParam() removed, use bindValue()
+        $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
+        $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
         $column = $stmt->execute()->fetchOne();
         self::assertSame(1, $column);
@@ -320,7 +323,7 @@ class DataAccessTest extends FunctionalTestCase
     }
 
     #[DataProvider('getTrimExpressionData')]
-    public function testTrimExpression(string $value, int $position, string|false $char, string $expectedResult): void
+    public function testTrimExpression(string $value, TrimMode $position, string|false $char, string $expectedResult): void
     {
         $sql = 'SELECT ' .
             $this->connection->getDatabasePlatform()->getTrimExpression($value, $position, $char) . ' AS trimmed ' .

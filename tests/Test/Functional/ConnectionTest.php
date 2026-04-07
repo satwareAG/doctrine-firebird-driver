@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ConnectionException;
-use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -14,9 +13,8 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use Error;
-use PDO;
+use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
@@ -24,14 +22,7 @@ use Throwable;
 
 class ConnectionTest extends FunctionalTestCase
 {
-    use VerifyDeprecations;
-
     private const TABLE = 'connection_test';
-
-    public function testGetWrappedConnection(): void
-    {
-        self::assertInstanceOf(DriverConnection::class, $this->connection->getWrappedConnection());
-    }
 
     public function testCommitWithRollbackOnlyThrowsException(): void
     {
@@ -42,13 +33,13 @@ class ConnectionTest extends FunctionalTestCase
         $this->connection->commit();
     }
 
-    public function testNestingTransactionsWithoutSavepointsIsDeprecated(): void
+    public function testNestingTransactionsWithoutSavepointsThrowsException(): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSavepoints()) {
             self::markTestSkipped('This test is only supported on platforms that support savepoints.');
         }
 
-        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5383');
+        $this->expectException(InvalidArgumentException::class);
         $this->connection->setNestTransactionsWithSavepoints(false);
     }
 
@@ -61,7 +52,6 @@ class ConnectionTest extends FunctionalTestCase
             self::assertSame(1, $this->connection->getTransactionNestingLevel());
 
             try {
-                $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/5383');
                 $this->connection->beginTransaction();
                 self::assertSame(2, $this->connection->getTransactionNestingLevel());
 
@@ -309,19 +299,6 @@ class ConnectionTest extends FunctionalTestCase
         self::assertSame($params, $connection->getParams());
 
         $connection->close();
-    }
-
-    public function testPersistentConnection(): void
-    {
-        $this->connection->getDatabasePlatform();
-
-        $params               = TestUtil::getConnectionParams();
-        $params['persistent'] = true;
-
-        $connection       = DriverManager::getConnection($params);
-        $driverConnection = $connection->getWrappedConnection();
-
-        self::assertTrue($driverConnection->getAttribute(PDO::ATTR_PERSISTENT));
     }
 
     public function testExceptionOnExecuteStatement(): void
