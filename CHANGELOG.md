@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [3.10.5] - 2026-04-07
+
+### Changed
+- **php-firebird v10.6.2**: Upgraded extension dependency from `^10.3.2` to `^10.6` in `composer.json`; removed redundant `paragonie/polyfill-php82` (commit 4c056a5)
+- **CI workflows**: Upgraded php-firebird to v10.6.2 in all GitHub Actions workflows (commit 57fd3fa)
+- **CI security**: Pinned all GitHub Actions to immutable SHA digests (commit 379f2bf)
+- **Docker test image**: Upgraded php-firebird checkout from v10.3.9 to v10.6.2 in `tests/app/Dockerfile` (commit 0f9f4c9)
+
+### Fixed
+- **TransactionTest**: Fixed SERIALIZABLE isolation race condition via `markConnectionNotReusable()` to prevent connection reuse after dirty state (commit 91ea882)
+
+### Verified
+- Full test suite: Firebird 3/4/5 all PASS (2324-2336 tests) with PHP 8.4 + DBAL 3.10.5 + ORM 3.6.3
+
 ## [3.10.4] - 2026-03-31
 
 ### Added
