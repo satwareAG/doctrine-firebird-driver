@@ -10,10 +10,8 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
-use stdClass;
 
 use function str_repeat;
 
@@ -54,48 +52,6 @@ class TypeConversionTest extends FunctionalTestCase
         $dbValue = $this->processValue($type, $originalValue);
 
         self::assertIsString($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /**
-     * Tests deprecated array type conversion.
-     *
-     * The Types::ARRAY constant and ArrayType class are deprecated in DBAL 3.x.
-     * Use Types::JSON instead in new code.
-     *
-     * Note: The deprecation from PR #5509 is only triggered when requiresSQLCommentHint()
-     * is called from outside DBAL, not during normal convertTo*Value() operations.
-     *
-     * @see https://github.com/doctrine/dbal/pull/5509
-     */
-    #[Group('deprecated')]
-    #[DataProvider('toArrayProvider')]
-    public function testIdempotentConversionToArray(string $type, mixed $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsArray($dbValue);
-        self::assertEquals($originalValue, $dbValue);
-    }
-
-    /**
-     * Tests deprecated object type conversion.
-     *
-     * The Types::OBJECT constant and ObjectType class are deprecated in DBAL 3.x.
-     * Use Types::JSON instead in new code.
-     *
-     * Note: The deprecation from PR #5509 is only triggered when requiresSQLCommentHint()
-     * is called from outside DBAL, not during normal convertTo*Value() operations.
-     *
-     * @see https://github.com/doctrine/dbal/pull/5509
-     */
-    #[Group('deprecated')]
-    #[DataProvider('toObjectProvider')]
-    public function testIdempotentConversionToObject(string $type, mixed $originalValue): void
-    {
-        $dbValue = $this->processValue($type, $originalValue);
-
-        self::assertIsObject($dbValue);
         self::assertEquals($originalValue, $dbValue);
     }
 
@@ -152,32 +108,6 @@ class TypeConversionTest extends FunctionalTestCase
         yield 'text' => [Types::TEXT, str_repeat('foo ', 1000)];
     }
 
-    /**
-     * Provides deprecated array type test data.
-     *
-     * @return mixed[][]
-     */
-    public static function toArrayProvider(): Iterator
-    {
-        // Types::ARRAY is deprecated, but we test it for backward compatibility
-        yield 'array' => [Types::ARRAY, ['foo' => 'bar']];
-    }
-
-    /**
-     * Provides deprecated object type test data.
-     *
-     * @return mixed[][]
-     */
-    public static function toObjectProvider(): Iterator
-    {
-        $obj      = new stdClass();
-        $obj->foo = 'bar';
-        $obj->bar = 'baz';
-
-        // Types::OBJECT is deprecated, but we test it for backward compatibility
-        yield 'object' => [Types::OBJECT, $obj];
-    }
-
     /** @return mixed[][] */
     public static function toDateTimeProvider(): Iterator
     {
@@ -200,9 +130,7 @@ class TypeConversionTest extends FunctionalTestCase
         $table->addColumn('test_date', Types::DATE_MUTABLE, ['notnull' => false]);
         $table->addColumn('test_time', Types::TIME_MUTABLE, ['notnull' => false]);
         $table->addColumn('test_text', Types::TEXT, ['notnull' => false]);
-        $table->addColumn('test_array', Types::ARRAY, ['notnull' => false]);
         $table->addColumn('test_json', Types::JSON, ['notnull' => false]);
-        $table->addColumn('test_object', Types::OBJECT, ['notnull' => false]);
         $table->addColumn('test_float', Types::FLOAT, ['notnull' => false]);
         $table->addColumn('test_decimal', Types::DECIMAL, ['notnull' => false, 'scale' => 2, 'precision' => 10]);
         $table->setPrimaryKey(['id']);

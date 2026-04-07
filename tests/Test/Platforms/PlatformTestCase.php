@@ -373,26 +373,6 @@ abstract class PlatformTestCase extends TestCase
         self::assertEquals($this->getAlterTableColumnCommentsSQL(), $this->platform->getAlterTableSQL($tableDiff));
     }
 
-    /**
-     * Tests column type comments are generated for special types.
-     *
-     * Types::ARRAY is deprecated in DBAL 3.x, but this test ensures backward
-     * compatibility for users still using this type.
-     *
-     * @see https://github.com/doctrine/dbal/pull/5509
-     */
-    #[Group('deprecated')]
-    public function testCreateTableColumnTypeComments(): void
-    {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER);
-        // Types::ARRAY is deprecated, but we test it for backward compatibility
-        $table->addColumn('data', Types::ARRAY);
-        $table->setPrimaryKey(['id']);
-
-        self::assertEquals($this->getCreateTableColumnTypeCommentsSQL(), $this->platform->getCreateTableSQL($table));
-    }
-
     /** @return string[] */
     public function getCreateTableColumnCommentsSQL(): array
     {

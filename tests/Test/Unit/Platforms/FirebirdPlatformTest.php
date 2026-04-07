@@ -866,7 +866,7 @@ END
             ->method('getSQLDeclaration')
             ->willReturn('baz');
         $columns    = [
-            0 => ['type' => $type],
+            ['type' => $type, 'name' => '0'],
         ];
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('_getCreateTableSQL');
