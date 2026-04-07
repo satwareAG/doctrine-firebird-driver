@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v10.3.9), pcov (fast coverage)
+# Extensions: firebird (php-firebird v10.6.2), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v10.3.9)
+# Install php-firebird extension from source (v10.6.2)
 # Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
 # include tag refs. We fetch tags explicitly so config.m4 version detection works.
 #
@@ -41,9 +41,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # v10.3.7: Security fix - SQL injection, SPB overflow, bounds checks (#181)
 # v10.3.8: Fixed SIGSEGV at shutdown (#183), OO API handle loss (#184), IBatch invalidation (#185)
 # v10.3.9: Fixed SIGFPE on parameterless batch (#180)
+# v10.6.2: Stabilized production release with PHP 8.4/8.5 support
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v10.3.9 \
+    && git -C /usr/src/php/ext/firebird checkout v10.6.2 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
