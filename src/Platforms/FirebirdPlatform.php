@@ -634,7 +634,7 @@ class FirebirdPlatform extends AbstractPlatform
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
 
-            $comment = $this->getColumnComment($addedColumn);
+            $comment = $addedColumn->getComment();
 
             if ($comment === null || $comment === '') {
                 continue;
@@ -709,7 +709,7 @@ class FirebirdPlatform extends AbstractPlatform
             }
 
             $oldComment = $this->getOldColumnComment($columnDiff);
-            $newComment = $this->getColumnComment($newColumn);
+            $newComment = $newColumn->getComment();
             if (
                 $columnDiff->hasCommentChanged()
                 || ($columnDiff->getOldColumn() !== null && $oldComment !== $newComment)
@@ -1736,7 +1736,7 @@ SQL
         $oldColumn = $columnDiff->getOldColumn();
 
         if ($oldColumn !== null) {
-            return $this->getColumnComment($oldColumn);
+            return $oldColumn->getComment();
         }
 
         return null;
