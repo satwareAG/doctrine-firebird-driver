@@ -50,8 +50,8 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         $columns  = $oldTable->getColumns();
         self::assertIsArray($columns);
         self::assertCount(1, $columns);
-        self::assertArrayHasKey('foo', $columns);
-        $previousColumn  = $columns['foo'];
+        self::assertTrue($oldTable->hasColumn('foo'), 'Column foo not found in table');
+        $previousColumn  = $oldTable->getColumn('foo');
         $replacingColumn = new Column(
             'foo',
             Type::getType($columnTypeName),
