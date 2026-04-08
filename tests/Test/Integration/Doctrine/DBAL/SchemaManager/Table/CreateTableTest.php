@@ -35,7 +35,7 @@ class CreateTableTest extends AbstractIntegrationTestCase
         self::assertSame('foo', $foundColumn->getName(), 'Invalid name');
         self::assertInstanceOf(StringType::class, $foundColumn->getType(), 'Invalid type');
         self::assertSame(255, $foundColumn->getLength(), 'Invalid length');
-        self::assertSame(10, $foundColumn->getPrecision(), 'Invalid precision');
+        self::assertSame(null, $foundColumn->getPrecision(), 'Invalid precision');
         self::assertSame(0, $foundColumn->getScale(), 'Invalid scale');
         self::assertFalse($foundColumn->getUnsigned(), 'Invalid unsigned');
         self::assertFalse($foundColumn->getFixed(), 'Invalid fixed');

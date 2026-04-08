@@ -206,6 +206,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return $table;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function tryMethod(string $method, mixed ...$arguments): mixed
     {
         try {
@@ -216,6 +217,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         }
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function extractDoctrineTypeFromComment(string $comment, string $currentType): string
     {
         if (preg_match('/\(DC2Type:([^)]+)\)/', $comment, $match) === 1) {
@@ -577,12 +579,10 @@ SQL;
             [
                 'unsigned' => str_contains($dbType, 'unsigned'),
                 'fixed' => (bool) $fixed,
-                'scale' => 0,
-                'precision' => 0,
             ],
         );
 
-        if ($scale !== null && $precision !== null) {
+        if ($scale !== null && $precision !== null && (int) $precision !== 0) {
             $options['scale']     = $scale;
             $options['precision'] = $precision;
         }

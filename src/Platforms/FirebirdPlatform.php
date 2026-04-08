@@ -1202,16 +1202,19 @@ SQL
         return $this->getVarcharMaxCastLength();
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function supportsAlterTable(): bool
     {
         return true;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function hasNativeJsonType(): bool
     {
         return false;
     }
 
+    #[Override]
     public function createReservedKeywordsList(): KeywordList
     {
         return new FirebirdKeywords();
