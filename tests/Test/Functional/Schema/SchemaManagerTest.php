@@ -139,7 +139,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->addColumn('extra', Types::INTEGER, ['notnull' => false]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertNotFalse($diff);
         $schemaManager->alterTable($diff);
 
@@ -157,7 +157,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->dropColumn('val_col');
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertNotFalse($diff);
         $schemaManager->alterTable($diff);
 
@@ -173,9 +173,9 @@ class SchemaManagerTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('val_col', ['default' => 42]);
+        $newTable->modifyColumn('val_col', ['default' => 42]);
 
-        $diff = $schemaManager->createComparator()->diffTable($table, $newTable);
+        $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertNotFalse($diff);
         $schemaManager->alterTable($diff);
 

@@ -465,9 +465,9 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropAndCreateTable($offlineTable);
         $onlineTable = $this->schemaManager->introspectTable('list_table_columns');
 
-        $diff = $comparatorFactory($this->schemaManager)->diffTable($onlineTable, $offlineTable);
+        $diff = $comparatorFactory($this->schemaManager)->compareTables($onlineTable, $offlineTable);
 
-        self::assertFalse($diff, 'No differences should be detected with the offline vs online schema.');
+        self::assertTrue($diff->isEmpty(), 'No differences should be detected with the offline vs online schema.');
     }
 
     public function testListTableIndexes(): void
@@ -682,7 +682,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $comparator = $this->schemaManager->createComparator();
 
-        $diff = $comparator->diffTable($table, $newTable);
+        $diff = $comparator->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -694,7 +694,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $newTable = clone $table;
         $newTable->addIndex(['foo'], 'foo_idx');
 
-        $diff = $comparator->diffTable($table, $newTable);
+        $diff = $comparator->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -710,7 +710,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $newTable->dropIndex('foo_idx');
         $newTable->addIndex(['foo', 'foreign_key_test'], 'foo_idx');
 
-        $diff = $comparator->diffTable($table, $newTable);
+        $diff = $comparator->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -724,7 +724,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $newTable->dropIndex('foo_idx');
         $newTable->addIndex(['foo', 'foreign_key_test'], 'bar_idx');
 
-        $diff = $comparator->diffTable($table, $newTable);
+        $diff = $comparator->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -741,7 +741,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $newTable->dropIndex('bar_idx');
         $newTable->addForeignKeyConstraint('alter_table_foreign', ['foreign_key_test'], ['id']);
 
-        $diff = $comparator->diffTable($table, $newTable);
+        $diff = $comparator->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -876,7 +876,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $tableFKNew->addIndex(['rename_fk_id'], 'fk_idx');
         $tableFKNew->addForeignKeyConstraint('test_fk_base', ['rename_fk_id'], ['id']);
 
-        $diff = $comparatorFactory($this->schemaManager)->diffTable($tableFK, $tableFKNew);
+        $diff = $comparatorFactory($this->schemaManager)->compareTables($tableFK, $tableFKNew);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -917,7 +917,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $foreignTable2 = clone $foreignTable;
         $foreignTable2->renameIndex('rename_index_fk_idx', 'renamed_index_fk_idx');
 
-        $diff = $comparatorFactory($this->schemaManager)->diffTable($foreignTable, $foreignTable2);
+        $diff = $comparatorFactory($this->schemaManager)->compareTables($foreignTable, $foreignTable2);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -952,10 +952,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame('This is a comment', $columns['id']->getComment());
 
         $newTable = clone $table;
-        $newTable->changeColumn('id', ['comment' => null]);
+        $newTable->modifyColumn('id', ['comment' => null]);
 
         $diff = $this->schemaManager->createComparator()
-            ->diffTable($table, $newTable);
+            ->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -1040,11 +1040,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('col_int', ['type' => Type::getType(Types::INTEGER)]);
-        $newTable->changeColumn('col_string', ['fixed' => true]);
+        $newTable->modifyColumn('col_int', ['type' => Type::getType(Types::INTEGER)]);
+        $newTable->modifyColumn('col_string', ['fixed' => true]);
 
         $diff = $this->schemaManager->createComparator()
-            ->diffTable($table, $newTable);
+            ->compareTables($table, $newTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -1124,15 +1124,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $diffTable = clone $table;
 
-        $diffTable->changeColumn('column1', ['default' => false]);
-        $diffTable->changeColumn('column2', ['default' => null]);
-        $diffTable->changeColumn('column3', ['default' => false]);
-        $diffTable->changeColumn('column4', ['default' => null]);
-        $diffTable->changeColumn('column5', ['default' => false]);
-        $diffTable->changeColumn('column6', ['default' => 666]);
-        $diffTable->changeColumn('column7', ['default' => null]);
+        $diffTable->modifyColumn('column1', ['default' => false]);
+        $diffTable->modifyColumn('column2', ['default' => null]);
+        $diffTable->modifyColumn('column3', ['default' => false]);
+        $diffTable->modifyColumn('column4', ['default' => null]);
+        $diffTable->modifyColumn('column5', ['default' => false]);
+        $diffTable->modifyColumn('column6', ['default' => 666]);
+        $diffTable->modifyColumn('column7', ['default' => null]);
 
-        $diff = $comparatorFactory($this->schemaManager)->diffTable($table, $diffTable);
+        $diff = $comparatorFactory($this->schemaManager)->compareTables($table, $diffTable);
         self::assertNotFalse($diff);
 
         $this->schemaManager->alterTable($diff);
@@ -1289,12 +1289,12 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertNull($onlineTable->getColumn('no_comment1')->getComment());
         self::assertNull($onlineTable->getColumn('no_comment2')->getComment());
 
-        $onlineTable->changeColumn('comment1', ['comment' => $comment2]);
-        $onlineTable->changeColumn('comment2', ['comment' => $comment1]);
-        $onlineTable->changeColumn('no_comment1', ['comment' => $comment1]);
-        $onlineTable->changeColumn('no_comment2', ['comment' => $comment2]);
+        $onlineTable->modifyColumn('comment1', ['comment' => $comment2]);
+        $onlineTable->modifyColumn('comment2', ['comment' => $comment1]);
+        $onlineTable->modifyColumn('no_comment1', ['comment' => $comment1]);
+        $onlineTable->modifyColumn('no_comment2', ['comment' => $comment2]);
 
-        $tableDiff = $comparatorFactory($this->schemaManager)->diffTable($offlineTable, $onlineTable);
+        $tableDiff = $comparatorFactory($this->schemaManager)->compareTables($offlineTable, $onlineTable);
 
         self::assertInstanceOf(TableDiff::class, $tableDiff);
 
@@ -1348,9 +1348,9 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table->addColumn('parameters', Types::JSON);
 
         $tableDiff = $comparatorFactory($this->schemaManager)
-            ->diffTable($this->schemaManager->introspectTable('json_test'), $table);
+            ->compareTables($this->schemaManager->introspectTable('json_test'), $table);
 
-        self::assertFalse($tableDiff);
+        self::assertTrue($tableDiff->isEmpty());
     }
 
     #[DataProvider('commentsProvider')]
@@ -1598,7 +1598,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $child->dropIndex('idx_1');
         $child->addIndex(['parent_id'], 'idx_2');
 
-        $diff = $schemaManager->createComparator()->diffTable(
+        $diff = $schemaManager->createComparator()->compareTables(
             $schemaManager->introspectTable('child'),
             $child,
         );
@@ -1627,7 +1627,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $diff = $schemaManager->createComparator()->diffTable(
+        $diff = $schemaManager->createComparator()->compareTables(
             $schemaManager->introspectTable('test_switch_pk_order'),
             $table,
         );
@@ -1650,7 +1650,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table->dropColumn('todrop');
 
         $diff = $this->schemaManager->createComparator()
-            ->diffTable(
+            ->compareTables(
                 $this->schemaManager->introspectTable('drop_column_with_default'),
                 $table,
             );

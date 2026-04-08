@@ -37,7 +37,7 @@ class PortabilityTest extends FunctionalTestCase
 
         $result = $this->connection
             ->prepare('SELECT * FROM portability_table')
-            ->execute();
+            ->executeQuery();
 
         while (($row = $result->fetchAssociative())) {
             $this->assertFetchResultRow($row);
@@ -45,11 +45,10 @@ class PortabilityTest extends FunctionalTestCase
     }
 
     /**
-     * @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case
-     * @param list<string>                          $expected
+     * @param list<string> $expected
      */
     #[DataProvider('caseProvider')]
-    public function testCaseConversion(int $case, array $expected): void
+    public function testCaseConversion(ColumnCase $case, array $expected): void
     {
         $this->connectWithPortability(Connection::PORTABILITY_FIX_CASE, $case);
         $this->createTable();
@@ -146,8 +145,8 @@ class PortabilityTest extends FunctionalTestCase
         }
     }
 
-     /** @param 0|ColumnCase::LOWER|ColumnCase::UPPER $case */
-    private function connectWithPortability(int $mode, int $case): void
+    /** @param 0|ColumnCase $case */
+    private function connectWithPortability(int $mode, ColumnCase|int $case): void
     {
         // Mark connection not reusable - framework will handle cleanup
         $this->markConnectionNotReusable();
@@ -161,7 +160,7 @@ class PortabilityTest extends FunctionalTestCase
         $configuration->setMiddlewares(
             array_merge(
                 $configuration->getMiddlewares(),
-                [new Middleware($mode, $case)],
+                [new Middleware($mode, $case instanceof ColumnCase ? $case : null)],
             ),
         );
 

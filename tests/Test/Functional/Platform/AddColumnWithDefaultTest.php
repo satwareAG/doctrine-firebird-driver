@@ -23,7 +23,7 @@ class AddColumnWithDefaultTest extends FunctionalTestCase
 
         $table->addColumn('new_field', Types::STRING, ['default' => 'DEFAULT']);
 
-        $diff = $schemaManager->createComparator()->diffTable(
+        $diff = $schemaManager->createComparator()->compareTables(
             $schemaManager->introspectTable('add_default_test'),
             $table,
         );

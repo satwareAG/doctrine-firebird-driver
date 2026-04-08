@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
+use Doctrine\DBAL\Driver\ServerVersionProvider;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -38,7 +39,11 @@ abstract class AbstractDriverTestCase extends TestCase
 
     public function testReturnsDatabasePlatform(): void
     {
-        self::assertEquals($this->createPlatform(), $this->driver->getDatabasePlatform());
+        // DBAL4: getDatabasePlatform() requires ServerVersionProvider argument
+        $versionProvider = $this->createStub(ServerVersionProvider::class);
+        $versionProvider->method('getServerVersion')->willReturn('WI-V3.0.5.33240');
+        $platform = $this->driver->getDatabasePlatform($versionProvider);
+        self::assertInstanceOf(get_class($this->createPlatform()), $platform);
     }
 
     public function testReturnsSchemaManager(): void

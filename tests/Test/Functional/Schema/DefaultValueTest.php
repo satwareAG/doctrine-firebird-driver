@@ -222,7 +222,7 @@ class DefaultValueTest extends FunctionalTestCase
 
         // Alter: remove default
         $newTable = clone $table;
-        $newTable->changeColumn('col', ['default' => null]);
+        $newTable->modifyColumn('col', ['default' => null]);
 
         $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertFalse($diff->isEmpty());
@@ -248,7 +248,7 @@ class DefaultValueTest extends FunctionalTestCase
 
         // Alter: set default to 7
         $newTable = clone $table;
-        $newTable->changeColumn('col', ['default' => 7]);
+        $newTable->modifyColumn('col', ['default' => 7]);
 
         $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertFalse($diff->isEmpty());
@@ -269,7 +269,7 @@ class DefaultValueTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('col', ['default' => 'new_default']);
+        $newTable->modifyColumn('col', ['default' => 'new_default']);
 
         $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertFalse($diff->isEmpty());

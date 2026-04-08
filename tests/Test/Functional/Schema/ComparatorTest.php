@@ -129,7 +129,7 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('int_col', ['type' => Type::getType(Types::BIGINT)]);
+        $newTable->modifyColumn('int_col', ['type' => Type::getType(Types::BIGINT)]);
 
         $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertFalse($diff->isEmpty(), 'Comparator should detect type change');
@@ -146,7 +146,7 @@ class ComparatorTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $newTable = clone $table;
-        $newTable->changeColumn('int_col', ['default' => 999]);
+        $newTable->modifyColumn('int_col', ['default' => 999]);
 
         $diff = $schemaManager->createComparator()->compareTables($table, $newTable);
         self::assertFalse($diff->isEmpty(), 'Comparator should detect default value change');

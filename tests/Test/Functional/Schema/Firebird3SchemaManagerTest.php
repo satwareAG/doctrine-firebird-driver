@@ -48,7 +48,7 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         $newTableToAlter->dropColumn('foreign_key_test');
         $newTableToAlter->addColumn('number', Types::INTEGER);
 
-        $diff = $this->schemaManager->createComparator()->diffTable($tableToAlter, $newTableToAlter);
+        $diff = $this->schemaManager->createComparator()->compareTables($tableToAlter, $newTableToAlter);
         if ($diff !== false) {
             $this->schemaManager->alterTable($diff);
         }

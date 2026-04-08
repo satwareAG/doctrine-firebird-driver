@@ -34,7 +34,7 @@ class PlatformRestrictionsTest extends FunctionalTestCase
         $createdTable = $this->connection->createSchemaManager()->introspectTable($this->table);
 
         self::assertTrue($createdTable->hasColumn($columnName));
-        self::assertTrue($createdTable->hasPrimaryKey());
+        self::assertTrue($createdTable(->getPrimaryKey() !== null));
     }
 
     protected function setUp(): void

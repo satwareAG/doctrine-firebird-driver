@@ -22,7 +22,13 @@ class ConnectionTest extends ModifyingIntegrationTestCase
 {
     public function testBasics(): void
     {
-        $connection = $this->connection->getWrappedConnection();
+        // DBAL4: getWrappedConnection() removed from high-level Connection.
+        // Access driver connection via reflection on protected $_conn property.
+        $reflConn = new ReflectionObject($this->connection);
+        $prop = $reflConn->getProperty('_conn');
+        $connectionWrapper = $prop->getValue($this->connection);
+        $connection = $connectionWrapper->getWrappedConnection();
+
         self::assertIsObject($connection);
         self::assertInstanceOf(Connection::class, $connection);
         self::assertNull($connection->getAttribute(-1));
@@ -75,7 +81,11 @@ class ConnectionTest extends ModifyingIntegrationTestCase
 
     public function testBeginTransaction(): void
     {
-        $connection = $this->connection->getWrappedConnection();
+        // DBAL4: getWrappedConnection() removed; use reflection to access driver Connection.
+        $reflConn = new ReflectionObject($this->connection);
+        $prop = $reflConn->getProperty('_conn');
+        $connectionWrapper = $prop->getValue($this->connection);
+        $connection = $connectionWrapper->getWrappedConnection();
 
         $reflectionObject = new ReflectionObject($connection);
 

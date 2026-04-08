@@ -13,14 +13,14 @@ class StatementTest extends AbstractIntegrationTestCase
     public function testFetchWorks(): void
     {
         $statement = $this->connection->prepare('SELECT * FROM Album');
-        $result    = $statement->execute();
+        $result    = $statement->executeQuery();
         $row       = $result->fetchAssociative();
         self::assertSame(1, $row['ID']);
         self::assertSame('2017-01-01 15:00:00', $row['TIMECREATED']);
         self::assertSame('...Baby One More Time', $row['NAME']);
         self::assertSame(2, $row['ARTIST_ID']);
 
-        $result = $statement->execute();
+        $result = $statement->executeQuery();
         $row    = $result->fetchNumeric();
         self::assertSame(1, $row[0]);
         self::assertSame('2017-01-01 15:00:00', $row[2]);
@@ -33,7 +33,7 @@ class StatementTest extends AbstractIntegrationTestCase
         $sql       = 'SELECT * FROM Album';
         $statement = $this->connection->prepare($sql);
 
-        $rows = $statement->execute()->fetchAllAssociative();
+        $rows = $statement->executeQuery()->fetchAllAssociative();
         self::assertIsArray($rows);
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
@@ -47,7 +47,7 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertSame('Dark Horse', $rows[1]['NAME'] ?? false);
         self::assertSame(3, $rows[1]['ARTIST_ID'] ?? false);
 
-        $rows = $statement->execute()->fetchAllNumeric();
+        $rows = $statement->executeQuery()->fetchAllNumeric();
         self::assertIsArray($rows);
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
@@ -70,7 +70,7 @@ class StatementTest extends AbstractIntegrationTestCase
     {
         $sql       = 'SELECT * FROM Album';
         $statement = $this->connection->prepare($sql);
-        $result    = $statement->execute()->fetchAllAssociative();
+        $result    = $statement->executeQuery()->fetchAllAssociative();
         $array     = $result;
 
         self::assertCount(2, $array);
@@ -89,7 +89,7 @@ class StatementTest extends AbstractIntegrationTestCase
     {
         try {
             $statement = $this->connection->prepare('SELECT 1');
-            $statement->execute();
+            $statement->executeQuery();
         } catch (Throwable $t) {
             self::assertSame(SyntaxErrorException::class, $t::class);
             self::assertSame(-104, $t->getCode());
@@ -112,7 +112,7 @@ class StatementTest extends AbstractIntegrationTestCase
         try {
             $statement = $this->connection->prepare('SELECT ?');
             $statement->bindParam(1, $variable);
-            $statement->execute();
+            $statement->executeQuery();
         } catch (Throwable $t) {
             self::assertSame(SyntaxErrorException::class, $t::class);
             self::assertSame(-104, $t->getCode());
