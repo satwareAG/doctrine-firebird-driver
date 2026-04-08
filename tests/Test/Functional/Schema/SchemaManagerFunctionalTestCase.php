@@ -889,7 +889,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         self::assertTrue($table->hasColumn('rename_fk_id'));
         self::assertCount(1, $foreignKeys);
-        self::assertSame(['rename_fk_id'], array_map('strtolower', current($foreignKeys)->getColumns()));
+        self::assertSame(['rename_fk_id'], array_map('strtolower', current($foreignKeys)->getLocalColumns()));
     }
 
     /** @param callable(AbstractSchemaManager):Comparator $comparatorFactory */
@@ -1283,8 +1283,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         }
 
         $offlineTable = new Table('alter_column_comment_test');
-        $offlineTable->addColumn('comment1', Types::INTEGER, ['comment' => $comment1]);
-        $offlineTable->addColumn('comment2', Types::INTEGER, ['comment' => $comment2]);
+        $offlineTable->addColumn('comment1', Types::INTEGER, $comment1 !== null ? ['comment' => $comment1] : []);
+        $offlineTable->addColumn('comment2', Types::INTEGER, $comment2 !== null ? ['comment' => $comment2] : []);
         $offlineTable->addColumn('no_comment1', Types::INTEGER);
         $offlineTable->addColumn('no_comment2', Types::INTEGER);
         $this->dropAndCreateTable($offlineTable);

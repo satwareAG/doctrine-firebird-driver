@@ -30,7 +30,7 @@ class CustomIntrospectionTest extends FunctionalTestCase
         $table         = $schema->createTable($this->table);
 
         $table->addColumn('id', 'integer');
-        $table->addColumn('quantity', 'decimal');
+        $table->addColumn('quantity', 'decimal', ['precision' => 10, 'scale' => 2]);
         $table->addColumn('amount', 'money', [
             'notnull' => false,
             'scale' => 2,

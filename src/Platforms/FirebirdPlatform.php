@@ -840,6 +840,11 @@ class FirebirdPlatform extends AbstractPlatform
             $column['charset'] = 'octets';
         }
 
+        // DBAL4 requires string default; convert bool defaults (e.g. boolean columns with true/false default)
+        if (isset($column['default']) && is_bool($column['default'])) {
+            $column['default'] = $column['default'] ? '1' : '0';
+        }
+
         return parent::getColumnDeclarationSQL($name, $column);
     }
 
