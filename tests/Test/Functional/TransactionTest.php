@@ -445,7 +445,8 @@ class TransactionTest extends FunctionalTestCase
         }
 
         $level = $fbirdConn->getAttribute(FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL);
-        self::assertIsInt($level);
+        // DBAL4: TransactionIsolationLevel is an enum; getAttribute returns enum case
+        self::assertInstanceOf(TransactionIsolationLevel::class, $level);
     }
 
     public function testGetAttributeTransactionWait(): void

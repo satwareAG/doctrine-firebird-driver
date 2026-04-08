@@ -9,7 +9,8 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-use function array_keys;
+use function array_map;
+use function strtolower;
 
 class AlterColumnTest extends FunctionalTestCase
 {
@@ -32,6 +33,7 @@ class AlterColumnTest extends FunctionalTestCase
         $sm->alterTable($diff);
 
         $table = $sm->introspectTable('test_alter');
-        self::assertSame(['c1', 'c2'], array_keys($table->getColumns()));
+        // DBAL4: getColumns() returns numeric array; extract names via array_map
+        self::assertSame(['c1', 'c2'], array_map(static fn ($col) => strtolower($col->getName()), $table->getColumns()));
     }
 }

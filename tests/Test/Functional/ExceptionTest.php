@@ -378,7 +378,8 @@ class ExceptionTest extends FunctionalTestCase
         $conn   = DriverManager::getConnection($params);
 
         $this->expectException(Exception\ConnectionException::class);
-        $conn->connect();
+        // DBAL4: Connection::connect() is protected; trigger connection by executing a query
+        $conn->executeQuery('SELECT 1 FROM RDB$DATABASE');
     }
 
     private function setUpForeignKeyConstraintViolationExceptionTest(): void

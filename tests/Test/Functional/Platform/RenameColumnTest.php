@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
-use function array_keys;
+use function array_map;
 use function strtolower;
 use function uniqid;
 
@@ -37,7 +37,8 @@ class RenameColumnTest extends FunctionalTestCase
         $sm->alterTable($diff);
 
         $table = $sm->introspectTable($this->table);
-        self::assertSame([strtolower($newColumnName), 'c2'], array_keys($table->getColumns()));
+        // DBAL4: getColumns() returns numeric array; extract names via array_map
+        self::assertSame([strtolower($newColumnName), 'c2'], array_map(static fn ($col) => strtolower($col->getName()), $table->getColumns()));
     }
 
     /** @return iterable<array{string}> */

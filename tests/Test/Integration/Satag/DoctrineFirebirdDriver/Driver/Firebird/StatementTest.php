@@ -16,14 +16,15 @@ class StatementTest extends AbstractIntegrationTestCase
         $result    = $statement->executeQuery();
         $row       = $result->fetchAssociative();
         self::assertSame(1, $row['ID']);
-        self::assertSame('2017-01-01 15:00:00', $row['TIMECREATED']);
+        // php-firebird v7+ may include fractional seconds (e.g. '2017-01-01 15:00:00.0000')
+        self::assertStringStartsWith('2017-01-01 15:00:00', $row['TIMECREATED']);
         self::assertSame('...Baby One More Time', $row['NAME']);
         self::assertSame(2, $row['ARTIST_ID']);
 
         $result = $statement->executeQuery();
         $row    = $result->fetchNumeric();
         self::assertSame(1, $row[0]);
-        self::assertSame('2017-01-01 15:00:00', $row[2]);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $row[2]);
         self::assertSame('...Baby One More Time', $row[3]);
         self::assertSame(2, $row[1]);
     }
@@ -39,11 +40,11 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
         self::assertSame(1, $rows[0]['ID'] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[0]['TIMECREATED'] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[0]['TIMECREATED'] ?? '');
         self::assertSame('...Baby One More Time', $rows[0]['NAME'] ?? false);
         self::assertSame(2, $rows[0]['ARTIST_ID'] ?? false);
         self::assertSame(2, $rows[1]['ID'] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[1]['TIMECREATED'] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[1]['TIMECREATED'] ?? '');
         self::assertSame('Dark Horse', $rows[1]['NAME'] ?? false);
         self::assertSame(3, $rows[1]['ARTIST_ID'] ?? false);
 
@@ -53,11 +54,11 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
         self::assertSame(1, $rows[0][0] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[0][2] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[0][2] ?? '');
         self::assertSame('...Baby One More Time', $rows[0][3] ?? false);
         self::assertSame(2, $rows[0][1] ?? false);
         self::assertSame(2, $rows[1][0] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[1][2] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[1][2] ?? '');
         self::assertSame('Dark Horse', $rows[1][3] ?? false);
         self::assertSame(3, $rows[1][1] ?? false);
     }

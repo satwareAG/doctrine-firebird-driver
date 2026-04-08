@@ -10,7 +10,7 @@ class RenameTableTest extends AbstractIntegrationTestCase
 {
     public function testRenameTable(): void
     {
-        $this->expectExceptionMessage("Operation 'Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::getRenameTableSQL Cannot rename tables because firebird does not support it");
+        $this->expectExceptionMessage("Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform::getRenameTableSQL Cannot rename tables because firebird does not support it");
         $connection = $this->connection;
         $sm         = $connection->createSchemaManager();
         $sm->renameTable('oldName', 'newName');

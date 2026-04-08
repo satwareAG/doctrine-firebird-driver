@@ -66,12 +66,15 @@ class ComparatorTest extends FunctionalTestCase
         $comparator  = $schemaManager->createComparator();
 
         // Both directions should show no diff
-        self::assertFalse(
-            $comparator->compareTables($onlineTable, $table),
+        // DBAL4: compareTables() always returns TableDiff (not false); check isEmpty()
+        $diff1 = $comparator->compareTables($onlineTable, $table);
+        self::assertTrue(
+            $diff1 === false || $diff1->isEmpty(),
             'online→offline: no diff expected',
         );
-        self::assertFalse(
-            $comparator->compareTables($table, $onlineTable),
+        $diff2 = $comparator->compareTables($table, $onlineTable);
+        self::assertTrue(
+            $diff2 === false || $diff2->isEmpty(),
             'offline→online: no diff expected',
         );
     }

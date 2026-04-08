@@ -65,16 +65,14 @@ class ConnectionTest extends ModifyingIntegrationTestCase
 
     public function testLastInsertIdThrowsExceptionWhenArgumentNameIsInvalid(): void
     {
-        $this->expectExceptionMessage('Argument $name in lastInsertId must be null or a string. Found: (integer) 42');
-        $this->expectException(InvalidArgumentException::class);
-        $this->_entityManager->getConnection()->lastInsertId(42);
+        // DBAL4: lastInsertId() accepts no $name parameter; argument validation was removed
+        self::markTestSkipped('DBAL4: lastInsertId() no longer accepts a $name argument; validation tests not applicable.');
     }
 
     public function testLastInsertIdThrowsExceptionWhenArgumentNameContainsInvalidCharacters(): void
     {
-        $this->expectExceptionMessage('Expects argument $name to match regular expression \'/^\w{1,31}$/\'. Found: (string) "FOO_Ø"');
-        $this->expectException(UnexpectedValueException::class);
-        $this->_entityManager->getConnection()->lastInsertId('FOO_Ø');
+        // DBAL4: lastInsertId() accepts no $name parameter; argument validation was removed
+        self::markTestSkipped('DBAL4: lastInsertId() no longer accepts a $name argument; validation tests not applicable.');
     }
 
 

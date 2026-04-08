@@ -46,31 +46,30 @@ class ConnectionTest extends FunctionalTestCase
     {
         $this->createTestTable();
 
+        // DBAL4: savepoints are always enabled when platform supports them.
+        // Inner rollback rolls back to savepoint only - does NOT mark outer as rollback-only.
+        // Outer transaction can still commit successfully after inner rollback.
+        $this->connection->beginTransaction();
+        self::assertSame(1, $this->connection->getTransactionNestingLevel());
+
         try {
             $this->connection->beginTransaction();
-            self::assertSame(1, $this->connection->getTransactionNestingLevel());
+            self::assertSame(2, $this->connection->getTransactionNestingLevel());
 
-            try {
-                $this->connection->beginTransaction();
-                self::assertSame(2, $this->connection->getTransactionNestingLevel());
-
-                $this->connection->insert(self::TABLE, ['id' => 1]);
-                self::fail('Expected exception to be thrown because of the unique constraint.');
-            } catch (Throwable $e) {
-                self::assertInstanceOf(UniqueConstraintViolationException::class, $e);
-                $this->connection->rollBack();
-                self::assertSame(1, $this->connection->getTransactionNestingLevel());
-            }
-
-            self::assertTrue($this->connection->isRollbackOnly());
-
-            $this->connection->commit(); // should throw exception
-            self::fail('Transaction commit after failed nested transaction should fail.');
-        } catch (ConnectionException) {
-            self::assertSame(1, $this->connection->getTransactionNestingLevel());
+            $this->connection->insert(self::TABLE, ['id' => 1]);
+            self::fail('Expected exception to be thrown because of the unique constraint.');
+        } catch (Throwable $e) {
+            self::assertInstanceOf(UniqueConstraintViolationException::class, $e);
             $this->connection->rollBack();
-            self::assertSame(0, $this->connection->getTransactionNestingLevel());
+            self::assertSame(1, $this->connection->getTransactionNestingLevel());
         }
+
+        // In DBAL4 with savepoints, inner rollback does NOT mark outer as rollback-only
+        self::assertFalse($this->connection->isRollbackOnly());
+
+        // Outer commit succeeds because the inner failure only rolled back to savepoint
+        $this->connection->commit();
+        self::assertSame(0, $this->connection->getTransactionNestingLevel());
 
         $this->connection->beginTransaction();
         $this->markConnectionNotReusable();

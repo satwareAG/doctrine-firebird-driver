@@ -89,7 +89,8 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertInstanceOf(BooleanType::class, $columns['bool']->getType());
         self::assertInstanceOf(BooleanType::class, $columns['bool_commented']->getType());
 
-        self::assertNull($columns['bool']->getComment());
+        // DBAL4: Column::getComment() returns '' (never null); empty comment = ''
+        self::assertSame('', $columns['bool']->getComment());
         self::assertSame("That's a comment", $columns['bool_commented']->getComment());
     }
 
