@@ -396,8 +396,8 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
         if ($this->_platform instanceof Firebird3Platform) {
             self::assertStringEqualsStringIgnoringLineEndings('EXECUTE BLOCK AS
 BEGIN
-  EXECUTE STATEMENT \'ALTER SEQUENCE foo RESTART WITH 3 INCREMENT BY \';
-  EXECUTE STATEMENT \'{"name":null,"initialValue":3,"allocationSize":null,"cache":null}\';
+  EXECUTE STATEMENT \'ALTER SEQUENCE foo RESTART WITH 3 INCREMENT BY 0\';
+  EXECUTE STATEMENT \'{"name":"","initialValue":3,"allocationSize":0,"cache":null}\';
 END
 ', $found);
         } else {
