@@ -177,7 +177,7 @@
       <code><![CDATA[KeywordList]]></code>
     </DeprecatedClass>
     <InternalClass>
-      <code><![CDATA[new Identifier($oldColumnName)]]></code>
+      <code><![CDATA[new Identifier((string) $oldColumnName)]]></code>
     </InternalClass>
     <InternalMethod>
       <code><![CDATA[getCommentOnColumnSQL]]></code>
@@ -198,7 +198,7 @@
       <code><![CDATA[getQuotedName]]></code>
       <code><![CDATA[getQuotedName]]></code>
       <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[new Identifier($oldColumnName)]]></code>
+      <code><![CDATA[new Identifier((string) $oldColumnName)]]></code>
     </InternalMethod>
     <InvalidOperand>
       <code><![CDATA[$sequence->getCache()]]></code>
@@ -212,6 +212,9 @@
       <code><![CDATA[public function prefersIdentityColumns(): bool]]></code>
       <code><![CDATA[public function usesSequenceEmulatedIdentityColumns(): bool]]></code>
     </MissingOverrideAttribute>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $oldColumnName]]></code>
+    </RedundantCastGivenDocblockType>
     <RedundantCondition>
       <code><![CDATA[$addedColumn->getComment()]]></code>
       <code><![CDATA[$newColumn->getComment()]]></code>
@@ -296,7 +299,6 @@
       <code><![CDATA[$database]]></code>
       <code><![CDATA[$date1]]></code>
       <code><![CDATA[$date2]]></code>
-      <code><![CDATA[$foreignKey]]></code>
       <code><![CDATA[$level]]></code>
       <code><![CDATA[$limit]]></code>
       <code><![CDATA[$name]]></code>
@@ -305,7 +307,6 @@
       <code><![CDATA[$offset]]></code>
       <code><![CDATA[$query]]></code>
       <code><![CDATA[$sql]]></code>
-      <code><![CDATA[$table]]></code>
       <code><![CDATA[$table]]></code>
       <code><![CDATA[$table]]></code>
       <code><![CDATA[$tableName]]></code>
@@ -332,7 +333,6 @@
       <code><![CDATA[$name]]></code>
       <code><![CDATA[$name]]></code>
       <code><![CDATA[$oldColumnName]]></code>
-      <code><![CDATA[$tableNameSQL]]></code>
     </PossiblyInvalidCast>
     <PossiblyInvalidOperand>
       <code><![CDATA[$name]]></code>
@@ -363,9 +363,7 @@
       <code><![CDATA[$column->getComment()]]></code>
       <code><![CDATA[$columnDiff->getOldColumn()]]></code>
       <code><![CDATA[$columnDiff->getOldColumn() !== null]]></code>
-      <code><![CDATA[$diff->getOldTable()]]></code>
       <code><![CDATA[$oldColumn !== null]]></code>
-      <code><![CDATA[$sequence instanceof Sequence]]></code>
     </RedundantCondition>
     <RedundantFunctionCall>
       <code><![CDATA[array_values]]></code>
@@ -381,14 +379,12 @@
       <code><![CDATA[$columnDiff->fromColumn]]></code>
       <code><![CDATA[$comment === null]]></code>
       <code><![CDATA[$comment === null]]></code>
-      <code><![CDATA[$diff->getName($this)]]></code>
       <code><![CDATA['']]></code>
     </TypeDoesNotContainNull>
     <TypeDoesNotContainType>
       <code><![CDATA[$startPos === false]]></code>
     </TypeDoesNotContainType>
     <UndefinedMethod>
-      <code><![CDATA[getName]]></code>
       <code><![CDATA[getOldColumnName]]></code>
     </UndefinedMethod>
     <UndefinedPropertyFetch>

@@ -185,7 +185,7 @@ class FirebirdPlatform extends AbstractPlatform
                 $aIdentifier->getName() : $aIdentifier;
 
         if (strlen($name) > $maxLength) {
-            throw new InvalidArgumentException('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $maxLength);
+            throw NotSupported::new('Identifier ' . $name . ' is too long for firebird platform. Maximum identifier length is ' . $maxLength);
         }
     }
 
