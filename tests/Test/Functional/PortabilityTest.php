@@ -44,9 +44,7 @@ class PortabilityTest extends FunctionalTestCase
         }
     }
 
-    /**
-     * @param list<string> $expected
-     */
+    /** @param list<string> $expected */
     #[DataProvider('caseProvider')]
     public function testCaseConversion(ColumnCase $case, array $expected): void
     {

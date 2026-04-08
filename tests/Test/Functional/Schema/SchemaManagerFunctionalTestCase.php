@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Events;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -273,7 +272,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         try {
             $this->schemaManager->renameTable('old_name', 'new_name');
             $this->createTestTable('old_name');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->markTestSkipped($e->getMessage());
         }
 
@@ -358,14 +357,14 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         self::assertSame('baz2', strtolower($columns['baz2']->getname()));
         self::assertSame(5, array_search('baz2', $columnsKeys, true));
-        self::assertContains($columns['baz2']->gettype()->getName(), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
+        self::assertContains(Type::lookupName($columns['baz2']->getType()), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
         self::assertEquals(true, $columns['baz2']->getnotnull());
         self::assertEquals(null, $columns['baz2']->getdefault());
         self::assertIsArray($columns['baz2']->getPlatformOptions());
 
         self::assertSame('baz3', strtolower($columns['baz3']->getname()));
         self::assertSame(6, array_search('baz3', $columnsKeys, true));
-        self::assertContains($columns['baz3']->gettype()->getName(), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
+        self::assertContains(Type::lookupName($columns['baz3']->getType()), [Types::TIME_MUTABLE, Types::DATE_MUTABLE, Types::DATETIME_MUTABLE]);
         self::assertEquals(true, $columns['baz3']->getnotnull());
         self::assertEquals(null, $columns['baz3']->getdefault());
         self::assertIsArray($columns['baz3']->getPlatformOptions());
@@ -390,6 +389,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableColumnsDispatchEvent(): void
     {
+        $this->markTestSkipped('DBAL4 removed schema Events dispatching.');
         $table = $this->createListTableColumns();
 
         $this->dropAndCreateTable($table);
@@ -409,6 +409,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableIndexesDispatchEvent(): void
     {
+        $this->markTestSkipped('DBAL4 removed schema Events dispatching.');
         $table = $this->getTestTable('list_table_indexes_test');
         $table->addUniqueIndex(['test'], 'test_index_name');
         $table->addIndex(['id', 'test'], 'test_composite_idx');
@@ -430,6 +431,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testDispatchEventWhenDatabasePlatformIsExplicitlyPassed(): void
     {
+        $this->markTestSkipped('DBAL4 removed schema Events dispatching.');
         $params             = $this->connection->getParams();
         $params['platform'] = $this->connection->getDriver()->getDatabasePlatform();
 
