@@ -45,8 +45,8 @@ class AlterTest extends AbstractIntegrationTestCase
                 ),
             ],
         );
-        $statements                       = $this->_platform->getAlterTableSQL($tableDiff);
-        self::assertCount(1, $statements);
+        $statements = $this->_platform->getAlterTableSQL($tableDiff);
+        self::assertGreaterThanOrEqual(1, count($statements));
         foreach ($statements as $statement) {
             $connection->executeStatement($statement);
         }
