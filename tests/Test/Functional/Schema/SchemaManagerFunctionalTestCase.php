@@ -1292,15 +1292,17 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $onlineTable = $this->schemaManager->introspectTable('alter_column_comment_test');
 
-        self::assertSame($expectedComment1, $onlineTable->getColumn('comment1')->getComment());
-        self::assertSame($expectedComment2, $onlineTable->getColumn('comment2')->getComment());
-        self::assertNull($onlineTable->getColumn('no_comment1')->getComment());
-        self::assertNull($onlineTable->getColumn('no_comment2')->getComment());
+        // DBAL4: Column::getComment() returns '' (never null); use ?? '' for null data-provider values
+        self::assertSame($expectedComment1 ?? '', $onlineTable->getColumn('comment1')->getComment());
+        self::assertSame($expectedComment2 ?? '', $onlineTable->getColumn('comment2')->getComment());
+        self::assertSame('', $onlineTable->getColumn('no_comment1')->getComment());
+        self::assertSame('', $onlineTable->getColumn('no_comment2')->getComment());
 
-        $onlineTable->modifyColumn('comment1', ['comment' => $comment2]);
-        $onlineTable->modifyColumn('comment2', ['comment' => $comment1]);
-        $onlineTable->modifyColumn('no_comment1', ['comment' => $comment1]);
-        $onlineTable->modifyColumn('no_comment2', ['comment' => $comment2]);
+        // DBAL4: Column::setComment() requires string, not null
+        $onlineTable->modifyColumn('comment1', ['comment' => $comment2 ?? '']);
+        $onlineTable->modifyColumn('comment2', ['comment' => $comment1 ?? '']);
+        $onlineTable->modifyColumn('no_comment1', ['comment' => $comment1 ?? '']);
+        $onlineTable->modifyColumn('no_comment2', ['comment' => $comment2 ?? '']);
 
         $tableDiff = $comparatorFactory($this->schemaManager)->compareTables($offlineTable, $onlineTable);
 
@@ -1310,10 +1312,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $onlineTable = $this->schemaManager->introspectTable('alter_column_comment_test');
 
-        self::assertSame($expectedComment2, $onlineTable->getColumn('comment1')->getComment());
-        self::assertSame($expectedComment1, $onlineTable->getColumn('comment2')->getComment());
-        self::assertSame($expectedComment1, $onlineTable->getColumn('no_comment1')->getComment());
-        self::assertSame($expectedComment2, $onlineTable->getColumn('no_comment2')->getComment());
+        // DBAL4: getComment() returns '' not null; normalize expected values
+        self::assertSame($expectedComment2 ?? '', $onlineTable->getColumn('comment1')->getComment());
+        self::assertSame($expectedComment1 ?? '', $onlineTable->getColumn('comment2')->getComment());
+        self::assertSame($expectedComment1 ?? '', $onlineTable->getColumn('no_comment1')->getComment());
+        self::assertSame($expectedComment2 ?? '', $onlineTable->getColumn('no_comment2')->getComment());
     }
 
     public function testDoesNotListIndexesImplicitlyCreatedByForeignKeys(): void
