@@ -209,7 +209,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     public function tryMethod(string $method, mixed ...$arguments): mixed
     {
         try {
-            /** @phpstan-ignore call.dynamicName */
+            /** @phpstan-ignore method.dynamicName */
             return $this->$method(...$arguments);
         } catch (Throwable) {
             return null;
