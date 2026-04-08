@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
-use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -23,8 +22,6 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 
-use function class_exists;
-use function is_subclass_of;
 use function ltrim;
 use function preg_replace;
 use function str_repeat;
@@ -559,28 +556,9 @@ END
 
     public function testGetAlterTableSQLWorksWithNoChanges(): void
     {
-        $diff = $this
-            ->getMockBuilder(TableDiff::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $name = $this
-            ->getMockBuilder(Identifier::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $diff
-            ->method('getName')
-            ->willReturn($name);
-        $diff
-            ->method('getNewName')
-            ->willReturn(false);
-        $name
-            ->method('getQuotedName')
-            ->willReturn("'foo'");
-        $diff->addedColumns   = [];
-        $diff->removedColumns = [];
-        $diff->changedColumns = [];
-        $diff->renamedColumns = [];
-        $found                = $this->_platform->getAlterTableSQL($diff);
+        $table = new Table('foo');
+        $diff  = new TableDiff($table);
+        $found = $this->_platform->getAlterTableSQL($diff);
         self::assertIsArray($found);
         self::assertSame([], $found);
     }
@@ -693,12 +671,9 @@ END
 
     public function testGetReservedKeywordsClass(): void
     {
-        $reflection = new ReflectionObject($this->_platform);
-        $method     = $reflection->getMethod('getReservedKeywordsClass');
-        $found = $method->invoke($this->_platform);
-        self::assertIsString($found);
-        self::assertTrue(class_exists($found));
-        self::assertTrue(is_subclass_of($found, KeywordList::class));
+        // DBAL4: getReservedKeywordsClass() removed; use getReservedKeywordsList() (final public)
+        $keywordList = $this->_platform->getReservedKeywordsList();
+        self::assertInstanceOf(KeywordList::class, $keywordList);
     }
 
     public function testGetSmallIntTypeDeclarationSQL(): void
@@ -826,9 +801,6 @@ END
         $type
             ->method('getSQLDeclaration')
             ->willReturn('baz');
-        $type
-            ->method('getName')
-            ->willReturn('binary');
         $found = $this->_platform->getColumnDeclarationSQL('foo', ['type' => $type]);
         self::assertIsString($found);
         self::assertSame('foo baz  CHARACTER SET octets DEFAULT NULL', $found);

@@ -620,7 +620,7 @@ class FirebirdPlatform extends AbstractPlatform
         $commentsSQL = [];
         $columnSql   = [];
 
-        $table        = $diff->getOldTable() ?? $diff->getName($this);
+        $table        = $diff->getOldTable();
         $tableNameSQL = $table->getQuotedName($this);
 
         foreach ($diff->getAddedColumns() as $addedColumn) {

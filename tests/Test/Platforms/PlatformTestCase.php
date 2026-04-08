@@ -929,6 +929,10 @@ abstract class PlatformTestCase extends TestCase
     #[DataProvider('getGeneratesInlineColumnCommentSQL')]
     public function testGeneratesInlineColumnCommentSQL(string $comment, string $expectedSql): void
     {
+        if (! $this->platform->supportsInlineColumnComments()) {
+            self::markTestSkipped('Platform does not support inline column comments.');
+        }
+
         self::assertSame($expectedSql, $this->platform->getInlineColumnCommentSQL($comment));
     }
 
