@@ -88,13 +88,6 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
          * Use RF.RDB$DEFAULT_SOURCE instead of RF.RDB$DEFAULT_VALUE becuase the latter is binary.
          */
         $default = $options['default'];
-        switch ($expectedFieldType) {
-            case FirebirdSchemaManager::META_FIELD_TYPE_DOUBLE:
-            case FirebirdSchemaManager::META_FIELD_TYPE_FLOAT:
-                $default = strval($default);
-                break;
-        }
-
         if (is_string($default)) {
             $default = "'" . str_replace("'", "''", $default) . "'";
         }
