@@ -216,7 +216,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
 
         $result = $connection->executeQuery($sql);
         self::assertInstanceOf(Result::class, $result);
-        $rows = $result->fetchAll();
+        $rows = $result->fetchAllAssociative();
         self::assertIsArray($rows);
         self::assertCount(count($columns), $rows, 'Row count does not match column count');
 
