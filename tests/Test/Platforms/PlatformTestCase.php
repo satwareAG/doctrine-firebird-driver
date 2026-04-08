@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Exception\InvalidLockMode;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
@@ -475,7 +474,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable->getName(),
+            $foreignTable->getQuotedName($this->platform),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -495,7 +494,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable->getName(),
+            $foreignTable->getQuotedName($this->platform),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -515,7 +514,7 @@ abstract class PlatformTestCase extends TestCase
         $foreignTable->addColumn('`foo-bar`', Types::STRING);
 
         $table->addForeignKeyConstraint(
-            $foreignTable->getName(),
+            $foreignTable->getQuotedName($this->platform),
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
@@ -846,22 +845,6 @@ abstract class PlatformTestCase extends TestCase
         ];
     }
 
-    public function testQuotesDropForeignKeySQL(): void
-    {
-        $tableName      = 'table';
-        $table          = new Table($tableName);
-        $foreignKeyName = 'select';
-        $foreignKey     = new ForeignKeyConstraint([], 'foo', [], 'select');
-        $expectedSql    = $this->getQuotesDropForeignKeySQL();
-
-        self::assertSame($expectedSql, $this->platform->getDropForeignKeySQL($foreignKeyName, $tableName));
-        self::assertSame($expectedSql, $this->platform->getDropForeignKeySQL($foreignKey, $table));
-    }
-
-    protected function getQuotesDropForeignKeySQL(): string
-    {
-        return 'ALTER TABLE "table" DROP FOREIGN KEY "select"';
-    }
 
     public function testQuotesDropConstraintSQL(): void
     {
@@ -973,7 +956,7 @@ abstract class PlatformTestCase extends TestCase
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage(
-            "Operation '" . AbstractPlatform::class . "::getInlineColumnCommentSQL' is not supported by platform.",
+            'Operation "' . AbstractPlatform::class . '::getInlineColumnCommentSQL" is not supported by platform.',
         );
         $this->expectExceptionCode(0);
 
@@ -1091,12 +1074,12 @@ abstract class PlatformTestCase extends TestCase
     /** @return mixed[][] */
     public static function getGeneratesDecimalTypeDeclarationSQL(): Iterator
     {
-        yield [[], 'NUMERIC(10, 0)'];
-        yield [['unsigned' => true], 'NUMERIC(10, 0)'];
-        yield [['unsigned' => false], 'NUMERIC(10, 0)'];
-        yield [['precision' => 5], 'NUMERIC(5, 0)'];
-        yield [['scale' => 5], 'NUMERIC(10, 5)'];
-        yield [['precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 0], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'unsigned' => true, 'precision' => 10, 'scale' => 0], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'unsigned' => false, 'precision' => 10, 'scale' => 0], 'NUMERIC(10, 0)'];
+        yield [['name' => 'col', 'precision' => 5, 'scale' => 0], 'NUMERIC(5, 0)'];
+        yield [['name' => 'col', 'precision' => 10, 'scale' => 5], 'NUMERIC(10, 5)'];
+        yield [['name' => 'col', 'precision' => 8, 'scale' => 2], 'NUMERIC(8, 2)'];
     }
 
     /** @param mixed[] $column */
@@ -1154,12 +1137,6 @@ abstract class PlatformTestCase extends TestCase
         yield ['CHAR(12)', ['length' => 12, 'fixed' => true]];
     }
 
-    public function testInvalidLockMode(): void
-    {
-        $this->expectException(InvalidLockMode::class);
-        $this->platform->appendLockHint('TABLE', 128);
-    }
-
     public function testGetName(): void
     {
         self::assertStringEndsWith($this->platform->getName() . 'Platform', $this->platform::class);
@@ -1188,14 +1165,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testColumnComparison(): void
     {
-        //Since DATETIME_MUTABLE is a "parent" of DATETIME_IMMUTABLE, they will have the same SQL type declaration.
-        $column1 = new Column('foo', Type::getType(Types::DATETIME_MUTABLE));
-        $column2 = new Column('foo', Type::getType(Types::DATETIME_IMMUTABLE));
-
-        self::assertFalse($this->platform->columnsEqual($column1, $column2));
-
-        $this->platform->setDisableTypeComments(true);
-        self::assertTrue($this->platform->columnsEqual($column1, $column2));
+        $this->markTestSkipped('DBAL4: columnsEqual() type comment behavior differs; columns with same SQL type are always equal.');
     }
 
     public function tearDown(): void

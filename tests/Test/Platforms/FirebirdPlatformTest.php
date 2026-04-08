@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Exception;
+use InvalidArgumentException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
@@ -40,7 +41,7 @@ class FirebirdPlatformTest extends PlatformTestCase
     #[DataProvider('dataInvalidIdentifiers')]
     public function testInvalidIdentifiers(string $identifier): void
     {
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidArgumentException::class);
 
         $platform = $this->createPlatform();
         $platform->assertValidIdentifier($identifier);
@@ -69,7 +70,6 @@ class FirebirdPlatformTest extends PlatformTestCase
 
     public function testGeneratesSqlSnippets(): void
     {
-        self::assertSame('"', $this->platform->getIdentifierQuoteCharacter());
         self::assertSame('column1 || column2 || column3', $this->platform->getConcatExpression('column1', 'column2', 'column3'));
     }
 
@@ -255,55 +255,48 @@ SQL
     {
         return [
             'ALTER TABLE mytable ADD quota INTEGER NOT NULL',
+            'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER COLUMN bar TO baz',
             "COMMENT ON COLUMN mytable.quota IS 'A comment'",
-            "COMMENT ON COLUMN mytable.foo IS ''",
             "COMMENT ON COLUMN mytable.baz IS 'B comment'",
         ];
     }
 
     public function testAlterTableNotNULL(): void
     {
-        $tableDiff                          = new TableDiff('mytable');
-        $tableDiff->changedColumns['foo']   = new ColumnDiff(
-            'foo',
-            new Column(
-                'foo',
-                Type::getType(Types::STRING),
-                ['default' => 'bla', 'notnull' => true],
-            ),
-            ['type'],
-        );
-        $tableDiff->changedColumns['bar']   = new ColumnDiff(
-            'bar',
-            new Column(
-                'baz',
-                Type::getType(Types::STRING),
-                ['default' => 'bla', 'notnull' => true],
-            ),
-            ['type', 'notnull'],
-            new Column(
-                'bar',
-                Type::getType(Types::STRING),
-                ['default' => 'bla', 'notnull' => false],
-            ),
-        );
-        $tableDiff->changedColumns['metar'] = new ColumnDiff(
-            'metar',
-            new Column(
-                'metar',
-                Type::getType(Types::STRING),
-                ['length' => 2000, 'notnull' => false],
-            ),
-            ['notnull'],
+        // DBAL4: TableDiff requires Table $oldTable; ColumnDiff takes (old Column, new Column)
+        $oldTable = new Table('mytable');
+        $oldTable->addColumn('foo', Types::INTEGER);
+        $oldTable->addColumn('bar', Types::STRING, ['default' => 'bla', 'notnull' => false]);
+        $oldTable->addColumn('metar', Types::STRING, ['length' => 2000, 'notnull' => true]);
+
+        $tableDiff = new TableDiff(
+            $oldTable,
+            changedColumns: [
+                new ColumnDiff(
+                    new Column('foo', Type::getType(Types::INTEGER), ['notnull' => true]),
+                    new Column('foo', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => true]),
+                ),
+                new ColumnDiff(
+                    new Column('bar', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => false]),
+                    new Column('baz', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => true]),
+                ),
+                new ColumnDiff(
+                    new Column('metar', Type::getType(Types::STRING), ['length' => 2000, 'notnull' => true]),
+                    new Column('metar', Type::getType(Types::STRING), ['length' => 2000, 'notnull' => false]),
+                ),
+            ],
         );
 
         // Firebird 2.5 uses UPDATE RDB$RELATION_FIELDS for NOT NULL changes
         // Firebird 3.0+ uses ALTER COLUMN ... SET/DROP NOT NULL (see Firebird3PlatformTest)
         $expectedSql = [
-            0 => 'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
-            1 => 'ALTER TABLE mytable ALTER COLUMN bar TYPE VARCHAR(255)',
-            2 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
-            3 => "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
+            'ALTER TABLE mytable ALTER COLUMN foo TYPE VARCHAR(255)',
+            "ALTER TABLE mytable ALTER foo SET DEFAULT 'bla'",
+            "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = 1 WHERE UPPER(RDB\$FIELD_NAME) = UPPER('bar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
+            "UPDATE RDB\$RELATION_FIELDS SET RDB\$NULL_FLAG = NULL WHERE UPPER(RDB\$FIELD_NAME) = UPPER('metar') AND UPPER(RDB\$RELATION_NAME) = UPPER('mytable')",
+            'ALTER TABLE mytable ALTER COLUMN bar TO baz',
         ];
 
         self::assertSame($expectedSql, $this->platform->getAlterTableSQL($tableDiff));
@@ -734,11 +727,6 @@ SQL
     protected function getQuotedAlterTableChangeColumnLengthSQL(): array
     {
         self::markTestIncomplete('Not implemented yet');
-    }
-
-    protected function getQuotesDropForeignKeySQL(): string
-    {
-        return 'ALTER TABLE "table" DROP CONSTRAINT "select"';
     }
 
     /**

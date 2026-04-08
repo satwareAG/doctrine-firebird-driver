@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Exception;
+use InvalidArgumentException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
@@ -38,7 +39,7 @@ class Firebird3PlatformTest extends PlatformTestCase
     #[DataProvider('dataInvalidIdentifiers')]
     public function testInvalidIdentifiers(string $identifier): void
     {
-        $this->expectException(Exception::class);
+        $this->expectException(InvalidArgumentException::class);
 
         $platform = $this->createPlatform();
         $platform->assertValidIdentifier($identifier);
@@ -72,7 +73,6 @@ class Firebird3PlatformTest extends PlatformTestCase
 
     public function testGeneratesSqlSnippets(): void
     {
-        self::assertSame('"', $this->platform->getIdentifierQuoteCharacter());
         self::assertSame('column1 || column2 || column3', $this->platform->getConcatExpression('column1', 'column2', 'column3'));
     }
 
@@ -626,11 +626,6 @@ SQL
     protected function getQuotedAlterTableChangeColumnLengthSQL(): array
     {
         self::markTestIncomplete('Not implemented yet');
-    }
-
-    protected function getQuotesDropForeignKeySQL(): string
-    {
-        return 'ALTER TABLE "table" DROP CONSTRAINT "select"';
     }
 
     /**

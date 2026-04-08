@@ -486,7 +486,7 @@ class FirebirdPlatform extends AbstractPlatform
      * Foreign keys are identified via constraint names in firebird
      */
     #[Override]
-    public function getDropForeignKeySQL($foreignKey, $table): string
+    public function getDropForeignKeySQL(string $foreignKey, string $table): string
     {
         return $this->getDropConstraintSQL($foreignKey, $table);
     }
