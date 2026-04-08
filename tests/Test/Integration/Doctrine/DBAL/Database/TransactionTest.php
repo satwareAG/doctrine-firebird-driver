@@ -250,7 +250,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
         }
 
         $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
+        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAllAssociative());
 
         $expectedTransactionLevel = 0;
         foreach ($map as $idBefore => $idAfter) {
@@ -262,17 +262,17 @@ class TransactionTest extends ModifyingIntegrationTestCase
 
         $connection->rollback();
         $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 44]], $stmt->fetchAll());
+        self::assertSame([['ID' => 52], ['ID' => 53], ['ID' => 44]], $stmt->fetchAllAssociative());
         self::assertSame(2, $connection->getTransactionNestingLevel(), 'Transaction level, 3rd');
 
         $connection->rollback();
         $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
+        self::assertSame([['ID' => 52], ['ID' => 43], ['ID' => 44]], $stmt->fetchAllAssociative());
         self::assertSame(1, $connection->getTransactionNestingLevel(), 'Transaction level, 2nd');
 
         $connection->rollback();
         $stmt = $connection->executeQuery("SELECT id FROM {$tableName}");
-        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAll());
+        self::assertSame([['ID' => 42], ['ID' => 43], ['ID' => 44]], $stmt->fetchAllAssociative());
         self::assertSame(0, $connection->getTransactionNestingLevel(), 'Transaction level, 1st');
         try {
             $connection->rollback();
