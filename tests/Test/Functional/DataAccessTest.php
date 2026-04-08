@@ -43,7 +43,7 @@ class DataAccessTest extends FunctionalTestCase
         $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $stmt->bindValue(2, 'foo', ParameterType::STRING);
 
-        $row = $stmt->execute()->fetchAssociative();
+        $row = $stmt->executeQuery()->fetchAssociative();
 
         self::assertIsArray($row);
         $row = array_change_key_case($row, CASE_LOWER);
@@ -62,7 +62,7 @@ class DataAccessTest extends FunctionalTestCase
         $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
-        $row = $stmt->execute()->fetchAssociative();
+        $row = $stmt->executeQuery()->fetchAssociative();
 
         self::assertIsArray($row);
         $row = array_change_key_case($row, CASE_LOWER);
@@ -81,7 +81,7 @@ class DataAccessTest extends FunctionalTestCase
         $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
-        $rows    = $stmt->execute()->fetchAllAssociative();
+        $rows    = $stmt->executeQuery()->fetchAllAssociative();
         $rows[0] = array_change_key_case($rows[0], CASE_LOWER);
         self::assertSame(['test_int' => 1, 'test_string' => 'foo'], $rows[0]);
     }
@@ -98,7 +98,7 @@ class DataAccessTest extends FunctionalTestCase
         $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramStr, ParameterType::STRING);
 
-        $column = $stmt->execute()->fetchOne();
+        $column = $stmt->executeQuery()->fetchOne();
         self::assertSame(1, $column);
     }
 
@@ -109,7 +109,7 @@ class DataAccessTest extends FunctionalTestCase
 
         $sql    = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
         $stmt   = $this->connection->prepare($sql);
-        $result = $stmt->execute([$paramInt, $paramStr]);
+        $result = $stmt->executeQuery([$paramInt, $paramStr]);
 
         $row = $result->fetchAssociative();
         self::assertNotFalse($row);
@@ -286,7 +286,7 @@ class DataAccessTest extends FunctionalTestCase
         $sql  = 'SELECT count(*) AS c FROM ' . $this->table . ' WHERE test_datetime = ?';
         $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(1, new DateTime('2010-01-01 10:10:10'), Types::DATETIME_MUTABLE);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
 
         self::assertSame(1, $result->fetchOne());
     }
@@ -323,7 +323,7 @@ class DataAccessTest extends FunctionalTestCase
     }
 
     #[DataProvider('getTrimExpressionData')]
-    public function testTrimExpression(string $value, TrimMode $position, string|false $char, string $expectedResult): void
+    public function testTrimExpression(string $value, TrimMode $position, ?string $char, string $expectedResult): void
     {
         $sql = 'SELECT ' .
             $this->connection->getDatabasePlatform()->getTrimExpression($value, $position, $char) . ' AS trimmed ' .
@@ -523,10 +523,10 @@ class DataAccessTest extends FunctionalTestCase
     /** @return array<int, array<int, mixed>> */
     public static function getTrimExpressionData(): Iterator
     {
-        yield ['test_string', TrimMode::UNSPECIFIED, false, 'foo'];
-        yield ['test_string', TrimMode::LEADING, false, 'foo'];
-        yield ['test_string', TrimMode::TRAILING, false, 'foo'];
-        yield ['test_string', TrimMode::BOTH, false, 'foo'];
+        yield ['test_string', TrimMode::UNSPECIFIED, null, 'foo'];
+        yield ['test_string', TrimMode::LEADING, null, 'foo'];
+        yield ['test_string', TrimMode::TRAILING, null, 'foo'];
+        yield ['test_string', TrimMode::BOTH, null, 'foo'];
         yield ['test_string', TrimMode::UNSPECIFIED, "'f'", 'oo'];
         yield ['test_string', TrimMode::UNSPECIFIED, "'o'", 'f'];
         yield ['test_string', TrimMode::UNSPECIFIED, "'.'", 'foo'];
@@ -539,10 +539,10 @@ class DataAccessTest extends FunctionalTestCase
         yield ['test_string', TrimMode::BOTH, "'f'", 'oo'];
         yield ['test_string', TrimMode::BOTH, "'o'", 'f'];
         yield ['test_string', TrimMode::BOTH, "'.'", 'foo'];
-        yield ["' foo '", TrimMode::UNSPECIFIED, false, 'foo'];
-        yield ["' foo '", TrimMode::LEADING, false, 'foo '];
-        yield ["' foo '", TrimMode::TRAILING, false, ' foo'];
-        yield ["' foo '", TrimMode::BOTH, false, 'foo'];
+        yield ["' foo '", TrimMode::UNSPECIFIED, null, 'foo'];
+        yield ["' foo '", TrimMode::LEADING, null, 'foo '];
+        yield ["' foo '", TrimMode::TRAILING, null, ' foo'];
+        yield ["' foo '", TrimMode::BOTH, null, 'foo'];
         yield ["' foo '", TrimMode::UNSPECIFIED, "'f'", ' foo '];
         yield ["' foo '", TrimMode::UNSPECIFIED, "'o'", ' foo '];
         yield ["' foo '", TrimMode::UNSPECIFIED, "'.'", ' foo '];
