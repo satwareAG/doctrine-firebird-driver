@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\API\ExceptionConverter;
-use Doctrine\DBAL\Driver\ServerVersionProvider;
+use Doctrine\DBAL\ServerVersionProvider;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -54,7 +54,7 @@ abstract class AbstractDriverTestCase extends TestCase
 
         self::assertEquals($this->createSchemaManager($connection), $schemaManager);
 
-        $re = new ReflectionProperty($schemaManager, '_conn');
+        $re = new ReflectionProperty($schemaManager, 'connection');
 
         self::assertSame($connection, $re->getValue($schemaManager));
     }

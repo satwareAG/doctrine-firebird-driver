@@ -37,6 +37,10 @@ class TableGeneratorTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
+        if (! class_exists(TableGeneratorSchemaVisitor::class)) {
+            self::markTestSkipped('TableGeneratorSchemaVisitor removed in DBAL4');
+        }
+
         $platform = $this->connection->getDatabasePlatform();
 
         $this->dropTableIfExists('sequences');

@@ -227,7 +227,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $indexes = $schemaManager->listTableIndexes(self::TABLE);
         self::assertArrayNotHasKey('idx_sm_drop_test', $indexes);
 
-        $schemaManager->createIndex($index, $table);
+        $schemaManager->createIndex($index, $table->getName());
         $indexes = $schemaManager->listTableIndexes(self::TABLE);
         self::assertArrayHasKey('idx_sm_drop_test', $indexes);
     }

@@ -585,6 +585,13 @@ SQL;
         if ($scale !== null && $precision !== null && (int) $precision !== 0) {
             $options['scale']     = $scale;
             $options['precision'] = $precision;
+        } elseif ($type === 'decimal') {
+            // DBAL4's DecimalType requires non-null precision; default to 10 when Firebird
+            // returns 0 for RDB$FIELD_PRECISION (e.g. for legacy or DEFAULT-only columns).
+            $options['precision'] = 10;
+            if ($scale !== null) {
+                $options['scale'] = $scale;
+            }
         }
 
         return new Column($tableColumn['FIELD_NAME'], Type::getType($type), $options);

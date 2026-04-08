@@ -129,7 +129,8 @@ EOF
         $result->fetchAssociative();
 
         $stmt2  = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
-        $result = $stmt2->executeQuery([1]);
+        $stmt2->bindValue(1, 1, ParameterType::INTEGER);
+        $result = $stmt2->executeQuery();
         self::assertSame(1, $result->fetchOne());
     }
 
@@ -140,14 +141,16 @@ EOF
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
-        $result = $stmt->executeQuery([1]);
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
+        $result = $stmt->executeQuery();
 
         $id = $result->fetchOne();
         self::assertSame(1, $id);
 
         $result->free();
 
-        $result = $stmt->executeQuery([2]);
+        $stmt->bindValue(1, 2, ParameterType::INTEGER);
+        $result = $stmt->executeQuery();
 
         $id = $result->fetchOne();
         self::assertSame(2, $id);
@@ -158,14 +161,14 @@ EOF
         $this->connection->insert('stmt_test', ['id' => 1]);
         $this->connection->insert('stmt_test', ['id' => 2]);
 
+        // DBAL4: bindParam() removed; use explicit bindValue() calls before each execute.
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
-        $stmt->bindParam(1, $id, ParameterType::INTEGER);
 
-        $id     = 1;
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt->executeQuery();
         self::assertSame(1, $result->fetchOne());
 
-        $id     = 2;
+        $stmt->bindValue(1, 2, ParameterType::INTEGER);
         $result = $stmt->executeQuery();
         self::assertSame(2, $result->fetchOne());
     }
@@ -193,13 +196,12 @@ EOF
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
-        $x = 1;
-        $stmt->bindParam(1, $x, ParameterType::INTEGER);
+        // DBAL4: bindParam() removed; rebind via bindValue() before each execute.
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt->executeQuery();
         self::assertSame(1, $result->fetchOne());
 
-        $y = 2;
-        $stmt->bindParam(1, $y, ParameterType::INTEGER);
+        $stmt->bindValue(1, 2, ParameterType::INTEGER);
         $result = $stmt->executeQuery();
         self::assertSame(2, $result->fetchOne());
     }
@@ -210,8 +212,8 @@ EOF
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
-        $value = 1;
-        $stmt->bindParam(1, $value, ParameterType::INTEGER, null);
+        // DBAL4: bindParam() removed; use bindValue().
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
 
         self::assertSame(1, $stmt->executeQuery()->fetchOne());
     }
@@ -267,7 +269,9 @@ EOF
         $this->connection->insert('stmt_test', ['id' => 1]);
 
         $query  = 'SELECT id FROM stmt_test WHERE id = ?';
-        $result = $this->connection->prepare($query)->executeQuery([1])->fetchOne();
+        $stmt   = $this->connection->prepare($query);
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
+        $result = $stmt->executeQuery()->fetchOne();
 
         self::assertSame(1, $result);
     }
@@ -286,7 +290,10 @@ EOF
         self::assertSame(1, $result);
 
         $query  = 'UPDATE stmt_test SET name = ? WHERE id = ?';
-        $result = $this->connection->prepare($query)->executeStatement(['foo', 1]);
+        $stmt   = $this->connection->prepare($query);
+        $stmt->bindValue(1, 'foo', ParameterType::STRING);
+        $stmt->bindValue(2, 1, ParameterType::INTEGER);
+        $result = $stmt->executeStatement();
 
         self::assertSame(1, $result);
     }
