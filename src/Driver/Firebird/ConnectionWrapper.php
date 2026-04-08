@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdDriverConnection;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_key_exists;
@@ -47,7 +48,7 @@ final class ConnectionWrapper extends Connection
 
             if (isset($identityColumnTables[$table]['id'])) {
                 $sql .= ' RETURNING ' . $identityColumnTables[$table]['id'] . ' AS "' . $identityColumnTables[$table]['alias'] . '"';
-                if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                if ($this->_conn instanceof FirebirdDriverConnection) {
                     $this->_conn->setConnectionInsertColumn($identityColumnTables[$table]['id']);
                 }
             }
@@ -128,6 +129,22 @@ final class ConnectionWrapper extends Connection
     }
 
     /**
+     * Returns the underlying Firebird driver-level connection.
+     * In DBAL4, getWrappedConnection() was removed; this provides equivalent access
+     * to the native driver connection for tests and low-level operations.
+     */
+    public function getFirebirdDriverConnection(): FirebirdDriverConnection|null
+    {
+        if ($this->_conn === null) {
+            $this->connect();
+        }
+
+        return $this->_conn instanceof FirebirdDriverConnection
+            ? $this->_conn
+            : null;
+    }
+
+    /**
      * @return array<string,string>|null
      *
      * @throws Exception
@@ -149,22 +166,6 @@ final class ConnectionWrapper extends Connection
         }
 
         return null;
-    }
-
-    /**
-     * Returns the underlying Firebird driver-level connection.
-     * In DBAL4, getWrappedConnection() was removed; this provides equivalent access
-     * to the native driver connection for tests and low-level operations.
-     */
-    public function getFirebirdDriverConnection(): ?\Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection
-    {
-        if ($this->_conn === null) {
-            $this->connect();
-        }
-
-        return $this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection
-            ? $this->_conn
-            : null;
     }
 
     private function addSequenceNameForTable(string $tableName): void
