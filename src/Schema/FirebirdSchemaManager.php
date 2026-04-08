@@ -209,6 +209,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     public function tryMethod(string $method, mixed ...$arguments): mixed
     {
         try {
+            /** @phpstan-ignore call.dynamicName */
             return $this->$method(...$arguments);
         } catch (Throwable) {
             return null;
@@ -217,7 +218,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
 
     public function extractDoctrineTypeFromComment(string $comment, string $currentType): string
     {
-        if (preg_match('(\(DC2Type:([^)]+)\))', $comment, $match) === 1) {
+        if (preg_match('/\(DC2Type:([^)]+)\)/', $comment, $match) === 1) {
             return $match[1];
         }
 
