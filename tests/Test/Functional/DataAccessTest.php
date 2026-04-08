@@ -323,7 +323,7 @@ class DataAccessTest extends FunctionalTestCase
     }
 
     #[DataProvider('getTrimExpressionData')]
-    public function testTrimExpression(string $value, TrimMode $position, ?string $char, string $expectedResult): void
+    public function testTrimExpression(string $value, TrimMode $position, string|null $char, string $expectedResult): void
     {
         $sql = 'SELECT ' .
             $this->connection->getDatabasePlatform()->getTrimExpression($value, $position, $char) . ' AS trimmed ' .

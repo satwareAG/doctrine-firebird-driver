@@ -235,10 +235,10 @@ abstract class PlatformTestCase extends TestCase
         $indexes = [];
 
         if ($this->supportsInlineIndexDeclaration()) {
-            $indexes[] = $this->platform->getIndexDeclarationSQL('name', $indexDef);
+            $indexes[] = $this->platform->getIndexDeclarationSQL($indexDef);
         }
 
-        $uniqueConstraintSQL = $this->platform->getUniqueConstraintDeclarationSQL('name', $uniqueConstraint);
+        $uniqueConstraintSQL = $this->platform->getUniqueConstraintDeclarationSQL($uniqueConstraint);
         self::assertStringEndsNotWith($expected, $uniqueConstraintSQL, 'WHERE clause should NOT be present');
 
         $indexes[] = $this->platform->getCreateIndexSQL($indexDef, 'table');
@@ -264,21 +264,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesConstraintCreationSql(): void
     {
-        $idx = new Index('constraint_name', ['test'], true, false);
-        $sql = $this->platform->getCreateConstraintSQL($idx, 'test');
-        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintUniqueIndexSql(), $sql);
-
-        $pk  = new Index('constraint_name', ['test'], true, true);
-        $sql = $this->platform->getCreateConstraintSQL($pk, 'test');
-        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintPrimaryIndexSql(), $sql);
-
-        $uc  = new UniqueConstraint('constraint_name', ['test']);
-        $sql = $this->platform->getCreateConstraintSQL($uc, 'test');
-        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintUniqueIndexSql(), $sql);
-
-        $fk  = new ForeignKeyConstraint(['fk_name'], 'foreign', ['id'], 'constraint_fk');
-        $sql = $this->platform->getCreateConstraintSQL($fk, 'test');
-        self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateConstraintForeignKeySql($fk), $sql);
+        $this->markTestSkipped('DBAL4: getCreateConstraintSQL() was removed from AbstractPlatform.');
     }
 
     protected function getBitAndComparisonExpressionSql(string $value1, string $value2): string
@@ -547,7 +533,7 @@ abstract class PlatformTestCase extends TestCase
     {
         $constraint = new UniqueConstraint('select', ['foo'], [], []);
 
-        self::assertSame($this->getQuotesReservedKeywordInUniqueConstraintDeclarationSQL(), $this->platform->getUniqueConstraintDeclarationSQL('select', $constraint));
+        self::assertSame($this->getQuotesReservedKeywordInUniqueConstraintDeclarationSQL(), $this->platform->getUniqueConstraintDeclarationSQL($constraint));
     }
 
     abstract protected function getQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): string;
@@ -567,7 +553,7 @@ abstract class PlatformTestCase extends TestCase
             $this->expectException(Exception::class);
         }
 
-        self::assertSame($this->getQuotesReservedKeywordInIndexDeclarationSQL(), $this->platform->getIndexDeclarationSQL('select', $index));
+        self::assertSame($this->getQuotesReservedKeywordInIndexDeclarationSQL(), $this->platform->getIndexDeclarationSQL($index));
     }
 
     abstract protected function getQuotesReservedKeywordInIndexDeclarationSQL(): string;
@@ -879,14 +865,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesDropConstraintSQL(): void
     {
-        $tableName      = 'table';
-        $table          = new Table($tableName);
-        $constraintName = 'select';
-        $constraint     = new ForeignKeyConstraint([], 'foo', [], 'select');
-        $expectedSql    = $this->getQuotesDropConstraintSQL();
-
-        self::assertSame($expectedSql, $this->platform->getDropConstraintSQL($constraintName, $tableName));
-        self::assertSame($expectedSql, $this->platform->getDropConstraintSQL($constraint, $table));
+        $this->markTestSkipped('DBAL4: getDropConstraintSQL() is now protected in AbstractPlatform.');
     }
 
     protected function getQuotesDropConstraintSQL(): string
@@ -901,7 +880,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGetStringLiteralQuoteCharacter(): void
     {
-        self::assertSame($this->getStringLiteralQuoteCharacter(), $this->platform->getStringLiteralQuoteCharacter());
+        $this->markTestSkipped('DBAL4: getStringLiteralQuoteCharacter() was removed from AbstractPlatform.');
     }
 
     protected function getQuotedCommentOnColumnSQLWithoutQuoteCharacter(): string
@@ -1152,7 +1131,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testLimitOffsetCastToInt(): void
     {
-        self::assertSame($this->getLimitOffsetCastToIntExpectedQuery(), $this->platform->modifyLimitQuery('SELECT * FROM user', '1 BANANA', '2 APPLES'));
+        $this->markTestSkipped('DBAL4: modifyLimitQuery() requires ?int for $limit - string cast no longer supported.');
     }
 
     protected function getLimitOffsetCastToIntExpectedQuery(): string
@@ -1188,16 +1167,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testItAddsCommentsForOverridingTypes(): void
     {
-        $this->backedUpType = Type::getType(Types::STRING);
-        self::assertFalse($this->backedUpType->requiresSQLCommentHint($this->platform));
-        $type = new class () extends StringType {
-            public function requiresSQLCommentHint(AbstractPlatform $platform): bool
-            {
-                return true;
-            }
-        };
-        Type::getTypeRegistry()->override(Types::STRING, $type);
-        self::assertTrue($type->requiresSQLCommentHint($this->platform));
+        $this->markTestSkipped('DBAL4: requiresSQLCommentHint() was removed from Type.');
     }
 
     public function testEmptyTableDiff(): void
@@ -1210,7 +1180,7 @@ abstract class PlatformTestCase extends TestCase
 
     public function testEmptySchemaDiff(): void
     {
-        $diff = new SchemaDiff();
+        $diff = new SchemaDiff([], [], [], [], [], [], [], []);
 
         self::assertTrue($diff->isEmpty());
         self::assertSame([], $this->platform->getAlterSchemaSQL($diff));
