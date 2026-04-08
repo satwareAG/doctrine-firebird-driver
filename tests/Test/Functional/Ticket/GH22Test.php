@@ -31,9 +31,8 @@ class GH22Test extends FunctionalTestCase
         $result = $this->connection->executeQuery('SELECT 1 FROM RDB$DATABASE');
         self::assertNotFalse($result->fetchOne());
 
-        // Close and reopen
+        // Close - next query will auto-reconnect (connect() is protected in DBAL4)
         $this->connection->close();
-        $this->connection->connect();
 
         // Connection must be valid after reconnect
         $fbirdConn = $this->getFirebirdConnection();
@@ -58,9 +57,8 @@ class GH22Test extends FunctionalTestCase
 
         $this->dropAndCreateTable($table);
 
-        // Close and reopen
+        // Close - next query will auto-reconnect (connect() is protected in DBAL4)
         $this->connection->close();
-        $this->connection->connect();
 
         // Schema operations must work on the new connection
         $schemaManager = $this->connection->createSchemaManager();
@@ -79,9 +77,8 @@ class GH22Test extends FunctionalTestCase
         $this->dropAndCreateTable($table);
         $this->connection->insert(self::TABLE, ['id' => 1]);
 
-        // Close and reopen
+        // Close - next query will auto-reconnect (connect() is protected in DBAL4)
         $this->connection->close();
-        $this->connection->connect();
 
         // DML must work on the new connection
         $this->connection->insert(self::TABLE, ['id' => 2]);

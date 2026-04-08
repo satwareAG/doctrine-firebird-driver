@@ -808,8 +808,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $filtered = array_values($this->filterElementsByName($views, $name));
         self::assertCount(1, $filtered);
 
-        $viewKey = strtolower($filtered[0]->getName());
-        self::assertStringContainsString('view_test_table', $views[$viewKey]->getSql());
+        // In DBAL4, listViews() returns a numeric array; use the filtered object directly
+        self::assertStringContainsString('view_test_table', $filtered[0]->getSql());
     }
 
     public function testAutoincrementDetection(): void
@@ -955,7 +955,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame('This is a comment', $columns['id']->getComment());
 
         $newTable = clone $table;
-        $newTable->modifyColumn('id', ['comment' => null]);
+        // DBAL4: Column::setComment() requires string; use '' to clear a comment
+        $newTable->modifyColumn('id', ['comment' => '']);
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables($table, $newTable);

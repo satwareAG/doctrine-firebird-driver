@@ -22,7 +22,7 @@ class WriteTest extends FunctionalTestCase
     public function testExecuteStatementFirstTypeIsNull(): void
     {
         $sql = 'INSERT INTO write_table (test_string, test_int) VALUES (?, ?)';
-        $this->connection->executeStatement($sql, ['text', 1111], [null, ParameterType::INTEGER]);
+        $this->connection->executeStatement($sql, ['text', 1111], [ParameterType::STRING, ParameterType::INTEGER]);
 
         $sql = 'SELECT * FROM write_table WHERE test_string = ? AND test_int = ?';
         self::assertTrue((bool) $this->connection->fetchFirstColumn($sql, ['text', 1111]));
@@ -30,7 +30,7 @@ class WriteTest extends FunctionalTestCase
 
     public function testExecuteStatement(): void
     {
-        $sql      = 'INSERT INTO write_table (test_int) VALUES ( ' . $this->connection->quote(1) . ')';
+        $sql      = 'INSERT INTO write_table (test_int) VALUES ( ' . $this->connection->quote('1') . ')';
         $affected = $this->connection->executeStatement($sql);
 
         self::assertSame(1, $affected, 'executeStatement() should return the number of affected rows!');

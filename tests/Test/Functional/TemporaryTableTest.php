@@ -22,7 +22,7 @@ class TemporaryTableTest extends FunctionalTestCase
             self::markTestSkipped('Test does not work on Oracle.');
         }
 
-        $columnDefinitions = ['id' => ['type' => Type::getType(Types::INTEGER), 'notnull' => true]];
+        $columnDefinitions = [['name' => 'id', 'type' => Type::getType(Types::INTEGER), 'notnull' => true]];
         $tempTable         = $platform->getTemporaryTableName('my_temporary');
 
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('
@@ -54,7 +54,7 @@ class TemporaryTableTest extends FunctionalTestCase
             self::markTestSkipped('Test does not work on Oracle.');
         }
 
-        $columnDefinitions = ['id' => ['type' => Type::getType(Types::INTEGER), 'notnull' => true]];
+        $columnDefinitions = [['name' => 'id', 'type' => Type::getType(Types::INTEGER), 'notnull' => true]];
         $tempTable         = $platform->getTemporaryTableName('my_temporary');
 
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('

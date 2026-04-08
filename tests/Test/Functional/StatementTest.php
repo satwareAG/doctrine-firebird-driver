@@ -128,7 +128,7 @@ EOF
         // fetching only one record out of two
         $result->fetchAssociative();
 
-        $stmt2  = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
+        $stmt2 = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
         $stmt2->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt2->executeQuery();
         self::assertSame(1, $result->fetchOne());
@@ -268,8 +268,8 @@ EOF
     {
         $this->connection->insert('stmt_test', ['id' => 1]);
 
-        $query  = 'SELECT id FROM stmt_test WHERE id = ?';
-        $stmt   = $this->connection->prepare($query);
+        $query = 'SELECT id FROM stmt_test WHERE id = ?';
+        $stmt  = $this->connection->prepare($query);
         $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt->executeQuery()->fetchOne();
 
@@ -289,8 +289,8 @@ EOF
 
         self::assertSame(1, $result);
 
-        $query  = 'UPDATE stmt_test SET name = ? WHERE id = ?';
-        $stmt   = $this->connection->prepare($query);
+        $query = 'UPDATE stmt_test SET name = ? WHERE id = ?';
+        $stmt  = $this->connection->prepare($query);
         $stmt->bindValue(1, 'foo', ParameterType::STRING);
         $stmt->bindValue(2, 1, ParameterType::INTEGER);
         $result = $stmt->executeStatement();

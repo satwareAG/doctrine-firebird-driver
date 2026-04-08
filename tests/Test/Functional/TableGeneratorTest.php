@@ -9,6 +9,8 @@ use Doctrine\DBAL\Id\TableGeneratorSchemaVisitor;
 use Doctrine\DBAL\Schema\Schema;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function class_exists;
+
 class TableGeneratorTest extends FunctionalTestCase
 {
     private TableGenerator $generator;
