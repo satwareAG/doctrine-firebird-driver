@@ -222,7 +222,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $schemaManager->createTable($table);
 
         $index = $table->getIndex('idx_sm_drop_test');
-        $schemaManager->dropIndex($index, $table);
+        $schemaManager->dropIndex($index->getName(), $table->getName());
 
         $indexes = $schemaManager->listTableIndexes(self::TABLE);
         self::assertArrayNotHasKey('idx_sm_drop_test', $indexes);
@@ -280,7 +280,7 @@ class SchemaManagerTest extends FunctionalTestCase
         $fkeys = $schemaManager->listTableForeignKeys(self::TABLE_FK);
         self::assertCount(1, $fkeys);
 
-        $schemaManager->dropForeignKey($fkeys[0], self::TABLE_FK);
+        $schemaManager->dropForeignKey($fkeys[0]->getName(), self::TABLE_FK);
 
         $fkeys = $schemaManager->listTableForeignKeys(self::TABLE_FK);
         self::assertCount(0, $fkeys);

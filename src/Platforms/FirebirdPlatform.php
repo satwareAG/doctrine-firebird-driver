@@ -1203,6 +1203,16 @@ SQL
     }
 
     #[Override]
+    public function supportsAlterTable(): bool
+    {
+        return true;
+    }
+
+    public function hasNativeJsonType(): bool
+    {
+        return false;
+    }
+
     public function createReservedKeywordsList(): KeywordList
     {
         return new FirebirdKeywords();

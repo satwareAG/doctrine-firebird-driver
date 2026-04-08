@@ -206,6 +206,24 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return $table;
     }
 
+    public function tryMethod(string $method, mixed ...$arguments): mixed
+    {
+        try {
+            return $this->$method(...$arguments);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function extractDoctrineTypeFromComment(string $comment, string $currentType): string
+    {
+        if (preg_match('(\(DC2Type:([^)]+)\))', $comment, $match) === 1) {
+            return $match[1];
+        }
+
+        return $currentType;
+    }
+
     /** @return array<int, string> */
     public static function getFieldTypeIdToColumnTypeMap(): array
     {
@@ -532,11 +550,8 @@ SQL;
             $type = 'binary';
         }
 
-        if ($tableColumn['FIELD_DESCRIPTION'] !== null) {
+        if (! empty($tableColumn['FIELD_DESCRIPTION'])) {
             $options['comment'] = $tableColumn['FIELD_DESCRIPTION'];
-            if ($options['comment'] === '') {
-                $options['comment'] = null;
-            }
         }
 
         if (preg_match('/^.*default\s*\'(.*)\'\s*$/i', (string) $tableColumn['FIELD_DEFAULT_SOURCE'], $matches) === 1) {

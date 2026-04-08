@@ -50,6 +50,7 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
+use function defined;
 use function in_array;
 use function sprintf;
 use function str_starts_with;
@@ -507,8 +508,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         $index = $table->getIndex('test');
-        $this->schemaManager->dropIndex($index, $table);
-        $this->schemaManager->createIndex($index, $table);
+        $this->schemaManager->dropIndex($index->getName(), $table->getName());
+        $this->schemaManager->createIndex($index, $table->getName());
         $tableIndexes = $this->schemaManager->listTableIndexes('test_create_index');
 
         self::assertSame('test', strtolower($tableIndexes['test']->getName()));
@@ -614,7 +615,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             'i',
         );
         $foreignKey = $table->getForeignKeys()['i'];
-        $this->schemaManager->createForeignKey($foreignKey, $table);
+        $this->schemaManager->createForeignKey($foreignKey, $table->getName());
 
         $fkeys = $this->schemaManager->listTableForeignKeys('test_create_fk1');
 
@@ -986,6 +987,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             ! $platform instanceof SQLServerPlatform
         ) {
             self::markTestSkipped('Database does not support column comments.');
+        }
+
+        if (! defined('Doctrine\DBAL\Types\Types::OBJECT')) {
+            self::markTestSkipped('Types::OBJECT not available in DBAL4+.');
         }
 
         $table = new Table('column_comment_test2');
