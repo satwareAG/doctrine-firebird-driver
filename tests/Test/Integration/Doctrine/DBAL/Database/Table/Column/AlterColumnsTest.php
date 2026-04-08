@@ -122,7 +122,8 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
          * Missing:
          * FirebirdSchemaManager::META_FIELD_TYPE_CSTRING
          * FirebirdSchemaManager::META_FIELD_TYPE_BLOB
-         * FirebirdSchemaManager::META_FIELD_TYPE_DOUBLE
+         * FirebirdSchemaManager::META_FIELD_TYPE_FLOAT (DBAL4: Doctrine 'float' maps to DOUBLE PRECISION)
+         * FirebirdSchemaManager::META_FIELD_TYPE_DOUBLE ('double' is not a standard Doctrine type name)
          * FirebirdSchemaManager::META_FIELD_TYPE_INT64
          */
         yield [
@@ -189,12 +190,6 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
             FirebirdSchemaManager::META_FIELD_TYPE_TIME,
             ['notnull' => true, 'default' => '13:37:00'],
             'foo TIME DEFAULT NULL',
-        ];
-
-        yield [
-            FirebirdSchemaManager::META_FIELD_TYPE_FLOAT,
-            ['notnull' => true, 'default' => 3.14],
-            'foo FLOAT DEFAULT NULL',
         ];
 
         yield [
