@@ -16,7 +16,13 @@ vendor-bin/**/composer.lock
 /tests/var/
 /tests/phpunit.local.xml
 /tests/.phpunit.cache
+/.phpunit.cache
 /composer.lock
+
+# Dev scripts
+fix_dbal4_batch.py
+fix_tests.py
+implementation_plan.md
 
 # Coverage output
 coverage-xml/
