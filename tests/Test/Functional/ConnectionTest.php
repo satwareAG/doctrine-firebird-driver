@@ -17,7 +17,6 @@ use Error;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
-use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 
 class ConnectionTest extends FunctionalTestCase

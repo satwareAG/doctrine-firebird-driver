@@ -17,7 +17,6 @@ use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
-use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
@@ -162,7 +161,6 @@ abstract class PlatformTestCase extends TestCase
         $this->expectException(Exception::class);
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
-
 
     public function testCreateWithNoColumns(): void
     {
@@ -844,7 +842,6 @@ abstract class PlatformTestCase extends TestCase
             'CREATE INDEX "bar" ON "schema"."table" (id)',
         ];
     }
-
 
     public function testQuotesDropConstraintSQL(): void
     {

@@ -735,21 +735,35 @@ END
     }
 
     #[DataProvider('dataProvider_testGetVarcharTypeDeclarationSQLSnippet')]
-    public function testGetVarcharTypeDeclarationSQLSnippet($expected, $length, $fixed): void
+    public function testGetVarcharTypeDeclarationSQLSnippet(string $expected, int|null $length): void
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getVarcharTypeDeclarationSQLSnippet');
-        $found = $method->invoke($this->_platform, $length, $fixed);
+        $found      = $method->invoke($this->_platform, $length);
         self::assertIsString($found);
         self::assertSame($expected, $found);
     }
 
     public static function dataProvider_testGetVarcharTypeDeclarationSQLSnippet(): Iterator
     {
-        yield ['CHAR(32)', 32, true];
-        yield ['CHAR(255)', 0, true];
-        yield ['VARCHAR(32)', 32, false];
-        yield ['VARCHAR(255)', 0, false];
+        yield ['VARCHAR(32)', 32];
+        yield ['VARCHAR(255)', 0];
+    }
+
+    #[DataProvider('dataProvider_testGetCharTypeDeclarationSQLSnippet')]
+    public function testGetCharTypeDeclarationSQLSnippet(string $expected, int|null $length): void
+    {
+        $reflection = new ReflectionObject($this->_platform);
+        $method     = $reflection->getMethod('getCharTypeDeclarationSQLSnippet');
+        $found      = $method->invoke($this->_platform, $length);
+        self::assertIsString($found);
+        self::assertSame($expected, $found);
+    }
+
+    public static function dataProvider_testGetCharTypeDeclarationSQLSnippet(): Iterator
+    {
+        yield ['CHAR(32)', 32];
+        yield ['CHAR(255)', 0];
     }
 
     #[DataProvider('dataProvider_testGetColumnCharsetDeclarationSQL')]
@@ -773,23 +787,37 @@ END
     }
 
     #[DataProvider('dataProvider_testGetBinaryTypeDeclarationSQLSnippet')]
-    public function testGetBinaryTypeDeclarationSQLSnippet($expected, $length, $fixed): void
+    public function testGetBinaryTypeDeclarationSQLSnippet(string $expected, int|null $length): void
     {
         $reflection = new ReflectionObject($this->_platform);
         $method     = $reflection->getMethod('getBinaryTypeDeclarationSQLSnippet');
-        $found = $method->invoke($this->_platform, $length, $fixed);
+        $found      = $method->invoke($this->_platform, $length);
         self::assertIsString($found);
         self::assertSame($expected, $found);
     }
 
     public static function dataProvider_testGetBinaryTypeDeclarationSQLSnippet(): Iterator
     {
-        yield ['CHAR(32)', 32, true];
-        yield ['CHAR(8191)', 0, true];
-        yield ['VARCHAR(32)', 32, false];
-        yield ['VARCHAR(8191)', 0, false];
-        yield ['VARCHAR(8190)', 8190, false];
-        yield ['BLOB', 8192, false];
+        yield ['CHAR(32)', 32];
+        yield ['CHAR(8191)', 0];
+    }
+
+    #[DataProvider('dataProvider_testGetVarbinaryTypeDeclarationSQLSnippet')]
+    public function testGetVarbinaryTypeDeclarationSQLSnippet(string $expected, int|null $length): void
+    {
+        $reflection = new ReflectionObject($this->_platform);
+        $method     = $reflection->getMethod('getVarbinaryTypeDeclarationSQLSnippet');
+        $found      = $method->invoke($this->_platform, $length);
+        self::assertIsString($found);
+        self::assertSame($expected, $found);
+    }
+
+    public static function dataProvider_testGetVarbinaryTypeDeclarationSQLSnippet(): Iterator
+    {
+        yield ['VARCHAR(32)', 32];
+        yield ['VARCHAR(8191)', 0];
+        yield ['VARCHAR(8190)', 8190];
+        yield ['BLOB', 8192];
     }
 
     public function testGetColumnDeclarationSQL(): void
