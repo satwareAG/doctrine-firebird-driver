@@ -1202,7 +1202,6 @@ SQL
         return $this->getVarcharMaxCastLength();
     }
 
-    #[Override]
     public function supportsAlterTable(): bool
     {
         return true;
