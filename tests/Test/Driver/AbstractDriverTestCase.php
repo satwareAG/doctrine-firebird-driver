@@ -22,9 +22,7 @@ abstract class AbstractDriverTestCase extends TestCase
 {
     use VerifyDeprecations;
 
-    /**
-     * The driver mock under test.
-     */
+    /** The driver mock under test. */
     protected Driver $driver;
 
     public function testThrowsExceptionOnCreatingDatabasePlatformsForInvalidVersion(): void
@@ -43,7 +41,7 @@ abstract class AbstractDriverTestCase extends TestCase
         $versionProvider = $this->createStub(ServerVersionProvider::class);
         $versionProvider->method('getServerVersion')->willReturn('WI-V3.0.5.33240');
         $platform = $this->driver->getDatabasePlatform($versionProvider);
-        self::assertInstanceOf(get_class($this->createPlatform()), $platform);
+        self::assertInstanceOf($this->createPlatform()::class, $platform);
     }
 
     public function testReturnsSchemaManager(): void
@@ -83,9 +81,7 @@ abstract class AbstractDriverTestCase extends TestCase
         return $this->createMock(Connection::class);
     }
 
-    /**
-     * Factory method for creating the driver instance under test.
-     */
+    /** Factory method for creating the driver instance under test. */
     abstract protected function createDriver(): Driver;
 
     /**
