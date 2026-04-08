@@ -66,7 +66,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public function testCheckIdentifierLengthThrowsExceptionWhenArgumentNameIsTooLong(): void
     {
-        $this->expectExceptionMessage("Operation 'Identifier kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk is too long for firebird platform. Maximum identifier length is 31' is not supported by platform");
+        $this->expectExceptionMessage('Operation "Identifier kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk is too long for firebird platform. Maximum identifier length is 31" is not supported by platform');
         $this->expectException(Exception::class);
         $this->_platform->checkIdentifierLength(str_repeat('k', 32), null);
     }
