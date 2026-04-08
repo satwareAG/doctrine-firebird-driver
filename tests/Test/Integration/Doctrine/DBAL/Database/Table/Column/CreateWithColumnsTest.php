@@ -238,7 +238,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
             switch ($column->getType()::class) {
                 case SmallIntType::class:
                     $expectedType = FirebirdSchemaManager::META_FIELD_TYPE_SMALLINT;
-                    if ($expectedPrecision === 10) {
+                    if ($expectedPrecision === 10 || $expectedPrecision === null) {
                         $expectedPrecision = 0;
                     }
 
