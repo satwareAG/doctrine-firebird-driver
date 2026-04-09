@@ -410,20 +410,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
 
             if ($genName !== null) {
-                // Step 2: fbird_last_insert_id() WITH the resolved generator name — most reliable on all
-                //         Firebird versions when the generator name is known.
-                try {
-                    /** @phpstan-ignore argument.type */
-                    $id = @fbird_last_insert_id($this->connection, $genName);
-                    if ($id !== false && $id > 0) {
-                        $this->lastResolvedIdentityId = $id;
-
-                        return $id;
-                    }
-                } catch (Throwable) {
-                }
-
-                // Step 3a: fbird_gen_id() directly — reads current generator value without SQL overhead.
+                // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
                 try {
                     /** @phpstan-ignore argument.type */
                     $lastVal = fbird_gen_id($genName, 0, $this->connection);
@@ -435,7 +422,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 } catch (Throwable) {
                 }
 
-                // Step 3b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
+                // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
                 //          php-firebird v10+ returns Firebird\Result objects; v7 returns resources.
                 try {
                     $autoResult = $this->executeAuto(sprintf(
@@ -456,7 +443,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 } catch (Throwable) {
                 }
 
-                // Step 3c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
+                // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
                 try {
                     $genResult = $this->query(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
@@ -472,6 +459,29 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                         }
                     }
                 } catch (Throwable) {
+                }
+            }
+
+            // Step 3 (last resort): fbird_last_insert_id() without a generator name (Firebird 5.0+).
+            //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW, this throws a
+            //         Firebird\Exception. Wrap in try/catch to handle gracefully.
+            //         NOTE: Only reached if genName lookup failed (Step 1) or all GEN_ID steps failed.
+            //         On FB 3.0/4.0, Steps 2a-2c succeed so this is never reached in normal operation.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false && $id > 0) {
+                    $this->lastResolvedIdentityId = $id;
+
+                    return $id;
+                }
+            } catch (Throwable) {
+                // The Firebird exception may have aborted the current transaction. Restart if needed.
+                if (! $this->isTransactionValid()) {
+                    try {
+                        $this->transactionManager->beginTransaction();
+                    } catch (Throwable) {
+                    }
                 }
             }
 
