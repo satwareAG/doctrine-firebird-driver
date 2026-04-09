@@ -35,6 +35,7 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_escape_string;
 use function fbird_execute_auto;
+use function fbird_fetch_row;
 use function fbird_gen_id;
 use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
@@ -49,6 +50,7 @@ use function file_exists;
 use function get_resource_id;
 use function get_resource_type;
 use function in_array;
+use function is_array;
 use function is_dir;
 use function is_float;
 use function is_int;
@@ -407,9 +409,39 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
 
             if ($genName !== null) {
-                // Step 2: Query current generator value via standard Firebird SQL.
-                //         GEN_ID(name, 0) reads without incrementing — works on FB3.0, FB4.0, FB5.0.
-                //         More reliable than fbird_last_insert_id()/fbird_gen_id() which return 0 on FB3.0.
+                // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
+                try {
+                    /** @phpstan-ignore argument.type */
+                    $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                    if ($lastVal > 0) {
+                        $this->lastResolvedIdentityId = $lastVal;
+
+                        return $lastVal;
+                    }
+                } catch (Throwable) {
+                }
+
+                // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
+                try {
+                    $autoResult = $this->executeAuto(sprintf(
+                        'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
+                        str_replace('"', '""', $genName),
+                    ));
+                    if (is_resource($autoResult)) {
+                        $autoRow = fbird_fetch_row($autoResult);
+                        if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
+                            $lastVal = (int) $autoRow[0];
+                            if ($lastVal > 0) {
+                                $this->lastResolvedIdentityId = $lastVal;
+
+                                return $lastVal;
+                            }
+                        }
+                    }
+                } catch (Throwable) {
+                }
+
+                // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
                 try {
                     $genResult = $this->query(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
