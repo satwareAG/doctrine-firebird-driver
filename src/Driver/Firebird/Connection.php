@@ -35,6 +35,7 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_escape_string;
 use function fbird_execute_auto;
+use function fbird_fetch_row;
 use function fbird_gen_id;
 use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
@@ -379,40 +380,61 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             // Dotted names (e.g. 'ALBUM.ID') come from getIdentitySequenceName() for native identity columns.
 
             // 1. Try fbird_last_insert_id() without a generator name - works on Firebird 5.0+ natively.
-            //    Use @ to suppress the PHP warning emitted on Firebird 4.0 and earlier where a name is required.
-            /** @phpstan-ignore argument.type */
-            $id = @fbird_last_insert_id($this->connection);
-            if ($id !== false) {
-                $this->lastResolvedIdentityId = $id;
+            //    On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW, this throws a
+            //    Firebird\Exception (not a PHP warning). Wrap in try/catch to prevent the exception
+            //    from corrupting the current transaction state.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false) {
+                    $this->lastResolvedIdentityId = $id;
 
-                return $id;
+                    return $id;
+                }
+            } catch (Throwable) {
+                // fbird_last_insert_id() threw (Firebird 4.0 and earlier require a generator name).
+                // The Firebird exception may have aborted the current transaction. Restart if needed.
+                if (! $this->isTransactionValid()) {
+                    try {
+                        $this->transactionManager->beginTransaction();
+                    } catch (Throwable) {
+                    }
+                }
             }
 
             // 2. Firebird 4.0 and earlier: fbird_last_insert_id() without a generator name is unsupported.
             //    Parse table and column from dotted format, look up the internal identity generator in
-            //    RDB$RELATION_FIELDS, and read its current value via fbird_gen_id().
+            //    RDB$RELATION_FIELDS via fbird_execute_auto() (bypasses DBAL transaction dependency),
+            //    and read its current value via fbird_gen_id().
             $parts      = explode('.', str_replace('"', '', $name), 2);
             $tableName  = strtoupper($parts[0]);
             $columnName = strtoupper($parts[1] ?? '');
 
             if ($columnName !== '') {
                 try {
-                    $result  = $this->query(sprintf(
+                    $rawSql = sprintf(
                         'SELECT TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
                         . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
                         . ' AND UPPER(TRIM(RDB$FIELD_NAME)) = \'%s\''
                         . ' AND RDB$GENERATOR_NAME IS NOT NULL',
                         str_replace("'", "''", $tableName),
                         str_replace("'", "''", $columnName),
-                    ));
-                    $genName = $result->fetchOne();
-                    if ($genName !== false && $genName !== null && is_string($genName)) {
-                        /** @phpstan-ignore argument.type */
-                        $lastVal = fbird_gen_id(trim($genName), 0, $this->connection);
-                        if ($lastVal !== false) {
-                            $this->lastResolvedIdentityId = $lastVal;
+                    );
+                    /** @phpstan-ignore argument.type */
+                    $resultResource = fbird_execute_auto($this->connection, $rawSql, []);
+                    if ($resultResource !== false && $resultResource !== null) {
+                        $row = @fbird_fetch_row($resultResource);
+                        if ($row !== false && isset($row[0]) && is_string($row[0])) {
+                            $genName = trim($row[0]);
+                            if ($genName !== '') {
+                                /** @phpstan-ignore argument.type */
+                                $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                                if ($lastVal !== false) {
+                                    $this->lastResolvedIdentityId = $lastVal;
 
-                            return $lastVal;
+                                    return $lastVal;
+                                }
+                            }
                         }
                     }
                 } catch (Throwable) {
@@ -424,16 +446,21 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         if ($name === null) {
             // Try fbird_last_insert_id() - works on Firebird 5.0+ natively.
-            // Use @ to suppress the PHP warning emitted on Firebird 4.0 and earlier.
-            /** @phpstan-ignore argument.type */
-            $id = @fbird_last_insert_id($this->connection);
-            if ($id !== false) {
-                return $id;
+            // Wrap in try/catch: on Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW,
+            // this throws a Firebird\Exception rather than a PHP warning.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false) {
+                    return $id;
+                }
+            } catch (Throwable) {
+                // fbird_last_insert_id() not supported without a generator name on this Firebird version.
             }
 
             // On Firebird 4.0 and earlier, fbird_last_insert_id() requires a generator name.
-            // Use the value cached by the last dotted-name lookup (ORM calls lastInsertId('TABLE.COL')
-            // during flush(), so this will be set by the time the caller asks lastInsertId(null)).
+            // Return the value cached by the most recent dotted-name lookup. ORM calls
+            // lastInsertId('TABLE.COL') during flush(), so this will be set for ORM-driven INSERTs.
             if ($this->lastResolvedIdentityId !== null) {
                 return $this->lastResolvedIdentityId;
             }
