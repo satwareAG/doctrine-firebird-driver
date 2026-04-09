@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.4] - 2026-04-09
+
+### Fixed
+- **FirebirdComparator bool→integer default guard** (backport from 4.4.x) — `normalizeColumn()`
+  now skips bool-to-string conversion (`false` → `'0'`) for columns whose DBAL type implements
+  `PhpIntegerMappingType`. Previously, integer columns with a `false` PHP default were
+  normalised to `'0'`, causing `ALTER TABLE … DEFAULT 0` to be emitted on every schema diff
+  even when no change was intended. Boolean and string columns still receive `'0'`/`'1'`
+  normalisation so that PHP's loose `'' == false` comparison in `hasDefaultChanged()` is
+  handled correctly. ([commits 1f5b4ca/c9fefc9 on 4.4.x])
+- **BatchTest graceful skip when `Firebird\Batch` is unavailable** (backport from 4.4.x) —
+  `BatchTest::setUp()` now checks `class_exists('Firebird\Batch')` before attempting to call
+  `createBatch()`. Without this guard, a missing class (php-firebird < v7.0.0) caused a
+  fatal PHP `Error` instead of a clean `markTestSkipped()`. The catch block is narrowed to
+  `RuntimeException` (FB_API_VER mismatch), removing the now-redundant
+  `'Class "Firebird\Batch" not found'` string match. ([commit e85d91e on 4.4.x])
+
+### Docs
+- **README**: Fixed incorrect `composer install` → `composer require` in Installation section.
+- **README**: Updated PHPUnit version badge from `10.5` to `11` in Test Coverage section.
+
 ## [3.10.5] - 2026-04-07
 
 ### Changed

@@ -8,10 +8,12 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator as BaseComparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\PhpIntegerMappingType;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;
+use function is_bool;
 use function strtolower;
 use function strtoupper;
 use function trim;
@@ -96,10 +98,27 @@ final class FirebirdComparator extends BaseComparator
             $column->setPlatformOptions($platformOptions);
         }
 
-        // Normalise default value: trim whitespace and uppercase NULL sentinel
-        // getDefault() is typed string|null but can return int in practice (e.g. integer column defaults)
+        // Normalise default value: trim whitespace and uppercase NULL sentinel.
+        // getDefault() is typed string|null but can return int or bool in practice.
+        // Convert bool defaults to their string equivalents ('0'/'1') so that
+        // DBAL's hasDefaultChanged() can correctly detect changes between '' and false
+        // (PHP's loose comparison: '' == false, so we must normalise first).
         $default = $column->getDefault();
         if ($default === null) {
+            return;
+        }
+
+        if (is_bool($default)) {
+            // Integer types handle PHP bool natively (DBAL concatenates false → empty string,
+            // yielding 'DEFAULT '). Converting false→'0' here would propagate into the
+            // TableDiff and cause SQL to emit 'DEFAULT 0' instead of the expected 'DEFAULT '.
+            // Boolean/string columns DO need normalisation: PHP's loose comparison
+            // '' == false, so without '0'/'1' normalisation, hasDefaultChanged() would miss
+            // a real change from empty-string to false.
+            if (! ($column->getType() instanceof PhpIntegerMappingType)) {
+                $column->setDefault($default ? '1' : '0');
+            }
+
             return;
         }
 
