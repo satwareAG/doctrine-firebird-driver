@@ -12,6 +12,7 @@ use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;
+use function is_bool;
 use function strtolower;
 use function strtoupper;
 use function trim;

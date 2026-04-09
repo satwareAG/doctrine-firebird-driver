@@ -23,11 +23,11 @@ class StatementTest extends AbstractIntegrationTestCase
 
         $result = $statement->executeQuery();
         $row    = $result->fetchNumeric();
+        // Album SELECT * column order: id(0), timeCreated(1), name(2), artist_id(3)
         self::assertSame(1, $row[0]);
-        // Album column order in SELECT *: ID(0), ARTIST_ID(1), NAME(2), TIMECREATED(3)
+        self::assertStringStartsWith('2017-01-01 15:00:00', $row[1]);
         self::assertSame('...Baby One More Time', $row[2]);
-        self::assertStringStartsWith('2017-01-01 15:00:00', $row[3]);
-        self::assertSame(2, $row[1]);
+        self::assertSame(2, $row[3]);
     }
 
     public function testFetchAllWorks(): void
@@ -54,15 +54,15 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
+        // Album SELECT * column order: id(0), timeCreated(1), name(2), artist_id(3)
         self::assertSame(1, $rows[0][0] ?? false);
-        // Album column order in SELECT *: ID(0), ARTIST_ID(1), NAME(2), TIMECREATED(3)
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[0][1] ?? '');
         self::assertSame('...Baby One More Time', $rows[0][2] ?? false);
-        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[0][3] ?? '');
-        self::assertSame(2, $rows[0][1] ?? false);
+        self::assertSame(2, $rows[0][3] ?? false);
         self::assertSame(2, $rows[1][0] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[1][1] ?? '');
         self::assertSame('Dark Horse', $rows[1][2] ?? false);
-        self::assertStringStartsWith('2017-01-01 15:00:00', $rows[1][3] ?? '');
-        self::assertSame(3, $rows[1][1] ?? false);
+        self::assertSame(3, $rows[1][3] ?? false);
     }
 
     /**

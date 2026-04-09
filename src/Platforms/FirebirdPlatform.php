@@ -849,6 +849,19 @@ class FirebirdPlatform extends AbstractPlatform
     }
 
     #[Override]
+    public function getDefaultValueDeclarationSQL(array $column): string
+    {
+        // Convert bool defaults to string before generating SQL.
+        // Boolean values as defaults for non-boolean columns (e.g. STRING) would cause
+        // a TypeError in AbstractPlatform when quoteStringLiteral() is called.
+        if (isset($column['default']) && is_bool($column['default'])) {
+            $column['default'] = $column['default'] ? '1' : '0';
+        }
+
+        return parent::getDefaultValueDeclarationSQL($column);
+    }
+
+    #[Override]
     public function getCreateTemporaryTableSnippetSQL(): string
     {
         return 'CREATE GLOBAL TEMPORARY TABLE';
