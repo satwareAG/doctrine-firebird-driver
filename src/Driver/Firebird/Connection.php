@@ -59,7 +59,11 @@ use function method_exists;
 use function preg_match;
 use function spl_object_id;
 use function sprintf;
+use function explode;
 use function str_contains;
+use function str_replace;
+use function strtoupper;
+use function trim;
 use function version_compare;
 
 use const FBIRD_EXCEPTION_MODE_THROW;
@@ -85,6 +89,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private string|null $connectionInsertColumn = null;
 
     private int|null $connectionInsertId = null;
+
+    /** Caches the last resolved identity value across dotted-name and null lookups */
+    private int|string|null $lastResolvedIdentityId = null;
 
     private readonly Parser $parser;
 
@@ -370,31 +377,65 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         if ($name !== null && str_contains($name, '.')) {
             // Dotted names (e.g. 'ALBUM.ID') come from getIdentitySequenceName() for native identity columns.
-            // Try fbird_last_insert_id() first to get the last generated identity value,
-            // then fall back to the RETURNING-cached connectionInsertId.
-            try {
-                /** @phpstan-ignore argument.type */
-                $id = fbird_last_insert_id($this->connection);
 
-                if ($id !== false) {
-                    return $id;
+            // 1. Try fbird_last_insert_id() without a generator name - works on Firebird 5.0+ natively.
+            //    Use @ to suppress the PHP warning emitted on Firebird 4.0 and earlier where a name is required.
+            /** @phpstan-ignore argument.type */
+            $id = @fbird_last_insert_id($this->connection);
+            if ($id !== false) {
+                $this->lastResolvedIdentityId = $id;
+
+                return $id;
+            }
+
+            // 2. Firebird 4.0 and earlier: fbird_last_insert_id() without a generator name is unsupported.
+            //    Parse table and column from dotted format, look up the internal identity generator in
+            //    RDB$RELATION_FIELDS, and read its current value via fbird_gen_id().
+            $parts      = explode('.', str_replace('"', '', $name), 2);
+            $tableName  = strtoupper($parts[0]);
+            $columnName = strtoupper($parts[1] ?? '');
+
+            if ($columnName !== '') {
+                try {
+                    $result  = $this->query(sprintf(
+                        "SELECT TRIM(RDB\$GENERATOR_NAME) FROM RDB\$RELATION_FIELDS"
+                        . " WHERE UPPER(TRIM(RDB\$RELATION_NAME)) = '%s'"
+                        . " AND UPPER(TRIM(RDB\$FIELD_NAME)) = '%s'"
+                        . ' AND RDB$GENERATOR_NAME IS NOT NULL',
+                        str_replace("'", "''", $tableName),
+                        str_replace("'", "''", $columnName),
+                    ));
+                    $genName = $result->fetchOne();
+                    if ($genName !== false && $genName !== null && is_string($genName)) {
+                        /** @phpstan-ignore argument.type */
+                        $lastVal = fbird_gen_id(trim($genName), 0, $this->connection);
+                        if ($lastVal !== false) {
+                            $this->lastResolvedIdentityId = $lastVal;
+
+                            return $lastVal;
+                        }
+                    }
+                } catch (Throwable) {
                 }
-            } catch (Throwable) {
             }
 
             return $this->connectionInsertId ?? false;
         }
 
         if ($name === null) {
-            // New in v10: fbird_last_insert_id() natively retrieves the last identity value
-            try {
-                /** @phpstan-ignore argument.type */
-                $id = fbird_last_insert_id($this->connection);
+            // Try fbird_last_insert_id() - works on Firebird 5.0+ natively.
+            // Use @ to suppress the PHP warning emitted on Firebird 4.0 and earlier.
+            /** @phpstan-ignore argument.type */
+            $id = @fbird_last_insert_id($this->connection);
+            if ($id !== false) {
+                return $id;
+            }
 
-                if ($id !== false) {
-                    return $id;
-                }
-            } catch (Throwable) {
+            // On Firebird 4.0 and earlier, fbird_last_insert_id() requires a generator name.
+            // Use the value cached by the last dotted-name lookup (ORM calls lastInsertId('TABLE.COL')
+            // during flush(), so this will be set by the time the caller asks lastInsertId(null)).
+            if ($this->lastResolvedIdentityId !== null) {
+                return $this->lastResolvedIdentityId;
             }
 
             return $this->connectionInsertId ?? false;
