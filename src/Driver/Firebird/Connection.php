@@ -67,6 +67,7 @@ use function str_contains;
 use function str_replace;
 use function strtoupper;
 use function trim;
+use function var_export;
 use function version_compare;
 
 use const FBIRD_EXCEPTION_MODE_THROW;
@@ -387,7 +388,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
             // Step 1: Look up the internal identity generator name from RDB$RELATION_FIELDS.
             //         Use $this->query() (standard DBAL path) — transaction is valid at this point.
-            $genName = null;
+            $genName    = null;
+            $dbgStep1Ex = null;
             if ($columnName !== '') {
                 try {
                     $rdbResult = $this->query(sprintf(
@@ -405,21 +407,31 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                             $genName = $tmp;
                         }
                     }
-                } catch (Throwable) {
+                } catch (Throwable $e) {
+                    $dbgStep1Ex = $e->getMessage();
                 }
             }
+
+            $dbgStep2aVal = null;
+            $dbgStep2aEx  = null;
+            $dbgStep2bVal = null;
+            $dbgStep2bEx  = null;
+            $dbgStep2cVal = null;
+            $dbgStep2cEx  = null;
 
             if ($genName !== null) {
                 // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
                 try {
                     /** @phpstan-ignore argument.type */
-                    $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                    $lastVal      = fbird_gen_id($genName, 0, $this->connection);
+                    $dbgStep2aVal = $lastVal;
                     if ($lastVal > 0) {
                         $this->lastResolvedIdentityId = $lastVal;
 
                         return $lastVal;
                     }
-                } catch (Throwable) {
+                } catch (Throwable $e) {
+                    $dbgStep2aEx = $e->getMessage();
                 }
 
                 // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
@@ -432,7 +444,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     if (is_resource($autoResult) || is_object($autoResult)) {
                         $autoRow = fbird_fetch_row($autoResult);
                         if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
-                            $lastVal = (int) $autoRow[0];
+                            $lastVal      = (int) $autoRow[0];
+                            $dbgStep2bVal = $lastVal;
                             if ($lastVal > 0) {
                                 $this->lastResolvedIdentityId = $lastVal;
 
@@ -440,7 +453,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                             }
                         }
                     }
-                } catch (Throwable) {
+                } catch (Throwable $e) {
+                    $dbgStep2bEx = $e->getMessage();
                 }
 
                 // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
@@ -451,16 +465,36 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     ));
                     $genRow    = $genResult->fetchNumeric();
                     if ($genRow !== false && isset($genRow[0]) && is_numeric($genRow[0])) {
-                        $lastVal = (int) $genRow[0];
+                        $lastVal      = (int) $genRow[0];
+                        $dbgStep2cVal = $lastVal;
                         if ($lastVal > 0) {
                             $this->lastResolvedIdentityId = $lastVal;
 
                             return $lastVal;
                         }
                     }
-                } catch (Throwable) {
+                } catch (Throwable $e) {
+                    $dbgStep2cEx = $e->getMessage();
                 }
             }
+
+            // TEMP DEBUG: log why all steps failed
+            echo sprintf(
+                '[LASTINSERTID_DEBUG] name=%s tbl=%s col=%s genName=%s '
+                . 's1ex=%s s2a=%s s2aex=%s s2b=%s s2bex=%s s2c=%s s2cex=%s connInsId=%s' . "\n",
+                $name,
+                $tableName,
+                $columnName,
+                $genName ?? 'NULL',
+                $dbgStep1Ex ?? '-',
+                var_export($dbgStep2aVal, true),
+                $dbgStep2aEx ?? '-',
+                var_export($dbgStep2bVal, true),
+                $dbgStep2bEx ?? '-',
+                var_export($dbgStep2cVal, true),
+                $dbgStep2cEx ?? '-',
+                var_export($this->connectionInsertId, true),
+            );
 
             // Step 3 (last resort): fbird_last_insert_id() without a generator name (Firebird 5.0+).
             //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW, this throws a
