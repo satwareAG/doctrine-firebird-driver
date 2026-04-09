@@ -412,8 +412,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 //         More reliable than fbird_last_insert_id()/fbird_gen_id() which return 0 on FB3.0.
                 try {
                     $genResult = $this->query(sprintf(
-                        "SELECT GEN_ID('%s', 0) FROM RDB\$DATABASE",
-                        str_replace("'", "''", $genName),
+                        'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
+                        str_replace('"', '""', $genName),
                     ));
                     $genRow    = $genResult->fetchNumeric();
                     if ($genRow !== false && isset($genRow[0]) && is_numeric($genRow[0])) {
