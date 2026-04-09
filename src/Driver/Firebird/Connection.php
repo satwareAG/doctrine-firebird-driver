@@ -26,6 +26,7 @@ use UnexpectedValueException;
 
 use function assert;
 use function class_exists;
+use function explode;
 use function fbird_close;
 use function fbird_commit;
 use function fbird_connection_info;
@@ -59,7 +60,6 @@ use function method_exists;
 use function preg_match;
 use function spl_object_id;
 use function sprintf;
-use function explode;
 use function str_contains;
 use function str_replace;
 use function strtoupper;
@@ -398,9 +398,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             if ($columnName !== '') {
                 try {
                     $result  = $this->query(sprintf(
-                        "SELECT TRIM(RDB\$GENERATOR_NAME) FROM RDB\$RELATION_FIELDS"
-                        . " WHERE UPPER(TRIM(RDB\$RELATION_NAME)) = '%s'"
-                        . " AND UPPER(TRIM(RDB\$FIELD_NAME)) = '%s'"
+                        'SELECT TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
+                        . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
+                        . ' AND UPPER(TRIM(RDB$FIELD_NAME)) = \'%s\''
                         . ' AND RDB$GENERATOR_NAME IS NOT NULL',
                         str_replace("'", "''", $tableName),
                         str_replace("'", "''", $columnName),
