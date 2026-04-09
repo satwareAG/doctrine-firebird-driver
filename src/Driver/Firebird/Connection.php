@@ -369,7 +369,19 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         if ($name !== null && str_contains($name, '.')) {
-            // If it contains dots, it's likely a cached value from a previous RETURNING fetch
+            // Dotted names (e.g. 'ALBUM.ID') come from getIdentitySequenceName() for native identity columns.
+            // Try fbird_last_insert_id() first to get the last generated identity value,
+            // then fall back to the RETURNING-cached connectionInsertId.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = fbird_last_insert_id($this->connection);
+
+                if ($id !== false) {
+                    return $id;
+                }
+            } catch (Throwable) {
+            }
+
             return $this->connectionInsertId ?? false;
         }
 
