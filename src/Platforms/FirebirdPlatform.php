@@ -20,6 +20,7 @@ use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\BinaryType;
 use Doctrine\DBAL\Types\BooleanType;
+use Doctrine\DBAL\Types\PhpIntegerMappingType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
@@ -840,22 +841,22 @@ class FirebirdPlatform extends AbstractPlatform
             $column['charset'] = 'octets';
         }
 
-        // DBAL4 requires string default; convert bool defaults (e.g. boolean columns with true/false default)
-        if (isset($column['default']) && is_bool($column['default'])) {
-            $column['default'] = $column['default'] ? '1' : '0';
-        }
-
         return parent::getColumnDeclarationSQL($name, $column);
     }
 
     #[Override]
     public function getDefaultValueDeclarationSQL(array $column): string
     {
-        // Convert bool defaults to string before generating SQL.
-        // Boolean values as defaults for non-boolean columns (e.g. STRING) would cause
-        // a TypeError in AbstractPlatform when quoteStringLiteral() is called.
+        // DBAL4's getDefaultValueDeclarationSQL() calls quoteStringLiteral($default) for
+        // string/other types, which requires a string argument and throws TypeError for PHP bool.
+        // Integer types use string concatenation (no TypeError; false → ''), and BooleanType
+        // uses convertBooleans() — both handle bools natively without quoteStringLiteral.
+        // We therefore only convert bool defaults to string for non-integer, non-boolean columns.
         if (isset($column['default']) && is_bool($column['default'])) {
-            $column['default'] = $column['default'] ? '1' : '0';
+            $type = $column['type'] ?? null;
+            if (! ($type instanceof PhpIntegerMappingType) && ! ($type instanceof BooleanType)) {
+                $column['default'] = $column['default'] ? '1' : '0';
+            }
         }
 
         return parent::getDefaultValueDeclarationSQL($column);
