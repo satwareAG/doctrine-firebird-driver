@@ -8,6 +8,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator as BaseComparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Types\PhpIntegerMappingType;
 use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
@@ -108,7 +109,15 @@ final class FirebirdComparator extends BaseComparator
         }
 
         if (is_bool($default)) {
-            $column->setDefault($default ? '1' : '0');
+            // Integer types handle PHP bool natively (DBAL concatenates false → empty string,
+            // yielding 'DEFAULT '). Converting false→'0' here would propagate into the
+            // TableDiff and cause SQL to emit 'DEFAULT 0' instead of the expected 'DEFAULT '.
+            // Boolean/string columns DO need normalisation: PHP's loose comparison
+            // '' == false, so without '0'/'1' normalisation, hasDefaultChanged() would miss
+            // a real change from empty-string to false.
+            if (! ($column->getType() instanceof PhpIntegerMappingType)) {
+                $column->setDefault($default ? '1' : '0');
+            }
 
             return;
         }
