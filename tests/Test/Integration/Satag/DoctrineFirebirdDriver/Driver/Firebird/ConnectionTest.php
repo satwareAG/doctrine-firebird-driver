@@ -38,20 +38,24 @@ class ConnectionTest extends ModifyingIntegrationTestCase
     public function testLastInsertIdWorks(): void
     {
         // Use null to retrieve the last inserted identity value via fbird_last_insert_id()
-        // or the cached RETURNING value from the driver — works on all Firebird versions.
-        // Firebird3 uses sequences+triggers; Firebird4/5 use native identity columns.
-        // There is no external generator named 'ALBUM_D2IS' on Firebird4/5 native identity.
+        // or the IDENTITY generator lookup from the driver — works on all Firebird versions.
+        // The test database may already contain albums from other test classes, so we compare
+        // against the entity ID rather than a hardcoded value.
         $albumA = new Entity\Album('Foo');
         $this->_entityManager->persist($albumA);
         $this->_entityManager->flush();
         $idA = $this->_entityManager->getConnection()->lastInsertId();
-        self::assertSame(3, $idA);
+        self::assertIsInt($idA);
+        self::assertGreaterThan(0, $idA);
+        self::assertSame($albumA->getId(), $idA);
 
         $albumB = new Entity\Album('Foo');
         $this->_entityManager->persist($albumB);
         $this->_entityManager->flush();
         $idB = $this->_entityManager->getConnection()->lastInsertId();
-        self::assertSame(4, $idB);
+        self::assertIsInt($idB);
+        self::assertGreaterThan($idA, $idB);
+        self::assertSame($albumB->getId(), $idB);
     }
 
     public function testLastInsertIdThrowsExceptionWhenArgumentNameIsInvalid(): void
