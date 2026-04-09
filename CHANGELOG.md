@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.4.0] - 2026-04-07
+## [4.4.0] - 2026-04-09
 
 ### Added
 - **DBAL 4.x Support** — Full compatibility with `doctrine/dbal` 4.4.x. This is the first release
   targeting DBAL 4 as the primary supported version.
+- **PHP 8.5 support** — CI matrix extended to cover PHP 8.2 / 8.3 / 8.4 / 8.5 against
+  Firebird 3.0 / 4.0 / 5.0 (13 matrix jobs, all green).
 
 ### Changed
 - **`doctrine/dbal` requirement** — Upgraded from `^3.10` to `^4.4`.
@@ -29,8 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (the entire event hook system was removed in DBAL 4).
 - **`TableDiff::getName()` / `ColumnDiff::getOldColumnName()`** — Removed deprecated usages;
   replaced with `getOldTable()` / `getOldColumn()->getQuotedName()`.
-- **`Connection::lastInsertId($name)` with argument** — Method signature updated to take zero
-  parameters as required by DBAL 4. Sequence fallback uses direct `GEN_ID()` query.
+- **`Connection::lastInsertId($name)` with argument** — DBAL 4 drops the `$name` parameter
+  entirely. `ConnectionWrapper::lastInsertId()` now takes zero arguments; sequence values must
+  be queried directly via `GEN_ID(seq_name, 0) FROM RDB$DATABASE`. All functional tests updated.
 
 ### Fixed
 - **`getReservedKeywordsClass()` removed** — Replaced the DBAL 3 template-method pattern with
@@ -40,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `check` key in column definitions (it now only handles `min`/`max` range constraints).
   `FirebirdPlatform::_getCreateTableSQL()` now extracts column-level `check` constraints
   directly to preserve this capability.
+- **`getDefaultValueDeclarationSQL()` TypeError** — DBAL 4's implementation calls
+  `quoteStringLiteral()` on default values for general types, causing a `TypeError` when
+  the default is a PHP `bool`. The override now converts `bool` defaults to `'1'`/`'0'`
+  only for non-`PhpIntegerMappingType`, non-`BooleanType` columns (DBAL 4 handles those two
+  paths internally without string quoting).
+- **`FirebirdComparator::normalizeColumn` integer bool defaults** — The comparator's
+  `normalizeColumn()` now skips `bool`→`string` conversion for `PhpIntegerMappingType` columns.
+  Converting `false`→`'0'` caused `DEFAULT 0` to appear in generated `ALTER TABLE` SQL for
+  integer columns that had no explicit default.
+- **`BatchTest` missing class guard** — `BatchTest::setUp()` now calls
+  `class_exists('Firebird\\Batch')` and marks the test skipped when the class is absent
+  (php-firebird versions below v7.0.0). Prevents `Error: Class "Firebird\Batch" not found`
+  on CI runners using older extension builds.
 - **PHPStan** — Regenerated baseline against DBAL 4; `[OK] No errors` at level 8 (157 known
   pre-existing warnings captured in baseline).
 
@@ -413,7 +429,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.2...v4.4.0
+[3.12.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1...v3.12.2
+[3.12.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1-rc.1...v3.12.1
 [3.12.1-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...v3.12.1-rc.1
 [3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
 [3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2

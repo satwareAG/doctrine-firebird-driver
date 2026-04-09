@@ -60,7 +60,7 @@ Reasons for not investing time in schema generation include that Firebird does n
 
 Via Composer ([`satag/doctrine-firebird-driver`](https://packagist.org/packages/satag/doctrine-firebird-driver)):
 
-    composer install satag/doctrine-firebird-driver
+    composer require satag/doctrine-firebird-driver
 
 Via Github:
 
@@ -326,7 +326,7 @@ vendor/bin/phpunit tests/Test/Functional/
 - **100% pass rate** across all Firebird versions (3.0, 4.0, 5.0)
 - **Windows CI** — Fully stabilized integration tests on GitHub Actions using dedicated permissive storage (`C:\firebird_tests`) to bypass `SYSTEM` account I/O restrictions.
 - **CI/CD Audit** — Regular audits ensure parity between local (`docker-cqc.sh`, `act`) and remote GitHub Actions environments.
-- PHPUnit 10.5, PHPStan Level 8, Psalm static analysis
+- PHPUnit 11, PHPStan Level 8, Psalm static analysis
 
 ## Documentation
 
