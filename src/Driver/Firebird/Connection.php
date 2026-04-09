@@ -67,7 +67,6 @@ use function str_contains;
 use function str_replace;
 use function strtoupper;
 use function trim;
-use function var_export;
 use function version_compare;
 
 use const FBIRD_EXCEPTION_MODE_THROW;
@@ -96,6 +95,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     /** Caches the last resolved identity value across dotted-name and null lookups */
     private int|string|null $lastResolvedIdentityId = null;
+
+    /** Stores the table name of the most recent INSERT for lastInsertId(null) IDENTITY lookup */
+    private string|null $lastInsertTable = null;
 
     private readonly Parser $parser;
 
@@ -388,8 +390,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
             // Step 1: Look up the internal identity generator name from RDB$RELATION_FIELDS.
             //         Use $this->query() (standard DBAL path) — transaction is valid at this point.
-            $genName    = null;
-            $dbgStep1Ex = null;
+            $genName = null;
             if ($columnName !== '') {
                 try {
                     $rdbResult = $this->query(sprintf(
@@ -407,31 +408,21 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                             $genName = $tmp;
                         }
                     }
-                } catch (Throwable $e) {
-                    $dbgStep1Ex = $e->getMessage();
+                } catch (Throwable) {
                 }
             }
-
-            $dbgStep2aVal = null;
-            $dbgStep2aEx  = null;
-            $dbgStep2bVal = null;
-            $dbgStep2bEx  = null;
-            $dbgStep2cVal = null;
-            $dbgStep2cEx  = null;
 
             if ($genName !== null) {
                 // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
                 try {
                     /** @phpstan-ignore argument.type */
-                    $lastVal      = fbird_gen_id($genName, 0, $this->connection);
-                    $dbgStep2aVal = $lastVal;
+                    $lastVal = fbird_gen_id($genName, 0, $this->connection);
                     if ($lastVal > 0) {
                         $this->lastResolvedIdentityId = $lastVal;
 
                         return $lastVal;
                     }
-                } catch (Throwable $e) {
-                    $dbgStep2aEx = $e->getMessage();
+                } catch (Throwable) {
                 }
 
                 // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
@@ -444,8 +435,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     if (is_resource($autoResult) || is_object($autoResult)) {
                         $autoRow = fbird_fetch_row($autoResult);
                         if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
-                            $lastVal      = (int) $autoRow[0];
-                            $dbgStep2bVal = $lastVal;
+                            $lastVal = (int) $autoRow[0];
                             if ($lastVal > 0) {
                                 $this->lastResolvedIdentityId = $lastVal;
 
@@ -453,8 +443,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                             }
                         }
                     }
-                } catch (Throwable $e) {
-                    $dbgStep2bEx = $e->getMessage();
+                } catch (Throwable) {
                 }
 
                 // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
@@ -465,42 +454,18 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     ));
                     $genRow    = $genResult->fetchNumeric();
                     if ($genRow !== false && isset($genRow[0]) && is_numeric($genRow[0])) {
-                        $lastVal      = (int) $genRow[0];
-                        $dbgStep2cVal = $lastVal;
+                        $lastVal = (int) $genRow[0];
                         if ($lastVal > 0) {
                             $this->lastResolvedIdentityId = $lastVal;
 
                             return $lastVal;
                         }
                     }
-                } catch (Throwable $e) {
-                    $dbgStep2cEx = $e->getMessage();
+                } catch (Throwable) {
                 }
             }
 
-            // TEMP DEBUG: log why all steps failed
-            echo sprintf(
-                '[LASTINSERTID_DEBUG] name=%s tbl=%s col=%s genName=%s '
-                . 's1ex=%s s2a=%s s2aex=%s s2b=%s s2bex=%s s2c=%s s2cex=%s connInsId=%s' . "\n",
-                $name,
-                $tableName,
-                $columnName,
-                $genName ?? 'NULL',
-                $dbgStep1Ex ?? '-',
-                var_export($dbgStep2aVal, true),
-                $dbgStep2aEx ?? '-',
-                var_export($dbgStep2bVal, true),
-                $dbgStep2bEx ?? '-',
-                var_export($dbgStep2cVal, true),
-                $dbgStep2cEx ?? '-',
-                var_export($this->connectionInsertId, true),
-            );
-
-            // Step 3 (last resort): fbird_last_insert_id() without a generator name (Firebird 5.0+).
-            //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW, this throws a
-            //         Firebird\Exception. Wrap in try/catch to handle gracefully.
-            //         NOTE: Only reached if genName lookup failed (Step 1) or all GEN_ID steps failed.
-            //         On FB 3.0/4.0, Steps 2a-2c succeed so this is never reached in normal operation.
+            // Last resort: fbird_last_insert_id() without name — Firebird 5.0+ only.
             try {
                 /** @phpstan-ignore argument.type */
                 $id = @fbird_last_insert_id($this->connection);
@@ -510,7 +475,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     return $id;
                 }
             } catch (Throwable) {
-                // The Firebird exception may have aborted the current transaction. Restart if needed.
+                // On FB 3.0/4.0 this throws; transaction may be aborted — restart if needed.
                 if (! $this->isTransactionValid()) {
                     try {
                         $this->transactionManager->beginTransaction();
@@ -523,22 +488,36 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         if ($name === null) {
-            // Try fbird_last_insert_id() - works on Firebird 5.0+ natively.
-            // Wrap in try/catch: on Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW,
-            // this throws a Firebird\Exception rather than a PHP warning.
+            // Firebird 5.0+: fbird_last_insert_id() works without a generator name.
             try {
                 /** @phpstan-ignore argument.type */
                 $id = @fbird_last_insert_id($this->connection);
-                if ($id !== false) {
+                if ($id !== false && $id > 0) {
                     return $id;
                 }
             } catch (Throwable) {
-                // fbird_last_insert_id() not supported without a generator name on this Firebird version.
+                // Not supported on this FB version — fall through to table-based lookup.
             }
 
-            // On Firebird 4.0 and earlier, fbird_last_insert_id() requires a generator name.
-            // Return the value cached by the most recent dotted-name lookup. ORM calls
-            // lastInsertId('TABLE.COL') during flush(), so this will be set for ORM-driven INSERTs.
+            // Firebird 3.0/4.0: look up the IDENTITY generator for the last INSERT table.
+            // Statement::execute() caches the table name via setLastInsertTable() after every INSERT.
+            if ($this->lastInsertTable !== null) {
+                $genName = $this->resolveIdentityGenerator($this->lastInsertTable);
+                if ($genName !== null) {
+                    try {
+                        /** @phpstan-ignore argument.type */
+                        $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                        if ($lastVal !== false && $lastVal > 0) {
+                            $this->lastResolvedIdentityId = $lastVal;
+
+                            return $lastVal;
+                        }
+                    } catch (Throwable) {
+                    }
+                }
+            }
+
+            // Fall back to the cached value from a prior dotted-name lookup.
             if ($this->lastResolvedIdentityId !== null) {
                 return $this->lastResolvedIdentityId;
             }
@@ -560,6 +539,42 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     public function setLastInsertId(int $id): void
     {
         $this->connectionInsertId = $id;
+    }
+
+    /**
+     * Cache the table name of the most recently executed INSERT statement.
+     * Called by Statement::execute() so that lastInsertId(null) can resolve
+     * the IDENTITY generator on Firebird 3.0/4.0.
+     */
+    public function setLastInsertTable(string|null $table): void
+    {
+        $this->lastInsertTable = $table;
+    }
+
+    /**
+     * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
+     * Returns null if no IDENTITY column is found or the lookup fails.
+     */
+    private function resolveIdentityGenerator(string $tableName): string|null
+    {
+        try {
+            $rdbResult = $this->query(sprintf(
+                'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
+                . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
+                . ' AND RDB$GENERATOR_NAME IS NOT NULL',
+                str_replace("'", "''", strtoupper($tableName)),
+            ));
+            $rdbRow = $rdbResult->fetchNumeric();
+            if ($rdbRow !== false && isset($rdbRow[0]) && is_string($rdbRow[0])) {
+                $tmp = trim($rdbRow[0]);
+                if ($tmp !== '') {
+                    return $tmp;
+                }
+            }
+        } catch (Throwable) {
+        }
+
+        return null;
     }
 
     #[Override]

@@ -29,6 +29,7 @@ use function is_resource;
 use function ksort;
 use function preg_match;
 use function sprintf;
+use function strtoupper;
 use function trim;
 
 /**
@@ -74,7 +75,7 @@ final class Statement implements StatementInterface
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], string $sql = '')
+    public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], private string $sql = '')
     {
         $this->blobHandler = new BlobHandler();
 
@@ -291,6 +292,16 @@ final class Statement implements StatementInterface
                 // else: This is a SELECT query - keep the resource for fetching
                 // No auto-commit needed for SELECT (doesn't make changes)
             }
+        }
+
+        // Cache the INSERT table name so that lastInsertId(null) can resolve the IDENTITY
+        // generator on Firebird 3.0/4.0 (where fbird_last_insert_id() requires a generator name).
+        if ($this->isInsert && preg_match(
+            '/INSERT\s+INTO\s+"?([A-Za-z_\x80-\xFF][A-Za-z0-9_$\x80-\xFF]*)"?\s*[(\s]/i',
+            $this->sql,
+            $m,
+        ) === 1) {
+            $this->connection->setLastInsertTable(strtoupper(trim((string) $m[1], '"')));
         }
 
         if ($fbirdResultRc === false) {
