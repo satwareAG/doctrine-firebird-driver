@@ -553,7 +553,9 @@ SQL;
             $type = 'binary';
         }
 
-        if (! empty($tableColumn['FIELD_DESCRIPTION'])) {
+        // Use explicit null/empty check instead of empty() to preserve '0' as a valid comment value.
+        // PHP's empty() treats '0' as empty, which would silently drop a valid comment.
+        if ($tableColumn['FIELD_DESCRIPTION'] !== null && $tableColumn['FIELD_DESCRIPTION'] !== '') {
             $options['comment'] = $tableColumn['FIELD_DESCRIPTION'];
         }
 

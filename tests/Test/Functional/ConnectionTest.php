@@ -111,7 +111,7 @@ class ConnectionTest extends FunctionalTestCase
                 self::assertSame(2, $this->connection->getTransactionNestingLevel());
                 $this->connection->beginTransaction();
                 self::assertSame(3, $this->connection->getTransactionNestingLevel());
-                self::assertTrue($this->connection->commit());
+                $this->connection->commit();
                 self::assertSame(2, $this->connection->getTransactionNestingLevel());
 
                 $this->connection->insert(self::TABLE, ['id' => 1]);
@@ -126,7 +126,8 @@ class ConnectionTest extends FunctionalTestCase
             try {
                 $this->connection->setNestTransactionsWithSavepoints(false);
                 self::fail('Should not be able to disable savepoints in usage inside a nested open transaction.');
-            } catch (ConnectionException) {
+            } catch (InvalidArgumentException) {
+                // DBAL4: setNestTransactionsWithSavepoints(false) always throws InvalidArgumentException
                 self::assertTrue($this->connection->getNestTransactionsWithSavepoints());
             }
 
@@ -138,13 +139,11 @@ class ConnectionTest extends FunctionalTestCase
 
     public function testTransactionNestingBehaviorCantBeChangedInActiveTransaction(): void
     {
-        if (! $this->connection->getDatabasePlatform()->supportsSavepoints()) {
-            self::markTestSkipped('This test requires the platform to support savepoints.');
-        }
-
-        $this->connection->beginTransaction();
-        $this->expectException(ConnectionException::class);
-        $this->connection->setNestTransactionsWithSavepoints(true);
+        // DBAL4: setNestTransactionsWithSavepoints(false) ALWAYS throws InvalidArgumentException,
+        // regardless of transaction state - savepoints are permanently enabled when supported.
+        // setNestTransactionsWithSavepoints(true) is now a deprecated no-op (never throws).
+        $this->expectException(InvalidArgumentException::class);
+        $this->connection->setNestTransactionsWithSavepoints(false);
     }
 
     public function testTransactionIsInactiveAfterConnectionClose(): void

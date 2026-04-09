@@ -96,10 +96,13 @@ final class FirebirdComparator extends BaseComparator
             $column->setPlatformOptions($platformOptions);
         }
 
-        // Normalise default value: trim whitespace and uppercase NULL sentinel
-        // getDefault() is typed string|null but can return int in practice (e.g. integer column defaults)
+        // Normalise default value: trim whitespace and uppercase NULL sentinel.
+        // getDefault() is typed string|null but can return int or bool in practice.
+        // Skip boolean defaults - (string) false === '' which would incorrectly
+        // equal '' and prevent detection of '' → false diffs. Let the platform
+        // SQL generator handle bool→'0'/'1' conversion.
         $default = $column->getDefault();
-        if ($default === null) {
+        if ($default === null || is_bool($default)) {
             return;
         }
 
