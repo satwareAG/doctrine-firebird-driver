@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
+use function class_exists;
 use function microtime;
 use function preg_match;
 use function str_contains;
@@ -100,8 +101,15 @@ class BatchTest extends FunctionalTestCase
             return;
         }
 
-        // Also verify php-firebird was compiled with FB_API_VER >= 40
-        // by attempting to create a batch (will throw if not supported)
+        // Also verify php-firebird was compiled with FB_API_VER >= 40.
+        // The Firebird\Batch class is only present in php-firebird v7.0.0+;
+        // skip gracefully if it is missing instead of failing with a PHP Error.
+        if (! class_exists('Firebird\Batch')) {
+            $this->markTestSkipped('IBatch API requires php-firebird v7.0.0+ (Firebird\Batch class not available)');
+
+            return;
+        }
+
         try {
             $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
         } catch (RuntimeException $e) {
