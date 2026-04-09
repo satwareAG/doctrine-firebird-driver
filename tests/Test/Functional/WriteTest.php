@@ -168,10 +168,15 @@ class WriteTest extends FunctionalTestCase
             $this->connection->getDatabasePlatform()->getSequenceNextValSQL('write_table_id_seq'),
         );
 
-        $lastInsertId = $this->lastInsertId('write_table_id_seq');
+        // DBAL4 removed the $name parameter from Connection::lastInsertId(); passing a name
+        // is silently ignored and the method returns the last INSERT-generated id instead of the
+        // named sequence value. Verify the current sequence value directly via GEN_ID(seq, 0).
+        $currentSequenceVal = $this->connection->fetchOne(
+            'SELECT GEN_ID(WRITE_TABLE_ID_SEQ, 0) FROM RDB$DATABASE',
+        );
 
-        self::assertGreaterThan(0, $lastInsertId);
-        self::assertEquals($nextSequenceVal, $lastInsertId);
+        self::assertGreaterThan(0, $currentSequenceVal);
+        self::assertEquals($nextSequenceVal, $currentSequenceVal);
     }
 
     public function testLastInsertIdNoSequenceGiven(): void
