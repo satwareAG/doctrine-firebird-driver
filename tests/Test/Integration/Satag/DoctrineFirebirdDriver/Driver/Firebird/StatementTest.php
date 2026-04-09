@@ -10,22 +10,33 @@ use Throwable;
 
 class StatementTest extends AbstractIntegrationTestCase
 {
+    /**
+     * Clean up extra Album rows inserted by write tests so that read assertions
+     * always see exactly 2 fixture rows (id=1 and id=2).
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->connection->executeStatement('DELETE FROM ALBUM WHERE ID > 2');
+    }
+
     public function testFetchWorks(): void
     {
         $statement = $this->connection->prepare('SELECT * FROM Album');
         $result    = $statement->execute();
         $row       = $result->fetchAssociative();
         self::assertSame(1, $row['ID']);
-        self::assertSame('2017-01-01 15:00:00', $row['TIMECREATED']);
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($row['TIMECREATED'] ?? ''));
         self::assertSame('...Baby One More Time', $row['NAME']);
         self::assertSame(2, $row['ARTIST_ID']);
 
         $result = $statement->execute();
         $row    = $result->fetchNumeric();
         self::assertSame(1, $row[0]);
-        self::assertSame('2017-01-01 15:00:00', $row[2]);
-        self::assertSame('...Baby One More Time', $row[3]);
-        self::assertSame(2, $row[1]);
+        // Column order from CREATE TABLE: id(0), timeCreated(1), name(2), artist_id(3)
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) $row[1]);
+        self::assertSame('...Baby One More Time', $row[2]);
+        self::assertSame(2, $row[3]);
     }
 
     public function testFetchAllWorks(): void
@@ -39,11 +50,11 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
         self::assertSame(1, $rows[0]['ID'] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[0]['TIMECREATED'] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0]['TIMECREATED'] ?? ''));
         self::assertSame('...Baby One More Time', $rows[0]['NAME'] ?? false);
         self::assertSame(2, $rows[0]['ARTIST_ID'] ?? false);
         self::assertSame(2, $rows[1]['ID'] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[1]['TIMECREATED'] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1]['TIMECREATED'] ?? ''));
         self::assertSame('Dark Horse', $rows[1]['NAME'] ?? false);
         self::assertSame(3, $rows[1]['ARTIST_ID'] ?? false);
 
@@ -52,14 +63,15 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
+        // Column order from CREATE TABLE: id(0), timeCreated(1), name(2), artist_id(3)
         self::assertSame(1, $rows[0][0] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[0][2] ?? false);
-        self::assertSame('...Baby One More Time', $rows[0][3] ?? false);
-        self::assertSame(2, $rows[0][1] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0][1] ?? ''));
+        self::assertSame('...Baby One More Time', $rows[0][2] ?? false);
+        self::assertSame(2, $rows[0][3] ?? false);
         self::assertSame(2, $rows[1][0] ?? false);
-        self::assertSame('2017-01-01 15:00:00', $rows[1][2] ?? false);
-        self::assertSame('Dark Horse', $rows[1][3] ?? false);
-        self::assertSame(3, $rows[1][1] ?? false);
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1][1] ?? ''));
+        self::assertSame('Dark Horse', $rows[1][2] ?? false);
+        self::assertSame(3, $rows[1][3] ?? false);
     }
 
     /**

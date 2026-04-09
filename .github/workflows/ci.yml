@@ -104,7 +104,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@728c6c6b8cf02c2e48117716a91ee48313958a19
@@ -177,7 +177,7 @@ jobs:
 
       - name: Cache php-firebird extension
         id: cache-php-firebird
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: /tmp/php-firebird-bin
           key: php-firebird-v10.6.2-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
@@ -234,7 +234,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
@@ -348,7 +348,7 @@ jobs:
           
       - name: Upload debug artifacts
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: debug-logs-${{ matrix.php-version }}-${{ matrix.firebird.version }}
           path: tests/var/logs/
@@ -398,7 +398,7 @@ jobs:
 
       - name: Upload coverage and test results to Codecov
         if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
         with:
           # Upload both coverage (clover XML) and test results (JUnit XML) in one step.
           # codecov/test-results-action@v1 is deprecated — consolidated into codecov-action@v5.
@@ -417,7 +417,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@728c6c6b8cf02c2e48117716a91ee48313958a19
@@ -438,7 +438,7 @@ jobs:
 
       - name: Cache php-firebird extension
         id: cache-php-firebird
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: /tmp/php-firebird-bin
           # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
@@ -483,7 +483,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
