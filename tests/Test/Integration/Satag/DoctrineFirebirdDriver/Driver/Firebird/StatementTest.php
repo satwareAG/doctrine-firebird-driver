@@ -14,7 +14,7 @@ class StatementTest extends AbstractIntegrationTestCase
      * Clean up extra Album rows inserted by write tests so that read assertions
      * always see exactly 2 fixture rows (id=1 and id=2).
      */
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->connection->executeStatement('DELETE FROM ALBUM WHERE ID > 2');
