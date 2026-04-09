@@ -381,23 +381,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         if ($name !== null && str_contains($name, '.')) {
             // Dotted names (e.g. '"ALBUM"."id"') come from getIdentitySequenceName() for native identity columns.
 
-            // Step 0: Try fbird_last_insert_id() WITHOUT a sequence name FIRST — before any other queries.
-            //         On Firebird 5.0+, this returns the last identity value inserted on this connection,
-            //         but only when called immediately after the INSERT (subsequent queries clear the context).
-            //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW this throws a Firebird
-            //         exception — caught here, not a transaction-aborting error.
-            try {
-                /** @phpstan-ignore argument.type */
-                $id = @fbird_last_insert_id($this->connection);
-                if ($id !== false && $id > 0) {
-                    $this->lastResolvedIdentityId = $id;
-
-                    return $id;
-                }
-            } catch (Throwable) {
-                // Firebird < 5.0: not supported without a sequence name — continue to generator lookup.
-            }
-
             $parts      = explode('.', str_replace('"', '', $name), 2);
             $tableName  = strtoupper($parts[0]);
             $columnName = strtoupper($parts[1] ?? '');
@@ -453,12 +436,13 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 }
 
                 // Step 3b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
+                //          php-firebird v10+ returns Firebird\Result objects; v7 returns resources.
                 try {
                     $autoResult = $this->executeAuto(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
                         str_replace('"', '""', $genName),
                     ));
-                    if (is_resource($autoResult)) {
+                    if (is_resource($autoResult) || is_object($autoResult)) {
                         $autoRow = fbird_fetch_row($autoResult);
                         if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
                             $lastVal = (int) $autoRow[0];
