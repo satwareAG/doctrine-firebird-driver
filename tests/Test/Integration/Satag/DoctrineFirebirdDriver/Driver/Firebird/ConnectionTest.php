@@ -13,7 +13,6 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
-use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\Integration\ModifyingIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 use UnexpectedValueException;
@@ -38,23 +37,20 @@ class ConnectionTest extends ModifyingIntegrationTestCase
 
     public function testLastInsertIdWorks(): void
     {
-        if ($this->_platform instanceof Firebird3Platform) { // other platforms support Identity Columns
-            $lid = null;
-        } else {
-            $lid = 'ALBUM_D2IS';
-            $id  = $this->_entityManager->getConnection()->lastInsertId('ALBUM_D2IS');
-            self::assertSame(2, $id); // 2x ALBUM are inserted in database_setup25.sql
-        }
-
+        // Use null to retrieve the last inserted identity value via fbird_last_insert_id()
+        // or the cached RETURNING value from the driver — works on all Firebird versions.
+        // Firebird3 uses sequences+triggers; Firebird4/5 use native identity columns.
+        // There is no external generator named 'ALBUM_D2IS' on Firebird4/5 native identity.
         $albumA = new Entity\Album('Foo');
         $this->_entityManager->persist($albumA);
         $this->_entityManager->flush();
-        $idA = $this->_entityManager->getConnection()->lastInsertId($lid);
+        $idA = $this->_entityManager->getConnection()->lastInsertId();
         self::assertSame(3, $idA);
+
         $albumB = new Entity\Album('Foo');
         $this->_entityManager->persist($albumB);
         $this->_entityManager->flush();
-        $idB = $this->_entityManager->getConnection()->lastInsertId($lid);
+        $idB = $this->_entityManager->getConnection()->lastInsertId();
         self::assertSame(4, $idB);
     }
 

@@ -33,10 +33,11 @@ class StatementTest extends AbstractIntegrationTestCase
         $result = $statement->execute();
         $row    = $result->fetchNumeric();
         self::assertSame(1, $row[0]);
-        // Column order from CREATE TABLE: id(0), timeCreated(1), name(2), artist_id(3)
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) $row[1]);
-        self::assertSame('...Baby One More Time', $row[2]);
-        self::assertSame(2, $row[3]);
+        // Actual physical DB column order (confirmed by CI): id(0), artist_id(1), timeCreated(2), name(3)
+        // Doctrine DBAL schema adds: id, timeCreated, name, artist_id — but Firebird may reorder columns
+        self::assertSame(2, $row[1]); // artist_id = 2 (Britney Spears)
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) $row[2]); // timeCreated
+        self::assertSame('...Baby One More Time', $row[3]); // name
     }
 
     public function testFetchAllWorks(): void
@@ -63,15 +64,15 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
-        // Column order from CREATE TABLE: id(0), timeCreated(1), name(2), artist_id(3)
+        // Actual physical DB column order (confirmed by CI): id(0), artist_id(1), timeCreated(2), name(3)
         self::assertSame(1, $rows[0][0] ?? false);
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0][1] ?? ''));
-        self::assertSame('...Baby One More Time', $rows[0][2] ?? false);
-        self::assertSame(2, $rows[0][3] ?? false);
+        self::assertSame(2, $rows[0][1] ?? false); // artist_id = 2 (Britney Spears)
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0][2] ?? '')); // timeCreated
+        self::assertSame('...Baby One More Time', $rows[0][3] ?? false); // name
         self::assertSame(2, $rows[1][0] ?? false);
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1][1] ?? ''));
-        self::assertSame('Dark Horse', $rows[1][2] ?? false);
-        self::assertSame(3, $rows[1][3] ?? false);
+        self::assertSame(3, $rows[1][1] ?? false); // artist_id = 3 (Nickelback)
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1][2] ?? '')); // timeCreated
+        self::assertSame('Dark Horse', $rows[1][3] ?? false); // name
     }
 
     /**
