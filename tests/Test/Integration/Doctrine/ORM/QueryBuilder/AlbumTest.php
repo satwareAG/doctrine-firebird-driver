@@ -9,8 +9,6 @@ use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 use function count;
 
-use const PHP_INT_MAX;
-
 class AlbumTest extends ReadOnlyIntegrationTestCase
 {
     public function testSelect(): void
@@ -191,7 +189,7 @@ class AlbumTest extends ReadOnlyIntegrationTestCase
         $expectedDQL .= ' WHERE album.id > 0';
         self::assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL  = 'SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,';
-        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 1 TO 1';
+        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 FETCH FIRST 1 ROWS ONLY';
         self::assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
         self::assertIsArray($albums);
@@ -215,8 +213,7 @@ class AlbumTest extends ReadOnlyIntegrationTestCase
         $expectedDQL .= ' WHERE album.id > 0';
         self::assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL  = 'SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,';
-        // Firebird platform: offset-only uses ROWS {offset+1} TO PHP_INT_MAX
-        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 2 TO ' . PHP_INT_MAX;
+        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 OFFSET 1 ROWS';
         self::assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
         self::assertIsArray($albums);
@@ -240,8 +237,7 @@ class AlbumTest extends ReadOnlyIntegrationTestCase
         $expectedDQL .= ' WHERE album.id > 0';
         self::assertSame($expectedDQL, $qb->getQuery()->getDQL());
         $expectedSQL  = 'SELECT a0_.id AS ID_0, a0_.timeCreated AS TIMECREATED_1, a0_.name AS NAME_2,';
-        // Firebird platform: offset=1, limit=1 → ROWS 2 TO 2
-        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 ROWS 2 TO 2';
+        $expectedSQL .= ' a0_.artist_id AS ARTIST_ID_3 FROM ALBUM a0_ WHERE a0_.id > 0 OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY';
         self::assertSame($expectedSQL, $qb->getQuery()->getSQL());
         $albums = $qb->getQuery()->getResult();
         self::assertIsArray($albums);
