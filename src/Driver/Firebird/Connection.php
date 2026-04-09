@@ -379,7 +379,25 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         if ($name !== null && str_contains($name, '.')) {
-            // Dotted names (e.g. 'ALBUM.ID') come from getIdentitySequenceName() for native identity columns.
+            // Dotted names (e.g. '"ALBUM"."id"') come from getIdentitySequenceName() for native identity columns.
+
+            // Step 0: Try fbird_last_insert_id() WITHOUT a sequence name FIRST — before any other queries.
+            //         On Firebird 5.0+, this returns the last identity value inserted on this connection,
+            //         but only when called immediately after the INSERT (subsequent queries clear the context).
+            //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW this throws a Firebird
+            //         exception — caught here, not a transaction-aborting error.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false && $id > 0) {
+                    $this->lastResolvedIdentityId = $id;
+
+                    return $id;
+                }
+            } catch (Throwable) {
+                // Firebird < 5.0: not supported without a sequence name — continue to generator lookup.
+            }
+
             $parts      = explode('.', str_replace('"', '', $name), 2);
             $tableName  = strtoupper($parts[0]);
             $columnName = strtoupper($parts[1] ?? '');
@@ -409,7 +427,20 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
 
             if ($genName !== null) {
-                // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
+                // Step 2: fbird_last_insert_id() WITH the resolved generator name — most reliable on all
+                //         Firebird versions when the generator name is known.
+                try {
+                    /** @phpstan-ignore argument.type */
+                    $id = @fbird_last_insert_id($this->connection, $genName);
+                    if ($id !== false && $id > 0) {
+                        $this->lastResolvedIdentityId = $id;
+
+                        return $id;
+                    }
+                } catch (Throwable) {
+                }
+
+                // Step 3a: fbird_gen_id() directly — reads current generator value without SQL overhead.
                 try {
                     /** @phpstan-ignore argument.type */
                     $lastVal = fbird_gen_id($genName, 0, $this->connection);
@@ -421,7 +452,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 } catch (Throwable) {
                 }
 
-                // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
+                // Step 3b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
                 try {
                     $autoResult = $this->executeAuto(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
@@ -441,7 +472,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                 } catch (Throwable) {
                 }
 
-                // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
+                // Step 3c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
                 try {
                     $genResult = $this->query(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
@@ -457,27 +488,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                         }
                     }
                 } catch (Throwable) {
-                }
-            }
-
-            // Step 4: Last resort — fbird_last_insert_id() without a generator name (Firebird 5.0+).
-            //         On Firebird 4.0 and earlier with FBIRD_EXCEPTION_MODE_THROW, this throws a
-            //         Firebird\Exception. Wrap in try/catch to handle gracefully.
-            try {
-                /** @phpstan-ignore argument.type */
-                $id = @fbird_last_insert_id($this->connection);
-                if ($id !== false && $id > 0) {
-                    $this->lastResolvedIdentityId = $id;
-
-                    return $id;
-                }
-            } catch (Throwable) {
-                // The Firebird exception may have aborted the current transaction. Restart if needed.
-                if (! $this->isTransactionValid()) {
-                    try {
-                        $this->transactionManager->beginTransaction();
-                    } catch (Throwable) {
-                    }
                 }
             }
 
