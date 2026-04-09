@@ -1,9 +1,9 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last updated:** 2026-04-07
-**Branch:** `3.10.x` (HEAD: 06cb4a2)
+**Last updated:** 2026-04-09
+**Branch:** `3.10.x` (HEAD: 0eedbe4)
 **Extension:** php-firebird v10.6.2 (`ext-firebird: ^10.6`)
-**Status:** All 3.10.x phases complete. Zero open issues on 3.10.x/3.12.x. Active work: `4.4.x` DBAL 4 migration.
+**Status:** v3.12.4 released (backports from 4.4.x). 3.10.x in maintenance mode. v4.4.0 released on 4.4.x.
 
 ---
 
@@ -11,7 +11,8 @@
 
 | Tag | GitHub Release | Notes |
 |-----|---------------|-------|
-| v3.12.3 | ✅ Created 2026-04-07 | **GitHub Latest** - Standard SQL Pagination + Docker stability |
+| v3.12.4 | ✅ Created 2026-04-09 | **GitHub Latest** - Backports from 4.4.x: comparator bool/int guard, BatchTest class_exists |
+| v3.12.3 | ✅ Exists | Standard SQL Pagination + Docker stability |
 | v3.12.2 | ✅ Exists | "Final DBAL 3 Maintenance Release" (superseded by v3.12.3) |
 | v3.12.0 | ✅ Exists | Stable release |
 | v3.11.0 | ✅ Exists | CharsetMiddleware: transparent Firebird charset conversion |
