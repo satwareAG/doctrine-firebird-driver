@@ -422,7 +422,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     );
                     /** @phpstan-ignore argument.type */
                     $resultResource = fbird_execute_auto($this->connection, $rawSql, []);
-                    if ($resultResource !== false && $resultResource !== null) {
+                    if (is_resource($resultResource)) {
                         $row = @fbird_fetch_row($resultResource);
                         if ($row !== false && isset($row[0]) && is_string($row[0])) {
                             $genName = trim($row[0]);

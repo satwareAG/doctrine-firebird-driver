@@ -82,6 +82,7 @@
     </RedundantConditionGivenDocblockType>
     <TooFewArguments>
       <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
+      <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
     </TooFewArguments>
     <TypeDoesNotContainType>
       <code><![CDATA[is_object($this->connection)]]></code>
