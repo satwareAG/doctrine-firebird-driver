@@ -99,11 +99,17 @@ final class FirebirdComparator extends BaseComparator
 
         // Normalise default value: trim whitespace and uppercase NULL sentinel.
         // getDefault() is typed string|null but can return int or bool in practice.
-        // Skip boolean defaults - (string) false === '' which would incorrectly
-        // equal '' and prevent detection of '' → false diffs. Let the platform
-        // SQL generator handle bool→'0'/'1' conversion.
+        // Convert bool defaults to their string equivalents ('0'/'1') so that
+        // DBAL's hasDefaultChanged() can correctly detect changes between '' and false
+        // (PHP's loose comparison: '' == false, so we must normalise first).
         $default = $column->getDefault();
-        if ($default === null || is_bool($default)) {
+        if ($default === null) {
+            return;
+        }
+
+        if (is_bool($default)) {
+            $column->setDefault($default ? '1' : '0');
+
             return;
         }
 

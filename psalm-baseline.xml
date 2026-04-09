@@ -182,7 +182,6 @@
     <InternalMethod>
       <code><![CDATA[getCommentOnColumnSQL]]></code>
       <code><![CDATA[getCommentOnColumnSQL]]></code>
-      <code><![CDATA[getDefaultValueDeclarationSQL]]></code>
       <code><![CDATA[getName]]></code>
       <code><![CDATA[getName]]></code>
       <code><![CDATA[getQuotedName]]></code>
