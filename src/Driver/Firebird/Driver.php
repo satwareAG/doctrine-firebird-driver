@@ -29,6 +29,7 @@ use const FBIRD_SVC_SERVER_VERSION;
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
  *
  * @psalm-suppress UnusedClass
+ * @psalm-suppress DeprecatedInterface
  */
 final class Driver extends FirebirdDriver
 {
