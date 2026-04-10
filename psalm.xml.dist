@@ -21,6 +21,31 @@
         <file name="stubs/firebird-userland-classes.php" />
     </stubs>
     <issueHandlers>
+        <!-- MissingOverrideAttribute: all #[Override] usages in this project use the
+             Compat\Override polyfill attribute, not PHP 8.3's native #[\Override].
+             Psalm (CI, ext-firebird installed) cannot recognise the custom attribute as
+             equivalent, so it reports MissingOverrideAttribute on every overriding method.
+             Suppressed project-wide since the polyfill is intentional. -->
+        <MissingOverrideAttribute>
+            <errorLevel type="suppress">
+                <directory name="src"/>
+            </errorLevel>
+        </MissingOverrideAttribute>
+        <!-- DocblockTypeContradiction / PossiblyInvalidArgument in Connection.php:
+             php-firebird v10+ fbird_* functions accept Firebird\Connection objects as
+             well as legacy resources. Psalm (CI) resolves the OO types via ext-firebird
+             stubs and reports contradictions with docblock resource-only type hints.
+             The runtime logic is correct; suppress here until stubs are updated. -->
+        <DocblockTypeContradiction>
+            <errorLevel type="suppress">
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </DocblockTypeContradiction>
+        <PossiblyInvalidArgument>
+            <errorLevel type="suppress">
+                <file name="src/Driver/Firebird/Connection.php"/>
+            </errorLevel>
+        </PossiblyInvalidArgument>
         <InternalClass>
             <errorLevel type="suppress">
                 <referencedClass name="Doctrine\DBAL\SQL\Parser"/>
