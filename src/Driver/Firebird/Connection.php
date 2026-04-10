@@ -76,6 +76,8 @@ use const FBIRD_EXCEPTION_MODE_THROW;
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
  * and Doctrine\DBAL\Driver\OCI8\Connection
+ *
+ * @psalm-suppress DeprecatedInterface
  */
 final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
 {

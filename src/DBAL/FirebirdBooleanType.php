@@ -11,6 +11,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 final class FirebirdBooleanType extends BooleanType
 {
+    /** @psalm-suppress MissingOverrideAttribute */
     #[Override]
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool
     {
