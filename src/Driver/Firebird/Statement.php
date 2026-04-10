@@ -296,11 +296,13 @@ final class Statement implements StatementInterface
 
         // Cache the INSERT table name so that lastInsertId(null) can resolve the IDENTITY
         // generator on Firebird 3.0/4.0 (where fbird_last_insert_id() requires a generator name).
-        if ($this->isInsert && preg_match(
-            '/INSERT\s+INTO\s+"?([A-Za-z_\x80-\xFF][A-Za-z0-9_$\x80-\xFF]*)"?\s*[(\s]/i',
-            $this->sql,
-            $m,
-        ) === 1) {
+        if (
+            $this->isInsert && preg_match(
+                '/INSERT\s+INTO\s+"?([A-Za-z_\x80-\xFF][A-Za-z0-9_$\x80-\xFF]*)"?\s*[(\s]/i',
+                $this->sql,
+                $m,
+            ) === 1
+        ) {
             $this->connection->setLastInsertTable(strtoupper(trim((string) $m[1], '"')));
         }
 

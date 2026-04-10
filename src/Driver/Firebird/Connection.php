@@ -551,32 +551,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         $this->lastInsertTable = $table;
     }
 
-    /**
-     * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
-     * Returns null if no IDENTITY column is found or the lookup fails.
-     */
-    private function resolveIdentityGenerator(string $tableName): string|null
-    {
-        try {
-            $rdbResult = $this->query(sprintf(
-                'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
-                . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
-                . ' AND RDB$GENERATOR_NAME IS NOT NULL',
-                str_replace("'", "''", strtoupper($tableName)),
-            ));
-            $rdbRow = $rdbResult->fetchNumeric();
-            if ($rdbRow !== false && isset($rdbRow[0]) && is_string($rdbRow[0])) {
-                $tmp = trim($rdbRow[0]);
-                if ($tmp !== '') {
-                    return $tmp;
-                }
-            }
-        } catch (Throwable) {
-        }
-
-        return null;
-    }
-
     #[Override]
     public function beginTransaction(): bool
     {
@@ -1055,6 +1029,32 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         return self::$resourceRegistry[$id] ?? 0;
+    }
+
+    /**
+     * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
+     * Returns null if no IDENTITY column is found or the lookup fails.
+     */
+    private function resolveIdentityGenerator(string $tableName): string|null
+    {
+        try {
+            $rdbResult = $this->query(sprintf(
+                'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
+                . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
+                . ' AND RDB$GENERATOR_NAME IS NOT NULL',
+                str_replace("'", "''", strtoupper($tableName)),
+            ));
+            $rdbRow    = $rdbResult->fetchNumeric();
+            if ($rdbRow !== false && isset($rdbRow[0]) && is_string($rdbRow[0])) {
+                $tmp = trim($rdbRow[0]);
+                if ($tmp !== '') {
+                    return $tmp;
+                }
+            }
+        } catch (Throwable) {
+        }
+
+        return null;
     }
 
     /**
