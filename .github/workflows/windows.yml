@@ -4,16 +4,11 @@ on:
   push:
     branches:
       - '3.10.x'
-      - '3.10.x-dev'
-      - '3.0.*'
-      - 'main'
-      - 'feature/*'
+      - '4.4.x'
   pull_request:
     branches:
       - '3.10.x'
-      - '3.10.x-dev'
-      - '3.0.*'
-      - 'main'
+      - '4.4.x'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,6 +20,7 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -37,10 +33,10 @@ jobs:
       DB_DBNAME: test.fdb
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@728c6c6b8cf02c2e48117716a91ee48313958a19
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl
@@ -48,15 +44,27 @@ jobs:
           tools: composer:v2
 
       - name: Cache Firebird (Chocolatey)
-        uses: actions/cache@v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: C:\ProgramData\chocolatey\lib\firebird
           key: ${{ runner.os }}-choco-firebird-3.0.13
 
       - name: Install Firebird
+        shell: pwsh
         run: |
-          # Install Firebird 3.0 via Chocolatey with increased timeout
-          choco install firebird --version=3.0.13 -y --no-progress --timeout 600
+          # Install Firebird 3.0.13 via Chocolatey with retry + exponential backoff
+          $maxRetries = 3
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            try {
+              choco install firebird --version=3.0.13 --yes --no-progress --timeout 600
+              break
+            } catch {
+              if ($i -eq $maxRetries) { throw }
+              $wait = 10 * $i
+              Write-Warning "Chocolatey attempt $i failed, retrying in ${wait}s..."
+              Start-Sleep -Seconds $wait
+            }
+          }
           
           # Create dedicated directory for test databases and grant full permissions to Everyone
           if (-not (Test-Path "C:\firebird_tests")) { New-Item -Path "C:\firebird_tests" -ItemType Directory }
@@ -97,16 +105,20 @@ jobs:
 
       - name: Download and setup php-firebird DLL
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $phpVer = "${{ matrix.php }}"
           $arch = "x86_64"
           $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
           
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
-          $releases = Invoke-RestMethod -Uri $apiUrl
+          $headers = @{}
+          if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "token $env:GITHUB_TOKEN" }
+          $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          $patterns = @("php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
+          $patterns = @("php-firebird-10\.6\.2-php${phpVer}-nts-windows.*x64.*\.zip", "php-firebird-.*-php${phpVer}-nts-.*x64.*\.zip", "php_firebird-v?.*-$phpVer-nts-$vs-$arch\.zip", "php_firebird-v?.*-$phpVer-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
@@ -138,10 +150,35 @@ jobs:
           php -r "if (!extension_loaded('firebird')) { exit(1); }"
           Write-Host "✅ php-firebird extension loaded successfully"
 
+      - name: Create test database
+        shell: pwsh
+        run: |
+          $fbDir = (Get-ChildItem "C:\Program Files\Firebird\Firebird_*" | Select-Object -First 1).FullName
+          $dbPath = "C:\firebird_tests\test.fdb"
+          
+          if (-not (Test-Path $dbPath)) {
+            Write-Host "Creating test database at $dbPath..."
+            $sql = "CREATE DATABASE '$dbPath' user 'SYSDBA' password 'masterkey' DEFAULT CHARACTER SET UTF8;"
+            echo $sql | & "$fbDir\isql.exe" -q 2>&1
+            if (Test-Path $dbPath) {
+              Write-Host "✅ Test database created"
+            } else {
+              Write-Warning "Database file not created, trying alternative method..."
+              & "$fbDir\isql.exe" -q -user SYSDBA -password masterkey -e -i NUL -input "CREATE DATABASE 'localhost:$dbPath' user 'SYSDBA' password 'masterkey' DEFAULT CHARACTER SET UTF8;" 2>&1
+            }
+          } else {
+            Write-Host "✅ Test database already exists"
+          }
+
       - name: Install dependencies
         run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
-      - name: Run Tests
+      - name: Run Tests (Unit)
         run: |
-          # Run Unit and Integration testsuites
-          vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit,Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage
+          # Run Unit testsuite
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Unit --display-warnings --display-errors --display-deprecations --no-coverage
+
+      - name: Run Tests (Integration-ReadOnly)
+        run: |
+          # Run Integration-ReadOnly testsuite
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --no-coverage

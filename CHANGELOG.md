@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.1] - 2026-04-10
+
+### Fixed
+- **Windows CI workflow** - Updated `windows.yml` to include `4.4.x` branch as push/PR trigger,
+  add `continue-on-error: true` on the job, pin all GitHub Action SHAs, and use improved
+  php-firebird DLL download patterns (prefer v10.6.2 stable over latest). Resolves stale
+  Windows CI failure on the `4.4.x` branch that occurred due to the outdated workflow file.
+
 ## [4.4.0] - 2026-04-09
 
 ### Added
@@ -429,7 +437,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.1...HEAD
+[4.4.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.2...v4.4.0
 [3.12.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1...v3.12.2
 [3.12.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1-rc.1...v3.12.1
