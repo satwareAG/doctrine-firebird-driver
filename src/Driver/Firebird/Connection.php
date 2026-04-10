@@ -24,6 +24,7 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use Throwable;
 use UnexpectedValueException;
 
+use function array_key_exists;
 use function assert;
 use function class_exists;
 use function explode;
@@ -42,6 +43,7 @@ use function fbird_kill_attachment;
 use function fbird_last_insert_id;
 use function fbird_list_table_blockers;
 use function fbird_prepare_ex;
+use function fbird_query;
 use function fbird_query_params_tx;
 use function fbird_reconnect_transaction;
 use function fbird_rollback;
@@ -98,6 +100,14 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     /** Stores the table name of the most recent INSERT for lastInsertId(null) IDENTITY lookup */
     private string|null $lastInsertTable = null;
+
+    /**
+     * Per-connection cache: table name (upper) => generator name (or null if none found).
+     * Avoids repeated RDB$RELATION_FIELDS queries for the same table.
+     *
+     * @var array<string, string|null>
+     */
+    private array $identityGeneratorCache = [];
 
     private readonly Parser $parser;
 
@@ -1034,27 +1044,47 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     /**
      * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
      * Returns null if no IDENTITY column is found or the lookup fails.
+     *
+     * Uses fbird_query() without a transaction argument so the lookup runs in
+     * autocommit mode and never conflicts with an active no-wait transaction on
+     * the same connection (Firebird raises lock-conflict errors when querying
+     * system tables inside a no-wait transaction started by the DBAL layer).
      */
     private function resolveIdentityGenerator(string $tableName): string|null
     {
+        $key = strtoupper($tableName);
+
+        if (array_key_exists($key, $this->identityGeneratorCache)) {
+            return $this->identityGeneratorCache[$key];
+        }
+
+        $result = null;
+
         try {
-            $rdbResult = $this->query(sprintf(
+            // Pass only the connection - no transaction arg = autocommit mode.
+            // This avoids lock conflicts with the DBAL no-wait transaction.
+            $sql       = sprintf(
                 'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
                 . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
                 . ' AND RDB$GENERATOR_NAME IS NOT NULL',
-                str_replace("'", "''", strtoupper($tableName)),
-            ));
-            $rdbRow    = $rdbResult->fetchNumeric();
-            if ($rdbRow !== false && isset($rdbRow[0]) && is_string($rdbRow[0])) {
-                $tmp = trim($rdbRow[0]);
-                if ($tmp !== '') {
-                    return $tmp;
+                str_replace("'", "''", $key),
+            );
+            $rdbResult = fbird_query($this->connection, $sql);
+            if ($rdbResult !== false) {
+                $rdbRow = fbird_fetch_row($rdbResult);
+                if (is_array($rdbRow) && isset($rdbRow[0]) && is_string($rdbRow[0])) {
+                    $tmp = trim($rdbRow[0]);
+                    if ($tmp !== '') {
+                        $result = $tmp;
+                    }
                 }
             }
         } catch (Throwable) {
         }
 
-        return null;
+        $this->identityGeneratorCache[$key] = $result;
+
+        return $result;
     }
 
     /**
