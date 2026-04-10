@@ -1063,14 +1063,16 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         try {
             // Pass only the connection - no transaction arg = autocommit mode.
             // This avoids lock conflicts with the DBAL no-wait transaction.
-            $sql       = sprintf(
+            $sql = sprintf(
                 'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
                 . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
                 . ' AND RDB$GENERATOR_NAME IS NOT NULL',
                 str_replace("'", "''", $key),
             );
+            /** @phpstan-ignore argument.type (fbird_query accepts Firebird\Connection since php-firebird v10) */
             $rdbResult = fbird_query($this->connection, $sql);
             if ($rdbResult !== false) {
+                /** @phpstan-ignore argument.type (fbird_query returns resource|false|true; SELECT always resource) */
                 $rdbRow = fbird_fetch_row($rdbResult);
                 if (is_array($rdbRow) && isset($rdbRow[0]) && is_string($rdbRow[0])) {
                     $tmp = trim($rdbRow[0]);

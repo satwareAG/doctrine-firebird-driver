@@ -303,7 +303,7 @@ final class Statement implements StatementInterface
                 $m,
             ) === 1
         ) {
-            $this->connection->setLastInsertTable(strtoupper(trim((string) $m[1], '"')));
+            $this->connection->setLastInsertTable(strtoupper(trim($m[1], '"')));
         }
 
         if ($fbirdResultRc === false) {
