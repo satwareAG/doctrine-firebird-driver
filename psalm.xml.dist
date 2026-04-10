@@ -21,26 +21,6 @@
         <file name="stubs/firebird-userland-classes.php" />
     </stubs>
     <issueHandlers>
-        <InvalidReturnType>
-            <errorLevel type="suppress">
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </InvalidReturnType>
-        <DeprecatedMethod>
-            <errorLevel type="suppress">
-                <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::getIdentitySequenceName"/>
-                <file name="src/Platforms/FirebirdPlatform.php"/>
-                <file name="src/Platforms/Firebird3Platform.php"/>
-            </errorLevel>
-        </DeprecatedMethod>
-
-        <DeprecatedInterface>
-            <errorLevel type="suppress">
-                <file name="src/Driver/FirebirdDriver.php"/>
-                <file name="src/Driver/Firebird/Driver.php"/>
-                <file name="src/Driver/Firebird/Connection.php"/>
-            </errorLevel>
-        </DeprecatedInterface>
         <InternalClass>
             <errorLevel type="suppress">
                 <referencedClass name="Doctrine\DBAL\SQL\Parser"/>

@@ -6,9 +6,9 @@
     </UnusedClass>
   </file>
   <file src="src/DBAL/FirebirdBooleanType.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <UnusedClass>
+      <code><![CDATA[FirebirdBooleanType]]></code>
+    </UnusedClass>
   </file>
   <file src="src/DBAL/FirebirdConnection.php">
     <InternalMethod>
@@ -30,83 +30,106 @@
     </UnusedParam>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
-    <DocblockTypeContradiction>
-      <code><![CDATA[$this->connection instanceof FirebirdConnection]]></code>
-      <code><![CDATA[is_resource($transResource)]]></code>
-    </DocblockTypeContradiction>
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
-    <NoValue>
-      <code><![CDATA[$this->connection]]></code>
-    </NoValue>
-    <PossiblyInvalidArgument>
-      <code><![CDATA[$this->connection]]></code>
-    </PossiblyInvalidArgument>
-    <PossiblyNullArgument>
-      <code><![CDATA[$transResource]]></code>
-      <code><![CDATA[$transResource]]></code>
-    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
+      <code><![CDATA[__construct]]></code>
+      <code><![CDATA[autoCommit]]></code>
+      <code><![CDATA[beginTransaction]]></code>
+      <code><![CDATA[checkLastApiCall]]></code>
+      <code><![CDATA[commit]]></code>
+      <code><![CDATA[createBatch]]></code>
       <code><![CDATA[createIndependentTransaction]]></code>
       <code><![CDATA[createSavepoint]]></code>
       <code><![CDATA[dropTableForce]]></code>
+      <code><![CDATA[errorInfo]]></code>
+      <code><![CDATA[exec]]></code>
       <code><![CDATA[executeAuto]]></code>
       <code><![CDATA[executeBatch]]></code>
       <code><![CDATA[getActiveTransaction]]></code>
       <code><![CDATA[getConnectionInfo]]></code>
+      <code><![CDATA[getConnectionInsertColumn]]></code>
       <code><![CDATA[getLimboTransactions]]></code>
       <code><![CDATA[getOOWrapper]]></code>
       <code><![CDATA[getResourceRefCount]]></code>
+      <code><![CDATA[getServerVersion]]></code>
+      <code><![CDATA[isConnectionValid]]></code>
+      <code><![CDATA[isTransactionValid]]></code>
       <code><![CDATA[killAttachment]]></code>
+      <code><![CDATA[lastInsertId]]></code>
       <code><![CDATA[listTableBlockers]]></code>
+      <code><![CDATA[prepare]]></code>
+      <code><![CDATA[query]]></code>
       <code><![CDATA[queryInTransaction]]></code>
+      <code><![CDATA[quote]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
       <code><![CDATA[releaseSavepoint]]></code>
+      <code><![CDATA[rollBack]]></code>
       <code><![CDATA[rollbackSavepoint]]></code>
+      <code><![CDATA[setAttribute]]></code>
+      <code><![CDATA[setConnectionInsertColumn]]></code>
+      <code><![CDATA[setLastInsertId]]></code>
+      <code><![CDATA[setLastInsertTable]]></code>
     </PossiblyUnusedMethod>
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[is_object($resource)]]></code>
-      <code><![CDATA[is_object($this->connection)]]></code>
-      <code><![CDATA[is_object($this->connection)]]></code>
-      <code><![CDATA[is_resource($this->connection)]]></code>
-      <code><![CDATA[$this->connection instanceof FirebirdConnection]]></code>
-    </RedundantConditionGivenDocblockType>
-    <TooFewArguments>
-      <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
-      <code><![CDATA[fbird_last_insert_id($this->connection)]]></code>
-    </TooFewArguments>
-    <TypeDoesNotContainType>
-      <code><![CDATA[is_object($this->connection)]]></code>
-      <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
-    </TypeDoesNotContainType>
-  </file>
-  <file src="src/Driver/Firebird/ProceduralBatch.php">
-    <PossiblyInvalidArgument>
+    <PossiblyUnusedProperty>
+      <code><![CDATA[$isPersistent]]></code>
+    </PossiblyUnusedProperty>
+    <UndefinedClass>
+      <code><![CDATA[ServerInfoAwareConnection]]></code>
+    </UndefinedClass>
+    <UnusedMethod>
+      <code><![CDATA[getResourceId]]></code>
+      <code><![CDATA[isResourceTypeValid]]></code>
+      <code><![CDATA[loadOoApi]]></code>
+      <code><![CDATA[registerResource]]></code>
+      <code><![CDATA[resolveIdentityGenerator]]></code>
+      <code><![CDATA[unregisterResourceById]]></code>
+    </UnusedMethod>
+    <UnusedParam>
+      <code><![CDATA[$attachmentId]]></code>
+      <code><![CDATA[$attribute]]></code>
+      <code><![CDATA[$attribute]]></code>
+      <code><![CDATA[$column]]></code>
+      <code><![CDATA[$id]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$resource]]></code>
+      <code><![CDATA[$rows]]></code>
+      <code><![CDATA[$savepoint]]></code>
+      <code><![CDATA[$savepoint]]></code>
+      <code><![CDATA[$savepoint]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$sql]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$tableName]]></code>
+      <code><![CDATA[$tableName]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transaction]]></code>
+      <code><![CDATA[$transactionId]]></code>
+      <code><![CDATA[$type]]></code>
+      <code><![CDATA[$value]]></code>
+      <code><![CDATA[$value]]></code>
+    </UnusedParam>
+    <UnusedProperty>
       <code><![CDATA[$connection]]></code>
-    </PossiblyInvalidArgument>
-    <PossiblyUnusedMethod>
-      <code><![CDATA[addBlob]]></code>
-      <code><![CDATA[cancel]]></code>
-      <code><![CDATA[count]]></code>
-    </PossiblyUnusedMethod>
-    <PossiblyUnusedReturnValue>
-      <code><![CDATA[add]]></code>
-    </PossiblyUnusedReturnValue>
-  </file>
-  <file src="src/Driver/Firebird/ProceduralBatchResult.php">
-    <PossiblyUnusedMethod>
-      <code><![CDATA[hasErrors]]></code>
-      <code><![CDATA[isComplete]]></code>
-    </PossiblyUnusedMethod>
+      <code><![CDATA[$connectionInsertColumn]]></code>
+      <code><![CDATA[$connectionInsertId]]></code>
+      <code><![CDATA[$databaseNotFoundException]]></code>
+      <code><![CDATA[$identityGeneratorCache]]></code>
+      <code><![CDATA[$lastInsertTable]]></code>
+      <code><![CDATA[$lastResolvedIdentityId]]></code>
+      <code><![CDATA[$ooApiLoaded]]></code>
+      <code><![CDATA[$parser]]></code>
+      <code><![CDATA[$resourceRegistry]]></code>
+      <code><![CDATA[$serverVersion]]></code>
+      <code><![CDATA[$transactionManager]]></code>
+    </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/ConnectionWrapper.php">
     <InternalMethod>
@@ -115,6 +138,16 @@
     <InvalidArrayOffset>
       <code><![CDATA[$params['database']]]></code>
     </InvalidArrayOffset>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[$this->resolveDatabaseFromParams()]]></code>
+      <code><![CDATA[$this->resolveDatabaseFromParams()]]></code>
+    </LessSpecificReturnStatement>
+    <MethodSignatureMismatch>
+      <code><![CDATA[#[Override]]]></code>
+    </MethodSignatureMismatch>
+    <MissingDependency>
+      <code><![CDATA[\Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection]]></code>
+    </MissingDependency>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -122,17 +155,19 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <MissingParamType>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$sql]]></code>
+    </MissingParamType>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
-    <InvalidArrayOffset>
-      <code><![CDATA[$params['buffers']]]></code>
-      <code><![CDATA[$params['dialect']]]></code>
-      <code><![CDATA[$params['firebird']]]></code>
-    </InvalidArrayOffset>
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <MethodSignatureMismatch>
+      <code><![CDATA[Driver]]></code>
+      <code><![CDATA[Driver]]></code>
+    </MethodSignatureMismatch>
+    <MissingDependency>
+      <code><![CDATA[FirebirdDriver]]></code>
+    </MissingDependency>
   </file>
   <file src="src/Driver/Firebird/Driver/ConvertParameters.php">
     <MissingOverrideAttribute>
@@ -140,6 +175,9 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <UnusedClass>
+      <code><![CDATA[ConvertParameters]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Driver/FirebirdConnectString.php">
     <InvalidOperand>
@@ -148,6 +186,9 @@
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[fromConnectionParameters]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Driver/Firebird/Enum/TransactionState.php">
     <UnusedClass>
@@ -161,16 +202,19 @@
     <PossiblyInvalidArgument>
       <code><![CDATA[$exception->getCode()]]></code>
     </PossiblyInvalidArgument>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[fromErrorInfo]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Driver/Firebird/ExceptionConverter.php">
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <UnusedClass>
+      <code><![CDATA[ExceptionConverter]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/FirebirdDriverMiddleware.php">
-    <DeprecatedInterface>
-      <code><![CDATA[class ($driver) extends AbstractDriverMiddleware {]]></code>
-    </DeprecatedInterface>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
@@ -179,18 +223,23 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetConnectionMiddleware.php">
-    <DeprecatedInterface>
+    <LessSpecificImplementedReturnType>
+      <code><![CDATA[mixed]]></code>
+      <code><![CDATA[mixed]]></code>
+    </LessSpecificImplementedReturnType>
+    <MethodSignatureMismatch>
+      <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[CharsetConnectionMiddleware]]></code>
-    </DeprecatedInterface>
+    </MethodSignatureMismatch>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <PossiblyFalseArgument>
+      <code><![CDATA[$value]]></code>
+    </PossiblyFalseArgument>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetMiddleware.php">
-    <DeprecatedInterface>
-      <code><![CDATA[class ($driver, $databaseEncoding, $phpEncoding) extends AbstractDriverMiddleware {]]></code>
-    </DeprecatedInterface>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -200,6 +249,11 @@
     </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
+    <DocblockTypeContradiction>
+      <code><![CDATA[$columnType === ParameterType::BINARY]]></code>
+      <code><![CDATA[$columnType === ParameterType::LARGE_OBJECT]]></code>
+      <code><![CDATA[$columnType === ParameterType::LARGE_OBJECT]]></code>
+    </DocblockTypeContradiction>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -216,18 +270,64 @@
       <code><![CDATA[$buffer]]></code>
       <code><![CDATA[$rest]]></code>
     </PossiblyFalseOperand>
-    <RedundantFunctionCallGivenDocblockType>
+    <RedundantFunctionCall>
       <code><![CDATA[array_values]]></code>
+    </RedundantFunctionCall>
+    <RedundantFunctionCallGivenDocblockType>
       <code><![CDATA[array_values]]></code>
     </RedundantFunctionCallGivenDocblockType>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetStatementMiddleware.php">
+    <InvalidNullableReturnType>
+      <code><![CDATA[bool]]></code>
+    </InvalidNullableReturnType>
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->boundTypes]]></code>
+    </InvalidPropertyAssignmentValue>
+    <MethodSignatureMismatch>
+      <code><![CDATA[#[Override]]]></code>
+      <code><![CDATA[CharsetStatementMiddleware]]></code>
+    </MethodSignatureMismatch>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <MissingParamType>
+      <code><![CDATA[$params]]></code>
+    </MissingParamType>
+    <NullableReturnStatement>
+      <code><![CDATA[parent::bindValue($param, $value, $type)]]></code>
+    </NullableReturnStatement>
+  </file>
+  <file src="src/Driver/Firebird/ProceduralBatch.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$connection]]></code>
+    </PossiblyInvalidArgument>
+    <UnusedClass>
+      <code><![CDATA[ProceduralBatch]]></code>
+    </UnusedClass>
+  </file>
+  <file src="src/Driver/Firebird/ProceduralBatchResult.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[hasErrors]]></code>
+      <code><![CDATA[isComplete]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Driver/Firebird/Result.php">
+    <MethodSignatureMismatch>
+      <code><![CDATA[Result]]></code>
+    </MethodSignatureMismatch>
+    <MissingDependency>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
@@ -249,19 +349,81 @@
     </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/Statement.php">
+    <InvalidArgument>
+      <code><![CDATA[$type]]></code>
+      <code><![CDATA[$type]]></code>
+    </InvalidArgument>
+    <MethodSignatureMismatch>
+      <code><![CDATA[Statement]]></code>
+    </MethodSignatureMismatch>
+    <MissingDependency>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[protected]]></code>
+    </MissingDependency>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <MissingParamType>
+      <code><![CDATA[$length]]></code>
+      <code><![CDATA[$param]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$type]]></code>
+      <code><![CDATA[$variable]]></code>
+    </MissingParamType>
+    <NoValue>
+      <code><![CDATA[$type]]></code>
+    </NoValue>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[__construct]]></code>
+      <code><![CDATA[bindParam]]></code>
+    </PossiblyUnusedMethod>
+    <TypeDoesNotContainType>
+      <code><![CDATA[$type === ParameterType::LARGE_OBJECT]]></code>
+      <code><![CDATA[$type === ParameterType::LARGE_OBJECT]]></code>
+    </TypeDoesNotContainType>
+    <UnusedParam>
+      <code><![CDATA[$length]]></code>
+    </UnusedParam>
+  </file>
+  <file src="src/Driver/Firebird/TransactionManager.php">
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[TransactionIsolationLevel::READ_COMMITTED]]></code>
+    </InvalidPropertyAssignmentValue>
+    <MissingDependency>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[$this->connection]]></code>
+      <code><![CDATA[private]]></code>
+    </MissingDependency>
+    <UnusedClass>
+      <code><![CDATA[TransactionManager]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Driver/FirebirdDriver.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[createDatabasePlatformForVersion]]></code>
+      <code><![CDATA[getSchemaManager]]></code>
+    </PossiblyUnusedMethod>
+    <PossiblyUnusedParam>
+      <code><![CDATA[$conn]]></code>
+      <code><![CDATA[$platform]]></code>
+      <code><![CDATA[$version]]></code>
+    </PossiblyUnusedParam>
+    <PossiblyUnusedProperty>
+      <code><![CDATA[$firebirdOptions]]></code>
+    </PossiblyUnusedProperty>
+    <UndefinedClass>
+      <code><![CDATA[VersionAwarePlatformDriver]]></code>
+    </UndefinedClass>
   </file>
   <file src="src/ORM/Mapping/FirebirdQuoteStrategy.php">
     <MissingOverrideAttribute>
@@ -269,137 +431,144 @@
     </MissingOverrideAttribute>
   </file>
   <file src="src/Platforms/Firebird3Platform.php">
-    <InvalidOperand>
-      <code><![CDATA[$sequence->getCache()]]></code>
-    </InvalidOperand>
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[getCreateSequenceCommentSQL]]></code>
+    </PossiblyUnusedMethod>
+    <PossiblyUnusedParam>
+      <code><![CDATA[$sequence]]></code>
+    </PossiblyUnusedParam>
+    <UnimplementedAbstractMethod>
+      <code><![CDATA[Firebird3Platform]]></code>
+    </UnimplementedAbstractMethod>
+    <UnusedMethod>
+      <code><![CDATA[getSequenceCacheSQL]]></code>
+      <code><![CDATA[getSequenceCommentString]]></code>
+    </UnusedMethod>
   </file>
   <file src="src/Platforms/Firebird4Platform.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <UnimplementedAbstractMethod>
+      <code><![CDATA[Firebird4Platform]]></code>
+    </UnimplementedAbstractMethod>
   </file>
   <file src="src/Platforms/Firebird5Platform.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <UnimplementedAbstractMethod>
+      <code><![CDATA[Firebird5Platform]]></code>
+    </UnimplementedAbstractMethod>
+    <UnusedClass>
+      <code><![CDATA[Firebird5Platform]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Platforms/FirebirdPlatform.php">
-    <InternalProperty>
-      <code><![CDATA[$columnDiff->fromColumn]]></code>
-    </InternalProperty>
-    <InvalidOperand>
-      <code><![CDATA[$column['length']]]></code>
-    </InvalidOperand>
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
-    <PossiblyFalseArgument>
-      <code><![CDATA[$expression]]></code>
-    </PossiblyFalseArgument>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[__construct]]></code>
+      <code><![CDATA[checkIdentifierLength]]></code>
+      <code><![CDATA[generateIdentifier]]></code>
+      <code><![CDATA[generatePrimaryKeyConstraintName]]></code>
+      <code><![CDATA[getBinaryDefaultLength]]></code>
+      <code><![CDATA[getBinaryMaxLength]]></code>
+      <code><![CDATA[getCreateAutoincrementSql]]></code>
+      <code><![CDATA[getDropAllViewsOfTablePSqlSnippet]]></code>
+      <code><![CDATA[getDropAutoincrementSql]]></code>
+      <code><![CDATA[getDropSequenceIfExistsPSql]]></code>
+      <code><![CDATA[getDropTriggerIfExistsPSql]]></code>
+      <code><![CDATA[getDropTriggerSql]]></code>
+      <code><![CDATA[getExecuteBlockSql]]></code>
+      <code><![CDATA[getExecuteBlockWithExecuteStatementsSql]]></code>
+      <code><![CDATA[getExecuteStatementPSql]]></code>
+      <code><![CDATA[getIdentitySequenceName]]></code>
+      <code><![CDATA[getIdentitySequenceTriggerName]]></code>
+      <code><![CDATA[getListTableColumnsSQL]]></code>
+      <code><![CDATA[getListTableConstraintsSQL]]></code>
+      <code><![CDATA[getListTableForeignKeysSQL]]></code>
+      <code><![CDATA[getListTableIndexesSQL]]></code>
+      <code><![CDATA[getListTablesSQL]]></code>
+      <code><![CDATA[getMaxConstraintIdentifierLength]]></code>
+      <code><![CDATA[getName]]></code>
+      <code><![CDATA[getNowExpression]]></code>
+      <code><![CDATA[getOldColumnComment]]></code>
+      <code><![CDATA[getQuotedNameOf]]></code>
+      <code><![CDATA[getReservedKeywordsClass]]></code>
+      <code><![CDATA[getSequenceNextValFunctionSQL]]></code>
+      <code><![CDATA[getTemporaryColumnName]]></code>
+      <code><![CDATA[getTemporaryTableSQL]]></code>
+      <code><![CDATA[getVarcharMaxCastLength]]></code>
+      <code><![CDATA[getVarcharMaxLength]]></code>
+      <code><![CDATA[isCommentedDoctrineType]]></code>
+      <code><![CDATA[makeSimpleMetadataSelectExpression]]></code>
+      <code><![CDATA[normalizeIdentifier]]></code>
+      <code><![CDATA[prefersIdentityColumns]]></code>
+      <code><![CDATA[quoteSql]]></code>
+      <code><![CDATA[supportsCreateDropDatabase]]></code>
+      <code><![CDATA[supportsForeignKeyConstraints]]></code>
+      <code><![CDATA[supportsLimitOffset]]></code>
+      <code><![CDATA[supportsViews]]></code>
+      <code><![CDATA[unquotedIdentifierName]]></code>
+      <code><![CDATA[usesSequenceEmulatedIdentityColumns]]></code>
+    </PossiblyUnusedMethod>
+    <PossiblyUnusedParam>
+      <code><![CDATA[$aIdentifier]]></code>
+      <code><![CDATA[$aSequence]]></code>
+      <code><![CDATA[$aStatement]]></code>
+      <code><![CDATA[$aTable]]></code>
+      <code><![CDATA[$aTrigger]]></code>
+      <code><![CDATA[$aTrigger]]></code>
+      <code><![CDATA[$char]]></code>
+      <code><![CDATA[$char]]></code>
+      <code><![CDATA[$column]]></code>
+      <code><![CDATA[$columnDiff]]></code>
+      <code><![CDATA[$columnName]]></code>
+      <code><![CDATA[$columnName]]></code>
+      <code><![CDATA[$configuration]]></code>
+      <code><![CDATA[$database]]></code>
+      <code><![CDATA[$database]]></code>
+      <code><![CDATA[$doctrineType]]></code>
+      <code><![CDATA[$expressions]]></code>
+      <code><![CDATA[$identifier]]></code>
+      <code><![CDATA[$inBlock]]></code>
+      <code><![CDATA[$inBlock]]></code>
+      <code><![CDATA[$inBlock]]></code>
+      <code><![CDATA[$maxLength]]></code>
+      <code><![CDATA[$maxLength]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$params]]></code>
+      <code><![CDATA[$prefix]]></code>
+      <code><![CDATA[$sequenceName]]></code>
+      <code><![CDATA[$statement]]></code>
+      <code><![CDATA[$suffix]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$table]]></code>
+      <code><![CDATA[$tableName]]></code>
+      <code><![CDATA[$tableName]]></code>
+      <code><![CDATA[$tableName]]></code>
+      <code><![CDATA[$useSmallIntBoolean]]></code>
+    </PossiblyUnusedParam>
+    <PossiblyUnusedProperty>
+      <code><![CDATA[$hasNativeBooleanType]]></code>
+    </PossiblyUnusedProperty>
+    <UnimplementedAbstractMethod>
+      <code><![CDATA[FirebirdPlatform]]></code>
+    </UnimplementedAbstractMethod>
+    <UnusedMethod>
+      <code><![CDATA[getBooleanDatabaseValue]]></code>
+    </UnusedMethod>
+    <UnusedProperty>
+      <code><![CDATA[$charFalse]]></code>
+      <code><![CDATA[$charTrue]]></code>
+      <code><![CDATA[$configuration]]></code>
+      <code><![CDATA[$useSmallIntBoolean]]></code>
+    </UnusedProperty>
+  </file>
+  <file src="src/Platforms/FirebirdPlatformConfiguration.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[getLikeCastLength]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Platforms/Keywords/Firebird3Keywords.php">
     <MissingOverrideAttribute>
@@ -418,52 +587,66 @@
       <code><![CDATA[#[Override]]]></code>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <UnusedClass>
+      <code><![CDATA[Firebird5Keywords]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Platforms/Keywords/FirebirdKeywords.php">
+    <DeprecatedClass>
+      <code><![CDATA[KeywordList]]></code>
+    </DeprecatedClass>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[getName]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Platforms/SQL/Builder/FirebirdSelectSQLBuilder.php">
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <UndefinedClass>
+      <code><![CDATA[Exception]]></code>
+    </UndefinedClass>
+    <UnusedClass>
+      <code><![CDATA[FirebirdSelectSQLBuilder]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Schema/FirebirdComparator.php">
+    <DeprecatedMethod>
+      <code><![CDATA[getPlatformOptions]]></code>
+    </DeprecatedMethod>
     <InternalMethod>
       <code><![CDATA[parent::__construct($platform)]]></code>
     </InternalMethod>
     <MissingOverrideAttribute>
       <code><![CDATA[#[Override]]]></code>
     </MissingOverrideAttribute>
+    <ParamNameMismatch>
+      <code><![CDATA[$fromTable]]></code>
+      <code><![CDATA[$toTable]]></code>
+    </ParamNameMismatch>
+    <RedundantCast>
+      <code><![CDATA[(string) $key]]></code>
+    </RedundantCast>
+    <UnusedClass>
+      <code><![CDATA[FirebirdComparator]]></code>
+    </UnusedClass>
   </file>
   <file src="src/Schema/FirebirdSchemaManager.php">
-    <InvalidArgument>
-      <code><![CDATA[[
-                    'charset' => $charset,
-                    'page_size' => (int) $pageSize,
-                ]]]></code>
-    </InvalidArgument>
-    <LessSpecificImplementedReturnType>
-      <code><![CDATA[array]]></code>
-    </LessSpecificImplementedReturnType>
-    <MissingOverrideAttribute>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-      <code><![CDATA[#[Override]]]></code>
-    </MissingOverrideAttribute>
+    <PossiblyUnusedMethod>
+      <code><![CDATA[listTableDetails]]></code>
+    </PossiblyUnusedMethod>
+    <UnimplementedAbstractMethod>
+      <code><![CDATA[FirebirdSchemaManager]]></code>
+    </UnimplementedAbstractMethod>
+    <UnusedMethod>
+      <code><![CDATA[getQuotedIdentifierName]]></code>
+    </UnusedMethod>
+    <UnusedParam>
+      <code><![CDATA[$name]]></code>
+    </UnusedParam>
   </file>
   <file src="src/Schema/FirebirdSchemaManagerFactory.php">
     <MissingOverrideAttribute>
@@ -472,5 +655,10 @@
     <UnusedClass>
       <code><![CDATA[FirebirdSchemaManagerFactory]]></code>
     </UnusedClass>
+  </file>
+  <file src="src/ValueFormatter.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[cast]]></code>
+    </PossiblyUnusedMethod>
   </file>
 </files>
