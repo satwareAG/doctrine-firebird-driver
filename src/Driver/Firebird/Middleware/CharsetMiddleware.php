@@ -54,6 +54,7 @@ final class CharsetMiddleware implements MiddlewareInterface
         $databaseEncoding = $this->databaseEncoding;
         $phpEncoding      = $this->phpEncoding;
 
+        /** @psalm-suppress DeprecatedInterface */
         return new class ($driver, $databaseEncoding, $phpEncoding) extends AbstractDriverMiddleware {
             public function __construct(
                 Driver $driver,

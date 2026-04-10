@@ -16,6 +16,8 @@ use function mb_convert_encoding;
 /**
  * Wraps every prepared Statement in CharsetStatementMiddleware and encodes
  * values passed to quote() from the PHP encoding to the database encoding.
+ *
+ * @psalm-suppress DeprecatedInterface
  */
 final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
 {
