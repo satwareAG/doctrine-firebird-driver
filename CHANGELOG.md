@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.12.5] - 2026-04-10
+
+### Fixed
+- **CI infrastructure** - Upgraded all GitHub Actions SHAs to latest pinned versions, fixed
+  test assertion mismatches in AlbumTest (SQL:2008 syntax) and StatementTest (column indices,
+  public setUp signature). ([commit 07b8993])
+- **Code Quality (Psalm)** - Resolved all Psalm CI failures by converting global
+  `psalm.xml.dist` suppressions to inline `@psalm-suppress` annotations in source files.
+  Affected: `Driver.php`, `FirebirdDriverMiddleware.php`, `CharsetMiddleware.php`,
+  `CharsetConnectionMiddleware.php`, `Connection.php`, `FirebirdDriver.php`,
+  `FirebirdPlatform.php`, `FirebirdSchemaManager.php`. Code Quality workflow now passes
+  cleanly. ([commits 9b369f5..69924d1])
+- **Code Quality (PHPStan)** - Added inline `@phpstan-ignore` suppressions for
+  `argument.type` on `fbird_query()`/`fbird_fetch_row()` and removed useless cast.
+  ([commit 57b1016])
+- **Code Quality (PHPCS)** - Moved `resolveIdentityGenerator()` to private section in
+  `FirebirdSchemaManager`, fixed if-alignment in `Statement.php`. ([commit c6ccc22])
+- **`lastInsertId()` on Firebird 3.0/4.0** - Comprehensive fix for identity column
+  sequence resolution. Correct order: `fbird_last_insert_id()` first, then `GEN_ID()`
+  via `executeAuto()`, then `RDB$RELATION_FIELDS` fallback. Handles dotted sequence names,
+  prevents transaction-aborting calls, wraps in try/catch for safety.
+  ([commits f2107c1..e90701e])
+- **Schema - bool defaults for string columns** - `normalizeColumn()` now converts PHP
+  `false` to empty string `''` (not `'0'`) for string-type columns, fixing spurious
+  `DEFAULT ''` diffs on schema comparison. ([commit 878456d])
+- **Functional tests** - Resolved lock conflict in `resolveIdentityGenerator()` by avoiding
+  exclusive DDL locks during sequence lookup, restored BatchTest guard for missing
+  `Firebird\Batch` class. ([commit 9fba1f9])
 
 ## [3.12.4] - 2026-04-09
 
@@ -468,7 +495,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.5...HEAD
+[3.12.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.4...v3.12.5
+[3.12.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.5...v3.12.4
+[3.10.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...v3.10.5
 [3.10.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.2...v3.10.4
 [3.12.1-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...v3.12.1-rc.1
 [3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
