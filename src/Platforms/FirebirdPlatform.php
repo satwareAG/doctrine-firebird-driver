@@ -59,6 +59,8 @@ use const PHP_INT_MAX;
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
  * of the oldest supported version.
+ *
+ * @psalm-suppress InternalProperty
  */
 class FirebirdPlatform extends AbstractPlatform
 {

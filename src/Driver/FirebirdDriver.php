@@ -29,6 +29,8 @@ use function version_compare;
  *
  * This driver is version-aware and provides platform instances appropriate
  * for the connected Firebird server version.
+ *
+ * @psalm-suppress DeprecatedInterface
  */
 abstract class FirebirdDriver implements Driver, VersionAwarePlatformDriver // @phpstan-ignore-line classImplements.deprecated
 {

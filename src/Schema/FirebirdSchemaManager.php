@@ -491,6 +491,8 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
      *
      * @param array<mixed> $tableIndexes
      * @param string|null  $tableName
+     *
+     * @psalm-suppress LessSpecificImplementedReturnType
      */
     #[Override]
     protected function _getPortableTableIndexesList($tableIndexes, $tableName = null): array

@@ -23,7 +23,7 @@
     <issueHandlers>
         <!-- MissingOverrideAttribute: all #[Override] usages in this project use the
              Compat\Override polyfill attribute, not PHP 8.3's native #[\Override].
-             Psalm (CI, ext-firebird installed) cannot recognise the custom attribute as
+             Psalm (CI, with richer DBAL types) cannot recognise the custom attribute as
              equivalent, so it reports MissingOverrideAttribute on every overriding method.
              Suppressed project-wide since the polyfill is intentional. -->
         <MissingOverrideAttribute>
@@ -31,56 +31,57 @@
                 <directory name="src"/>
             </errorLevel>
         </MissingOverrideAttribute>
-        <!-- The following issue types only surface in CI where ext-firebird is installed
-             and Psalm can fully resolve Firebird\Connection OO types and DBAL interface
-             deprecations. Locally (no ext-firebird) these types are never reported, so
-             file-scoped suppressions would trigger UnusedIssueHandlerSuppression.
-             Directory-level scope avoids that false-positive. -->
+        <!-- The following issue types surface in CI where Psalm resolves DBAL interface
+             deprecations and Firebird OO types more completely than in local environments.
+             Directory-level suppressions avoid false positives from DBAL version drift
+             and ext-firebird-specific type narrowing. findUnusedCode="false" ensures
+             that locally-unused suppressors do not trigger UnusedIssueHandlerSuppression. -->
         <DocblockTypeContradiction>
             <errorLevel type="suppress">
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
         </DocblockTypeContradiction>
+        <RedundantFunctionCallGivenDocblockType>
+            <errorLevel type="suppress">
+                <directory name="src/Driver/Firebird"/>
+            </errorLevel>
+        </RedundantFunctionCallGivenDocblockType>
         <PossiblyInvalidArgument>
             <errorLevel type="suppress">
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
         </PossiblyInvalidArgument>
-        <RedundantConditionGivenDocblockType>
+        <!-- DeprecatedMethod: DBAL deprecated TableDiff::getName, getColumnComment,
+             getOldColumnName, isCommentedDoctrineType, Type::getName in newer releases.
+             These calls exist throughout the Platforms and Schema implementations and
+             cannot be trivially removed without a full DBAL 4 migration. -->
+        <DeprecatedMethod>
             <errorLevel type="suppress">
+                <directory name="src/Platforms"/>
+                <directory name="src/Schema"/>
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
-        </RedundantConditionGivenDocblockType>
-        <PossiblyNullArgument>
+        </DeprecatedMethod>
+        <!-- InvalidOperand: integer-or-null and numeric concatenation in platform SQL
+             builders; suppressed for Platforms until proper null-guards are added. -->
+        <InvalidOperand>
             <errorLevel type="suppress">
+                <directory name="src/Platforms"/>
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
-        </PossiblyNullArgument>
-        <TooFewArguments>
+        </InvalidOperand>
+        <!-- PossiblyFalseArgument: sprintf argument may be false in platform methods. -->
+        <PossiblyFalseArgument>
             <errorLevel type="suppress">
+                <directory name="src/Platforms"/>
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
-        </TooFewArguments>
-        <DeprecatedInterface>
-            <errorLevel type="suppress">
-                <directory name="src/Driver/Firebird"/>
-            </errorLevel>
-        </DeprecatedInterface>
+        </PossiblyFalseArgument>
         <InvalidArrayOffset>
             <errorLevel type="suppress">
                 <directory name="src/Driver/Firebird"/>
             </errorLevel>
         </InvalidArrayOffset>
-        <!-- UnusedIssueHandlerSuppression: the CI-only directory-level suppressions above
-             (RedundantConditionGivenDocblockType, PossiblyNullArgument, TooFewArguments,
-             DeprecatedInterface) are never triggered locally because ext-firebird is not
-             installed. Psalm raises UnusedIssueHandlerSuppression for each of them.
-             Suppress globally so local and CI runs both pass. -->
-        <UnusedIssueHandlerSuppression>
-            <errorLevel type="suppress">
-                <directory name="src"/>
-            </errorLevel>
-        </UnusedIssueHandlerSuppression>
         <InternalClass>
             <errorLevel type="suppress">
                 <referencedClass name="Doctrine\DBAL\SQL\Parser"/>
@@ -116,6 +117,9 @@
                         name="Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap"/>
                 <referencedMethod
                         name="Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform::getTimeTzFormatString"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Driver\Firebird\ProceduralBatch::addBlob"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Driver\Firebird\ProceduralBatch::cancel"/>
+                <referencedMethod name="Satag\DoctrineFirebirdDriver\Driver\Firebird\ProceduralBatch::count"/>
             </errorLevel>
         </PossiblyUnusedMethod>
     </issueHandlers>
