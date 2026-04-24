@@ -1,0 +1,39 @@
+{
+  "name": "doctrine-firebird-driver",
+  "version": "3.12.3",
+  "sdd_source": "https://github.com/satwareAG/spec-kit",
+  "forge": "github",
+  "visibility": "public",
+  "local_path": "~/external/doctrine-firebird-driver",
+  "ipadp": {
+    "project_number": 2,
+    "conformance_level": "L3",
+    "issue_tracker": "https://github.com/satwareAG/doctrine-firebird-driver/issues/107",
+    "rfc_location": "<internal>/wiki/specs/rfc-interproject-agentic-development.md"
+  },
+  "upstream": {
+    "spec-kit": {
+      "url": "https://github.com/satwareAG/spec-kit",
+      "forge": "github",
+      "local_path": "~/external/spec-kit",
+      "role": "methodology-provider"
+    },
+    "php-firebird": {
+      "url": "https://github.com/satwareAG/php-firebird",
+      "forge": "github",
+      "local_path": "~/external/php-firebird",
+      "role": "native-driver-provider"
+    }
+  },
+  "downstream": {
+    "satag-amicron-entity-bundle": {
+      "forge": "gitlab",
+      "local_path": "~/internal/satag-amicron-entity-bundle",
+      "visibility": "private",
+      "role": "primary entity consumer"
+    }
+  },
+  "morning_protocol": {
+    "scripts": "scripts/"
+  }
+}
