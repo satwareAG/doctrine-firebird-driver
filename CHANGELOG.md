@@ -8,28 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.13.0] - 2026-07-02
 
 ### Changed
-- **php-firebird v11.0.1**: Upgraded extension dependency from `^10.6` to `^11.0` in `composer.json`;
-  upgraded `satwareag/php-firebird-stubs` from `^10.6` to `^11.0`. php-firebird v11.0.0 introduces the
+- **php-firebird v11.1.0**: Upgraded extension dependency from `^10.6` to `^11.1` in `composer.json`;
+  upgraded `satwareag/php-firebird-stubs` from `^10.6` to `^11.1`. php-firebird v11.0.0 introduces the
   M3 opaque-object migration (`fbird_connect()`/`fbird_pconnect()` return `Firebird\Connection` objects,
   `fbird_trans()` returns `Firebird\Transaction`, `fbird_execute()` returns `Firebird\ResultSet` for
-  SELECT, `fbird_blob_create()`/`fbird_blob_open()` return `Firebird\Blob`). The driver's existing
-  dual-mode `instanceof FirebirdConnection` + `is_resource()` fallback paths handle both v10 resources
-  and v11 objects transparently — no source code changes required.
-- **CI workflows**: Upgraded php-firebird from v10.6.2 to v11.0.1 in all GitHub Actions workflows
-  (cache keys, clone steps). Busted quality-checks cache (v3 → v4) for the v11 object migration.
-- **Docker test image**: Upgraded php-firebird checkout from v10.6.2 to v11.0.1 in `tests/app/Dockerfile`.
+  SELECT, `fbird_blob_create()`/`fbird_blob_open()` return `Firebird\Blob`).
+  v11.1.0 completes the M3 migration: `fbird_prepare()`/`fbird_prepare_ex()` now return
+  `Firebird\Statement` objects (#297), `fbird_query()`/`fbird_execute()` return `Firebird\ResultSet`
+  objects (#296), autocommit visibility is fixed (#294), and MSHUTDOWN SIGSEGV on persistent
+  connection cleanup is fixed (#295).
+- **Driver simplification**: Replaced broad `is_object()` / `!== null && !== false` validity checks
+  with strict `instanceof` assertions:
+  - `Statement::isStatementValid()` → `instanceof \Firebird\Statement || instanceof \Firebird\Transaction`
+  - `Result::isResultValid()` → `instanceof \Firebird\ResultSet`
+  - `Connection::isConnectionValid()` already used `instanceof FirebirdConnection` (unchanged)
+  - `TransactionManager::isTransactionValid()` already used `instanceof \Firebird\Transaction` (unchanged)
+- **CI workflows**: Upgraded php-firebird from v10.6.2 to v11.1.0 in all GitHub Actions workflows
+  (cache keys, clone steps). Removed SIGSEGV (exit 139/134) workaround from all test and coverage
+  steps — the MSHUTDOWN crash is fixed in v11.1.0 (#295). Simplified test steps to direct
+  `phpunit` invocation without output capture and exit-code filtering.
+- **Docker test image**: Upgraded php-firebird checkout from v10.6.2 to v11.1.0 in `tests/app/Dockerfile`.
   Fixed default `ARG PHP_VERSION` from `8.1` to `8.2` (was below the `composer.json` minimum of `^8.2`).
-- **README**: Updated php-firebird minimum version from `v7.3.0+` to `v11.0+` in Requirements and
-  Test Requirements sections (was stale since v3.10.5 bump to `^10.6`).
+- **SchemaManager::dropDatabase()**: Removed v8 default-link workaround (`is_resource()` fallback
+  branches, `IBG(default_link)` corruption comment). With v11 opaque objects, the default-link
+  semantics no longer apply — simplified to `instanceof Connection` check only.
+- **resolveIdentityGenerator()**: Updated comment from "#294 workaround" to "Doctrine best practice"
+  (matches Oracle OCI8 and SQL Server driver patterns for metadata queries within active transaction).
+- **README**: Updated php-firebird minimum version from `v11.0+` to `v11.1+` in Requirements and
+  Test Requirements sections.
 - **IPADP metadata**: Bumped project version to `3.13.0`. Added `amicron-platform` to downstream
   consumers in `specs/metadata.json` (L3 conformance gap — `amicron-platform` requires
   `satag/doctrine-firebird-driver: ^3.11.0` but was not declared in downstream metadata).
 
-### Verified
-- `composer update` resolves `satwareag/php-firebird-stubs` v11.0.1 and `doctrine/dbal` 3.10.5 correctly.
-- Driver source code (`Connection.php`, `Driver.php`, `SchemaManager.php`, `ValueFormatter.php`) already
-  contains dual-mode `instanceof Firebird\Connection` + `is_resource()` fallback paths designed for
-  the v10+ opaque-object API. No source changes needed for v11.0.1 compatibility.
+### Removed
+- `is_resource()` import from `FirebirdSchemaManager` (no longer used after v8 workaround removal).
+- SIGSEGV exit-code handling (139, 134) from CI test steps — php-firebird v11.1.0 fixes the
+  persistent connection cleanup crash (#295).
 
 ## [3.12.5] - 2026-04-10
 

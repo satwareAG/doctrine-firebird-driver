@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v11.0.1), pcov (fast coverage)
+# Extensions: firebird (php-firebird v11.1.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -44,9 +44,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # v10.6.2: Stabilized production release with PHP 8.4/8.5 support
 # v11.0.0: M3 migration - fbird_connect/trans/execute/blob return opaque objects (Firebird\Connection etc.)
 # v11.0.1: Fixed fbird_delete_user() arginfo regression (HF-3)
+# v11.1.0: Fixed autocommit visibility (#294), MSHUTDOWN SIGSEGV (#295), ResultSet return type (#296),
+#           fbird_prepare()/fbird_prepare_ex() now return Firebird\Statement objects (#297)
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v11.0.1 \
+    && git -C /usr/src/php/ext/firebird checkout v11.1.0 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \

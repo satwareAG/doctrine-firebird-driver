@@ -346,7 +346,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             $columnName = strtoupper($parts[1] ?? '');
 
             // Step 1: Look up the internal identity generator name from RDB$RELATION_FIELDS.
-            //         Use $this->query() (standard DBAL path) — transaction is valid at this point.
+            //         Use $this->query() (standard DBAL path) — matches Doctrine best practice.
             $genName = null;
             if ($columnName !== '') {
                 try {
@@ -625,6 +625,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * php-firebird v11.0.0+: fbird_connect()/fbird_pconnect() return
      * Firebird\Connection objects (M3 opaque-object migration).
+     * v11.1.0+: Complete M3 migration — all fbird_* functions return opaque objects.
      *
      * @psalm-assert-if-true \Firebird\Connection $this->connection
      * @phpstan-assert-if-true \Firebird\Connection $this->connection
@@ -952,9 +953,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Returns null if no IDENTITY column is found or the lookup fails.
      *
      * Uses $this->query() (DBAL path) which runs within the active transaction.
-     * php-firebird v11: fbird_query($conn, $sql) in autocommit mode doesn't see
-     * data committed by the active transaction when using Firebird\Connection objects.
-     * See: https://github.com/satwareAG/php-firebird/issues/294
+     * This matches Doctrine best practice (Oracle OCI8, SQL Server drivers) where
+     * metadata queries use the active transaction context for consistent reads.
      */
     private function resolveIdentityGenerator(string $tableName): string|null
     {

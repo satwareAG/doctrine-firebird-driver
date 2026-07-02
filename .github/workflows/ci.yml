@@ -180,14 +180,14 @@ jobs:
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v11.0.1-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v11.1.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v11.0.1 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v11.0.1 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v11.1.0 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v11.1.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
@@ -267,77 +267,29 @@ jobs:
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
-          set -eu
           cd tests
-          # Handle exit code 139 (SIGSEGV) gracefully
-          set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Unit 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "$OUTPUT"
-          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
-            exit $EXIT_CODE
-          fi
-          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
-            exit 1
-          fi
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Unit
 
       - name: Run PHPUnit tests (Integration-ReadOnly)
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
-          set -eu
           cd tests
-          # Handle exit code 139 (SIGSEGV) gracefully
-          set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-ReadOnly 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "$OUTPUT"
-          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
-            exit $EXIT_CODE
-          fi
-          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
-            exit 1
-          fi
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-ReadOnly
 
       - name: Run PHPUnit tests (Integration-Write)
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
-          set -eu
           cd tests
-          # Handle exit code 139 (SIGSEGV) gracefully
-          set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-Write 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "$OUTPUT"
-          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
-            exit $EXIT_CODE
-          fi
-          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
-            exit 1
-          fi
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Integration-Write
 
       - name: Run PHPUnit tests (Functional)
         env:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
-          set -eu
           cd tests
-          # Handle exit code 139 (SIGSEGV) gracefully
-          set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Functional 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "$OUTPUT"
-          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 139 ] && [ $EXIT_CODE -ne 134 ] && [ $EXIT_CODE -ne 1 ]; then
-            exit $EXIT_CODE
-          fi
-          if echo "$OUTPUT" | grep -qE '^FAILURES|^ERRORS'; then
-            exit 1
-          fi
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Functional
 
       - name: Archive test logs on failure
         if: failure()
@@ -361,40 +313,10 @@ jobs:
           # PCOV: set source root for accurate coverage measurement
           PCOV_DIRECTORY: ../src
         run: |
-          set -eu
-          
           cd tests
-          
-          # Run tests with coverage
-          # Handle exit code 139 (SIGSEGV) gracefully - known php-firebird extension bug
-          set +e
-          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
+          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
             --coverage-clover ../coverage.xml \
-            --log-junit ../junit.xml 2>&1)
-          EXIT_CODE=$?
-          set -e
-          
-          echo "$OUTPUT"
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "✅ PHPUnit tests with coverage passed"
-          elif [ $EXIT_CODE -eq 139 ]; then
-            # Exit 139 = SIGSEGV (128 + 11)
-            # Check if PHPUnit reported success and coverage files were generated
-            if echo "$OUTPUT" | grep -qE '^OK' && [ -f ../coverage.xml ]; then
-              echo ""
-              echo "⚠️  WARNING: PHP process crashed with SIGSEGV (exit 139) during shutdown"
-              echo "   This is a known php-firebird extension bug during persistent connection cleanup."
-              echo "   PHPUnit reported success and coverage was generated - treating as success."
-              echo ""
-            else
-              echo "❌ PHPUnit tests failed with SIGSEGV (exit 139)"
-              exit 139
-            fi
-          else
-            echo "❌ PHPUnit tests failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
+            --log-junit ../junit.xml
 
       - name: Upload coverage and test results to Codecov
         if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
@@ -442,15 +364,15 @@ jobs:
         with:
           path: /tmp/php-firebird-bin
           # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
-          # v4: bust cache for php-firebird v11.0.1 (M3 object migration)
-          key: php-firebird-v11.0.1-php8.4-v40-quality-v4
+          # v5: bust cache for php-firebird v11.1.0 (autocommit, SIGSEGV, ResultSet, Statement fixes)
+          key: php-firebird-v11.1.0-php8.4-v40-quality-v5
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v11.0.1 for PHP 8.4 (quality-checks, FB_API_VER=40)"
-          git clone --depth 1 --branch v11.0.1 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v11.1.0 for PHP 8.4 (quality-checks, FB_API_VER=40)"
+          git clone --depth 1 --branch v11.1.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           # Enable FB_API_VER=40 so all functions (including fbird_batch_*) are compiled.

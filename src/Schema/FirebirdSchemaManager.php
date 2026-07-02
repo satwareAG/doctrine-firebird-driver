@@ -33,7 +33,6 @@ use function fbird_create_database;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function is_resource;
 use function json_decode;
 use function preg_match;
 use function str_contains;
@@ -89,31 +88,15 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
 
         $dbname = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        // In v8, fbird_connect() sets the new resource as the global default link.
-        // If we call $this->_conn->close() afterwards, fbird_close() may free that
-        // same resource via zend_list_delete, leaving a dangling pointer that causes
-        // a SIGSEGV in fbird_drop_db. Calling close() before fbird_connect() also
-        // corrupts the connection pool state for the same DB path in v8.
-        //
-        // Solution: reuse the existing native connection only when the target database
-        // matches the current connection's database. For a different target, open a
-        // fresh fbird_connect. In both cases we close $this->_conn AFTER capturing the
-        // native resource so the resource pointer stays valid for fbird_drop_db.
         $currentDbname    = (string) FirebirdConnectString::fromConnectionParameters($this->_conn->getParams());
         $nativeConnection = null;
         $openedFresh      = false;
 
         if ($currentDbname === $dbname) {
-            // Reuse the existing connection resource — avoids the v8 default-link bug
-            // where fbird_connect() overwrites IBG(default_link) and a subsequent
-            // fbird_close() on the old DBAL link frees the new resource via zend_list_delete.
+            // Reuse the existing native connection for the same database.
             try {
                 $driverConn = $this->_conn->getNativeConnection();
                 if ($driverConn instanceof Connection && $driverConn->isConnectionValid()) {
-                    $nativeConnection = $driverConn->getNativeConnection();
-                } elseif (is_resource($driverConn)) {
-                    $nativeConnection = $driverConn;
-                } elseif ($driverConn instanceof Connection) {
                     $nativeConnection = $driverConn->getNativeConnection();
                 }
             } catch (Throwable) {
@@ -121,9 +104,8 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             }
         }
 
-        // v10: fbird_connect returns \Firebird\Connection objects, not resources
         if ($nativeConnection === null) {
-            // Suppress warning since we handle the error explicitly below
+            // Open a fresh connection for a different target database.
             try {
                 $nativeConnection = fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
             } catch (Throwable $e) {
@@ -143,8 +125,9 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             $openedFresh = true;
         }
 
-        // Close the DBAL wrapper AFTER capturing the native resource so the resource
-        // pointer stays valid. For fresh connections, no DBAL close is needed.
+        // Close the DBAL wrapper AFTER capturing the native resource so the
+        // resource pointer stays valid for fbird_drop_db. For fresh connections,
+        // no DBAL close is needed.
         if (! $openedFresh) {
             try {
                 $this->_conn->close();

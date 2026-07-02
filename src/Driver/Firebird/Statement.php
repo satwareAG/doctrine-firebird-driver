@@ -86,12 +86,8 @@ final class Statement implements StatementInterface
 
     public function __destruct()
     {
-        if ($this->statement === null) {
-            return;
-        }
-
-        // Don't free transaction handles (used for implicit commits)
-        if ($this->statement instanceof \Firebird\Transaction) {
+        // Only free Statement handles; Transaction handles are managed by TransactionManager.
+        if (! $this->statement instanceof \Firebird\Statement) {
             return;
         }
 
@@ -228,7 +224,7 @@ final class Statement implements StatementInterface
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
 
-            if (! is_object($fbirdResultRc)) {
+            if (! $fbirdResultRc instanceof \Firebird\ResultSet) {
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
                     // For DML operations that return true, get affected rows count
@@ -306,14 +302,19 @@ final class Statement implements StatementInterface
     }
 
     /**
-     * Check if the statement resource is a valid Firebird statement resource.
+     * Check if the statement handle is valid.
      *
-     * @psalm-assert-if-true resource $this->statement
+     * php-firebird v11.1.0+: fbird_prepare()/fbird_prepare_ex() return
+     * Firebird\Statement objects (M3 migration complete, issue #297).
+     * Transaction handles (Firebird\Transaction) are also valid for implicit commits.
+     *
+     * @psalm-assert-if-true \Firebird\Statement|\Firebird\Transaction $this->statement
      * @phpstan-assert-if-true \Firebird\Statement|\Firebird\Transaction $this->statement
      */
     public function isStatementValid(): bool
     {
-        return $this->statement !== null && $this->statement !== false;
+        return $this->statement instanceof \Firebird\Statement
+            || $this->statement instanceof \Firebird\Transaction;
     }
 
     /**

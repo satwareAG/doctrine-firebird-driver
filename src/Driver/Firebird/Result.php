@@ -291,18 +291,17 @@ final class Result implements ResultInterface
     }
 
     /**
-     * Check if the result resource is a valid Firebird result resource.
+     * Check if the result handle is valid.
      *
-     * Validates both that the value is a resource AND that it has a valid
-     * Firebird result type string. This prevents passing transaction resources
-     * or invalidated ("Unknown") resources to fbird_* functions.
+     * php-firebird v11.1.0+: fbird_query()/fbird_execute() return
+     * Firebird\ResultSet objects for SELECT queries (M3 migration complete, issue #296).
      *
-     * @psalm-assert-if-true resource $this->firebirdResultResource
+     * @psalm-assert-if-true \Firebird\ResultSet $this->firebirdResultResource
      * @phpstan-assert-if-true \Firebird\ResultSet $this->firebirdResultResource
      */
     public function isResultValid(): bool
     {
-        return is_object($this->firebirdResultResource);
+        return $this->firebirdResultResource instanceof \Firebird\ResultSet;
     }
 
     /**
