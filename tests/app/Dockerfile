@@ -4,13 +4,13 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v10.6.2), pcov (fast coverage)
+# Extensions: firebird (php-firebird v11.0.1), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install extensions and dependencies
 # -----------------------------------------------------------------------------
-ARG PHP_VERSION=8.1
+ARG PHP_VERSION=8.2
 ARG FIREBIRD_VERSION=3.0
 
 # php:8.1-cli-bookworm SHA256 digest for reproducible builds
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v10.6.2)
+# Install php-firebird extension from source (v11.0.1)
 # Note: git describe --tags requires tag to be fetched; --depth 1 clone may not
 # include tag refs. We fetch tags explicitly so config.m4 version detection works.
 #
@@ -42,9 +42,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # v10.3.8: Fixed SIGSEGV at shutdown (#183), OO API handle loss (#184), IBatch invalidation (#185)
 # v10.3.9: Fixed SIGFPE on parameterless batch (#180)
 # v10.6.2: Stabilized production release with PHP 8.4/8.5 support
+# v11.0.0: M3 migration - fbird_connect/trans/execute/blob return opaque objects (Firebird\Connection etc.)
+# v11.0.1: Fixed fbird_delete_user() arginfo regression (HF-3)
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v10.6.2 \
+    && git -C /usr/src/php/ext/firebird checkout v11.0.1 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
@@ -127,7 +129,7 @@ CMD ["php", "-a"]
 
 # =============================================================================
 # Build Arguments Reference:
-# - PHP_VERSION: PHP version to use (8.1, 8.2, 8.3, 8.4, 8.5)
+# - PHP_VERSION: PHP version to use (8.2, 8.3, 8.4, 8.5)
 # - FIREBIRD_VERSION: Firebird version (3.0, 4.0, 5.0)
 #   Controls whether IBatch API is enabled via FB_API_VER=40
 #

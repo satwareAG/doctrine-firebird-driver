@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.13.0] - 2026-07-02
+
+### Changed
+- **php-firebird v11.0.1**: Upgraded extension dependency from `^10.6` to `^11.0` in `composer.json`;
+  upgraded `satwareag/php-firebird-stubs` from `^10.6` to `^11.0`. php-firebird v11.0.0 introduces the
+  M3 opaque-object migration (`fbird_connect()`/`fbird_pconnect()` return `Firebird\Connection` objects,
+  `fbird_trans()` returns `Firebird\Transaction`, `fbird_execute()` returns `Firebird\ResultSet` for
+  SELECT, `fbird_blob_create()`/`fbird_blob_open()` return `Firebird\Blob`). The driver's existing
+  dual-mode `instanceof FirebirdConnection` + `is_resource()` fallback paths handle both v10 resources
+  and v11 objects transparently — no source code changes required.
+- **CI workflows**: Upgraded php-firebird from v10.6.2 to v11.0.1 in all GitHub Actions workflows
+  (cache keys, clone steps). Busted quality-checks cache (v3 → v4) for the v11 object migration.
+- **Docker test image**: Upgraded php-firebird checkout from v10.6.2 to v11.0.1 in `tests/app/Dockerfile`.
+  Fixed default `ARG PHP_VERSION` from `8.1` to `8.2` (was below the `composer.json` minimum of `^8.2`).
+- **README**: Updated php-firebird minimum version from `v7.3.0+` to `v11.0+` in Requirements and
+  Test Requirements sections (was stale since v3.10.5 bump to `^10.6`).
+- **IPADP metadata**: Bumped project version to `3.13.0`. Added `amicron-platform` to downstream
+  consumers in `specs/metadata.json` (L3 conformance gap — `amicron-platform` requires
+  `satag/doctrine-firebird-driver: ^3.11.0` but was not declared in downstream metadata).
+
+### Verified
+- `composer update` resolves `satwareag/php-firebird-stubs` v11.0.1 and `doctrine/dbal` 3.10.5 correctly.
+- Driver source code (`Connection.php`, `Driver.php`, `SchemaManager.php`, `ValueFormatter.php`) already
+  contains dual-mode `instanceof Firebird\Connection` + `is_resource()` fallback paths designed for
+  the v10+ opaque-object API. No source changes needed for v11.0.1 compatibility.
+
 ## [3.12.5] - 2026-04-10
 
 ### Fixed

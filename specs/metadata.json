@@ -1,6 +1,6 @@
 {
   "name": "doctrine-firebird-driver",
-  "version": "3.12.3",
+  "version": "3.13.0",
   "sdd_source": "https://github.com/satwareAG/spec-kit",
   "forge": "github",
   "visibility": "public",
@@ -31,6 +31,12 @@
       "local_path": "~/internal/satag-amicron-entity-bundle",
       "visibility": "private",
       "role": "primary entity consumer"
+    },
+    "amicron-platform": {
+      "forge": "gitlab",
+      "local_path": "~/internal/amicron-platform",
+      "visibility": "private",
+      "role": "platform consumer"
     }
   },
   "morning_protocol": {
