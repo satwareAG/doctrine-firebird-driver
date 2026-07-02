@@ -56,6 +56,10 @@ class ConnectionTest extends FunctionalTestCase
     {
         $this->createTestTable();
 
+        // Ensure savepoints are disabled — previous tests on the shared connection
+        // may have enabled them, which would bypass the deprecation path under test.
+        $this->connection->setNestTransactionsWithSavepoints(false);
+
         try {
             $this->connection->beginTransaction();
             self::assertSame(1, $this->connection->getTransactionNestingLevel());
