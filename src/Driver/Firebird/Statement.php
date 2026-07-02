@@ -60,7 +60,7 @@ final class Statement implements StatementInterface
     private readonly BlobHandler $blobHandler;
 
     /**
-     * @param resource|false|null $statement
+     * @param resource|\Firebird\Transaction|false|null $statement
      * @param array<int|string>   $parameterMap
      * @param string              $sql          The SQL statement for DML detection
      *
@@ -309,11 +309,11 @@ final class Statement implements StatementInterface
      * Check if the statement resource is a valid Firebird statement resource.
      *
      * @psalm-assert-if-true resource $this->statement
-     * @phpstan-assert-if-true \Firebird\Statement $this->statement
+     * @phpstan-assert-if-true \Firebird\Statement|\Firebird\Transaction $this->statement
      */
     public function isStatementValid(): bool
     {
-        return $this->statement !== null;
+        return $this->statement !== null && $this->statement !== false;
     }
 
     /**

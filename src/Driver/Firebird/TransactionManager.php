@@ -50,7 +50,7 @@ final class TransactionManager
 
     private ExecutionMode $executionMode = ExecutionMode::AUTO_COMMIT;
 
-    /** @var resource|null */
+    /** @var \Firebird\Transaction|null */
     private $activeTransaction = null;
 
     public function __construct(private readonly Connection $connection)
@@ -62,7 +62,7 @@ final class TransactionManager
         return $this->level;
     }
 
-    /** @return resource|null */
+    /** @return \Firebird\Transaction|null */
     public function getActiveTransaction()
     {
         return $this->activeTransaction;
@@ -98,7 +98,7 @@ final class TransactionManager
         $this->executionMode = $mode;
     }
 
-    /** @return resource|null */
+    /** @return \Firebird\Transaction|null */
     public function getResource()
     {
         return $this->activeTransaction;
@@ -297,7 +297,7 @@ final class TransactionManager
     }
 
     /**
-     * @return resource
+     * @return \Firebird\Transaction
      *
      * @throws DriverException
      */
@@ -338,9 +338,7 @@ final class TransactionManager
         // not a resource. Both are accepted by fbird_trans_start() via dual-accept.
         if ($conn === null || $conn === false) {
             throw new DriverException(
-                'Native connection handle is invalid (closed or destroyed). '
-                . 'This typically happens when a shared connection resource was closed '
-                . 'by another Connection object\'s destructor.',
+                'Native connection handle is invalid (closed or destroyed).',
             );
         }
 

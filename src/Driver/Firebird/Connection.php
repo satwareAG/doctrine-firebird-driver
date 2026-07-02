@@ -106,7 +106,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private static bool $ooApiLoaded = false;
 
     /**
-     * @param resource|\Firebird\Connection|null $connection
+     * @param \Firebird\Connection|null $connection
      * @param array<string, mixed>               $params
      *
      * @throws Exception
@@ -163,7 +163,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         // Close non-persistent connections (persistent connections are managed by the extension)
         if (! $this->isPersistent) {
-            fbird_close($this->connection);
+            try {
+                fbird_close($this->connection);
+            } catch (Throwable) {
+                // Destructors must not throw
+            }
         }
 
         $this->connection = null;
@@ -947,10 +951,10 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
      * Returns null if no IDENTITY column is found or the lookup fails.
      *
-     * Uses fbird_query() without a transaction argument so the lookup runs in
-     * autocommit mode and never conflicts with an active no-wait transaction on
-     * the same connection (Firebird raises lock-conflict errors when querying
-     * system tables inside a no-wait transaction started by the DBAL layer).
+     * Uses $this->query() (DBAL path) which runs within the active transaction.
+     * php-firebird v11: fbird_query($conn, $sql) in autocommit mode doesn't see
+     * data committed by the active transaction when using Firebird\Connection objects.
+     * See: https://github.com/satwareAG/php-firebird/issues/294
      */
     private function resolveIdentityGenerator(string $tableName): string|null
     {
@@ -964,9 +968,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         try {
             // Use $this->query() (DBAL path) which runs within the active transaction.
-            // php-firebird v11: fbird_query($conn, $sql) in autocommit mode doesn't see
-            // data committed by the active transaction when using Firebird\Connection objects.
-            // See: https://github.com/satwareAG/php-firebird/issues/<TBD>
             $sql = sprintf(
                 'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
                 . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
