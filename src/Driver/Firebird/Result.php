@@ -16,11 +16,8 @@ use function fbird_fetch_assoc;
 use function fbird_fetch_row;
 use function fbird_free_result;
 use function fbird_num_fields;
-use function get_resource_type;
-use function in_array;
 use function is_array;
 use function is_numeric;
-use function is_resource;
 use function preg_replace;
 use function trim;
 
@@ -29,19 +26,7 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
-    /**
-     * Valid resource types for Firebird result sets.
-     * php-firebird v6.x uses legacy names, v7.x+ uses 'firebird result'.
-     * v9.x+ uses 'Firebird query' for both statements and results.
-     */
-    private const VALID_RESULT_TYPES = [
-        'interbase result',
-        'Firebird/InterBase result',
-        'firebird result',
-        'Firebird query',
-    ];
-
-    /** @var resource|int|null */
+    /** @var resource|int|\Firebird\ResultSet|null */
     private mixed $firebirdResultResource = null;
 
     /**
@@ -293,12 +278,15 @@ final class Result implements ResultInterface
     {
         if (! $this->isResultValid()) {
             $this->firebirdResultResource = null;
-
             return;
         }
 
-        /** @phpstan-ignore argument.type */
-        fbird_free_result($this->firebirdResultResource);
+        try {
+            /** @phpstan-ignore argument.type */
+            fbird_free_result($this->firebirdResultResource);
+        } catch (Throwable) {
+            // Ignore errors during cleanup
+        }
         $this->firebirdResultResource = null;
     }
 
@@ -310,15 +298,11 @@ final class Result implements ResultInterface
      * or invalidated ("Unknown") resources to fbird_* functions.
      *
      * @psalm-assert-if-true resource $this->firebirdResultResource
-     * @phpstan-assert-if-true resource $this->firebirdResultResource
+     * @phpstan-assert-if-true \Firebird\ResultSet $this->firebirdResultResource
      */
     public function isResultValid(): bool
     {
-        if (! is_resource($this->firebirdResultResource)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->firebirdResultResource), self::VALID_RESULT_TYPES, true);
+        return is_object($this->firebirdResultResource);
     }
 
     /**

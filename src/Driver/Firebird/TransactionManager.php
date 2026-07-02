@@ -18,9 +18,6 @@ use function fbird_rollback;
 use function fbird_rollback_savepoint;
 use function fbird_savepoint;
 use function fbird_trans_start;
-use function get_resource_type;
-use function in_array;
-use function is_resource;
 use function sprintf;
 use function str_contains;
 
@@ -39,12 +36,6 @@ use const FBIRD_WRITE;
  */
 final class TransactionManager
 {
-    /**
-     * Valid resource types for Firebird transaction.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
-
     /**
      * Firebird error code for "invalid transaction handle".
      */
@@ -297,16 +288,12 @@ final class TransactionManager
     }
 
     /**
-     * @psalm-assert-if-true resource $this->activeTransaction
-     * @phpstan-assert-if-true resource $this->activeTransaction
+     * @psalm-assert-if-true \Firebird\Transaction $this->activeTransaction
+     * @phpstan-assert-if-true \Firebird\Transaction $this->activeTransaction
      */
     public function isTransactionValid(): bool
     {
-        if (! is_resource($this->activeTransaction)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->activeTransaction), self::RESOURCE_TYPES_TRANSACTION, true);
+        return $this->activeTransaction instanceof \Firebird\Transaction;
     }
 
     /**
@@ -346,12 +333,12 @@ final class TransactionManager
 
         $conn = $this->connection->getNativeConnection();
 
-        // Validate the native resource before passing to fbird_trans_start().
-        // If fbird_close() was called on a shared resource, the C struct's
-        // fbc_connection pointer is NULL, causing "Connection has no OO API handle".
-        if (! is_resource($conn) || get_resource_type($conn) === 'Unknown') {
+        // Validate the native handle before passing to fbird_trans_start().
+        // v10+: connection may be a \Firebird\Connection object (M3 migration),
+        // not a resource. Both are accepted by fbird_trans_start() via dual-accept.
+        if ($conn === null || $conn === false) {
             throw new DriverException(
-                'Native connection resource is invalid (closed or destroyed). '
+                'Native connection handle is invalid (closed or destroyed). '
                 . 'This typically happens when a shared connection resource was closed '
                 . 'by another Connection object\'s destructor.',
             );
@@ -364,7 +351,7 @@ final class TransactionManager
             throw DriverException::fromThrowable($e);
         }
 
-        if (! is_resource($transaction)) {
+        if ($transaction === false) {
             throw new DriverException(
                 (string) fbird_errmsg(),
                 null,

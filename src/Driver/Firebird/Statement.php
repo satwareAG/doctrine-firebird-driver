@@ -22,10 +22,7 @@ use function fbird_errmsg;
 use function fbird_execute;
 use function fbird_free_query;
 use function func_num_args;
-use function get_resource_type;
-use function in_array;
 use function is_int;
-use function is_resource;
 use function ksort;
 use function preg_match;
 use function sprintf;
@@ -39,12 +36,6 @@ use function trim;
  */
 final class Statement implements StatementInterface
 {
-    /**
-     * Valid resource types for Firebird statements.
-     * php-firebird v7.x+ uses 'Firebird query'.
-     */
-    private const VALID_STATEMENT_TYPES = ['interbase query', 'Firebird/InterBase query', 'firebird query', 'Firebird query'];
-
     /** @var array<int, mixed> */
     private array $queryParamBindings = [];
 
@@ -79,7 +70,7 @@ final class Statement implements StatementInterface
     {
         $this->blobHandler = new BlobHandler();
 
-        if (is_resource($this->statement)) {
+        if ($this->statement !== null) {
             // Determine if this is a DML statement by examining the SQL
             $this->isDml = $this->detectDmlStatement($sql);
             // Specifically check if it's an INSERT
@@ -95,23 +86,20 @@ final class Statement implements StatementInterface
 
     public function __destruct()
     {
-        if (! $this->isStatementValid()) {
+        if ($this->statement === null) {
             return;
         }
 
-        $statementType = get_resource_type($this->statement);
-
-        // Skip cleanup for transaction resources (php-firebird v7.0.0+)
-        if ($statementType === 'Firebird transaction') {
+        // Don't free transaction handles (used for implicit commits)
+        if ($this->statement instanceof \Firebird\Transaction) {
             return;
         }
 
-        // Free query resources (php-firebird v7.0.0+)
-        if ($statementType === 'Firebird query') {
+        // Destructors must not throw — wrap cleanup in try-catch
+        try {
             fbird_free_query($this->statement);
-            unset($this->statement);
+        } catch (Throwable) {
         }
-
         $this->statement = null;
     }
 
@@ -186,10 +174,8 @@ final class Statement implements StatementInterface
             $this->currentResult = null;
         }
 
-        // Check if statement is actually a transaction resource (used for implicit commits)
-        // php-firebird v7.0.0+ resource type
-        $resourceType = get_resource_type($this->statement);
-        if ($resourceType === 'Firebird transaction') {
+        // Check if statement is actually a transaction handle (used for implicit commits)
+        if ($this->statement instanceof \Firebird\Transaction) {
             $fbirdResultRc = 1;
         } else {
             if ($params !== null) {
@@ -242,7 +228,7 @@ final class Statement implements StatementInterface
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
 
-            if (! is_resource($fbirdResultRc)) {
+            if (! is_object($fbirdResultRc)) {
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
                     // For DML operations that return true, get affected rows count
@@ -323,15 +309,11 @@ final class Statement implements StatementInterface
      * Check if the statement resource is a valid Firebird statement resource.
      *
      * @psalm-assert-if-true resource $this->statement
-     * @phpstan-assert-if-true resource $this->statement
+     * @phpstan-assert-if-true \Firebird\Statement $this->statement
      */
     public function isStatementValid(): bool
     {
-        if (! is_resource($this->statement)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->statement), self::VALID_STATEMENT_TYPES, true);
+        return $this->statement !== null;
     }
 
     /**

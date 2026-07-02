@@ -388,7 +388,7 @@ class TransactionTest extends FunctionalTestCase
         }
 
         $tx = $fbirdConn->getActiveTransaction();
-        self::assertIsResource($tx);
+        self::assertInstanceOf(\Firebird\Transaction::class, $tx);
     }
 
     public function testTransactionalHelperCommitsOnSuccess(): void

@@ -20,7 +20,6 @@ use function fbird_pconnect;
 use function fbird_server_info;
 use function fbird_service_attach;
 use function fbird_service_detach;
-use function is_resource;
 use function stristr;
 
 use const FBIRD_SVC_SERVER_VERSION;
@@ -67,7 +66,7 @@ final class Driver extends FirebirdDriver
             throw Exception::fromThrowable($e);
         }
 
-        if (! is_resource($firebirdService)) {
+        if ($firebirdService === false) {
             throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
         }
 

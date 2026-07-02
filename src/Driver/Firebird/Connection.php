@@ -25,7 +25,6 @@ use Throwable;
 use UnexpectedValueException;
 
 use function array_key_exists;
-use function assert;
 use function class_exists;
 use function explode;
 use function fbird_close;
@@ -49,19 +48,13 @@ use function fbird_reconnect_transaction;
 use function fbird_rollback;
 use function fbird_set_exception_mode;
 use function file_exists;
-use function get_resource_id;
-use function get_resource_type;
-use function in_array;
 use function is_array;
 use function is_dir;
 use function is_float;
 use function is_int;
 use function is_numeric;
 use function is_object;
-use function is_resource;
 use function is_scalar;
-use function is_string;
-use function method_exists;
 use function preg_match;
 use function spl_object_id;
 use function sprintf;
@@ -84,18 +77,6 @@ use const FBIRD_EXCEPTION_MODE_THROW;
  */
 final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-line classImplements.deprecated
 {
-    /**
-     * Valid resource types for Firebird connection.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_CONNECTION = ['Firebird link'];
-
-    /**
-     * Valid resource types for Firebird persistent connection.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
-
     private string|null $connectionInsertColumn = null;
 
     private int|null $connectionInsertId = null;
@@ -119,14 +100,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private readonly TransactionManager $transactionManager;
 
     /**
-     * Static registry tracking how many Connection objects reference each native resource.
-     * Prevents premature fbird_close() when multiple DBAL layers share the same resource.
-     *
-     * @var array<int, int> Resource/object ID => reference count
-     */
-    private static array $resourceRegistry = [];
-
-    /**
      * Load Firebird OO API classes if they are available as PHP files.
      * Some extension releases provide them in /usr/local/lib/php/Firebird.
      */
@@ -146,9 +119,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         array $params,
     ) {
         self::loadOoApi();
-
-        // Register this Connection object's reference to the native resource
-        $this->registerResource();
 
         $this->parser             = new Parser(false);
         $this->transactionManager = new TransactionManager($this);
@@ -171,61 +141,29 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     public function __destruct()
     {
-        // Save resource ID early for registry cleanup (before any nullification)
-        $resourceId = $this->getResourceId();
-
-        $connectionClosable = false;
-        if ($this->isConnectionValid()) {
-            // php-firebird v10.0.0+: Connection objects are always closable (non-persistent)
-            if ($this->connection instanceof FirebirdConnection) {
-                $connectionClosable = ! $this->isPersistent;
-            } else {
-                $conn = $this->getNativeConnection();
-                assert(is_resource($conn));
-                $type = get_resource_type($conn);
-                if (in_array($type, self::RESOURCE_TYPES_CONNECTION, true)) {
-                    $connectionClosable = true;
-                } elseif (in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true)) {
-                    $connectionClosable = false;
-                }
-            }
+        if (! $this->isConnectionValid()) {
+            return;
         }
 
-        // Fallback for "Unknown" resources during shutdown
-        /** @psalm-suppress DocblockTypeContradiction */
-        if (is_resource($this->connection) && get_resource_type($this->connection) === 'Unknown') {
-            $this->connection = null;
-        }
-
-        if ($this->isConnectionValid() && $this->isTransactionValid()) {
-            $firebirdActiveTransaction = $this->getActiveTransaction();
+        // Commit or rollback any pending transaction
+        if ($this->isTransactionValid()) {
+            $activeTransaction = $this->getActiveTransaction();
             if ($this->transactionManager->getLevel() > 0) {
                 try {
-                    fbird_commit($firebirdActiveTransaction);
+                    fbird_commit($activeTransaction);
                 } catch (Throwable) {
                     try {
-                        fbird_rollback($firebirdActiveTransaction);
+                        fbird_rollback($activeTransaction);
                     } catch (Throwable) {
                     }
                 }
             }
-
             $this->transactionManager->reset();
         }
 
-        // Unregister this Connection's reference to the native resource
-        self::unregisterResourceById($resourceId);
-
-        // Only close the native resource if no other Connection objects reference it
-        if ($connectionClosable) {
-            $remainingRefs = $resourceId !== null
-                ? (self::$resourceRegistry[$resourceId] ?? 0)
-                : 0;
-
-            if ($remainingRefs === 0) {
-                /** @phpstan-ignore argument.type (v10.0.0+: fbird_close() accepts Connection objects) */
-                fbird_close($this->connection);
-            }
+        // Close non-persistent connections (persistent connections are managed by the extension)
+        if (! $this->isPersistent) {
+            fbird_close($this->connection);
         }
 
         $this->connection = null;
@@ -447,7 +385,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
                         str_replace('"', '""', $genName),
                     ));
-                    if (is_resource($autoResult) || is_object($autoResult)) {
+                    if ($autoResult !== false && $autoResult !== null) {
                         $autoRow = fbird_fetch_row($autoResult);
                         if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
                             $lastVal = (int) $autoRow[0];
@@ -663,56 +601,33 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @return resource|null */
+    /**
+     * @return resource|\Firebird\Connection|null
+     */
     public function getNativeConnection()
     {
-        if (is_resource($this->connection)) {
+        // v10+: fbird_connect() returns \Firebird\Connection objects (M3 migration).
+        // Both resources (v7-v10) and objects (v11) are valid native handles
+        // accepted by all fbird_* functions via the dual-accept bridge.
+        if ($this->connection !== null) {
             return $this->connection;
-        }
-
-        if (is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')) {
-            /** @phpstan-ignore method.notFound */
-            return $this->connection->getNativeConnection();
         }
 
         return null;
     }
 
     /**
-     * Check if the connection resource or object is valid.
+     * Check if the connection handle is valid.
      *
-     * Since php-firebird v10.0.0, fbird_connect()/fbird_pconnect() return
-     * Firebird\Connection objects instead of resources. All fbird_* functions
-     * accept both resources and Connection objects transparently.
+     * php-firebird v11.0.0+: fbird_connect()/fbird_pconnect() return
+     * Firebird\Connection objects (M3 opaque-object migration).
      *
-     * @return bool True if connection is a valid Firebird resource or Connection object
-     *
-     * @psalm-assert-if-true resource|\Firebird\Connection $this->connection
-     * @phpstan-assert-if-true resource|\Firebird\Connection $this->connection
+     * @psalm-assert-if-true \Firebird\Connection $this->connection
+     * @phpstan-assert-if-true \Firebird\Connection $this->connection
      */
     public function isConnectionValid(): bool
     {
-        if ($this->connection === null) {
-            return false;
-        }
-
-        if (is_resource($this->connection)) {
-            return $this->isResourceTypeValid($this->connection);
-        }
-
-        // php-firebird v10.0.0+: fbird_connect() returns Firebird\Connection objects
-        if ($this->connection instanceof FirebirdConnection) {
-            return $this->connection->isConnected();
-        }
-
-        // In DBAL 3.10+, getNativeConnection() might return an object that wraps the resource.
-        if (is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')) {
-            $native = $this->connection->getNativeConnection();
-
-            return is_resource($native) && $this->isResourceTypeValid($native);
-        }
-
-        return false;
+        return $this->connection instanceof FirebirdConnection && $this->connection->isConnected();
     }
 
     /**
@@ -829,8 +744,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             $transResource = $transaction;
 
             /** @psalm-suppress DocblockTypeContradiction */
-            if (! is_resource($transResource) || get_resource_type($transResource) !== 'Firebird transaction') {
-                throw new DriverException('Invalid transaction resource.');
+            if ($transResource === null || $transResource === false) {
+                throw new DriverException('Invalid transaction handle.');
             }
         }
 
@@ -918,7 +833,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         } else {
             $transResource = $this->transactionManager->getActiveTransaction();
 
-            if (! is_resource($transResource)) {
+            if ($transResource === null || $transResource === false) {
                 throw new DriverException('No valid transaction available for batch operation.');
             }
         }
@@ -1029,24 +944,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     // =========================================================================
 
     /**
-     * Get the reference count for a native resource (for testing/debugging).
-     *
-     * @param resource|object $resource Native connection resource or object
-     */
-    public static function getResourceRefCount(mixed $resource): int
-    {
-        if (is_resource($resource)) {
-            $id = get_resource_id($resource);
-        } elseif (is_object($resource)) {
-            $id = spl_object_id($resource);
-        } else {
-            return 0;
-        }
-
-        return self::$resourceRegistry[$id] ?? 0;
-    }
-
-    /**
      * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
      * Returns null if no IDENTITY column is found or the lookup fails.
      *
@@ -1092,65 +989,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         $this->identityGeneratorCache[$key] = $result;
 
         return $result;
-    }
-
-    /**
-     * Get the unique ID for the current native connection resource/object.
-     */
-    private function getResourceId(): int|null
-    {
-        if ($this->connection === null) {
-            return null;
-        }
-
-        if (is_resource($this->connection)) {
-            return get_resource_id($this->connection);
-        }
-
-        if (is_object($this->connection)) {
-            return spl_object_id($this->connection);
-        }
-
-        return null;
-    }
-
-    /**
-     * Register this Connection object's reference to the native resource.
-     */
-    private function registerResource(): void
-    {
-        $id = $this->getResourceId();
-        if ($id === null) {
-            return;
-        }
-
-        self::$resourceRegistry[$id] = (self::$resourceRegistry[$id] ?? 0) + 1;
-    }
-
-    /** @param resource $resource */
-    private function isResourceTypeValid($resource): bool
-    {
-        $type = get_resource_type($resource);
-
-        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
-            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
-    }
-
-    /**
-     * Unregister a resource reference by its ID.
-     */
-    private static function unregisterResourceById(int|null $resourceId): void
-    {
-        if ($resourceId === null || ! isset(self::$resourceRegistry[$resourceId])) {
-            return;
-        }
-
-        self::$resourceRegistry[$resourceId]--;
-        if (self::$resourceRegistry[$resourceId] > 0) {
-            return;
-        }
-
-        unset(self::$resourceRegistry[$resourceId]);
     }
 
     private static function loadOoApi(): void
