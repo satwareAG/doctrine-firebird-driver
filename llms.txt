@@ -1,0 +1,34 @@
+# doctrine-firebird-driver
+
+Doctrine DBAL driver for Firebird SQL 3.0+. Wraps the satwareAG/php-firebird
+native PHP extension (fbird_* procedural API) with full Doctrine DBAL
+integration, including schema management, transactions, and ORM support.
+
+## Docs
+- README: /README.md
+- Changelog: /CHANGELOG.md
+- Testing guide: /docs/TESTING.md
+- Contributing: /docs/CONTRIBUTING.md
+
+## Repos
+- Source: https://github.com/satwareAG/doctrine-firebird-driver
+- Issues: https://github.com/satwareAG/doctrine-firebird-driver/issues
+
+## Dependencies
+- Upstream: https://github.com/satwareAG/php-firebird (native extension, ext-firebird ^11.1)
+- Stubs: https://github.com/satwareAG/php-firebird-stubs (satwareag/php-firebird-stubs ^11.1)
+- Doctrine DBAL: https://github.com/doctrine/dbal (^3.10 on 3.10.x branch, ^4.4 on 4.4.x branch)
+
+## SDD
+- Methodology: https://github.com/satwareAG/spec-kit
+- Metadata: /specs/metadata.json
+- IPADP conformance: L3
+
+## Branches
+- 3.10.x: DBAL ^3.10 (active, current release: v3.13.0-RC.1)
+- 4.4.x: DBAL ^4.4 (active)
+
+## Test
+- PHP 8.2-8.5 x Firebird 3.0/4.0/5.0 matrix
+- Docker-based: cd tests && ./phpunit.sh
+- Quality: PHPStan 8, Psalm, PHPCS (Doctrine standard)
