@@ -179,7 +179,9 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         // Clean existing objects via PHP connection (autocommit commits each statement).
         // Uses EXECUTE BLOCK with WHEN ANY DO so individual failures don't abort.
-        $cleanupSql = "EXECUTE BLOCK AS\n"
+        // Each block must be executed separately - Firebird executes one statement per call.
+        $cleanupBlocks = [
+            "EXECUTE BLOCK AS\n"
             . "  DECLARE cname VARCHAR(63);\n"
             . "  DECLARE tname VARCHAR(63);\n"
             . "BEGIN\n"
@@ -191,8 +193,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
             . "    WHEN ANY DO BEGIN /* ignore */ END\n"
             . "  END\n"
-            . "END;\n"
-            . "EXECUTE BLOCK AS\n"
+            . "END",
+            "EXECUTE BLOCK AS\n"
             . "  DECLARE tname VARCHAR(63);\n"
             . "BEGIN\n"
             . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
@@ -202,8 +204,8 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
             . "    WHEN ANY DO BEGIN /* ignore */ END\n"
             . "  END\n"
-            . "END;\n"
-            . "EXECUTE BLOCK AS\n"
+            . "END",
+            "EXECUTE BLOCK AS\n"
             . "  DECLARE gname VARCHAR(63);\n"
             . "BEGIN\n"
             . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
@@ -213,12 +215,15 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
             . "    WHEN ANY DO BEGIN /* ignore */ END\n"
             . "  END\n"
-            . "END;\n";
+            . "END",
+        ];
 
-        try {
-            $connection->executeStatement($cleanupSql);
-        } catch (Throwable) {
-            // Cleanup errors are non-fatal (tables may not exist yet)
+        foreach ($cleanupBlocks as $block) {
+            try {
+                $connection->executeStatement($block);
+            } catch (Throwable) {
+                // Cleanup errors are non-fatal (tables may not exist yet)
+            }
         }
 
         // Build schema

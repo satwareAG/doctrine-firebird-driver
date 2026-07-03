@@ -255,8 +255,10 @@ class TestUtil
 
         // When force=true (integration tests), clean all user objects so
         // installFirebirdDatabase() can recreate schema from scratch.
+        // Each block must be executed separately - Firebird executes one statement per call.
         if ($force) {
-            $cleanupSql = "EXECUTE BLOCK AS\n"
+            $cleanupBlocks = [
+                "EXECUTE BLOCK AS\n"
                 . "  DECLARE cname VARCHAR(63);\n"
                 . "  DECLARE tname VARCHAR(63);\n"
                 . "BEGIN\n"
@@ -268,8 +270,8 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END;\n"
-                . "EXECUTE BLOCK AS\n"
+                . "END",
+                "EXECUTE BLOCK AS\n"
                 . "  DECLARE tname VARCHAR(63);\n"
                 . "BEGIN\n"
                 . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
@@ -279,8 +281,8 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END;\n"
-                . "EXECUTE BLOCK AS\n"
+                . "END",
+                "EXECUTE BLOCK AS\n"
                 . "  DECLARE gname VARCHAR(63);\n"
                 . "BEGIN\n"
                 . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
@@ -290,12 +292,15 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END;\n";
+                . "END",
+            ];
 
-            try {
-                $connection->executeStatement($cleanupSql);
-            } catch (Throwable) {
-                // Cleanup errors are non-fatal (tables may not exist yet)
+            foreach ($cleanupBlocks as $block) {
+                try {
+                    $connection->executeStatement($block);
+                } catch (Throwable) {
+                    // Cleanup errors are non-fatal (tables may not exist yet)
+                }
             }
         }
 
