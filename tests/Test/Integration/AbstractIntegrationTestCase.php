@@ -226,6 +226,15 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             }
         }
 
+        // Explicitly commit any pending DDL from EXECUTE STATEMENT inside blocks.
+        // Firebird 3.0 requires explicit commit for DDL executed via EXECUTE STATEMENT.
+        try {
+            if ($connection->isTransactionActive()) {
+                $connection->commit();
+            }
+        } catch (Throwable) {
+        }
+
         // Build schema
         $schema = new Schema();
         $tAlbum = $schema->createTable('ALBUM');

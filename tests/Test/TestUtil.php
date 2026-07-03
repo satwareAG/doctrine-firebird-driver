@@ -302,6 +302,14 @@ class TestUtil
                     // Cleanup errors are non-fatal (tables may not exist yet)
                 }
             }
+
+            // Explicitly commit any pending DDL from EXECUTE STATEMENT inside blocks.
+            try {
+                if ($connection->isTransactionActive()) {
+                    $connection->commit();
+                }
+            } catch (Throwable) {
+            }
         }
 
         self::$effectiveDbName  = $baseParams['dbname'];
