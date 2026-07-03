@@ -85,6 +85,18 @@ git tag -a vX.Y.Z -m "chore(release): vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
+## No-Retag Policy
+
+**Tags MUST NOT be force-pushed or deleted after publication.**
+
+Packagist enforces [version immutability](https://packagist.org/about/version-immutability):
+once a stable version is crawled, its source reference is locked. Retagging causes
+Packagist to block the update, leaving downstream consumers with a stale commit.
+
+If a tagged release has a regression, **publish a new version** (e.g., `v1.2.4`
+after `v1.2.3`) instead of retagging. GitHub tag protection rules prevent
+accidental force-pushes.
+
 ---
 
 ## Commit Convention
