@@ -290,10 +290,12 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             try {
                 $connection->executeStatement($ddlStatement);
             } catch (Throwable $e) {
-                // Tolerate "Index already exists" errors (SQLSTATE 42S11).
-                // Firebird auto-creates indexes for FK constraints, but Doctrine's
-                // Schema::toSql() also generates explicit CREATE INDEX statements.
-                if (! str_contains($e->getMessage(), '42S11')) {
+                $msg = $e->getMessage();
+                // Tolerate "Index already exists" (SQLSTATE 42S11) and
+                // "Table already exists" — can happen when the coverage step
+                // runs all suites in one process and functional tests created
+                // the same tables before the integration suite.
+                if (! str_contains($msg, '42S11') && ! str_contains($msg, 'already exists')) {
                     throw $e;
                 }
             }
