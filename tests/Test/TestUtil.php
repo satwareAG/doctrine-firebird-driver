@@ -270,7 +270,7 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END",
+                . 'END',
                 "EXECUTE BLOCK AS\n"
                 . "  DECLARE tname VARCHAR(63);\n"
                 . "BEGIN\n"
@@ -281,7 +281,7 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END",
+                . 'END',
                 "EXECUTE BLOCK AS\n"
                 . "  DECLARE gname VARCHAR(63);\n"
                 . "BEGIN\n"
@@ -292,7 +292,7 @@ class TestUtil
                 . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
                 . "    WHEN ANY DO BEGIN /* ignore */ END\n"
                 . "  END\n"
-                . "END",
+                . 'END',
             ];
 
             foreach ($cleanupBlocks as $block) {
