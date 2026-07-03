@@ -139,6 +139,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
     public function __destruct()
     {
+        // Guard against uninitialized typed property (PHP 8.4+ throws if
+        // constructor hasn't completed, e.g. during global shutdown).
+        if (! isset($this->connection)) {
+            return;
+        }
+
         if (! $this->isConnectionValid()) {
             return;
         }

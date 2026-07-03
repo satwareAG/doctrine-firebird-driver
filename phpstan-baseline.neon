@@ -1,2 +1,193 @@
 parameters:
-    ignoreErrors:
+	ignoreErrors:
+		-
+			message: '#^Function fbird_last_insert_id invoked with 1 parameter, 2 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getActiveTransaction\(\) never returns resource so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getActiveTransaction\(\) should return resource\|null but returns Firebird\\Transaction\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getNativeConnection\(\) never returns resource so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_connection_info expects resource\|null, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_execute_auto expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_get_limbo_transactions expects resource\|null, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_prepare_ex expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_query_params_tx expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_reconnect_transaction expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_drop_table_force expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_kill_attachment expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_list_table_blockers expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$result of function fbird_fetch_row expects resource, int\|resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#2 \$statement of class Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Statement constructor expects Firebird\\Transaction\|resource\|false\|null, Firebird\\Statement\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#2 \$trans_handle of function fbird_query_params_tx expects resource, Firebird\\Transaction\|resource\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#3 \$trans_handle of function fbird_prepare_ex expects resource\|null, Firebird\\Transaction\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between Firebird\\Transaction and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_prepare_ex expects resource, Firebird\\Connection\|resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Parameter \#1 \$query of function fbird_batch_create expects resource, Firebird\\Statement given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Property Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\ProceduralBatch\:\:\$batchHandle \(resource\) does not accept Firebird\\BatchHandle\|resource\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_affected_rows expects resource\|null, Firebird\\Connection\|resource\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
+			message: '#^Property Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Result\:\:\$firebirdResultResource \(Firebird\\ResultSet\|int\|resource\|null\) is never assigned Firebird\\ResultSet so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Driver/Firebird/Result.php
+
+		-
+			message: '#^Parameter \#1 \$firebirdResultResource of class Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Result constructor expects int\|resource\|null, Firebird\\ResultSet\|int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_affected_rows expects resource\|null, Firebird\\Connection\|resource\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_commit expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_commit_ret expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_release_savepoint expects resource, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_rollback expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_rollback_savepoint expects resource, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_savepoint expects resource, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$connection of function fbird_drop_db expects resource\|string\|null, Firebird\\Connection\|resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Schema/FirebirdSchemaManager.php
