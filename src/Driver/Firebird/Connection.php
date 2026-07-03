@@ -110,7 +110,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * @throws Exception
      */
     public function __construct(
-        private FirebirdConnection|null $connection,
+        private mixed $connection,
         private readonly string $serverVersion,
         protected bool $isPersistent,
         private readonly Exception|null $databaseNotFoundException,
@@ -635,6 +635,10 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      */
     public function isConnectionValid(): bool
     {
+        if (! isset($this->connection)) {
+            return false;
+        }
+
         return $this->connection instanceof FirebirdConnection && $this->connection->isConnected();
     }
 
