@@ -233,7 +233,7 @@ All configurations share:
 <var name="db_driver_class" value="Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver"/>
 <var name="db_user" value="sysdba"/>
 <var name="db_password" value="masterkey"/>
-<var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>
+    <var name="db_dbname" value="/var/lib/firebird/data/test.fdb"/>
 <var name="db_charset" value="UTF8" />
 <ini name="memory_limit" value="4G"/>
 ```
@@ -486,22 +486,21 @@ The test environment uses Docker Compose with multiple Firebird versions:
 
 ```yaml
 services:
-  firebird25:
-    image: jacobalberty/firebird:2.5-sc
-    
   firebird3:
-    image: jacobalberty/firebird:3.0
-    
-  firebird4:
-    image: jacobalberty/firebird:4.0
-    
-  firebird5:
-    image: jacobalberty/firebird:5.0
+    image: firebirdsql/firebird:3
+
+  firebird4:   # optional — use --profile fb4
+    image: firebirdsql/firebird:4
+
+  firebird5:   # optional — use --profile fb5
+    image: firebirdsql/firebird:5
 ```
 
 ### Environment Variables
 
-Tests use PHPUnit configuration variables (not OS environment variables):
+Tests use PHPUnit configuration variables, overridable by OS environment variables
+(see `TestUtil::mapConnectionParameters()` — `getenv('DB_HOST')` takes precedence
+over `<var name="db_host">` in phpunit.xml):
 
 ```xml
 <php>
@@ -509,12 +508,14 @@ Tests use PHPUnit configuration variables (not OS environment variables):
     <var name="db_host" value="firebird3"/>
     <var name="db_user" value="sysdba"/>
     <var name="db_password" value="masterkey"/>
-    <var name="db_dbname" value="/firebird/data/phpunit-integration-tests.fdb"/>
+    <var name="db_dbname" value="/var/lib/firebird/data/test.fdb"/>
     <var name="db_charset" value="UTF8"/>
 </php>
 ```
 
-Access in tests via `TestUtil::getConnection()` which reads these variables.
+The `docker-compose.yml` sets `DB_HOST`, `DB_DBNAME`, `DB_USER`, and `DB_PASSWORD`
+as environment variables on the `app` service, so no phpunit.xml edit is needed
+for local Docker testing.
 
 ### Autoloading Configuration
 

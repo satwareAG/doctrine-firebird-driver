@@ -26,7 +26,7 @@ class ConnectionTest extends ModifyingIntegrationTestCase
         self::assertInstanceOf(Connection::class, $connection);
         self::assertNull($connection->getAttribute(-1));
         self::assertSame(TransactionIsolationLevel::READ_COMMITTED, $connection->getAttribute(FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL));
-        self::assertIsResource($connection->getNativeConnection());
+        self::assertInstanceOf(\Firebird\Connection::class, $connection->getNativeConnection());
         self::assertSame("'''foo'''", $connection->quote("'foo'"));
         self::assertSame('foo/3333:bar', (string) FirebirdConnectString::fromConnectionParameters([
             'host' => 'foo',
@@ -85,13 +85,13 @@ class ConnectionTest extends ModifyingIntegrationTestCase
         $level = $transactionManager->getLevel();
         $transactionA = $transactionManager->getActiveTransaction();
         self::assertSame(0, $level);
-        self::assertIsResource($transactionA);
+        self::assertInstanceOf(\Firebird\Transaction::class, $transactionA);
 
         $connection->beginTransaction();
         $level = $transactionManager->getLevel();
         $transactionB = $transactionManager->getActiveTransaction();
         self::assertSame(1, $level);
-        self::assertIsResource($transactionB);
+        self::assertInstanceOf(\Firebird\Transaction::class, $transactionB);
         self::assertNotSame($transactionA, $transactionB);
     }
 

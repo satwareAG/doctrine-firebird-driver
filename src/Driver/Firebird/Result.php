@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
+use Firebird\ResultSet;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Throwable;
 
@@ -16,11 +17,8 @@ use function fbird_fetch_assoc;
 use function fbird_fetch_row;
 use function fbird_free_result;
 use function fbird_num_fields;
-use function get_resource_type;
-use function in_array;
 use function is_array;
 use function is_numeric;
-use function is_resource;
 use function preg_replace;
 use function trim;
 
@@ -29,19 +27,7 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
-    /**
-     * Valid resource types for Firebird result sets.
-     * php-firebird v6.x uses legacy names, v7.x+ uses 'firebird result'.
-     * v9.x+ uses 'Firebird query' for both statements and results.
-     */
-    private const VALID_RESULT_TYPES = [
-        'interbase result',
-        'Firebird/InterBase result',
-        'firebird result',
-        'Firebird query',
-    ];
-
-    /** @var resource|int|null */
+    /** @var resource|int|ResultSet|null */
     private mixed $firebirdResultResource = null;
 
     /**
@@ -297,28 +283,28 @@ final class Result implements ResultInterface
             return;
         }
 
-        /** @phpstan-ignore argument.type */
-        fbird_free_result($this->firebirdResultResource);
+        try {
+            /** @phpstan-ignore argument.type */
+            fbird_free_result($this->firebirdResultResource);
+        } catch (Throwable) {
+            // Ignore errors during cleanup
+        }
+
         $this->firebirdResultResource = null;
     }
 
     /**
-     * Check if the result resource is a valid Firebird result resource.
+     * Check if the result handle is valid.
      *
-     * Validates both that the value is a resource AND that it has a valid
-     * Firebird result type string. This prevents passing transaction resources
-     * or invalidated ("Unknown") resources to fbird_* functions.
+     * php-firebird v11.1.0+: fbird_query()/fbird_execute() return
+     * Firebird\ResultSet objects for SELECT queries (M3 migration complete, issue #296).
      *
-     * @psalm-assert-if-true resource $this->firebirdResultResource
-     * @phpstan-assert-if-true resource $this->firebirdResultResource
+     * @psalm-assert-if-true ResultSet $this->firebirdResultResource
+     * @phpstan-assert-if-true ResultSet $this->firebirdResultResource
      */
     public function isResultValid(): bool
     {
-        if (! is_resource($this->firebirdResultResource)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->firebirdResultResource), self::VALID_RESULT_TYPES, true);
+        return $this->firebirdResultResource instanceof ResultSet;
     }
 
     /**

@@ -51,7 +51,6 @@ if [[ "${WAIT_FOR_FIREBIRD:-false}" == "true" ]]; then
     wait_for_firebird "firebird3" 3050 30 || true
     wait_for_firebird "firebird4" 3050 30 || true
     wait_for_firebird "firebird5" 3050 30 || true
-    wait_for_firebird "firebird25" 3050 30 || true
 fi
 
 # -----------------------------------------------------------------------------
