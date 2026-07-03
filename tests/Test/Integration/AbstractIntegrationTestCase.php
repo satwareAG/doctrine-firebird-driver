@@ -45,11 +45,9 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     /**
      * Shared connection for integration tests.
      *
-     * CRITICAL: php-firebird v8.2.0 cannot create two connections to the same
-     * DB file in one PHP process. The second connection gets empty DB path and
-     * false health check. Therefore we MUST reuse the exact connection object
-     * that TestUtil::initializeDatabase() creates. Never call
-     * DriverManager::getConnection() or new Connection() for the same DB.
+     * Reused across tests for performance (avoids repeated connection overhead).
+     * php-firebird v8.2.0 had a bug preventing two connections to the same DB file
+     * in one process (empty DB path, false health check) — fixed in v11.1.0.
      */
     private static Connection|null $integrationConnection = null;
 
@@ -160,8 +158,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     protected static function installFirebirdDatabase(Connection $connection, array $configurationArray, string|null $className = null): void
     {
         // Skip re-installation if already done in this process.
-        // All integration test classes share the same database and connection.
-        // Transaction rollback in tearDown() provides per-test isolation.
         if (self::$databaseInstalled) {
             return;
         }
@@ -169,51 +165,20 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         // Cross-process guard: each CI step runs a separate PHPUnit process,
         // so static $databaseInstalled resets. Check the DB directly: if seed
         // data already exists with the correct count, skip re-installation.
-        // This avoids double-seeding (ALBUM rows: 4) caused by isql cleanup
-        // failing to DROP tables when metadata locks persist.
         try {
             $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
             if ($albumCount === 2) {
                 self::$databaseInstalled = true;
                 echo "[DIAG] Database already seeded (ALBUM rows: {$albumCount}), skipping re-installation\n";
+
                 return;
             }
         } catch (Throwable) {
             // Table doesn't exist yet - proceed with installation
         }
 
-        // WORKAROUND: php-firebird v8.2.0 silently drops DDL/DML on newly
-        // created databases (tables not created, rows not inserted) despite
-        // no errors thrown. We execute all DDL + DML via isql subprocess which
-        // bypasses the PHP driver entirely and writes directly to the DB file.
-
-        // Get the actual DB path from the connection before it potentially breaks.
-        $dbPath = $connection->fetchOne("SELECT RDB\$GET_CONTEXT('SYSTEM', 'DB_NAME') FROM RDB\$DATABASE");
-        if (empty($dbPath)) {
-            // Fallback: try to resolve from connection params + host
-            $connParams = $connection->getParams();
-            $host       = $connParams['host'] ?? '127.0.0.1';
-            $dbname     = $connParams['dbname'] ?? 'test.fdb';
-            $dbPath     = $host . ':' . $dbname;
-        }
-
-        // Extract just the file path (strip host: prefix for isql)
-        $isqlDbPath = $dbPath;
-        if (str_contains($isqlDbPath, ':')) {
-            $isqlDbPath = substr(strstr($isqlDbPath, ':'), 1);
-        }
-        $host = $connection->getParams()['host'] ?? '127.0.0.1';
-        $user = self::DEFAULT_DATABASE_USERNAME;
-        $pass = self::DEFAULT_DATABASE_PASSWORD;
-
-        // Close connection to release metadata locks before isql DDL.
-        // Firebird refuses DDL (DROP TABLE, CREATE TABLE) via isql when another
-        // connection holds an active implicit transaction from prior queries.
-        // DBAL auto-reconnects on the next query after close().
-        $connection->close();
-
-        // Clean existing objects first (idempotent re-creation).
-        // Uses WHEN ANY DO inside loops so individual failures don't abort the block.
+        // Clean existing objects via PHP connection (autocommit commits each statement).
+        // Uses EXECUTE BLOCK with WHEN ANY DO so individual failures don't abort.
         $cleanupSql = "EXECUTE BLOCK AS\n"
             . "  DECLARE cname VARCHAR(63);\n"
             . "  DECLARE tname VARCHAR(63);\n"
@@ -251,7 +216,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             . "END;\n";
 
         try {
-            TestUtil::runIsql($cleanupSql, $isqlDbPath, $user, $pass, $host);
+            $connection->executeStatement($cleanupSql);
         } catch (Throwable) {
             // Cleanup errors are non-fatal (tables may not exist yet)
         }
@@ -312,11 +277,24 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
         $tSong->addForeignKeyConstraint($tGenre, ['genre_id'], ['id'], [], 'FK_Song_genre_id');
         $tSong->addForeignKeyConstraint($tArtist, ['artist_id'], ['id'], [], 'FK_Song_artist_id');
 
-        // Generate DDL SQL
+        // Execute DDL via PHP connection (autocommit commits each statement).
         $platform     = $connection->getDatabasePlatform();
         $ddlStatements = $schema->toSql($platform);
 
-        // Build seed INSERT SQL (no parameter binding - pure SQL for isql)
+        foreach ($ddlStatements as $ddlStatement) {
+            try {
+                $connection->executeStatement($ddlStatement);
+            } catch (Throwable $e) {
+                // Tolerate "Index already exists" errors (SQLSTATE 42S11).
+                // Firebird auto-creates indexes for FK constraints, but Doctrine's
+                // Schema::toSql() also generates explicit CREATE INDEX statements.
+                if (! str_contains($e->getMessage(), '42S11')) {
+                    throw $e;
+                }
+            }
+        }
+
+        // Seed data via PHP connection (autocommit commits each INSERT).
         $seedGroups = [
             'ARTIST_TYPE' => [
                 ['name' => 'Unknown'], ['name' => 'Solo'], ['name' => 'Duo'],
@@ -346,7 +324,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             ],
         ];
 
-        $seedSql = '';
         foreach ($seedGroups as $table => $rows) {
             foreach ($rows as $row) {
                 $columns = [];
@@ -361,35 +338,18 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                         $values[] = (string) $val;
                     }
                 }
-                // Use uppercase table name without quotes - Firebird stores unquoted
-                // identifiers as uppercase, and the DDL from Schema::toSql() generates
-                // unquoted table names. Using "Album_SongMap" (quoted mixed-case) would
-                // fail because the catalog entry is ALBUM_SONGMAP.
-                $seedSql .= 'INSERT INTO ' . strtoupper($table) . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
+
+                $connection->executeStatement(
+                    'INSERT INTO ' . strtoupper($table) . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ')',
+                );
             }
         }
 
-        // Combine DDL + DML and execute via isql
-        $fullSql = implode(";\n", $ddlStatements) . ";\n" . $seedSql;
-
-        try {
-            TestUtil::runIsql($fullSql, $isqlDbPath, $user, $pass, $host);
-        } catch (\RuntimeException $e) {
-            // Tolerate "Index already exists" errors (SQLSTATE 42S11).
-            // Firebird auto-creates indexes for FK constraints, but Doctrine's
-            // Schema::toSql() also generates explicit CREATE INDEX statements
-            // for the same FKs, causing harmless duplicates. isql continues
-            // executing after these warnings - tables and data are created.
-            if (! str_contains($e->getMessage(), '42S11')) {
-                throw $e;
-            }
-        }
-
-        // Verify seed data is visible through PHP connection
+        // Verify seed data is visible
         $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
-        echo "[DIAG] isql seeding complete. ALBUM rows: $albumCount\n";
+        echo "[DIAG] PHP seeding complete. ALBUM rows: {$albumCount}\n";
         if ($albumCount === 0) {
-            throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM after isql');
+            throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM');
         }
 
         self::$databaseInstalled = true;
@@ -398,14 +358,12 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
     /**
      * Override parent disconnect() to NOT close the shared connection.
      * Integration tests use transaction rollback for test isolation.
-     * Closing the connection here would invalidate TestUtil's cache,
-     * and the next getConnection() call would create a new broken connection
-     * (php-firebird reconnection bug: empty DB path, health check false).
+     * Closing the connection here would force reconnection on the next test.
      */
     #[After]
     final protected function disconnect(): void
     {
-        // No-op: keep TestUtil::$sharedConnection alive across test methods
+        // No-op: keep TestUtil::$sharedConnection alive for performance
     }
 
     protected static function statementArrayToText(array $statements): string

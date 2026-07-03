@@ -11,7 +11,6 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 use Throwable;
 
@@ -19,31 +18,19 @@ use function array_keys;
 use function array_map;
 use function array_values;
 use function basename;
-use function escapeshellarg;
-use function fclose;
 use function file_exists;
-use function file_put_contents;
 use function getenv;
-use function glob;
 use function implode;
 use function in_array;
-use function is_resource;
 use function is_string;
 use function md5;
 use function mkdir;
-use function proc_close;
-use function proc_open;
 use function sprintf;
-use function str_contains;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
-use function stream_get_contents;
-use function strlen;
-use function strstr;
 use function strtoupper;
 use function substr;
-use function tempnam;
 use function trim;
 use function unlink;
 
@@ -163,105 +150,6 @@ class TestUtil
     }
 
     /**
-     * Execute SQL via isql subprocess, bypassing php-firebird driver entirely.
-     *
-     * Workaround for php-firebird v8.2.0 bug where DDL/DML executed through
-     * the PHP connection to a newly created database silently fails (tables
-     * not created, rows not inserted) despite no errors thrown.
-     *
-     * @param string $sql      SQL to execute
-     * @param string $dbname   Firebird database path
-     * @param string $user     Firebird user
-     * @param string $password Firebird password
-     * @param string $host     Firebird host (for connect string)
-     *
-     * @throws RuntimeException If isql returns non-zero exit code.
-     */
-    public static function runIsql(
-        string $sql,
-        string $dbname,
-        string $user,
-        string $password,
-        string $host = '127.0.0.1',
-    ): void {
-        $isqlBin = null;
-        if (PHP_OS_FAMILY === 'Windows') {
-            // Chocolatey installs Firebird to C:\Program Files\Firebird\Firebird_*
-            $fbDirs = glob('C:\\Program Files\\Firebird\\Firebird_*\\isql.exe');
-            if ($fbDirs !== false && $fbDirs !== []) {
-                $isqlBin = $fbDirs[0];
-            }
-        } else {
-            foreach (['/usr/bin/isql-fb', '/opt/firebird/bin/isql'] as $candidate) {
-                if (file_exists($candidate)) {
-                    $isqlBin = $candidate;
-                    break;
-                }
-            }
-        }
-
-        if ($isqlBin === null) {
-            throw new RuntimeException(
-                'isql not found (checked /usr/bin/isql-fb, /opt/firebird/bin/isql'
-                . (PHP_OS_FAMILY === 'Windows' ? ', C:\\Program Files\\Firebird\\Firebird_*\\isql.exe' : '')
-                . ')',
-            );
-        }
-
-        // Build Firebird connect string: host:/path/to/db.fdb
-        $connectString = $host . ':' . $dbname;
-
-        // Write SQL to temp file to avoid shell escaping issues
-        $tmpFile = tempnam('/tmp', 'fb_isql_');
-        file_put_contents($tmpFile, $sql . "\nCOMMIT;\nQUIT;\n");
-
-        $cmd = sprintf(
-            '%s -z -user %s -password %s %s < %s 2>&1',
-            escapeshellarg($isqlBin),
-            escapeshellarg($user),
-            escapeshellarg($password),
-            escapeshellarg($connectString),
-            escapeshellarg($tmpFile),
-        );
-
-        $descriptors = [
-            0 => ['pipe', 'r'],  // stdin (unused, we redirect from file)
-            1 => ['pipe', 'w'],  // stdout
-            2 => ['pipe', 'w'],  // stderr
-        ];
-
-        $process = proc_open($cmd, $descriptors, $pipes);
-        if (! is_resource($process)) {
-            @unlink($tmpFile);
-
-            throw new RuntimeException('Failed to start isql process');
-        }
-
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
-
-        $exitCode = proc_close($process);
-        @unlink($tmpFile);
-
-        $output = trim($stdout . "\n" . $stderr);
-
-        if ($exitCode !== 0) {
-            throw new RuntimeException(
-                'isql failed (exit ' . $exitCode . '): ' . $output,
-                $exitCode,
-            );
-        }
-
-        // isql may return 0 but still have errors in output (e.g., "Statement failed")
-        if (str_contains($output, 'Statement failed') || str_contains($output, 'Error:')) {
-            throw new RuntimeException('isql reported error: ' . $output);
-        }
-    }
-
-    /**
      * Generates a query that will return the given rows without the need to create a temporary table.
      *
      * @param array<int,array<string,mixed>> $rows
@@ -287,7 +175,6 @@ class TestUtil
     public static function initializeDatabase(bool $force = false, string|null $className = null): void
     {
         // Skip if already initialized for this run, unless $force is true.
-        // If $className is provided, we only skip if THAT class was already initialized.
         if (! $force) {
             if ($className !== null && isset(self::$classInitialized[$className])) {
                 return;
@@ -299,113 +186,6 @@ class TestUtil
         }
 
         $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
-        $baseName   = $baseParams['dbname'];
-
-        // In CI (GitHub Actions), the Firebird Docker service container pre-creates
-        // test.fdb on startup via FIREBIRD_DATABASE env var. We skip the drop/create
-        // cycle entirely because:
-        // 1. "employee" fallback DB doesn't exist in Docker images
-        // 2. dropDatabase() closes the connection, requiring reconnection to a DB
-        //    that may not exist (employee)
-        // 3. The DB is already fresh (new container per CI run)
-        // Integration tests handle schema creation via isql in installFirebirdDatabase().
-        // NOTE: DB_DBNAME env var must be set in CI to the full container path
-        // (e.g. /firebird/data/test.fdb) since bare filenames don't resolve over TCP.
-        if (getenv('CI') && PHP_OS_FAMILY !== 'Windows') {
-            $ciParams                                = $baseParams;
-            $ciParams['persistent']                  = false;
-            $ciParams['driverOptions']['persistent'] = false;
-
-            try {
-                $ciParams['wrapperClass'] = ConnectionWrapper::class;
-                $ciConn                   = DriverManager::getConnection($ciParams, self::createConfiguration());
-                $ciConn->executeQuery($ciConn->getDatabasePlatform()->getDummySelectSQL());
-
-                // When force=true (integration tests), clean all user objects so
-                // installFirebirdDatabase() can recreate schema from scratch.
-                if ($force) {
-                    $host = $ciParams['host'] ?? '127.0.0.1';
-                    $user = $ciParams['user'] ?? 'SYSDBA';
-                    $pass = $ciParams['password'] ?? 'masterkey';
-
-                    // Get DB path from connection for isql
-                    $dbPath = $ciConn->fetchOne(
-                        "SELECT RDB\$GET_CONTEXT('SYSTEM', 'DB_NAME') FROM RDB\$DATABASE",
-                    );
-
-                    if (! empty($dbPath)) {
-                        // Strip host: prefix for isql path
-                        $isqlPath = $dbPath;
-                        if (str_contains($isqlPath, ':')) {
-                            $isqlPath = substr((string) strstr($isqlPath, ':'), 1);
-                        }
-
-                        // Close connection to release metadata locks.
-                        // Firebird refuses DDL (DROP TABLE) via isql when another
-                        // connection holds an active implicit transaction.
-                        // DBAL auto-reconnects on the next query after close().
-                        $ciConn->close();
-
-                        // Drop all FKs, then tables, then generators/sequences
-                        $cleanupSql = "EXECUTE BLOCK AS\n"
-                            . "  DECLARE cname VARCHAR(63);\n"
-                            . "  DECLARE tname VARCHAR(63);\n"
-                            . "BEGIN\n"
-                            . "  FOR SELECT rc.RDB\$CONSTRAINT_NAME, rc.RDB\$RELATION_NAME\n"
-                            . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
-                            . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
-                            . "      INTO :cname, :tname DO\n"
-                            . "  BEGIN\n"
-                            . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
-                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
-                            . "  END\n"
-                            . "END;\n"
-                            . "EXECUTE BLOCK AS\n"
-                            . "  DECLARE tname VARCHAR(63);\n"
-                            . "BEGIN\n"
-                            . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
-                            . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
-                            . "      INTO :tname DO\n"
-                            . "  BEGIN\n"
-                            . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
-                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
-                            . "  END\n"
-                            . "END;\n"
-                            . "EXECUTE BLOCK AS\n"
-                            . "  DECLARE gname VARCHAR(63);\n"
-                            . "BEGIN\n"
-                            . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
-                            . "      WHERE RDB\$SYSTEM_FLAG = 0\n"
-                            . "      INTO :gname DO\n"
-                            . "  BEGIN\n"
-                            . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
-                            . "    WHEN ANY DO BEGIN /* ignore */ END\n"
-                            . "  END\n"
-                            . "END;\n";
-
-                        try {
-                            self::runIsql($cleanupSql, $isqlPath, $user, $pass, $host);
-                        } catch (Throwable) {
-                            // Cleanup errors are non-fatal (tables may not exist yet)
-                        }
-                    }
-                }
-
-                self::$effectiveDbName  = $ciParams['dbname'];
-                self::$sharedConnection = $ciConn;
-
-                if ($className !== null) {
-                    self::$classInitialized[$className] = true;
-                } else {
-                    self::$runInitialized = true;
-                }
-
-                return;
-            } catch (Throwable $e) {
-                // Docker DB not reachable - fall through to normal initialization
-                echo '[CI] Pre-created DB not reachable (' . $e->getMessage() . "), falling through\n";
-            }
-        }
 
         // On Windows CI, ensure we use a simple writable path that Firebird likes
         if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
@@ -414,14 +194,12 @@ class TestUtil
                 @mkdir($tempDir, 0777, true);
             }
 
+            $baseName = $baseParams['dbname'];
             if (! str_starts_with($baseName, $tempDir)) {
-                // Strip any path and force into tempDir
                 $baseName = basename(str_replace('\\', '/', $baseName));
                 $baseName = $tempDir . '\\' . $baseName;
             }
 
-            // On Windows CI, if we are forcing a recreation for a specific class,
-            // use a unique filename to avoid locking issues between test classes.
             if ($force && $className !== null) {
                 $uniqueId = substr(md5($className), 0, 8);
                 $ext      = str_ends_with($baseName, '.fdb') ? '.fdb' : '';
@@ -435,125 +213,101 @@ class TestUtil
             $baseParams['dbname'] = $baseName;
         }
 
-        $ext = '';
-        if (str_ends_with($baseName, '.fdb')) {
-            $baseName = substr($baseName, 0, -4);
-            $ext      = '.fdb';
-        }
+        // Connect to the database. If it doesn't exist, create it.
+        $params                                = $baseParams;
+        $params['persistent']                  = false;
+        $params['driverOptions']['persistent'] = false;
+        $params['wrapperClass']                = ConnectionWrapper::class;
 
-        $maxSlots = 5;
-        for ($i = 0; $i < $maxSlots; $i++) {
-            $currentName = $i === 0 ? $baseParams['dbname'] : $baseName . '_' . $i . $ext;
-
-            $params           = $baseParams;
-            $params['dbname'] = $currentName;
-            // Explicitly disable persistence
-            $params['persistent']                  = false;
-            $params['driverOptions']['persistent'] = false;
-
-            // Use a separate connection to drop/create the database
-            // On Windows CI, we've already ensured C:\firebird_tests exists and is writable
-            $privilegedParams = self::getPrivilegedConnectionParameters();
-
-            // Connect directly to $currentName so dropDatabase can reuse the native
-            // connection resource (avoids the v8 default-link SIGSEGV bug).
-            $privilegedParams['dbname']                      = $currentName;
-            $privilegedParams['persistent']                  = false;
-            $privilegedParams['driverOptions']['persistent'] = false;
-
-            $privilegedConnection = null;
-            try {
-                $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                // Simple health check — confirms the DB exists and is reachable
-                $privilegedConnection->executeQuery($privilegedConnection->getDatabasePlatform()->getDummySelectSQL());
-            } catch (Throwable) {
-                // DB doesn't exist yet — connect to employee to perform CREATE DATABASE
-                $privilegedParams['dbname'] = 'employee';
+        $connection = null;
+        try {
+            $connection = DriverManager::getConnection($params, self::createConfiguration());
+            $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
+        } catch (Throwable) {
+            // DB doesn't exist yet — create it via a privileged connection
+            if ($connection !== null) {
                 try {
-                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                    $connection->close();
                 } catch (Throwable) {
-                    // Final fallback
-                    $privilegedParams['dbname'] = $currentName;
-                    $privilegedConnection       = DriverManager::getConnection($privilegedParams);
                 }
             }
 
+            $privilegedParams = self::getPrivilegedConnectionParameters();
+            $privilegedParams['dbname']                      = $baseParams['dbname'];
+            $privilegedParams['persistent']                  = false;
+            $privilegedParams['driverOptions']['persistent'] = false;
+
             try {
+                $privilegedConnection = DriverManager::getConnection($privilegedParams);
                 $sm = $privilegedConnection->createSchemaManager();
-
-                // Drop the database if it exists; ignore errors (DB may not exist yet).
-                // dropDatabase() reuses the existing native fbird resource and closes
-                // $this->_conn internally (v8 default-link fix). After drop, we must
-                // reconnect before calling createDatabase.
-                try {
-                    @$sm->dropDatabase($currentName);
-                } catch (Throwable) {
-                    // DB may not exist yet — safe to ignore
-                }
-
-                // Reconnect after dropDatabase (which closes the underlying connection)
-                $privilegedParams['dbname'] = 'employee';
-                try {
-                    $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                } catch (Throwable) {
-                    $privilegedParams['dbname'] = $baseParams['dbname'];
-                    $privilegedConnection       = DriverManager::getConnection($privilegedParams);
-                }
-
-                $sm = $privilegedConnection->createSchemaManager();
-                $sm->createDatabase($currentName);
-                self::$effectiveDbName = $currentName;
+                $sm->createDatabase($baseParams['dbname']);
 
                 if ($privilegedConnection->isTransactionActive()) {
                     $privilegedConnection->rollBack();
                 }
 
-                // CRITICAL: Do NOT close and recreate the connection.
-                // php-firebird v8.2.0 cannot reliably reconnect to a newly
-                // created DB file in the same process - the second connection
-                // gets empty DB path and false health check.
-                // Instead, reconnect NOW to the new database and cache it.
                 $privilegedConnection->close();
-                $newDbParams                                = $params;
-                $newDbParams['wrapperClass']                = ConnectionWrapper::class;
-                $newDbParams['persistent']                  = false;
-                $newDbParams['driverOptions']['persistent'] = false;
-                self::$sharedConnection                     = DriverManager::getConnection(
-                    $newDbParams,
-                    self::createConfiguration(),
-                );
-                // Verify the connection actually works
-                self::$sharedConnection->executeQuery(
-                    self::$sharedConnection->getDatabasePlatform()->getDummySelectSQL(),
-                );
-
-                if ($className !== null) {
-                    self::$classInitialized[$className] = true;
-                } else {
-                    self::$runInitialized = true;
-                }
-
-                return;
-            } catch (Throwable $e) {
-                if ($privilegedConnection instanceof Connection) {
-                    try {
-                        if ($privilegedConnection->isTransactionActive()) {
-                            $privilegedConnection->rollBack();
-                        }
-
-                        $privilegedConnection->close();
-                    } catch (Throwable) {
-                        // Ignore cleanup errors
-                    }
-                }
-
-                if ($i === $maxSlots - 1) {
-                    echo 'CRITICAL: Database initialization failed after ' . $maxSlots . ' attempts: ' . $e->getMessage() . "\n";
-                    echo $e->getTraceAsString() . "\n";
-
-                    throw $e;
-                }
+            } catch (Throwable) {
+                // DB may already exist (race) or creation failed — fall through
             }
+
+            // Connect to the freshly created DB
+            $connection = DriverManager::getConnection($params, self::createConfiguration());
+        }
+
+        // When force=true (integration tests), clean all user objects so
+        // installFirebirdDatabase() can recreate schema from scratch.
+        if ($force) {
+            $cleanupSql = "EXECUTE BLOCK AS\n"
+                . "  DECLARE cname VARCHAR(63);\n"
+                . "  DECLARE tname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT rc.RDB\$CONSTRAINT_NAME, rc.RDB\$RELATION_NAME\n"
+                . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
+                . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
+                . "      INTO :cname, :tname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . "END;\n"
+                . "EXECUTE BLOCK AS\n"
+                . "  DECLARE tname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+                . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
+                . "      INTO :tname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . "END;\n"
+                . "EXECUTE BLOCK AS\n"
+                . "  DECLARE gname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
+                . "      WHERE RDB\$SYSTEM_FLAG = 0\n"
+                . "      INTO :gname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . "END;\n";
+
+            try {
+                $connection->executeStatement($cleanupSql);
+            } catch (Throwable) {
+                // Cleanup errors are non-fatal (tables may not exist yet)
+            }
+        }
+
+        self::$effectiveDbName  = $baseParams['dbname'];
+        self::$sharedConnection = $connection;
+
+        if ($className !== null) {
+            self::$classInitialized[$className] = true;
+        } else {
+            self::$runInitialized = true;
         }
     }
 
