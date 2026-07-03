@@ -25,14 +25,12 @@ use function in_array;
 use function is_string;
 use function md5;
 use function mkdir;
-use function sprintf;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
+use function strlen;
 use function strtoupper;
 use function substr;
-use function trim;
-use function unlink;
 
 use const PHP_OS_FAMILY;
 
@@ -232,14 +230,14 @@ class TestUtil
                 }
             }
 
-            $privilegedParams = self::getPrivilegedConnectionParameters();
+            $privilegedParams                                = self::getPrivilegedConnectionParameters();
             $privilegedParams['dbname']                      = $baseParams['dbname'];
             $privilegedParams['persistent']                  = false;
             $privilegedParams['driverOptions']['persistent'] = false;
 
             try {
                 $privilegedConnection = DriverManager::getConnection($privilegedParams);
-                $sm = $privilegedConnection->createSchemaManager();
+                $sm                   = $privilegedConnection->createSchemaManager();
                 $sm->createDatabase($baseParams['dbname']);
 
                 if ($privilegedConnection->isTransactionActive()) {

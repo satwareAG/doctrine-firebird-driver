@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\FetchUtils;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
+use Firebird\ResultSet;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Throwable;
 
@@ -26,7 +27,7 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
-    /** @var resource|int|\Firebird\ResultSet|null */
+    /** @var resource|int|ResultSet|null */
     private mixed $firebirdResultResource = null;
 
     /**
@@ -278,6 +279,7 @@ final class Result implements ResultInterface
     {
         if (! $this->isResultValid()) {
             $this->firebirdResultResource = null;
+
             return;
         }
 
@@ -287,6 +289,7 @@ final class Result implements ResultInterface
         } catch (Throwable) {
             // Ignore errors during cleanup
         }
+
         $this->firebirdResultResource = null;
     }
 
@@ -296,12 +299,12 @@ final class Result implements ResultInterface
      * php-firebird v11.1.0+: fbird_query()/fbird_execute() return
      * Firebird\ResultSet objects for SELECT queries (M3 migration complete, issue #296).
      *
-     * @psalm-assert-if-true \Firebird\ResultSet $this->firebirdResultResource
-     * @phpstan-assert-if-true \Firebird\ResultSet $this->firebirdResultResource
+     * @psalm-assert-if-true ResultSet $this->firebirdResultResource
+     * @phpstan-assert-if-true ResultSet $this->firebirdResultResource
      */
     public function isResultValid(): bool
     {
-        return $this->firebirdResultResource instanceof \Firebird\ResultSet;
+        return $this->firebirdResultResource instanceof ResultSet;
     }
 
     /**

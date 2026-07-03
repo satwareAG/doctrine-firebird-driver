@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\TransactionIsolationLevel;
+use Firebird\Transaction;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\ExecutionMode;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
@@ -50,8 +51,7 @@ final class TransactionManager
 
     private ExecutionMode $executionMode = ExecutionMode::AUTO_COMMIT;
 
-    /** @var \Firebird\Transaction|null */
-    private $activeTransaction = null;
+    private Transaction|null $activeTransaction = null;
 
     public function __construct(private readonly Connection $connection)
     {
@@ -62,8 +62,7 @@ final class TransactionManager
         return $this->level;
     }
 
-    /** @return \Firebird\Transaction|null */
-    public function getActiveTransaction()
+    public function getActiveTransaction(): Transaction|null
     {
         return $this->activeTransaction;
     }
@@ -98,8 +97,7 @@ final class TransactionManager
         $this->executionMode = $mode;
     }
 
-    /** @return \Firebird\Transaction|null */
-    public function getResource()
+    public function getResource(): Transaction|null
     {
         return $this->activeTransaction;
     }
@@ -288,20 +286,16 @@ final class TransactionManager
     }
 
     /**
-     * @psalm-assert-if-true \Firebird\Transaction $this->activeTransaction
-     * @phpstan-assert-if-true \Firebird\Transaction $this->activeTransaction
+     * @psalm-assert-if-true Transaction $this->activeTransaction
+     * @phpstan-assert-if-true Transaction $this->activeTransaction
      */
     public function isTransactionValid(): bool
     {
-        return $this->activeTransaction instanceof \Firebird\Transaction;
+        return $this->activeTransaction instanceof Transaction;
     }
 
-    /**
-     * @return \Firebird\Transaction
-     *
-     * @throws DriverException
-     */
-    public function createTransaction()
+    /** @throws DriverException */
+    public function createTransaction(): Transaction
     {
         if (! $this->connection->isConnectionValid()) {
             $this->connection->checkLastApiCall();

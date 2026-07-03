@@ -42,7 +42,6 @@ use function fbird_kill_attachment;
 use function fbird_last_insert_id;
 use function fbird_list_table_blockers;
 use function fbird_prepare_ex;
-use function fbird_query;
 use function fbird_query_params_tx;
 use function fbird_reconnect_transaction;
 use function fbird_rollback;
@@ -55,8 +54,8 @@ use function is_int;
 use function is_numeric;
 use function is_object;
 use function is_scalar;
+use function is_string;
 use function preg_match;
-use function spl_object_id;
 use function sprintf;
 use function str_contains;
 use function str_replace;
@@ -106,13 +105,12 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     private static bool $ooApiLoaded = false;
 
     /**
-     * @param \Firebird\Connection|null $connection
-     * @param array<string, mixed>               $params
+     * @param array<string, mixed> $params
      *
      * @throws Exception
      */
     public function __construct(
-        private $connection,
+        private FirebirdConnection|null $connection,
         private readonly string $serverVersion,
         protected bool $isPersistent,
         private readonly Exception|null $databaseNotFoundException,
@@ -158,6 +156,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
                     }
                 }
             }
+
             $this->transactionManager->reset();
         }
 
@@ -605,9 +604,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /**
-     * @return resource|\Firebird\Connection|null
-     */
+    /** @return resource|FirebirdConnection|null */
     public function getNativeConnection()
     {
         // v10+: fbird_connect() returns \Firebird\Connection objects (M3 migration).
@@ -627,8 +624,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      * Firebird\Connection objects (M3 opaque-object migration).
      * v11.1.0+: Complete M3 migration — all fbird_* functions return opaque objects.
      *
-     * @psalm-assert-if-true \Firebird\Connection $this->connection
-     * @phpstan-assert-if-true \Firebird\Connection $this->connection
+     * @psalm-assert-if-true FirebirdConnection $this->connection
+     * @phpstan-assert-if-true FirebirdConnection $this->connection
      */
     public function isConnectionValid(): bool
     {
@@ -968,7 +965,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
 
         try {
             // Use $this->query() (DBAL path) which runs within the active transaction.
-            $sql = sprintf(
+            $sql       = sprintf(
                 'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
                 . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
                 . ' AND RDB$GENERATOR_NAME IS NOT NULL',

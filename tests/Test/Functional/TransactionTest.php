@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Types;
+use Firebird\Transaction;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -388,7 +389,7 @@ class TransactionTest extends FunctionalTestCase
         }
 
         $tx = $fbirdConn->getActiveTransaction();
-        self::assertInstanceOf(\Firebird\Transaction::class, $tx);
+        self::assertInstanceOf(Transaction::class, $tx);
     }
 
     public function testTransactionalHelperCommitsOnSuccess(): void

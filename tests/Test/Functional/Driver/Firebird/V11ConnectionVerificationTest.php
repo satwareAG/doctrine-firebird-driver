@@ -28,7 +28,7 @@ class V11ConnectionVerificationTest extends TestCase
      */
     public function testTwoConnectionsToSameDatabase(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                                = TestUtil::getConnectionParams();
         $params['persistent']                  = false;
         $params['driverOptions']['persistent'] = false;
 
@@ -56,7 +56,7 @@ class V11ConnectionVerificationTest extends TestCase
      */
     public function testDdlAndDmlViaPhpConnection(): void
     {
-        $params = TestUtil::getConnectionParams();
+        $params                                = TestUtil::getConnectionParams();
         $params['persistent']                  = false;
         $params['driverOptions']['persistent'] = false;
 
@@ -96,6 +96,7 @@ class V11ConnectionVerificationTest extends TestCase
             } catch (Throwable) {
                 // Table cleanup is non-critical in ephemeral test DB
             }
+
             $conn->close();
         }
     }

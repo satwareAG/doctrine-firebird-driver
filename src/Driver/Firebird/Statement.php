@@ -8,6 +8,8 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
+use Firebird\ResultSet;
+use Firebird\Transaction;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
@@ -60,9 +62,9 @@ final class Statement implements StatementInterface
     private readonly BlobHandler $blobHandler;
 
     /**
-     * @param resource|\Firebird\Transaction|false|null $statement
-     * @param array<int|string>   $parameterMap
-     * @param string              $sql          The SQL statement for DML detection
+     * @param resource|Transaction|false|null $statement
+     * @param array<int|string>               $parameterMap
+     * @param string                          $sql          The SQL statement for DML detection
      *
      * @throws Exception
      */
@@ -96,6 +98,7 @@ final class Statement implements StatementInterface
             fbird_free_query($this->statement);
         } catch (Throwable) {
         }
+
         $this->statement = null;
     }
 
@@ -171,7 +174,7 @@ final class Statement implements StatementInterface
         }
 
         // Check if statement is actually a transaction handle (used for implicit commits)
-        if ($this->statement instanceof \Firebird\Transaction) {
+        if ($this->statement instanceof Transaction) {
             $fbirdResultRc = 1;
         } else {
             if ($params !== null) {
@@ -224,7 +227,7 @@ final class Statement implements StatementInterface
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
 
-            if (! $fbirdResultRc instanceof \Firebird\ResultSet) {
+            if (! $fbirdResultRc instanceof ResultSet) {
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
                     // For DML operations that return true, get affected rows count
@@ -308,13 +311,13 @@ final class Statement implements StatementInterface
      * Firebird\Statement objects (M3 migration complete, issue #297).
      * Transaction handles (Firebird\Transaction) are also valid for implicit commits.
      *
-     * @psalm-assert-if-true \Firebird\Statement|\Firebird\Transaction $this->statement
-     * @phpstan-assert-if-true \Firebird\Statement|\Firebird\Transaction $this->statement
+     * @psalm-assert-if-true \Firebird\Statement|Transaction $this->statement
+     * @phpstan-assert-if-true \Firebird\Statement|Transaction $this->statement
      */
     public function isStatementValid(): bool
     {
         return $this->statement instanceof \Firebird\Statement
-            || $this->statement instanceof \Firebird\Transaction;
+            || $this->statement instanceof Transaction;
     }
 
     /**

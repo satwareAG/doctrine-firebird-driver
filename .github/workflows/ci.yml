@@ -289,7 +289,23 @@ jobs:
           PHPUNIT_CONFIG: ${{ matrix.firebird.config }}
         run: |
           cd tests
-          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Functional
+          # SIGSEGV (exit 139) can still occur during PHP shutdown after all tests pass.
+          # php-firebird v11.1.0 fixed persistent-connection cleanup (#295) but
+          # non-persistent connection destructors can still crash on CI runners.
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" --no-coverage --testsuite Functional 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -eq 0 ]; then
+            exit 0
+          fi
+          # Exit 139 = SIGSEGV during shutdown — treat as success if tests passed
+          if [ $EXIT_CODE -eq 139 ] && echo "$OUTPUT" | grep -qE '^OK'; then
+            echo "⚠️  SIGSEGV during shutdown — tests passed, treating as success"
+            exit 0
+          fi
+          exit $EXIT_CODE
 
       - name: Archive test logs on failure
         if: failure()
@@ -314,9 +330,22 @@ jobs:
           PCOV_DIRECTORY: ../src
         run: |
           cd tests
-          ../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
+          # SIGSEGV (exit 139) can occur during PHP shutdown after tests pass.
+          set +e
+          OUTPUT=$(../vendor/bin/phpunit --configuration "${PHPUNIT_CONFIG}" \
             --coverage-clover ../coverage.xml \
-            --log-junit ../junit.xml
+            --log-junit ../junit.xml 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -eq 0 ]; then
+            exit 0
+          fi
+          if [ $EXIT_CODE -eq 139 ] && echo "$OUTPUT" | grep -qE '^OK' && [ -f ../coverage.xml ]; then
+            echo "⚠️  SIGSEGV during shutdown — tests passed, coverage generated"
+            exit 0
+          fi
+          exit $EXIT_CODE
 
       - name: Upload coverage and test results to Codecov
         if: matrix.php-version == '8.4' && matrix.firebird.version == '3.0'
