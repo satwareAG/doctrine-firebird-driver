@@ -13,7 +13,9 @@ use Doctrine\DBAL\SQL\Parser;
 use Firebird\Connection as FirebirdConnection;
 use Firebird\Database;
 use Firebird\DbInfo;
+use Firebird\ResultSet as FirebirdResultSet;
 use Firebird\TBuilder;
+use Firebird\Transaction as FirebirdTransaction;
 use InvalidArgumentException;
 use PDO;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
@@ -178,8 +180,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         $this->connection = null;
     }
 
-    /** @return resource|null */
-    public function getActiveTransaction()
+    /** @return FirebirdTransaction|null */
+    public function getActiveTransaction(): FirebirdTransaction|null
     {
         return $this->transactionManager->getActiveTransaction();
     }
@@ -610,12 +612,11 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @return resource|FirebirdConnection|null */
-    public function getNativeConnection()
+    /** @return FirebirdConnection|null */
+    public function getNativeConnection(): FirebirdConnection|null
     {
-        // v10+: fbird_connect() returns \Firebird\Connection objects (M3 migration).
-        // Both resources (v7-v10) and objects (v11) are valid native handles
-        // accepted by all fbird_* functions via the dual-accept bridge.
+        // fbird_connect()/fbird_pconnect() return \Firebird\Connection objects
+        // since php-firebird v11.0.0 (M3 opaque-object migration).
         if ($this->connection !== null) {
             return $this->connection;
         }
@@ -711,7 +712,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * @param array<mixed>|null $params Optional array of bind parameters
      *
-     * @return resource|int|false Result resource for SELECT, affected-row count for DML, or false on failure
+     * @return FirebirdResultSet|int|false Result set for SELECT, affected-row count for DML, or false on failure
      *
      * @throws DriverException
      */
@@ -934,7 +935,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * @param int $transactionId The limbo transaction ID to reconnect
      *
-     * @return resource|false Transaction resource for commit/rollback, or false on error
+     * @return FirebirdTransaction|false Transaction object for commit/rollback, or false on error
      *
      * @throws DriverException
      */

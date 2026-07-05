@@ -20,6 +20,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->close();
@@ -32,6 +33,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
         $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
@@ -50,6 +52,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
         $connection->beginTransaction();
@@ -72,6 +75,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
@@ -116,6 +120,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
@@ -156,6 +161,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->beginTransaction();
         $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
@@ -174,6 +180,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES (42)");
 
@@ -200,6 +207,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44] as $id) {
@@ -244,6 +252,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->exec("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");
@@ -285,6 +294,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->exec("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         $expectedTransactionLevel = 0;
         foreach ([42, 43, 44, 45] as $id) {
@@ -341,6 +351,7 @@ class TransactionTest extends ModifyingIntegrationTestCase
 
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $connection->executeStatement("CREATE TABLE {$tableName} (id INTEGER DEFAULT 0 NOT NULL)");
         foreach ($map as $idBefore => $idAfter) {
             $connection->executeStatement("INSERT INTO {$tableName} (id) VALUES ({$idBefore})");

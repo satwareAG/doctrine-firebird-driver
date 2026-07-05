@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.14.0] - 2026-07-05 - php-firebird v12.0.0 integration
+
+### Changed
+- **php-firebird v12.0.0-rc.10**: Upgraded extension dependency from `^11.1` to `^12.0`
+  in `composer.json`; upgraded `satwareag/php-firebird-stubs` from `^11.1` to
+  `^12.0.0-rc.10@rc`. php-firebird v12.0.0 completes the OOP API (`Firebird\Event`
+  methods), eliminates all InterBase-era naming (#304), and separates `pdo_fbird`
+  into a standalone extension (#258). This project uses the procedural `fbird_*`
+  API exclusively, so the `pdo_fbird` split has no runtime impact - `firebird.so`
+  alone is sufficient.
+- **Docblock return types updated** for v12 stubs accuracy:
+  - `Connection::executeAuto()`: `resource|int|false` -> `\Firebird\ResultSet|int|false`
+  - `Connection::reconnectLimboTransaction()`: `resource|false` -> `\Firebird\Transaction|false`
+  - `ProceduralBatch::$batchHandle`: `resource` (mixed) -> `\Firebird\BatchHandle` (typed)
+  - `ProceduralBatch::__construct() $transResource`: added `|\Firebird\Transaction` to union
+- **CI workflows**: Upgraded php-firebird from v11.1.0 to v12.0.0-rc.10 in all GitHub
+  Actions workflows (cache keys, clone steps). Updated Windows DLL download patterns
+  for v12.0.0-rc.x release assets.
+- **Docker test image**: Upgraded php-firebird checkout from v11.1.0 to v12.0.0-rc.10
+  in `tests/app/Dockerfile`.
+
+### Notes
+- No new v12 features adopted. The only new v12 feature (`Firebird\Event` OOP methods:
+  `wait()`, `cancel()`, `getName()`, `getCount()`) is for database event monitoring
+  (POST_EVENT triggers), which is outside the scope of a DBAL driver.
+- The v12 OOP method signature changes (`Connection::prepare()` now requires
+  `Transaction`, `Statement::execute()` takes `Transaction`) do not affect this
+  project because it uses the procedural `fbird_*` API, not the OOP API.
+
 ## [3.13.0] - 2026-07-02
 
 ### Changed

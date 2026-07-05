@@ -12,6 +12,7 @@ use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
+use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -76,22 +77,15 @@ class ExceptionConverterTest extends FunctionalTestCase
 
     public function testConvertNotNullConstraintViolationException(): void
     {
-        // Ensure any existing instance of the table is dropped
-        $this->dropTableIfExists('notnull_constraint_table');
-
         $this->expectException(NotNullConstraintViolationException::class);
 
         // Create the table
         $this->connection->executeQuery('CREATE TABLE notnull_constraint_table (id INT, notnull_field INT NOT NULL)');
 
         // Attempt to insert NULL into NOT NULL field
-
-            $this->connection->exec(
-                'INSERT INTO notnull_constraint_table (notnull_field) VALUES (NULL)',
-            );
-
-        // Optionally clean up after the test
-        $this->dropTableIfExists('notnull_constraint_table');
+        $this->connection->exec(
+            'INSERT INTO notnull_constraint_table (notnull_field) VALUES (NULL)',
+        );
     }
 
     /**
@@ -122,5 +116,27 @@ class ExceptionConverterTest extends FunctionalTestCase
     protected function setUp(): void
     {
         $this->converter = new ExceptionConverter();
+
+        // Clean up any leftover tables from previous runs or partial failures.
+        // These tests create tables directly via executeQuery() and rely on
+        // expectException() which stops execution at the first thrown exception,
+        // leaving tables behind in the database.
+        $this->dropTableIfExists('child_table');
+        $this->dropTableIfExists('parent_table');
+        $this->dropTableIfExists('existing_table');
+        $this->dropTableIfExists('unique_table');
+        $this->dropTableIfExists('notnull_constraint_table');
+    }
+
+    #[After]
+    protected function tearDownTables(): void
+    {
+        // Defense in depth: also clean up after each test in case setUp itself
+        // ran against a connection that was in a bad state.
+        $this->dropTableIfExists('child_table');
+        $this->dropTableIfExists('parent_table');
+        $this->dropTableIfExists('existing_table');
+        $this->dropTableIfExists('unique_table');
+        $this->dropTableIfExists('notnull_constraint_table');
     }
 }

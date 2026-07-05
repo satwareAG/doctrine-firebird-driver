@@ -44,6 +44,7 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         $sm             = $connection->createSchemaManager();
         $tableName      = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap()[$expectedFieldType];
+        $this->dropTableIfExists($tableName);
         $sql            = "CREATE TABLE {$tableName} ({$createColumnSql})";
         $connection->exec($sql);
         $columns = $sm->listTableColumns($tableName);

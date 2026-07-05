@@ -62,12 +62,13 @@ final class Statement implements StatementInterface
     private readonly BlobHandler $blobHandler;
 
     /**
-     * @param resource|Transaction|false|null $statement
-     * @param array<int|string>               $parameterMap
-     * @param string                          $sql          The SQL statement for DML detection
+     * @param \Firebird\Statement|Transaction|false|null $statement
+     * @param array<int|string>                          $parameterMap
+     * @param string                                     $sql          The SQL statement for DML detection
      *
      * @throws Exception
      */
+    // phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint -- accepts resource|object for dual-accept bridge
     public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], private string $sql = '')
     {
         $this->blobHandler = new BlobHandler();

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Firebird\BatchHandle;
 use Firebird\Connection;
+use Firebird\Transaction;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
 
@@ -25,15 +27,14 @@ use function fbird_prepare_ex;
  */
 final class ProceduralBatch
 {
-    /** @var resource Batch handle */
-    private mixed $batchHandle;
+    private BatchHandle $batchHandle;
 
     private int $rowCount = 0;
 
     /**
-     * @param resource|Connection $connection    Native connection resource or object
-     * @param string              $sql           INSERT statement with placeholders
-     * @param resource            $transResource Transaction resource
+     * @param resource|Connection  $connection    Native connection resource or object
+     * @param string               $sql           INSERT statement with placeholders
+     * @param resource|Transaction $transResource Transaction resource or object
      *
      * @throws DriverException
      */

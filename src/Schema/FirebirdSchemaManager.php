@@ -35,7 +35,9 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function json_decode;
 use function preg_match;
+use function sprintf;
 use function str_contains;
+use function str_replace;
 use function strtolower;
 use function strtoupper;
 use function trim;
@@ -244,6 +246,28 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return $table;
     }
 
+    /**
+     * Get the current value of a Firebird generator/sequence.
+     *
+     * This is a Firebird-specific extension beyond the DBAL Sequence API,
+     * which does not support reading the current value. Uses GEN_ID(name, 0)
+     * to read the current value without incrementing it.
+     *
+     * @param string $name The generator/sequence name
+     *
+     * @return int The current generator value
+     *
+     * @throws Exception
+     */
+    public function getCurrentSequenceValue(string $name): int
+    {
+        // Inline quoting (not getQuotedIdentifierName) because GEN_ID requires
+        // double-quoted identifiers regardless of case sensitivity.
+        return (int) $this->_conn->fetchOne(
+            sprintf('SELECT GEN_ID("%s", 0) FROM RDB$DATABASE', str_replace('"', '""', $name)),
+        );
+    }
+
     /** @return array<int, string> */
     public static function getFieldTypeIdToColumnTypeMap(): array
     {
@@ -291,7 +315,10 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      *
-     * @todo Read current generator value
+     * Note: The DBAL Sequence class only supports allocationSize, initialValue,
+     * and cache — it does not have a "current value" property. This matches
+     * the behavior of Oracle and PostgreSQL schema managers, which also don't
+     * read the current value. Use getCurrentSequenceValue() for that.
      */
     #[Override]
     protected function _getPortableSequenceDefinition($sequence)

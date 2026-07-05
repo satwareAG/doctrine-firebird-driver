@@ -24,6 +24,7 @@ class CreateTableTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $sm         = $connection->createSchemaManager();
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $sm->createTable($table);

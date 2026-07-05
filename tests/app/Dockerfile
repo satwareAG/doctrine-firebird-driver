@@ -46,9 +46,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # v11.0.1: Fixed fbird_delete_user() arginfo regression (HF-3)
 # v11.1.0: Fixed autocommit visibility (#294), MSHUTDOWN SIGSEGV (#295), ResultSet return type (#296),
 #           fbird_prepare()/fbird_prepare_ex() now return Firebird\Statement objects (#297)
+# v12.0.0: OOP API completion (Firebird\Event methods), InterBase-era naming eliminated (#304),
+#          pdo_fbird split into standalone extension (#258), LTO support (#300).
+#          NOTE: pdo_fbird is no longer compiled into firebird.so - this project uses the
+#          procedural fbird_* API only, so firebird.so alone is sufficient (no pdo_fbird build needed).
+#          rc.10 adds a Windows DLL packaging fix over rc.9 (no Linux/macOS changes).
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v11.1.0 \
+    && git -C /usr/src/php/ext/firebird checkout v12.0.0-rc.10 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
