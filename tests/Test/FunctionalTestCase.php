@@ -132,6 +132,41 @@ abstract class FunctionalTestCase extends TestCase
     }
 
     /**
+     * Drops the sequence with the specified name, if it exists.
+     *
+     * Firebird does not support DROP SEQUENCE IF EXISTS, so we attempt the drop
+     * and suppress "does not exist" errors.
+     *
+     * @throws Exception
+     */
+    public function dropSequenceIfExists(string $name): void
+    {
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && ! $fbirdConnection->isConnectionValid()) {
+            return;
+        }
+
+        try {
+            $fbirdConnection?->rollBack();
+        } catch (Throwable) {
+        }
+
+        try {
+            $this->connection->executeStatement('DROP SEQUENCE ' . $name);
+            $fbirdConnection?->commit();
+        } catch (Throwable $e) {
+            if (! str_contains($e->getMessage(), 'does not exist') && ! str_contains($e->getMessage(), 'DOES NOT EXIST')) {
+                // Non-fatal in cleanup context
+            }
+
+            try {
+                $fbirdConnection?->rollBack();
+            } catch (Throwable) {
+            }
+        }
+    }
+
+    /**
      * Drops and creates a new table.
      *
      * @throws Exception

@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
-use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 use function function_exists;
 use function microtime;
 use function preg_match;
-use function str_contains;
 use function version_compare;
 
 class BatchTest extends FunctionalTestCase
@@ -103,22 +101,13 @@ class BatchTest extends FunctionalTestCase
         }
 
         // Also verify php-firebird was compiled with FB_API_VER >= 40.
-        // The procedural fbird_batch_create() is present in php-firebird v7.0.0+;
-        // skip gracefully if it is missing instead of failing with a PHP Error.
+        // The procedural fbird_batch_create() is only registered when compiled
+        // with FB_API_VER >= 40 (guarded by #if in firebird.c), so function_exists
+        // is a sufficient check.
         if (! function_exists('fbird_batch_create')) {
             $this->markTestSkipped('IBatch API requires php-firebird v7.0.0+ (fbird_batch_create not available)');
 
             return;
-        }
-
-        try {
-            $fbirdConn?->createBatch('SELECT 1 FROM RDB$DATABASE');
-        } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'FB_API_VER')) {
-                $this->markTestSkipped('IBatch API requires php-firebird compiled with FB_API_VER >= 40');
-            }
-
-            throw $e;
         }
     }
 

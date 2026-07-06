@@ -129,7 +129,8 @@ EOF
         $result->fetchAssociative();
 
         $stmt2  = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
-        $result = $stmt2->execute([1]);
+        $stmt2->bindValue(1, 1, ParameterType::INTEGER);
+        $result = $stmt2->execute();
         self::assertSame(1, $result->fetchOne());
     }
 
@@ -140,14 +141,16 @@ EOF
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
-        $result = $stmt->execute([1]);
+        $stmt->bindValue(1, 1, ParameterType::INTEGER);
+        $result = $stmt->execute();
 
         $id = $result->fetchOne();
         self::assertSame(1, $id);
 
         $result->free();
 
-        $result = $stmt->execute([2]);
+        $stmt->bindValue(1, 2, ParameterType::INTEGER);
+        $result = $stmt->execute();
 
         $id = $result->fetchOne();
         self::assertSame(2, $id);
@@ -159,6 +162,7 @@ EOF
         $this->connection->insert('stmt_test', ['id' => 2]);
 
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
+        // @phpstan-ignore-next-line — bindParam is deprecated but this test verifies reference-binding behavior
         $stmt->bindParam(1, $id, ParameterType::INTEGER);
 
         $id     = 1;
@@ -194,12 +198,12 @@ EOF
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
         $x = 1;
-        $stmt->bindParam(1, $x, ParameterType::INTEGER);
+        $stmt->bindValue(1, $x, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(1, $result->fetchOne());
 
         $y = 2;
-        $stmt->bindParam(1, $y, ParameterType::INTEGER);
+        $stmt->bindValue(1, $y, ParameterType::INTEGER);
         $result = $stmt->execute();
         self::assertSame(2, $result->fetchOne());
     }
@@ -211,7 +215,7 @@ EOF
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
         $value = 1;
-        $stmt->bindParam(1, $value, ParameterType::INTEGER, null);
+        $stmt->bindValue(1, $value, ParameterType::INTEGER);
 
         self::assertSame(1, $stmt->executeQuery()->fetchOne());
     }

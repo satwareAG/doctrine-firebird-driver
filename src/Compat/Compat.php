@@ -21,6 +21,7 @@ use const STR_PAD_RIGHT;
  * PHP 8.2, 8.3, 8.4, and 8.5, allowing the codebase to use modern PHP
  * features while maintaining PHP 8.1 compatibility.
  *
+ * @psalm-suppress UnusedClass — autoloaded via composer.json "files", used by tests and runtime
  * @see https://github.com/symfony/polyfill for polyfill implementations
  */
 final class Compat

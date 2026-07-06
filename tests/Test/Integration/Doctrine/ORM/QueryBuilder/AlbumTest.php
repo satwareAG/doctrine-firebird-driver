@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\QueryBuilder;
 
-use Satag\DoctrineFirebirdDriver\Test\Integration\ReadOnlyIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
 use function count;
 
-class AlbumTest extends ReadOnlyIntegrationTestCase
+class AlbumTest extends AbstractIntegrationTestCase
 {
     public function testSelect(): void
     {

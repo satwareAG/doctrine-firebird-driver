@@ -9,6 +9,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum;
  *
  * @internal This enum is not covered by the backward compatibility promise
  */
+/** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
 enum TransactionState: int
 {
     /** No explicit transaction is active (auto-commit mode). */

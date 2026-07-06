@@ -16,6 +16,7 @@ use Firebird\DbInfo;
 use Firebird\ResultSet as FirebirdResultSet;
 use Firebird\TBuilder;
 use Firebird\Transaction as FirebirdTransaction;
+use Firebird\TransactionManager as FirebirdTransactionManager;
 use InvalidArgumentException;
 use PDO;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
@@ -746,10 +747,17 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        // Support both raw resource and OO Transaction wrapper
+        // Support driver TransactionManager, php-firebird TransactionManager, or raw resource.
         if ($transaction instanceof TransactionManager) {
             if (! $transaction->isTransactionValid()) {
                 throw new DriverException('Invalid transaction resource.');
+            }
+
+            $transResource = $transaction->getResource();
+        } elseif ($transaction instanceof FirebirdTransactionManager) {
+            // From TBuilder::start() — independent transaction (Firebird 4.0+).
+            if (! $transaction->isActive()) {
+                throw new DriverException('Transaction already committed or rolled back.');
             }
 
             $transResource = $transaction->getResource();
@@ -809,14 +817,14 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     /**
      * Create a batch operation for efficient bulk INSERTs.
      *
-     * @param string                  $sql         INSERT statement with placeholders
-     * @param TransactionManager|null $transaction Optional transaction (uses active if null)
+     * @param string                                                          $sql         INSERT statement with placeholders
+     * @param TransactionManager|FirebirdTransactionManager|null             $transaction Optional transaction (uses active if null)
      *
      * @return ProceduralBatch Batch object for adding rows and executing
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function createBatch(string $sql, TransactionManager|null $transaction = null): ProceduralBatch
+    public function createBatch(string $sql, TransactionManager|FirebirdTransactionManager|null $transaction = null): ProceduralBatch
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
@@ -843,6 +851,13 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             }
 
             $transResource = $transaction->getResource();
+        } elseif ($transaction instanceof FirebirdTransactionManager) {
+            // From TBuilder::start() — independent transaction (Firebird 4.0+).
+            if (! $transaction->isActive()) {
+                throw new DriverException('No valid transaction available for batch operation.');
+            }
+
+            $transResource = $transaction->getResource();
         } else {
             $transResource = $this->transactionManager->getActiveTransaction();
 
@@ -862,15 +877,15 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     /**
      * Execute a batch INSERT with data array (convenience method).
      *
-     * @param string                               $sql         INSERT statement with placeholders
-     * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
-     * @param TransactionManager|null              $transaction Optional transaction
+     * @param string                                                          $sql         INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>>                           $rows        Array of row data arrays
+     * @param TransactionManager|FirebirdTransactionManager|null             $transaction Optional transaction
      *
      * @return ProceduralBatchResult Result with row counts and any errors
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function executeBatch(string $sql, array $rows, TransactionManager|null $transaction = null): ProceduralBatchResult
+    public function executeBatch(string $sql, array $rows, TransactionManager|FirebirdTransactionManager|null $transaction = null): ProceduralBatchResult
     {
         $batch = $this->createBatch($sql, $transaction);
 

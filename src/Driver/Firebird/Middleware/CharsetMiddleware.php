@@ -35,6 +35,7 @@ use SensitiveParameter;
  *   PHP ($phpEncoding) → CharsetStatementMiddleware::bindValue() → $databaseEncoding → Firebird
  *   Firebird → $databaseEncoding → CharsetResultMiddleware::fetch*() → $phpEncoding → PHP
  */
+/** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
 final class CharsetMiddleware implements MiddlewareInterface
 {
     /**

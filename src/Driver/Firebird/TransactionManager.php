@@ -337,7 +337,6 @@ final class TransactionManager
         }
 
         try {
-            /** @phpstan-ignore argument.type */
             $transaction = fbird_trans_start($conn, $options);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);

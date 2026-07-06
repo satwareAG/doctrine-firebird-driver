@@ -19,9 +19,11 @@ final class BlobHandler
      * server without loading the entire content into PHP memory.
      *
      * @param mixed $value The parameter value
-     * @param int   $type  The DBAL ParameterType
+     * @param int   $type  The DBAL ParameterType (unused - extension handles type natively)
      *
      * @return mixed The converted value (stays a resource for LARGE_OBJECT)
+     *
+     * @psalm-suppress UnusedParam
      */
     public function toInternalValue(mixed $value, int $type): mixed
     {

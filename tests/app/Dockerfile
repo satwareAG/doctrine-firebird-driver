@@ -51,9 +51,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 #          NOTE: pdo_fbird is no longer compiled into firebird.so - this project uses the
 #          procedural fbird_* API only, so firebird.so alone is sufficient (no pdo_fbird build needed).
 #          rc.10 adds a Windows DLL packaging fix over rc.9 (no Linux/macOS changes).
+#          rc.11 fixes all 5 doctrine-firebird-driver integration issues (#305-#309):
+#          THROW mode bypass, arginfo types, nullable array NULL-deref, client version
+#          return type, BatchHandle OOP methods.
+#          post-rc.11 fix #310: TransactionManager::__destruct try/catch for FB4/FB5
+#          implicit transaction invalidation (DDL commit, lock conflict).
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v12.0.0-rc.10 \
+    && git -C /usr/src/php/ext/firebird checkout d4d38519752f8ac48833607ce6f9860d8962ec59 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \

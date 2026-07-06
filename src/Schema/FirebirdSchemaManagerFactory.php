@@ -26,6 +26,7 @@ use function assert;
  *
  * Closes #70
  */
+/** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
 final class FirebirdSchemaManagerFactory implements SchemaManagerFactory
 {
     /**
