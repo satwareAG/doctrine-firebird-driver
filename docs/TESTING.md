@@ -20,34 +20,40 @@ Comprehensive testing guide for the Doctrine Firebird Driver project.
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- PHP 8.2+ with `ext-firebird` (v7.3.0+)
+- PHP 8.2+ with `ext-firebird` (^12.0)
 - Composer dependencies installed (`composer install`)
 
 ### Running Tests
 
-The project includes optimized test runner scripts with multiple modes:
+The project includes a unified test runner with Docker-based testing:
 
 ```bash
-# Basic test run (Firebird 3 default)
-cd tests && ./phpunit.sh
+# Default: PHP 8.4 x Firebird 3.0 (fast, ~3 min)
+./tests/run-matrix.sh
 
-# Run with code coverage (PCOV - fast)
-cd tests && ./phpunit.sh -c
+# Full matrix: PHP 8.2-8.5 x FB 3.0/4.0/5.0 (12 combos, parallel)
+./tests/run-matrix.sh --all
 
-# Run with HTML coverage report
-cd tests && ./phpunit.sh -c -f html
+# Single combo
+./tests/run-matrix.sh --php 8.4 --fb 4.0
 
-# Run all supported Firebird versions (3.0, 4.0, 5.0)
-cd tests && ./phpunit.sh -v all
+# Unit tests only (no DB needed for most)
+./tests/run-matrix.sh --suite unit
 
-# Run specific version
-cd tests && ./phpunit.sh -v 4
+# Filter by test name
+./tests/run-matrix.sh --filter Sequence
 
-# Run specific test suite
-cd tests && ./phpunit.sh -s unit
+# With PCOV coverage
+./tests/run-matrix.sh --coverage
 
-# Show help for all options
-cd tests && ./phpunit.sh --help
+# Build all Docker images (no tests)
+./tests/run-matrix.sh --build
+
+# List available versions and image status
+./tests/run-matrix.sh --list
+
+# Show help
+./tests/run-matrix.sh --help
 ```
 
 ### Code Quality Checks
@@ -85,16 +91,16 @@ Code coverage is measured using **PCOV** (2-5x faster than Xdebug) to track test
 
 ```bash
 # Quick coverage (text output)
-cd tests && ./phpunit.sh -c
+./tests/run-matrix.sh --coverage
 
-# HTML report (browse tests/var/coverage/html/index.html)
-cd tests && ./phpunit.sh -c -f html
+# Full quality pipeline with coverage (PHPCS + PHPStan + Psalm + tests)
+cd tests && ./docker-cqc.sh
 
-# Clover format (for CI/CD integration)
-cd tests && ./phpunit.sh -c -f clover
+# Quick mode: static analysis only (no tests)
+cd tests && ./docker-cqc.sh --quick
 
-# All formats (text + HTML + Clover)
-cd tests && ./phpunit.sh -c -f all
+# Coverage mode: tests with coverage only
+cd tests && ./docker-cqc.sh --coverage
 ```
 
 ### Coverage Reports Location
@@ -166,13 +172,14 @@ start tests/var/coverage/html/index.html
 
 ```
 tests/
-├── phpunit.xml                 # Default config (Firebird 3)
-├── phpunit-firebird4.xml       # Firebird 4 configuration
-├── phpunit-firebird5.xml       # Firebird 5 configuration
-├── phpunit-firebird25.xml      # Legacy FB 2.5 config (local only)
-├── phpunit.sh                  # Optimized test runner script
-├── phpunit-lowest-versions.sh  # Lowest-dependency compatibility runner
-├── docker-compose.yml          # Test environment services
+├── phpunit.xml                 # PHPUnit config (all Firebird versions via DB_HOST env var)
+├── run-matrix.sh               # Primary test runner (PHP x Firebird matrix)
+├── docker-cqc.sh               # Docker code quality pipeline (PHPCS + PHPStan + Psalm + tests)
+├── cqc.sh                      # Container-side wrapper for docker-cqc.sh
+├── docker-compose.yml          # Test environment services (Firebird 3/4/5 + PHP app)
+├── app/
+│   ├── Dockerfile              # PHP image build (php-firebird from source)
+│   └── entrypoint.sh           # Container init
 ├── Test/
 │   ├── FunctionalTestCase.php # Base class for functional tests
 │   ├── TestUtil.php           # Test utilities
@@ -198,31 +205,30 @@ tests/
 
 ### Configuration Selection Guide
 
-The project supports multiple Firebird versions via different PHPUnit configuration files:
+The project uses a single `phpunit.xml` for all Firebird versions. The target
+Firebird server is selected via the `DB_HOST` environment variable, which
+`TestUtil.php` reads at runtime. This eliminates the need for per-version
+config files.
 
-| Config File | Firebird Version | Docker Service | Use Case |
-|-------------|------------------|----------------|----------|
+| Config File | Firebird Version | DB_HOST Value | Use Case |
+|-------------|------------------|---------------|----------|
 | `phpunit.xml` | 3.0 (default) | `firebird3` | Development, default testing |
-| `phpunit-firebird4.xml` | 4.0 | `firebird4` | Modern features |
-| `phpunit-firebird5.xml` | 5.0 | `firebird5` | Latest version |
-| `phpunit-firebird25.xml` | 2.5 | `firebird25` | Legacy compatibility (local only) |
+| `phpunit.xml` | 4.0 | `firebird4` | Modern features (IBatch, RETURNING) |
+| `phpunit.xml` | 5.0 | `firebird5` | Latest version |
 
 ### Key Configuration Differences
 
-The primary difference between configurations is the `db_host` variable:
+All Firebird versions use the same `phpunit.xml`. The `db_host` variable in the
+config is a fallback; `TestUtil.php` reads `DB_HOST` from the environment first:
 
 ```xml
-<!-- phpunit.xml (Firebird 3) -->
-<var name="db_host" value="firebird3"/>
+<!-- phpunit.xml (all versions) -->
+<var name="db_host" value="127.0.0.1"/>
+```
 
-<!-- phpunit-firebird25.xml (Firebird 2.5) -->
-<var name="db_host" value="firebird25"/>
-
-<!-- phpunit-firebird4.xml (Firebird 4) -->
-<var name="db_host" value="firebird4"/>
-
-<!-- phpunit-firebird5.xml (Firebird 5) -->
-<var name="db_host" value="firebird5"/>
+```bash
+# Override via environment variable
+DB_HOST=firebird4 vendor/bin/phpunit -c phpunit.xml
 ```
 
 ### Common Configuration Elements

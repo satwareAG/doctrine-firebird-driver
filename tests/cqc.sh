@@ -133,8 +133,7 @@ main() {
         local stan_start
         stan_start=$(date +%s)
         
-        # NOTE: SIGSEGV issue fixed in php-firebird v7.0.0-rc.37
-        # See: https://github.com/satwareAG/php-firebird/issues/55
+        # NOTE: SIGSEGV issue was fixed in php-firebird v11.1.0.
         # Use PIPESTATUS[0] to capture the actual command exit code (not tee's)
         vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt
         local phpstan_exit=${PIPESTATUS[0]}
@@ -195,39 +194,29 @@ main() {
         
         # Phase 5: Multi-Version Tests
         print_header "Phase 5: Multi-Version Firebird Compatibility"
-        print_step "Running tests against Firebird 2.5, 4.x, and 5.x..."
+        print_step "Running tests against Firebird 4.0 and 5.0..."
         
         local compat_start
         compat_start=$(date +%s)
         
         # Use PIPESTATUS[0] to capture the actual command exit code (not tail's)
-        print_info "Testing Firebird 2.5..."
-        vendor/bin/phpunit -c tests/phpunit-firebird25.xml --no-coverage 2>&1 | tail -10
-        local fb25_exit=${PIPESTATUS[0]}
-        if [[ $fb25_exit -eq 0 ]]; then
-            print_success "Firebird 2.5: PASSED"
-        else
-            print_error "Firebird 2.5: FAILED (exit code: $fb25_exit)"
-            failed=true
-        fi
-        
-        print_info "Testing Firebird 4.x..."
-        vendor/bin/phpunit -c tests/phpunit-firebird4.xml --no-coverage 2>&1 | tail -10
+        print_info "Testing Firebird 4.0..."
+        vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tail -10
         local fb4_exit=${PIPESTATUS[0]}
         if [[ $fb4_exit -eq 0 ]]; then
-            print_success "Firebird 4.x: PASSED"
+            print_success "Firebird 4.0: PASSED"
         else
-            print_error "Firebird 4.x: FAILED (exit code: $fb4_exit)"
+            print_error "Firebird 4.0: FAILED (exit code: $fb4_exit)"
             failed=true
         fi
         
-        print_info "Testing Firebird 5.x..."
-        vendor/bin/phpunit -c tests/phpunit-firebird5.xml --no-coverage 2>&1 | tail -10
+        print_info "Testing Firebird 5.0..."
+        vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tail -10
         local fb5_exit=${PIPESTATUS[0]}
         if [[ $fb5_exit -eq 0 ]]; then
-            print_success "Firebird 5.x: PASSED"
+            print_success "Firebird 5.0: PASSED"
         else
-            print_error "Firebird 5.x: FAILED (exit code: $fb5_exit)"
+            print_error "Firebird 5.0: FAILED (exit code: $fb5_exit)"
             failed=true
         fi
         

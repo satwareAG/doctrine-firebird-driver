@@ -113,7 +113,7 @@ ${BOLD}Docker Code Quality Check - Comprehensive Quality Pipeline${NC}
 ${BOLD}Usage:${NC} $SCRIPT_NAME [options]
 
 ${BOLD}Options:${NC}
-  -p, --php <version>   PHP version (8.1|8.2|8.3|8.4|8.5, default: 8.1)
+  -p, --php <version>   PHP version (8.2|8.3|8.4|8.5, default: 8.4)
       --rebuild         Force rebuild of Docker containers
       --coverage        Run only tests with coverage (skip multi-version)
       --quick           Quick mode: run static analysis only (no tests)
@@ -121,7 +121,7 @@ ${BOLD}Options:${NC}
   -h, --help            Show this help message
 
 ${BOLD}Environment Variables:${NC}
-  PHP_VERSION           Override PHP version (default: 8.1)
+  PHP_VERSION           Override PHP version (default: 8.4)
   CI                    Set to 'true' to skip container cleanup
 
 ${BOLD}Examples:${NC}
@@ -281,23 +281,13 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    # Use PHPSTAN_WORKERS=1 to disable parallel mode - workaround for php-firebird SIGSEGV
-    # See: https://github.com/satwareAG/php-firebird/issues/50
-    # Note: --jobs option does not exist in PHPStan, use environment variable instead
-    local phpstan_cmd="PHPSTAN_WORKERS=1 vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
+    # Use PHPStan parallel mode (php-firebird v12 has no SIGSEGV issues)
+    local phpstan_cmd="vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
     local report_file="tests/var/reports/phpstan-report.txt"
     
     # Run PHPStan and capture exit code properly
     local phpstan_exit=0
     run_in_docker "$phpstan_cmd 2>&1 | tee $report_file" 900 || phpstan_exit=$?
-    
-    # Check for SIGSEGV (exit code 139 = 128 + 11 where 11 = SIGSEGV)
-    if [[ $phpstan_exit -eq 139 ]]; then
-        print_error "PHPStan Level 8: SIGSEGV detected (exit code 139)"
-        print_info "This is likely caused by php-firebird extension crash in parallel mode"
-        print_info "See: https://github.com/satwareAG/php-firebird/issues/50"
-        return 1
-    fi
     
     # Check for "severe errors" in output (PHPStan internal errors)
     if grep -qi "severe errors" "$report_file" 2>/dev/null; then
@@ -378,16 +368,7 @@ run_tests_with_coverage() {
     local exit_code=0
     run_in_docker "$cmd" 1200 "firebird3" || exit_code=$?
 
-    # Handle exit code 139 (SIGSEGV) gracefully if PHPUnit reported success
-    if [[ $exit_code -eq 139 ]] || [[ $exit_code -eq 134 ]]; then
-        if grep -q "^OK" "$report_host" 2>/dev/null; then
-            print_info "⚠️  PHP crashed with exit $exit_code during shutdown, but tests passed."
-            print_success "Firebird 3 Tests: PASSED"
-        else
-            print_error "Firebird 3 Tests: FAILED (with crash exit $exit_code)"
-            return 1
-        fi
-    elif [[ $exit_code -eq 0 ]]; then
+    if [[ $exit_code -eq 0 ]]; then
         print_success "Firebird 3 Tests: PASSED"
     else
         print_error "Firebird 3 Tests: FAILED (exit code $exit_code)"
@@ -403,17 +384,16 @@ run_tests_with_coverage() {
 
 run_multiversion_tests() {
     print_header "Phase 5: Multi-Version Firebird Compatibility"
-    print_step "Running tests against Firebird 2.5, 4.x, and 5.x..."
+    print_step "Running tests against Firebird 4.0 and 5.0..."
     
     local start_time
     start_time=$(date +%s)
     local failed=false
     
-    # Helper function for versioned tests with crash handling
+    # Helper function for versioned tests
     run_version_test() {
         local version="$1"
-        local config="$2"
-        local host="$3"
+        local host="$2"
         local report_rel="var/reports/phpunit-fb${version//./}-report.txt"
         local report_container="tests/$report_rel"
         local report_host="$SCRIPT_DIR/$report_rel"
@@ -422,17 +402,11 @@ run_multiversion_tests() {
         docker compose restart "$host"
         wait_for_containers 30
         
-        local cmd="vendor/bin/phpunit -c $config --no-coverage 2>&1 | tee $report_container | tail -10"
+        local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
         local exit_code=0
         run_in_docker "$cmd" 1200 "$host" || exit_code=$?
         
-        if [[ $exit_code -eq 139 ]] || [[ $exit_code -eq 134 ]]; then
-            if grep -q "^OK" "$report_host" 2>/dev/null; then
-                print_info "⚠️  PHP crashed with exit $exit_code during shutdown, but tests passed."
-                print_success "Firebird $version: PASSED"
-                return 0
-            fi
-        elif [[ $exit_code -eq 0 ]]; then
+        if [[ $exit_code -eq 0 ]]; then
             print_success "Firebird $version: PASSED"
             return 0
         fi
@@ -441,9 +415,8 @@ run_multiversion_tests() {
         return 1
     }
     
-    run_version_test "2.5" "tests/phpunit-firebird25.xml" "firebird25" || failed=true
-    run_version_test "4.x" "tests/phpunit-firebird4.xml" "firebird4" || failed=true
-    run_version_test "5.x" "tests/phpunit-firebird5.xml" "firebird5" || failed=true
+    run_version_test "4.0" "firebird4" || failed=true
+    run_version_test "5.0" "firebird5" || failed=true
     
     local end_time
     end_time=$(date +%s)
@@ -505,7 +478,7 @@ main() {
     # Install dependencies
     print_header "Installing Dependencies"
     print_step "Running composer install..."
-    docker compose run --rm app composer update --no-interaction --no-progress || die "Composer update failed"
+    docker compose run --rm app composer install --no-interaction --no-progress || die "Composer install failed"
     print_success "Dependencies installed"
     
     # Create output directories

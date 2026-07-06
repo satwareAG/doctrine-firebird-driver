@@ -71,8 +71,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   test classes to `AbstractIntegrationTestCase`.
 - **`ConfigurableLikeCastLengthTest`**: Deleted deprecated test class (covered by
   `FirebirdConnectionTest`).
+- **`tests/phpunit.sh`**: Deleted; functionality merged into `run-matrix.sh`
+  (test execution, --suite, --filter, --coverage) and `docker-cqc.sh` (quality pipeline).
+- **`tests/phpunit-lowest-versions.sh`**: Deleted; multi-PHP testing is now via
+  `run-matrix.sh --php` or `run-matrix.sh --all`.
+- **`tests/phpunit-firebird4.xml`, `phpunit-firebird5.xml`, `phpunit-firebird25.xml`,
+  `phpunit-deprecated.xml`**: Deleted; all Firebird versions use single `phpunit.xml`
+  with `DB_HOST` environment variable override.
 - **Psalm baseline**: Reduced from 167 to 68 lines by adding inline `@psalm-suppress`
   for false-positive `UnusedClass` detections.
+
+### Changed (test infrastructure)
+- **`tests/run-matrix.sh`**: Complete rewrite as primary test runner. Defaults to
+  PHP 8.4 x Firebird 3.0. Supports `--all` (12-combo matrix), `--php`, `--fb`,
+  `--suite`, `--filter`, `--coverage`, `--build`, `--list`, `--clean`. Uses
+  `docker run --rm` instead of `docker compose run` (bypasses depends_on).
+  Parallel FB execution (3 at once per PHP version). Pre-builds 4 images tagged
+  `dfd-app-php{82,83,84,85}`.
+- **`tests/docker-cqc.sh`**: Removed PHP 8.1 references, Firebird 2.5 tests,
+  SIGSEGV exit code 139/134 handling (fixed in php-firebird v11.1.0+), and
+  `PHPSTAN_WORKERS=1` workaround. Changed `composer update` to `composer install`.
+  Uses single `phpunit.xml` for all FB versions.
+- **`tests/cqc.sh`**: Removed Firebird 2.5 test block and per-version phpunit
+  config references.
+- **`tests/docker-compose.yml`**: Removed `depends_on: firebird3` from `app`
+  service. Updated usage comments to reference `run-matrix.sh`.
+- **`tests/app/Dockerfile`**: Updated comment from "v11.1.0" to "v12.0.0-rc.11".
 
 ### Changed (test cleanup)
 - Replaced `bindParam()` with `bindValue()` in functional/integration tests (kept

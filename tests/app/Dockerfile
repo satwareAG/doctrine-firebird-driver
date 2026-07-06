@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v11.1.0), pcov (fast coverage)
+# Extensions: firebird (php-firebird v12.0.0-rc.11), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
