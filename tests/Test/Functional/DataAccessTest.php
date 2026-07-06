@@ -104,8 +104,8 @@ class DataAccessTest extends FunctionalTestCase
         $paramInt = 1;
         $paramStr = 'foo';
 
-        $sql    = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
-        $stmt   = $this->connection->prepare($sql);
+        $sql  = 'SELECT test_int, test_string FROM ' . $this->table . ' WHERE test_int = ? AND test_string = ?';
+        $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramStr, ParameterType::STRING);
         $result = $stmt->execute();

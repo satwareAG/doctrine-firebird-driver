@@ -174,8 +174,10 @@ abstract class FunctionalTestCase extends TestCase
                 $msg = $e->getMessage();
 
                 // Suppress "does not exist" / "is not defined" errors - sequence already gone
-                if (str_contains($msg, 'does not exist') || str_contains($msg, 'DOES NOT EXIST')
-                    || str_contains($msg, 'is not defined') || str_contains($msg, 'IS NOT DEFINED')) {
+                if (
+                    str_contains($msg, 'does not exist') || str_contains($msg, 'DOES NOT EXIST')
+                    || str_contains($msg, 'is not defined') || str_contains($msg, 'IS NOT DEFINED')
+                ) {
                     return;
                 }
 

@@ -181,7 +181,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         $this->connection = null;
     }
 
-    /** @return FirebirdTransaction|null */
     public function getActiveTransaction(): FirebirdTransaction|null
     {
         return $this->transactionManager->getActiveTransaction();
@@ -613,7 +612,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @return FirebirdConnection|null */
     public function getNativeConnection(): FirebirdConnection|null
     {
         // fbird_connect()/fbird_pconnect() return \Firebird\Connection objects
@@ -731,45 +729,6 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     }
 
     /**
-     * Resolve a transaction argument to a Firebird\Transaction resource.
-     *
-     * Accepts the driver's TransactionManager, php-firebird's TransactionManager
-     * (from TBuilder::start()), or a raw Firebird\Transaction.
-     *
-     * @param mixed $transaction Transaction to resolve
-     *
-     * @return mixed The resolved Firebird\Transaction
-     *
-     * @throws DriverException If the transaction is invalid or already closed
-     */
-    private function resolveTransactionResource(mixed $transaction): mixed
-    {
-        if ($transaction instanceof TransactionManager) {
-            if (! $transaction->isTransactionValid()) {
-                throw new DriverException('Invalid transaction resource.');
-            }
-
-            return $transaction->getResource();
-        }
-
-        if ($transaction instanceof FirebirdTransactionManager) {
-            // From TBuilder::start() — independent transaction (Firebird 4.0+).
-            if (! $transaction->isActive()) {
-                throw new DriverException('Transaction already committed or rolled back.');
-            }
-
-            return $transaction->getResource();
-        }
-
-        /** @psalm-suppress DocblockTypeContradiction */
-        if ($transaction === null || $transaction === false) {
-            throw new DriverException('Invalid transaction handle.');
-        }
-
-        return $transaction;
-    }
-
-    /**
      * Execute a query within a specific transaction context.
      *
      * @param resource|TransactionManager $transaction Transaction resource or OO wrapper
@@ -835,8 +794,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     /**
      * Create a batch operation for efficient bulk INSERTs.
      *
-     * @param string                                                          $sql         INSERT statement with placeholders
-     * @param TransactionManager|FirebirdTransactionManager|null             $transaction Optional transaction (uses active if null)
+     * @param string                                             $sql         INSERT statement with placeholders
+     * @param TransactionManager|FirebirdTransactionManager|null $transaction Optional transaction (uses active if null)
      *
      * @return ProceduralBatch Batch object for adding rows and executing
      *
@@ -884,9 +843,9 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     /**
      * Execute a batch INSERT with data array (convenience method).
      *
-     * @param string                                                          $sql         INSERT statement with placeholders
-     * @param array<int, array<int|string, mixed>>                           $rows        Array of row data arrays
-     * @param TransactionManager|FirebirdTransactionManager|null             $transaction Optional transaction
+     * @param string                                             $sql         INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>>               $rows        Array of row data arrays
+     * @param TransactionManager|FirebirdTransactionManager|null $transaction Optional transaction
      *
      * @return ProceduralBatchResult Result with row counts and any errors
      *
@@ -972,6 +931,45 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
+    }
+
+    /**
+     * Resolve a transaction argument to a Firebird\Transaction resource.
+     *
+     * Accepts the driver's TransactionManager, php-firebird's TransactionManager
+     * (from TBuilder::start()), or a raw Firebird\Transaction.
+     *
+     * @param mixed $transaction Transaction to resolve
+     *
+     * @return mixed The resolved Firebird\Transaction
+     *
+     * @throws DriverException If the transaction is invalid or already closed
+     */
+    private function resolveTransactionResource(mixed $transaction): mixed
+    {
+        if ($transaction instanceof TransactionManager) {
+            if (! $transaction->isTransactionValid()) {
+                throw new DriverException('Invalid transaction resource.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        if ($transaction instanceof FirebirdTransactionManager) {
+            // From TBuilder::start() — independent transaction (Firebird 4.0+).
+            if (! $transaction->isActive()) {
+                throw new DriverException('Transaction already committed or rolled back.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        /** @psalm-suppress DocblockTypeContradiction */
+        if ($transaction === null || $transaction === false) {
+            throw new DriverException('Invalid transaction handle.');
+        }
+
+        return $transaction;
     }
 
     // =========================================================================

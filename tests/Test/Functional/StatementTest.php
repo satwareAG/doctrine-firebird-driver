@@ -128,7 +128,7 @@ EOF
         // fetching only one record out of two
         $result->fetchAssociative();
 
-        $stmt2  = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
+        $stmt2 = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
         $stmt2->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt2->execute();
         self::assertSame(1, $result->fetchOne());
