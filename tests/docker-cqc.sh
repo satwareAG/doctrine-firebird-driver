@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Docker Code Quality Check - Comprehensive Quality Pipeline (2025 Edition)
+# Docker Code Quality Check - Comprehensive Quality Pipeline
 # =============================================================================
 # Purpose: Run comprehensive code quality checks in Docker environment
 # Features: PCOV coverage, PHPStan Level 8, Psalm, PHP-CS-Fixer, full Firebird compatibility
 # Target: "First Citizen" quality status - surpass DBAL core drivers
 #
 # Usage: ./docker-cqc.sh [options]
-#
-# shellcheck disable=SC2034  # Unused variables are for configuration
 # =============================================================================
 
 set -euo pipefail
@@ -18,31 +16,15 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 # =============================================================================
-# Constants and Colors
+# Constants
 # =============================================================================
 
 readonly SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Colors for output (check if terminal supports colors)
-if [[ -t 1 ]] && command -v tput &>/dev/null && [[ $(tput colors) -ge 8 ]]; then
-    readonly RED='\033[0;31m'
-    readonly GREEN='\033[0;32m'
-    readonly YELLOW='\033[1;33m'
-    readonly BLUE='\033[0;34m'
-    readonly CYAN='\033[0;36m'
-    readonly NC='\033[0m'
-    readonly BOLD='\033[1m'
-else
-    readonly RED=''
-    readonly GREEN=''
-    readonly YELLOW=''
-    readonly BLUE=''
-    readonly CYAN=''
-    readonly NC=''
-    readonly BOLD=''
-fi
+# Source shared helpers
+source "$SCRIPT_DIR/lib/common.sh"
 
 # =============================================================================
 # Default Configuration
@@ -53,38 +35,6 @@ REBUILD_CONTAINER=false
 COVERAGE_ONLY=false
 QUICK_MODE=false
 VERBOSE=false
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
-print_header() {
-    echo ""
-    echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}${CYAN}  $1${NC}"
-    echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
-}
-
-print_step() {
-    echo -e "${YELLOW}▶ $1${NC}"
-}
-
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}" >&2
-}
-
-print_info() {
-    echo -e "${CYAN}ℹ $1${NC}"
-}
-
-die() {
-    print_error "$1"
-    exit "${2:-1}"
-}
 
 # Cleanup function for proper exit handling
 cleanup() {
@@ -325,9 +275,9 @@ run_psalm() {
         print_info "PHP $PHP_VERSION detected: Suppressing E_DEPRECATED for Psalm compatibility"
     fi
     
-    # Auto-fix type hints where possible
-    print_info "Attempting to auto-fix type issues..."
-    run_in_docker "$psalm_cmd --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" 900 || true
+    # Psalm analysis (no --alter: auto-fix can introduce bugs, e.g. changing
+    # mixed ...$args to array ...$args based on incorrect type inference)
+    print_info "Running Psalm analysis..."
     
     # Update baseline if needed
     print_info "Updating Psalm baseline..."
@@ -368,6 +318,16 @@ run_tests_with_coverage() {
     local exit_code=0
     run_in_docker "$cmd" 1200 "firebird3" || exit_code=$?
 
+    # SIGSEGV (exit 139/134) during shutdown is a known php-firebird issue.
+    # If PHPUnit reported "OK" before the crash, treat as success.
+    if [[ $exit_code -eq 139 || $exit_code -eq 134 ]]; then
+        if grep -q "^OK" "$report_host" 2>/dev/null; then
+            print_info "PHP crashed with exit $exit_code during shutdown, but tests passed."
+            print_success "Firebird 3 Tests: PASSED"
+            exit_code=0
+        fi
+    fi
+
     if [[ $exit_code -eq 0 ]]; then
         print_success "Firebird 3 Tests: PASSED"
     else
@@ -390,6 +350,10 @@ run_multiversion_tests() {
     start_time=$(date +%s)
     local failed=false
     
+    # Start FB4/FB5 containers (not started by default docker compose up -d)
+    docker compose --profile fb4 up -d firebird4 2>/dev/null || true
+    docker compose --profile fb5 up -d firebird5 2>/dev/null || true
+    
     # Helper function for versioned tests
     run_version_test() {
         local version="$1"
@@ -405,6 +369,15 @@ run_multiversion_tests() {
         local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
         local exit_code=0
         run_in_docker "$cmd" 1200 "$host" || exit_code=$?
+        
+        # SIGSEGV (exit 139/134) during shutdown is a known php-firebird issue.
+        if [[ $exit_code -eq 139 || $exit_code -eq 134 ]]; then
+            if grep -q "^OK" "$report_host" 2>/dev/null; then
+                print_info "PHP crashed with exit $exit_code during shutdown, but tests passed."
+                print_success "Firebird $version: PASSED"
+                return 0
+            fi
+        fi
         
         if [[ $exit_code -eq 0 ]]; then
             print_success "Firebird $version: PASSED"

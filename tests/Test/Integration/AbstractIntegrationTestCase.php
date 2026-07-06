@@ -171,7 +171,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             $songMapCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "Album_SongMap"');
             if ($albumCount === 2 && $songMapCount === 2) {
                 self::$databaseInstalled = true;
-                echo "[DIAG] Database already seeded (ALBUM rows: {$albumCount}, Album_SongMap rows: {$songMapCount}), skipping re-installation\n";
 
                 return;
             }
@@ -408,7 +407,6 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         // Verify seed data is visible
         $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
-        echo "[DIAG] PHP seeding complete. ALBUM rows: {$albumCount}\n";
         if ($albumCount === 0) {
             throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM');
         }

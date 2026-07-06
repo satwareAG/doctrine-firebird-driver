@@ -139,7 +139,7 @@ abstract class FunctionalTestCase extends TestCase
      * manager for proper identifier quoting. Retries on "in use"/"deadlock"
      * errors (matching dropTableIfExists behavior).
      *
-     * @throws Exception If a non-"does not exist"/"in use"/"deadlock" error occurs after retries
+     * @throws Exception If a non-"does not exist"/"in use"/"deadlock" error occurs after retries.
      */
     public function dropSequenceIfExists(string $name): void
     {

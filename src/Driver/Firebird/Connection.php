@@ -943,7 +943,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
      *
      * @return mixed The resolved Firebird\Transaction
      *
-     * @throws DriverException If the transaction is invalid or already closed
+     * @throws DriverException If the transaction is invalid or already closed.
      */
     private function resolveTransactionResource(mixed $transaction): mixed
     {

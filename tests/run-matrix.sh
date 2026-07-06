@@ -40,18 +40,8 @@ TEST_TIMEOUT=600  # 10 minutes per combo
 ALL_PHP_VERSIONS=("8.2" "8.3" "8.4" "8.5")
 ALL_FB_VERSIONS=("3.0" "4.0" "5.0")
 
-# Colors
-if [[ -t 1 ]]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    CYAN='\033[0;36m'
-    BOLD='\033[1m'
-    NC='\033[0m'
-else
-    RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
-fi
+# Source shared helpers
+source "$SCRIPT_DIR/lib/common.sh"
 
 # =============================================================================
 # Configuration (defaults)
@@ -71,22 +61,8 @@ export CURRENT_UID=$(id -u)
 export CURRENT_GID=$(id -g)
 
 # =============================================================================
-# Helper Functions
+# FB Version Helpers
 # =============================================================================
-
-print_header() {
-    echo ""
-    echo -e "${BOLD}${BLUE}================================================================${NC}"
-    echo -e "${BOLD}${CYAN}  $1${NC}"
-    echo -e "${BOLD}${BLUE}================================================================${NC}"
-}
-
-print_step()  { echo -e "${YELLOW}>>> $1${NC}"; }
-print_ok()    { echo -e "${GREEN}OK  $1${NC}"; }
-print_fail()  { echo -e "${RED}FAIL $1${NC}"; }
-print_info()  { echo -e "${CYAN}    $1${NC}"; }
-
-die() { echo -e "${RED}ERROR: $1${NC}" >&2; exit "${2:-1}"; }
 
 # Map FB version to docker-compose service name and container name
 get_fb_service() {
