@@ -731,6 +731,45 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
     }
 
     /**
+     * Resolve a transaction argument to a Firebird\Transaction resource.
+     *
+     * Accepts the driver's TransactionManager, php-firebird's TransactionManager
+     * (from TBuilder::start()), or a raw Firebird\Transaction.
+     *
+     * @param mixed $transaction Transaction to resolve
+     *
+     * @return mixed The resolved Firebird\Transaction
+     *
+     * @throws DriverException If the transaction is invalid or already closed
+     */
+    private function resolveTransactionResource(mixed $transaction): mixed
+    {
+        if ($transaction instanceof TransactionManager) {
+            if (! $transaction->isTransactionValid()) {
+                throw new DriverException('Invalid transaction resource.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        if ($transaction instanceof FirebirdTransactionManager) {
+            // From TBuilder::start() — independent transaction (Firebird 4.0+).
+            if (! $transaction->isActive()) {
+                throw new DriverException('Transaction already committed or rolled back.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        /** @psalm-suppress DocblockTypeContradiction */
+        if ($transaction === null || $transaction === false) {
+            throw new DriverException('Invalid transaction handle.');
+        }
+
+        return $transaction;
+    }
+
+    /**
      * Execute a query within a specific transaction context.
      *
      * @param resource|TransactionManager $transaction Transaction resource or OO wrapper
@@ -747,28 +786,7 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        // Support driver TransactionManager, php-firebird TransactionManager, or raw resource.
-        if ($transaction instanceof TransactionManager) {
-            if (! $transaction->isTransactionValid()) {
-                throw new DriverException('Invalid transaction resource.');
-            }
-
-            $transResource = $transaction->getResource();
-        } elseif ($transaction instanceof FirebirdTransactionManager) {
-            // From TBuilder::start() — independent transaction (Firebird 4.0+).
-            if (! $transaction->isActive()) {
-                throw new DriverException('Transaction already committed or rolled back.');
-            }
-
-            $transResource = $transaction->getResource();
-        } else {
-            $transResource = $transaction;
-
-            /** @psalm-suppress DocblockTypeContradiction */
-            if ($transResource === null || $transResource === false) {
-                throw new DriverException('Invalid transaction handle.');
-            }
-        }
+        $transResource = $this->resolveTransactionResource($transaction);
 
         try {
             return fbird_query_params_tx($this->connection, $transResource, $sql, $params);
@@ -845,19 +863,8 @@ final class Connection implements ServerInfoAwareConnection // @phpstan-ignore-l
         }
 
         // Use provided transaction or fall back to active transaction
-        if ($transaction instanceof TransactionManager) {
-            if (! $transaction->isTransactionValid()) {
-                throw new DriverException('No valid transaction available for batch operation.');
-            }
-
-            $transResource = $transaction->getResource();
-        } elseif ($transaction instanceof FirebirdTransactionManager) {
-            // From TBuilder::start() — independent transaction (Firebird 4.0+).
-            if (! $transaction->isActive()) {
-                throw new DriverException('No valid transaction available for batch operation.');
-            }
-
-            $transResource = $transaction->getResource();
+        if ($transaction instanceof TransactionManager || $transaction instanceof FirebirdTransactionManager) {
+            $transResource = $this->resolveTransactionResource($transaction);
         } else {
             $transResource = $this->transactionManager->getActiveTransaction();
 

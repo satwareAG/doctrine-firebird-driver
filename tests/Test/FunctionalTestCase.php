@@ -135,9 +135,11 @@ abstract class FunctionalTestCase extends TestCase
      * Drops the sequence with the specified name, if it exists.
      *
      * Firebird does not support DROP SEQUENCE IF EXISTS, so we attempt the drop
-     * and suppress "does not exist" errors.
+     * and suppress "does not exist"/"is not defined" errors. Uses the schema
+     * manager for proper identifier quoting. Retries on "in use"/"deadlock"
+     * errors (matching dropTableIfExists behavior).
      *
-     * @throws Exception
+     * @throws Exception If a non-"does not exist"/"in use"/"deadlock" error occurs after retries
      */
     public function dropSequenceIfExists(string $name): void
     {
@@ -146,24 +148,45 @@ abstract class FunctionalTestCase extends TestCase
             return;
         }
 
-        try {
-            $fbirdConnection?->rollBack();
-        } catch (Throwable) {
-        }
+        $schemaManager = $this->connection->createSchemaManager();
 
-        try {
-            $this->connection->executeStatement('DROP SEQUENCE ' . $name);
-            $fbirdConnection?->commit();
-        } catch (Throwable $e) {
-            if (! str_contains($e->getMessage(), 'does not exist') && ! str_contains($e->getMessage(), 'DOES NOT EXIST')) {
-                // Non-fatal in cleanup context
-            }
-
+        for ($i = 0; $i < 3; $i++) {
             try {
-                $fbirdConnection?->rollBack();
-            } catch (Throwable) {
+                try {
+                    $fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+
+                if ($i > 0) {
+                    usleep(50000); // 50ms wait
+                }
+
+                $schemaManager->dropSequence($name);
+                $fbirdConnection?->commit();
+
+                return;
+            } catch (Throwable $e) {
+                try {
+                    $fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+
+                $msg = $e->getMessage();
+
+                // Suppress "does not exist" / "is not defined" errors - sequence already gone
+                if (str_contains($msg, 'does not exist') || str_contains($msg, 'DOES NOT EXIST')
+                    || str_contains($msg, 'is not defined') || str_contains($msg, 'IS NOT DEFINED')) {
+                    return;
+                }
+
+                // Retry on lock/deadlock, otherwise re-throw
+                if (! str_contains($msg, 'in use') && ! str_contains($msg, 'deadlock')) {
+                    throw $e;
+                }
             }
         }
+
+        // Lock/deadlock errors after all retries are non-fatal in cleanup context
     }
 
     /**

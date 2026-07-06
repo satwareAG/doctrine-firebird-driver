@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   TypeError when using independent transactions.
 - **`Connection::createBatch()` / `executeBatch()`**: Widened `$transaction` parameter
   type to `TransactionManager|FirebirdTransactionManager|null` for the same reason.
+  Error messages for invalid transactions now match `queryInTransaction()` (was
+  "No valid transaction available for batch operation.", now "Invalid transaction
+  resource." / "Transaction already committed or rolled back.").
+- **`Connection::resolveTransactionResource()`**: New private helper that deduplicates
+  transaction resolution logic (driver `TransactionManager`, php-firebird
+  `TransactionManager`, or raw `Firebird\Transaction`) across `queryInTransaction()`
+  and `createBatch()`.
 - **`TransactionManager::__destruct`** (php-firebird #310): Replaced `@fbird_rollback()`
   suppression with try/catch in THROW mode to prevent uncaught `Firebird\Exception`
   during transaction cleanup. Fixed in php-firebird commit `d4d3851`.
