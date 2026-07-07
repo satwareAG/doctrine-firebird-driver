@@ -87,7 +87,6 @@ class ExceptionConverterTest extends FunctionalTestCase
         );
     }
 
-
     protected function setUp(): void
     {
         $this->converter = new ExceptionConverter();

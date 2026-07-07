@@ -79,3 +79,47 @@ print_summary_box() {
         echo -e "${BOLD}${RED}================================================================${NC}"
     fi
 }
+
+# =============================================================================
+# Docker Cleanup
+# =============================================================================
+
+# Remove all containers (including profiled FB4/FB5) and their volumes.
+# Must be called from the docker-compose directory.
+#
+# Key insight: `docker compose down -v` WITHOUT `--profile fb4 --profile fb5`
+# does NOT stop FB4/FB5 containers or remove their volumes, because those
+# services are behind profiles. This leaves stale test data that causes
+# 500+ errors on subsequent runs.
+cleanup_all() {
+    local compose_dir="$1"
+    if [[ -n "$compose_dir" ]]; then
+        cd "$compose_dir" || return 1
+    fi
+
+    # Stop ALL services (including profiled FB4/FB5) and remove volumes
+    docker compose --profile fb4 --profile fb5 down -v --remove-orphans 2>/dev/null || true
+
+    # Belt-and-suspenders: force-remove any stuck containers and volumes
+    docker rm -f dfd-firebird3 dfd-firebird4 dfd-firebird5 dfd-app 2>/dev/null || true
+    docker volume rm doctrine-firebird-test_fb3-data \
+                   doctrine-firebird-test_fb4-data \
+                   doctrine-firebird-test_fb5-data 2>/dev/null || true
+}
+
+# Remove volumes for a specific Firebird version only (keeps others running).
+# Useful between FB version tests in Phase 5 of docker-cqc.sh.
+cleanup_fb_version() {
+    local fb_ver="$1"
+    local container volume
+
+    case "$fb_ver" in
+        3.0) container="dfd-firebird3";  volume="doctrine-firebird-test_fb3-data" ;;
+        4.0) container="dfd-firebird4";  volume="doctrine-firebird-test_fb4-data" ;;
+        5.0) container="dfd-firebird5";  volume="doctrine-firebird-test_fb5-data" ;;
+        *) return 1 ;;
+    esac
+
+    docker rm -f "$container" 2>/dev/null || true
+    docker volume rm "$volume" 2>/dev/null || true
+}

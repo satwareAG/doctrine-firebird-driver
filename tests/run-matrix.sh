@@ -367,10 +367,7 @@ do_list() {
 
 do_clean() {
     print_header "Cleaning Up"
-    cd "$COMPOSE_DIR"
-    docker compose down -v --remove-orphans 2>/dev/null || true
-    docker compose --profile fb4 down -v --remove-orphans 2>/dev/null || true
-    docker compose --profile fb5 down -v --remove-orphans 2>/dev/null || true
+    cleanup_all "$COMPOSE_DIR"
     rm -f /tmp/matrix-results.tmp /tmp/matrix-logs/*.log 2>/dev/null || true
     print_ok "Containers stopped, volumes removed"
 }
@@ -422,7 +419,7 @@ ${BOLD}Matrix:${NC}
 
 ${BOLD}Docker Images:${NC}
   Built as dfd-app-php{82,83,84,85} via tests/app/Dockerfile
-  php-firebird v12.0.0-rc.22 (commit 019bee7, includes #311 SIGSEGV fix + CI asset download fix)
+  php-firebird v12.0.0 (commit ae40ef1, stable release - 16 issues closed, zero open)
 
 EOF
     exit 0
@@ -531,6 +528,10 @@ main() {
 
     local total_start
     total_start=$(date +%s)
+
+    # Clean slate: remove ALL containers and volumes (including profiled FB4/FB5)
+    print_step "Cleaning up previous containers and volumes..."
+    cleanup_all "$COMPOSE_DIR"
 
     # Ensure images exist
     for php_ver in "${PHP_VERSIONS[@]}"; do

@@ -339,19 +339,26 @@ run_multiversion_tests() {
     start_time=$(date +%s)
     local failed=false
     
-    # Start FB4/FB5 containers (not started by default docker compose up -d)
-    docker compose --profile fb4 up -d firebird4 2>/dev/null || true
-    docker compose --profile fb5 up -d firebird5 2>/dev/null || true
-    
     # Helper function for versioned tests
     run_version_test() {
         local version="$1"
         local host="$2"
+        local profile="$3"
         local report_rel="var/reports/phpunit-fb${version//./}-report.txt"
         local report_container="tests/$report_rel"
         
         print_info "Testing Firebird $version..."
-        docker compose restart "$host"
+        
+        # Clean volume for this FB version to ensure fresh database
+        cleanup_fb_version "$version"
+        
+        # Start the container (FB4/FB5 are behind profiles)
+        if [[ -n "$profile" ]]; then
+            # shellcheck disable=SC2086 # profile contains "--profile fb4" (two words, intentional split)
+            docker compose $profile up -d "$host" 2>&1 | tail -1
+        else
+            docker compose up -d "$host" 2>&1 | tail -1
+        fi
         wait_for_containers 30
         
         local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
@@ -367,8 +374,8 @@ run_multiversion_tests() {
         return 1
     }
     
-    run_version_test "4.0" "firebird4" || failed=true
-    run_version_test "5.0" "firebird5" || failed=true
+    run_version_test "4.0" "firebird4" "--profile fb4" || failed=true
+    run_version_test "5.0" "firebird5" "--profile fb5" || failed=true
     
     local end_time
     end_time=$(date +%s)
@@ -397,14 +404,16 @@ main() {
     
     print_header "Docker Environment Setup (PHP $PHP_VERSION)"
     
-    # Setup Docker environment
+    # Clean slate: remove ALL containers and volumes (including profiled FB4/FB5)
+    print_step "Cleaning up previous containers and volumes..."
+    cleanup_all "$SCRIPT_DIR"
+    
+    # Build and start
     if [[ "$REBUILD_CONTAINER" == "true" ]]; then
         print_step "Rebuilding Docker containers (--rebuild specified)..."
-        docker compose down --remove-orphans --volumes 2>/dev/null || true
         docker compose build --no-cache --build-arg PHP_VERSION="$PHP_VERSION"
     else
-        print_step "Starting Docker containers..."
-        docker compose down --remove-orphans 2>/dev/null || true
+        print_step "Building Docker containers..."
         docker compose build --build-arg PHP_VERSION="$PHP_VERSION"
     fi
     

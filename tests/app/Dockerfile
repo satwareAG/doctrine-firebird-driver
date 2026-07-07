@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v12.0.0-rc.22), pcov (fast coverage)
+# Extensions: firebird (php-firebird v12.0.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -60,9 +60,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 #          Replaced !FBG(in_mshutdown) with !(EG(flags) & EG_FLAGS_IN_RESOURCE_SHUTDOWN)
 #          in _php_fbird_close_plink and _php_fbird_commit_link (3 sites).
 #          rc.22: CI-only fix for release asset download masking (no functional changes).
+#          v12.0.0: Stable release. 16 issues closed, zero open. OOP API complete.
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout 019bee7648a7c79c49054a5b07847fc59b2386a0 \
+    && git -C /usr/src/php/ext/firebird checkout ae40ef193d2c0322aaa1daaf1fb9e42d9a761a10 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
