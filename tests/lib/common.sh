@@ -93,18 +93,20 @@ print_summary_box() {
 # 500+ errors on subsequent runs.
 cleanup_all() {
     local compose_dir="$1"
+    local compose_cmd=(docker compose)
     if [[ -n "$compose_dir" ]]; then
-        cd "$compose_dir" || return 1
+        compose_cmd+=(--project-directory "$compose_dir")
     fi
 
     # Stop ALL services (including profiled FB4/FB5) and remove volumes
-    docker compose --profile fb4 --profile fb5 down -v --remove-orphans 2>/dev/null || true
+    "${compose_cmd[@]}" --profile fb4 --profile fb5 down -v --remove-orphans 2>/dev/null || true
 
     # Belt-and-suspenders: force-remove any stuck containers and volumes
     docker rm -f dfd-firebird3 dfd-firebird4 dfd-firebird5 dfd-app 2>/dev/null || true
-    docker volume rm doctrine-firebird-test_fb3-data \
-                   doctrine-firebird-test_fb4-data \
-                   doctrine-firebird-test_fb5-data 2>/dev/null || true
+    _rm_volumes_with_retry \
+        doctrine-firebird-test_fb3-data \
+        doctrine-firebird-test_fb4-data \
+        doctrine-firebird-test_fb5-data
 }
 
 # Remove volumes for a specific Firebird version only (keeps others running).
@@ -121,5 +123,20 @@ cleanup_fb_version() {
     esac
 
     docker rm -f "$container" 2>/dev/null || true
-    docker volume rm "$volume" 2>/dev/null || true
+    _rm_volumes_with_retry "$volume"
+}
+
+# Remove docker volumes with retry (Docker may briefly hold a reference
+# after container removal). Tries up to 3 times with 1s delay.
+_rm_volumes_with_retry() {
+    local vol
+    for vol in "$@"; do
+        local i
+        for ((i = 0; i < 3; i++)); do
+            if docker volume rm "$vol" 2>/dev/null; then
+                break
+            fi
+            sleep 1
+        done
+    done
 }

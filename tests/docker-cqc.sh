@@ -135,31 +135,47 @@ parse_args() {
 
 wait_for_containers() {
     local timeout="${1:-60}"
+    local service="${2:-}"
     local start_time
     start_time=$(date +%s)
-    
+
+    local target
+    if [[ -n "$service" ]]; then
+        target="$service"
+    else
+        target=""  # check any container
+    fi
+
     print_info "Waiting for containers to be healthy (timeout: ${timeout}s)..."
-    
+
     while true; do
         local elapsed
         elapsed=$(($(date +%s) - start_time))
-        
+
         if [[ $elapsed -ge $timeout ]]; then
             print_error "Timeout waiting for containers"
             docker compose ps
             docker compose logs --tail=50
             return 1
         fi
-        
-        if docker compose ps 2>/dev/null | grep -q "Up"; then
-            break
+
+        # If a specific service is requested, check that container's health
+        if [[ -n "$target" ]]; then
+            local health
+            health=$(docker inspect --format='{{.State.Health.Status}}' "$target" 2>/dev/null || echo "")
+            if [[ "$health" == "healthy" ]]; then
+                break
+            fi
+        else
+            # No specific service: check if any container is Up
+            if docker compose ps 2>/dev/null | grep -q "Up"; then
+                break
+            fi
         fi
-        
+
         sleep 2
     done
-    
-    # Give Firebird time to fully initialize
-    sleep 5
+
     return 0
 }
 
@@ -359,7 +375,9 @@ run_multiversion_tests() {
         else
             docker compose up -d "$host" 2>&1 | tail -1
         fi
-        wait_for_containers 30
+        # Wait for the specific container to become healthy (cold start with fresh volume)
+        local container_name="dfd-${host}"
+        wait_for_containers 60 "$container_name"
         
         local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
         local exit_code=0
