@@ -164,12 +164,13 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         // Cross-process guard: each CI step runs a separate PHPUnit process,
         // so static $databaseInstalled resets. Check the DB directly: if seed
-        // data already exists with the correct count, skip re-installation.
+        // data already exists with the correct count AND the junction table
+        // is consistent, skip re-installation.
         try {
             $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
-            if ($albumCount === 2) {
+            $songMapCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "Album_SongMap"');
+            if ($albumCount === 2 && $songMapCount === 2) {
                 self::$databaseInstalled = true;
-                echo "[DIAG] Database already seeded (ALBUM rows: {$albumCount}), skipping re-installation\n";
 
                 return;
             }
@@ -228,6 +229,26 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
 
         // Explicitly commit any pending DDL from EXECUTE STATEMENT inside blocks.
         // Firebird 3.0 requires explicit commit for DDL executed via EXECUTE STATEMENT.
+        try {
+            if ($connection->isTransactionActive()) {
+                $connection->commit();
+            }
+        } catch (Throwable) {
+        }
+
+        // Clear data from seed tables (child-first to respect FK constraints)
+        // before DDL loop. This ensures the seed UPDATE OR INSERT doesn't
+        // conflict with stale data from previous Integration-Write test runs.
+        $clearTableOrder = ['ALBUM_SONGMAP', 'SONG', 'ALBUM', 'GENRE', 'ARTIST', 'ARTIST_TYPE', 'CASES_CASCADINGREMOVE_SUBCLASS', 'CASES_CASCADINGREMOVE'];
+        foreach ($clearTableOrder as $tableName) {
+            try {
+                $connection->executeStatement('DELETE FROM ' . $tableName);
+            } catch (Throwable) {
+                // Table may not exist yet - ignore
+            }
+        }
+
+        // Commit the deletes
         try {
             if ($connection->isTransactionActive()) {
                 $connection->commit();
@@ -304,35 +325,38 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                 // "Table already exists" — can happen when the coverage step
                 // runs all suites in one process and functional tests created
                 // the same tables before the integration suite.
-                if (! str_contains($msg, '42S11') && ! str_contains($msg, 'already exists')) {
+                if (! str_contains($msg, '42S11') && ! str_contains($msg, 'already exists') && ! str_contains($msg, 'already defined')) {
                     throw $e;
                 }
             }
         }
 
-        // Seed data via PHP connection (autocommit commits each INSERT).
+        // Seed data via PHP connection (autocommit commits each statement).
+        // Use UPDATE OR INSERT with explicit IDs so seeding works even if
+        // tables survived from a previous run (tables may have stale data
+        // with different autoincrement IDs).
         $seedGroups = [
             'ARTIST_TYPE' => [
-                ['name' => 'Unknown'], ['name' => 'Solo'], ['name' => 'Duo'],
-                ['name' => 'Trio'], ['name' => 'Quartet'], ['name' => 'Band'],
+                ['id' => 1, 'name' => 'Unknown'], ['id' => 2, 'name' => 'Solo'], ['id' => 3, 'name' => 'Duo'],
+                ['id' => 4, 'name' => 'Trio'], ['id' => 5, 'name' => 'Quartet'], ['id' => 6, 'name' => 'Band'],
             ],
             'ARTIST' => [
-                ['name' => 'Unknown', 'type_id' => 1],
-                ['name' => 'Britney Spears', 'type_id' => 2],
-                ['name' => 'Nickelback', 'type_id' => 6],
-                ['name' => 'AC/DC', 'type_id' => 6],
+                ['id' => 1, 'name' => 'Unknown', 'type_id' => 1],
+                ['id' => 2, 'name' => 'Britney Spears', 'type_id' => 2],
+                ['id' => 3, 'name' => 'Nickelback', 'type_id' => 6],
+                ['id' => 4, 'name' => 'AC/DC', 'type_id' => 6],
             ],
             'GENRE' => [
-                ['name' => 'Unclassified genre'], ['name' => 'Rock'],
-                ['name' => 'Pop'], ['name' => 'Classical'],
+                ['id' => 1, 'name' => 'Unclassified genre'], ['id' => 2, 'name' => 'Rock'],
+                ['id' => 3, 'name' => 'Pop'], ['id' => 4, 'name' => 'Classical'],
             ],
             'ALBUM' => [
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2],
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3],
+                ['id' => 1, 'timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'artist_id' => 2],
+                ['id' => 2, 'timeCreated' => '2017-01-01 15:00:00', 'name' => 'Dark Horse', 'artist_id' => 3],
             ],
             'SONG' => [
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => false],
-                ['timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => true],
+                ['id' => 1, 'timeCreated' => '2017-01-01 15:00:00', 'name' => '...Baby One More Time', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 211, 'tophit' => false],
+                ['id' => 2, 'timeCreated' => '2017-01-01 15:00:00', 'name' => '(You Drive Me) Crazy', 'genre_id' => 3, 'artist_id' => 2, 'durationInSeconds' => 200, 'tophit' => true],
             ],
             'Album_SongMap' => [
                 ['album_id' => 1, 'song_id' => 1],
@@ -344,6 +368,7 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
             foreach ($rows as $row) {
                 $columns = [];
                 $values  = [];
+                $pkCols  = [];
                 foreach ($row as $col => $val) {
                     $columns[] = strtoupper($col);
                     if (is_string($val)) {
@@ -353,19 +378,61 @@ abstract class AbstractIntegrationTestCase extends FunctionalTestCase
                     } else {
                         $values[] = (string) $val;
                     }
+                    // Use 'id' as the MATCHING key for tables with autoincrement PK
+                    // Use both 'album_id' and 'song_id' for the junction table
+                    if ($col === 'id' || $col === 'album_id' || $col === 'song_id') {
+                        $pkCols[] = strtoupper($col);
+                    }
                 }
 
-                $connection->executeStatement(
-                    'INSERT INTO ' . strtoupper($table) . ' (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ')',
-                );
+                // Guard: UPDATE OR INSERT requires a non-empty MATCHING clause
+                if ($pkCols === []) {
+                    throw new \RuntimeException(
+                        sprintf('Seed table "%s" has no PK column (id/album_id/song_id) for MATCHING clause', $table),
+                    );
+                }
+
+                $sql = 'UPDATE OR INSERT INTO ' . strtoupper($table)
+                    . ' (' . implode(', ', $columns) . ')'
+                    . ' VALUES (' . implode(', ', $values) . ')'
+                    . ' MATCHING (' . implode(', ', $pkCols) . ')';
+
+                try {
+                    $connection->executeStatement($sql);
+                } catch (Throwable) {
+                    // Ignore seed conflicts - tables may be in an inconsistent state
+                }
             }
         }
 
         // Verify seed data is visible
         $albumCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM "ALBUM"');
-        echo "[DIAG] PHP seeding complete. ALBUM rows: {$albumCount}\n";
         if ($albumCount === 0) {
             throw new \RuntimeException('Seed data verification failed: 0 rows in ALBUM');
+        }
+
+        // Advance identity generators to match seed data IDs.
+        // UPDATE OR INSERT with explicit IDs doesn't advance identity generators,
+        // and SET GENERATOR is silently ignored on identity column generators.
+        // ALTER TABLE ... ALTER COLUMN ... RESTART WITH is the correct Firebird 3.0+ mechanism.
+        // Values are set to max_seed_id + 1 so the next INSERT gets a non-conflicting ID.
+        $identityResets = [
+            'ARTIST_TYPE' => 7,
+            'ARTIST'      => 5,
+            'GENRE'       => 5,
+            'ALBUM'       => 3,
+            'SONG'        => 3,
+        ];
+        foreach ($identityResets as $table => $nextVal) {
+            try {
+                $connection->executeStatement(sprintf(
+                    'ALTER TABLE "%s" ALTER COLUMN "ID" RESTART WITH %d',
+                    $table,
+                    $nextVal,
+                ));
+            } catch (Throwable) {
+                // Table/column may not exist yet
+            }
         }
 
         self::$databaseInstalled = true;

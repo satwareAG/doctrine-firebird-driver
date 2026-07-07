@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Docker Code Quality Check - Comprehensive Quality Pipeline (2025 Edition)
+# Docker Code Quality Check - Comprehensive Quality Pipeline
 # =============================================================================
 # Purpose: Run comprehensive code quality checks in Docker environment
 # Features: PCOV coverage, PHPStan Level 8, Psalm, PHP-CS-Fixer, full Firebird compatibility
 # Target: "First Citizen" quality status - surpass DBAL core drivers
 #
 # Usage: ./docker-cqc.sh [options]
-#
-# shellcheck disable=SC2034  # Unused variables are for configuration
 # =============================================================================
 
 set -euo pipefail
@@ -18,31 +16,15 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 # =============================================================================
-# Constants and Colors
+# Constants
 # =============================================================================
 
 readonly SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Colors for output (check if terminal supports colors)
-if [[ -t 1 ]] && command -v tput &>/dev/null && [[ $(tput colors) -ge 8 ]]; then
-    readonly RED='\033[0;31m'
-    readonly GREEN='\033[0;32m'
-    readonly YELLOW='\033[1;33m'
-    readonly BLUE='\033[0;34m'
-    readonly CYAN='\033[0;36m'
-    readonly NC='\033[0m'
-    readonly BOLD='\033[1m'
-else
-    readonly RED=''
-    readonly GREEN=''
-    readonly YELLOW=''
-    readonly BLUE=''
-    readonly CYAN=''
-    readonly NC=''
-    readonly BOLD=''
-fi
+# Source shared helpers
+source "$SCRIPT_DIR/lib/common.sh"
 
 # =============================================================================
 # Default Configuration
@@ -53,38 +35,6 @@ REBUILD_CONTAINER=false
 COVERAGE_ONLY=false
 QUICK_MODE=false
 VERBOSE=false
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
-print_header() {
-    echo ""
-    echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}${CYAN}  $1${NC}"
-    echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
-}
-
-print_step() {
-    echo -e "${YELLOW}▶ $1${NC}"
-}
-
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}" >&2
-}
-
-print_info() {
-    echo -e "${CYAN}ℹ $1${NC}"
-}
-
-die() {
-    print_error "$1"
-    exit "${2:-1}"
-}
 
 # Cleanup function for proper exit handling
 cleanup() {
@@ -113,7 +63,7 @@ ${BOLD}Docker Code Quality Check - Comprehensive Quality Pipeline${NC}
 ${BOLD}Usage:${NC} $SCRIPT_NAME [options]
 
 ${BOLD}Options:${NC}
-  -p, --php <version>   PHP version (8.1|8.2|8.3|8.4|8.5, default: 8.1)
+  -p, --php <version>   PHP version (8.2|8.3|8.4|8.5, default: 8.4)
       --rebuild         Force rebuild of Docker containers
       --coverage        Run only tests with coverage (skip multi-version)
       --quick           Quick mode: run static analysis only (no tests)
@@ -121,7 +71,7 @@ ${BOLD}Options:${NC}
   -h, --help            Show this help message
 
 ${BOLD}Environment Variables:${NC}
-  PHP_VERSION           Override PHP version (default: 8.1)
+  PHP_VERSION           Override PHP version (default: 8.4)
   CI                    Set to 'true' to skip container cleanup
 
 ${BOLD}Examples:${NC}
@@ -185,31 +135,47 @@ parse_args() {
 
 wait_for_containers() {
     local timeout="${1:-60}"
+    local service="${2:-}"
     local start_time
     start_time=$(date +%s)
-    
+
+    local target
+    if [[ -n "$service" ]]; then
+        target="$service"
+    else
+        target=""  # check any container
+    fi
+
     print_info "Waiting for containers to be healthy (timeout: ${timeout}s)..."
-    
+
     while true; do
         local elapsed
         elapsed=$(($(date +%s) - start_time))
-        
+
         if [[ $elapsed -ge $timeout ]]; then
             print_error "Timeout waiting for containers"
             docker compose ps
             docker compose logs --tail=50
             return 1
         fi
-        
-        if docker compose ps 2>/dev/null | grep -q "Up"; then
-            break
+
+        # If a specific service is requested, check that container's health
+        if [[ -n "$target" ]]; then
+            local health
+            health=$(docker inspect --format='{{.State.Health.Status}}' "$target" 2>/dev/null || echo "")
+            if [[ "$health" == "healthy" ]]; then
+                break
+            fi
+        else
+            # No specific service: check if any container is Up
+            if docker compose ps 2>/dev/null | grep -q "Up"; then
+                break
+            fi
         fi
-        
+
         sleep 2
     done
-    
-    # Give Firebird time to fully initialize
-    sleep 5
+
     return 0
 }
 
@@ -281,23 +247,13 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    # Use PHPSTAN_WORKERS=1 to disable parallel mode - workaround for php-firebird SIGSEGV
-    # See: https://github.com/satwareAG/php-firebird/issues/50
-    # Note: --jobs option does not exist in PHPStan, use environment variable instead
-    local phpstan_cmd="PHPSTAN_WORKERS=1 vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
+    # Use PHPStan parallel mode
+    local phpstan_cmd="vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
     local report_file="tests/var/reports/phpstan-report.txt"
     
     # Run PHPStan and capture exit code properly
     local phpstan_exit=0
     run_in_docker "$phpstan_cmd 2>&1 | tee $report_file" 900 || phpstan_exit=$?
-    
-    # Check for SIGSEGV (exit code 139 = 128 + 11 where 11 = SIGSEGV)
-    if [[ $phpstan_exit -eq 139 ]]; then
-        print_error "PHPStan Level 8: SIGSEGV detected (exit code 139)"
-        print_info "This is likely caused by php-firebird extension crash in parallel mode"
-        print_info "See: https://github.com/satwareAG/php-firebird/issues/50"
-        return 1
-    fi
     
     # Check for "severe errors" in output (PHPStan internal errors)
     if grep -qi "severe errors" "$report_file" 2>/dev/null; then
@@ -335,9 +291,9 @@ run_psalm() {
         print_info "PHP $PHP_VERSION detected: Suppressing E_DEPRECATED for Psalm compatibility"
     fi
     
-    # Auto-fix type hints where possible
-    print_info "Attempting to auto-fix type issues..."
-    run_in_docker "$psalm_cmd --alter --issues=MissingReturnType,MissingParamType --no-cache 2>/dev/null" 900 || true
+    # Psalm analysis (no --alter: auto-fix can introduce bugs, e.g. changing
+    # mixed ...$args to array ...$args based on incorrect type inference)
+    print_info "Running Psalm analysis..."
     
     # Update baseline if needed
     print_info "Updating Psalm baseline..."
@@ -368,26 +324,16 @@ run_tests_with_coverage() {
     local start_time
     start_time=$(date +%s)
     
-    # Relative to /app inside container, and relative to tests/ on host
+    # Relative to /app inside container
     local report_rel="var/reports/phpunit-fb3-report.txt"
     local report_container="tests/$report_rel"
-    local report_host="$SCRIPT_DIR/$report_rel"
     
     local cmd="php -d pcov.enabled=1 -d pcov.directory=/app/src vendor/bin/phpunit -c tests/phpunit.xml --coverage-text --coverage-html=tests/var/coverage/html 2>&1 | tee $report_container"
 
     local exit_code=0
     run_in_docker "$cmd" 1200 "firebird3" || exit_code=$?
 
-    # Handle exit code 139 (SIGSEGV) gracefully if PHPUnit reported success
-    if [[ $exit_code -eq 139 ]] || [[ $exit_code -eq 134 ]]; then
-        if grep -q "^OK" "$report_host" 2>/dev/null; then
-            print_info "⚠️  PHP crashed with exit $exit_code during shutdown, but tests passed."
-            print_success "Firebird 3 Tests: PASSED"
-        else
-            print_error "Firebird 3 Tests: FAILED (with crash exit $exit_code)"
-            return 1
-        fi
-    elif [[ $exit_code -eq 0 ]]; then
+    if [[ $exit_code -eq 0 ]]; then
         print_success "Firebird 3 Tests: PASSED"
     else
         print_error "Firebird 3 Tests: FAILED (exit code $exit_code)"
@@ -403,36 +349,41 @@ run_tests_with_coverage() {
 
 run_multiversion_tests() {
     print_header "Phase 5: Multi-Version Firebird Compatibility"
-    print_step "Running tests against Firebird 2.5, 4.x, and 5.x..."
+    print_step "Running tests against Firebird 4.0 and 5.0..."
     
     local start_time
     start_time=$(date +%s)
     local failed=false
     
-    # Helper function for versioned tests with crash handling
+    # Helper function for versioned tests
     run_version_test() {
         local version="$1"
-        local config="$2"
-        local host="$3"
+        local host="$2"
+        local profile="$3"
         local report_rel="var/reports/phpunit-fb${version//./}-report.txt"
         local report_container="tests/$report_rel"
-        local report_host="$SCRIPT_DIR/$report_rel"
         
         print_info "Testing Firebird $version..."
-        docker compose restart "$host"
-        wait_for_containers 30
         
-        local cmd="vendor/bin/phpunit -c $config --no-coverage 2>&1 | tee $report_container | tail -10"
+        # Clean volume for this FB version to ensure fresh database
+        cleanup_fb_version "$version"
+        
+        # Start the container (FB4/FB5 are behind profiles)
+        if [[ -n "$profile" ]]; then
+            # shellcheck disable=SC2086 # profile contains "--profile fb4" (two words, intentional split)
+            docker compose $profile up -d "$host" 2>&1 | tail -1
+        else
+            docker compose up -d "$host" 2>&1 | tail -1
+        fi
+        # Wait for the specific container to become healthy (cold start with fresh volume)
+        local container_name="dfd-${host}"
+        wait_for_containers 60 "$container_name"
+        
+        local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
         local exit_code=0
         run_in_docker "$cmd" 1200 "$host" || exit_code=$?
         
-        if [[ $exit_code -eq 139 ]] || [[ $exit_code -eq 134 ]]; then
-            if grep -q "^OK" "$report_host" 2>/dev/null; then
-                print_info "⚠️  PHP crashed with exit $exit_code during shutdown, but tests passed."
-                print_success "Firebird $version: PASSED"
-                return 0
-            fi
-        elif [[ $exit_code -eq 0 ]]; then
+        if [[ $exit_code -eq 0 ]]; then
             print_success "Firebird $version: PASSED"
             return 0
         fi
@@ -441,9 +392,8 @@ run_multiversion_tests() {
         return 1
     }
     
-    run_version_test "2.5" "tests/phpunit-firebird25.xml" "firebird25" || failed=true
-    run_version_test "4.x" "tests/phpunit-firebird4.xml" "firebird4" || failed=true
-    run_version_test "5.x" "tests/phpunit-firebird5.xml" "firebird5" || failed=true
+    run_version_test "4.0" "firebird4" "--profile fb4" || failed=true
+    run_version_test "5.0" "firebird5" "--profile fb5" || failed=true
     
     local end_time
     end_time=$(date +%s)
@@ -472,14 +422,16 @@ main() {
     
     print_header "Docker Environment Setup (PHP $PHP_VERSION)"
     
-    # Setup Docker environment
+    # Clean slate: remove ALL containers and volumes (including profiled FB4/FB5)
+    print_step "Cleaning up previous containers and volumes..."
+    cleanup_all "$SCRIPT_DIR"
+    
+    # Build and start
     if [[ "$REBUILD_CONTAINER" == "true" ]]; then
         print_step "Rebuilding Docker containers (--rebuild specified)..."
-        docker compose down --remove-orphans --volumes 2>/dev/null || true
         docker compose build --no-cache --build-arg PHP_VERSION="$PHP_VERSION"
     else
-        print_step "Starting Docker containers..."
-        docker compose down --remove-orphans 2>/dev/null || true
+        print_step "Building Docker containers..."
         docker compose build --build-arg PHP_VERSION="$PHP_VERSION"
     fi
     
@@ -505,7 +457,7 @@ main() {
     # Install dependencies
     print_header "Installing Dependencies"
     print_step "Running composer install..."
-    docker compose run --rm app composer update --no-interaction --no-progress || die "Composer update failed"
+    docker compose run --rm app composer install --no-interaction --no-progress || die "Composer install failed"
     print_success "Dependencies installed"
     
     # Create output directories

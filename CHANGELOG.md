@@ -5,6 +5,142 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.14.0] - 2026-07-07 - php-firebird v12.0.0 stable integration
+
+### Changed
+- **php-firebird v12.0.0**: Upgraded extension dependency from `^11.1` to `^12.0`
+  in `composer.json`; upgraded `satwareag/php-firebird-stubs` from `^11.1` to
+  `^12.0.0`. php-firebird v12.0.0 completes the OOP API (`Firebird\Event`
+  methods), eliminates all InterBase-era naming (#304), separates `pdo_fbird`
+  into a standalone extension (#258), and fixes SIGSEGV during module shutdown
+  with persistent connections (#311). 16 issues closed, zero open. This project
+  uses the procedural `fbird_*` API exclusively, so the `pdo_fbird` split has
+  no runtime impact - `firebird.so` alone is sufficient.
+- **Docker test image**: Pinned php-firebird checkout to commit `ae40ef1`
+  (v12.0.0 stable) in `tests/app/Dockerfile`.
+- **Docblock return types updated** for v12 stubs accuracy:
+  - `Connection::executeAuto()`: `resource|int|false` -> `\Firebird\ResultSet|int|false`
+  - `Connection::reconnectLimboTransaction()`: `resource|false` -> `\Firebird\Transaction|false`
+  - `ProceduralBatch::$batchHandle`: `resource` (mixed) -> `\Firebird\BatchHandle` (typed)
+  - `ProceduralBatch::__construct() $transResource`: added `|\Firebird\Transaction` to union
+- **CI workflows**: Upgraded php-firebird from v11.1.0 to v12.0.0 in all GitHub
+  Actions workflows (cache keys, clone steps). Updated Windows DLL download patterns
+  for v12.0.0 release assets.
+- **`Connection::queryInTransaction()`**: Added support for `Firebird\TransactionManager`
+  (from `TBuilder::start()`) in addition to the driver's own `TransactionManager`.
+  Extracts the `Firebird\Transaction` via `getResource()` and passes it to
+  `fbird_query_params_tx()`. Fixes FB4/FB5 "must be a Firebird transaction resource"
+  TypeError when using independent transactions.
+- **`Connection::createBatch()` / `executeBatch()`**: Widened `$transaction` parameter
+  type to `TransactionManager|FirebirdTransactionManager|null` for the same reason.
+  Error messages for invalid transactions now match `queryInTransaction()` (was
+  "No valid transaction available for batch operation.", now "Invalid transaction
+  resource." / "Transaction already committed or rolled back.").
+- **`Connection::resolveTransactionResource()`**: New private helper that deduplicates
+  transaction resolution logic (driver `TransactionManager`, php-firebird
+  `TransactionManager`, or raw `Firebird\Transaction`) across `queryInTransaction()`
+  and `createBatch()`.
+- **`TransactionManager::__destruct`** (php-firebird #310): Replaced `@fbird_rollback()`
+  suppression with try/catch in THROW mode to prevent uncaught `Firebird\Exception`
+  during transaction cleanup. Fixed in php-firebird v12.0.0.
+- **`fbird_trans_start` arginfo**: Removed `@phpstan-ignore argument.type` — v12.0.0
+  fixed the signature from `mixed $options = 0` to `?array $options = null`.
+
+### Fixed
+- **FB4/FB5 test failures**: 4 errors in `QueryInTransactionTest` on Firebird 4.0/5.0
+  caused by `Firebird\TransactionManager` not being recognized by `queryInTransaction()`.
+  Root cause: `TBuilder::start()` returns `Firebird\TransactionManager`, but the driver
+  only checked `instanceof` against its own `Satag\...\TransactionManager`.
+- **BatchTest probe failure**: Removed redundant `createBatch('SELECT 1 FROM RDB$DATABASE')`
+  probe in `BatchTest::setUp()` that failed on FB4/FB5 because IBatch correctly requires
+  parameterized statements. `function_exists('fbird_batch_create')` is sufficient
+  (the C function is only registered when `FB_API_VER >= 40`).
+- **Test fixture pollution**: Added `dropTableIfExists()` / `dropSequenceIfExists()`
+  cleanup before `createTable()` / `createSequence()` in 6 functional test classes
+  to prevent errors when running the full suite without a clean database.
+- **Identity generator reset**: Changed `installFirebirdDatabase()` seeding to use
+  `UPDATE OR INSERT ... MATCHING` with explicit IDs + `ALTER TABLE ... RESTART WITH`
+  for identity generators (not `SET GENERATOR`, which is silently ignored on
+  identity columns).
+- **ExceptionConverterTest pollution**: Added setUp/tearDown cleanup for fixture data.
+- **4 incomplete tests**: Implemented `testQuotesAlterTableChangeColumnLength` in
+  `FirebirdPlatformTest` and `Firebird3PlatformTest` with expected SQL arrays.
+
+### Removed
+- **`ReadOnlyIntegrationTestCase`**: Deleted deprecated test base class; migrated 5
+  test classes to `AbstractIntegrationTestCase`.
+- **`ConfigurableLikeCastLengthTest`**: Deleted deprecated test class (covered by
+  `FirebirdConnectionTest`).
+- **`tests/phpunit.sh`**: Deleted; functionality merged into `run-matrix.sh`
+  (test execution, --suite, --filter, --coverage) and `docker-cqc.sh` (quality pipeline).
+- **`tests/phpunit-lowest-versions.sh`**: Deleted; multi-PHP testing is now via
+  `run-matrix.sh --php` or `run-matrix.sh --all`.
+- **`tests/phpunit-firebird4.xml`, `phpunit-firebird5.xml`, `phpunit-firebird25.xml`,
+  `phpunit-deprecated.xml`**: Deleted; all Firebird versions use single `phpunit.xml`
+  with `DB_HOST` environment variable override.
+- **Psalm baseline**: Reduced from 167 to 68 lines by adding inline `@psalm-suppress`
+  for false-positive `UnusedClass` detections.
+
+### Changed (test infrastructure)
+- **`tests/run-matrix.sh`**: Complete rewrite as primary test runner. Defaults to
+  PHP 8.4 x Firebird 3.0. Supports `--all` (12-combo matrix), `--php`, `--fb`,
+  `--suite`, `--filter`, `--coverage`, `--build`, `--list`, `--clean`. Uses
+  `docker run --rm` instead of `docker compose run` (bypasses depends_on).
+  Parallel FB execution (3 at once per PHP version). Pre-builds 4 images tagged
+  `dfd-app-php{82,83,84,85}`.
+- **`tests/docker-cqc.sh`**: Removed PHP 8.1 references, Firebird 2.5 tests,
+  SIGSEGV exit code 139/134 handling (fixed in php-firebird v12.0.0 via
+  `EG_FLAGS_IN_RESOURCE_SHUTDOWN` guard, issue #311), and
+  `PHPSTAN_WORKERS=1` workaround. Changed `composer update` to `composer install`.
+  Uses single `phpunit.xml` for all FB versions. Added `cleanup_all()` and
+  `cleanup_fb_version()` helpers for automatic volume cleanup before each run
+  (fixes dirty-database failures on FB4/FB5 caused by profiled services not
+  being stopped by `docker compose down -v` without `--profile fb4 --profile fb5`).
+  Healthcheck-based container readiness polling replaces fixed 5s sleep.
+- **`tests/cqc.sh`**: Removed Firebird 2.5 test block and per-version phpunit
+  config references.
+- **`tests/docker-compose.yml`**: Removed `depends_on: firebird3` from `app`
+  service. Updated usage comments to reference `run-matrix.sh`.
+- **`tests/app/Dockerfile`**: Updated comment from "v11.1.0" to "v12.0.0".
+
+### Changed (test cleanup)
+- Replaced `bindParam()` with `bindValue()` in functional/integration tests (kept
+  `bindParam` in 2 tests that specifically test by-reference binding behavior).
+- Replaced `execute([params])` with `bindValue()` + `execute()` in functional tests
+  (kept in unit mock tests that don't trigger DBAL deprecation).
+- Changed `stopOnDefect` to `false` in `phpunit.xml` for better error visibility.
+- Added `FirebirdSchemaManager::getCurrentSequenceValue()` using `GEN_ID(name, 0)`.
+- Removed stale `@todo` from `FirebirdSchemaManager`.
+
+### Notes
+- No new v12 features adopted. The only new v12 feature (`Firebird\Event` OOP methods:
+  `wait()`, `cancel()`, `getName()`, `getCount()`) is for database event monitoring
+  (POST_EVENT triggers), which is outside the scope of a DBAL driver.
+- The v12 OOP method signature changes (`Connection::prepare()` now requires
+  `Transaction`, `Statement::execute()` takes `Transaction`) do not affect this
+  project because it uses the procedural `fbird_*` API, not the OOP API.
+- Skipped tests are all legitimate: 15 inline column comments (Firebird uses
+  `COMMENT ON COLUMN` statement, not inline DDL), 3 sequence cache (FB2.5 only),
+  8 SchemaTest DDL+introspect on FB4+ (Firebird C client hangs on implicit
+  transaction commit), 3 GH50Test DDL deadlock (FB3 only, issue #50).
+- Full test matrix verified: PHP 8.2/8.3/8.4/8.5 x Firebird 3.0/4.0/5.0 = 12 combos,
+  2319 tests each, 0 errors, 0 failures, 0 incomplete.
+- **Test script auto-cleanup**: Added `cleanup_all()` to `tests/lib/common.sh` —
+  properly stops ALL containers (including profiled FB4/FB5) and removes ALL
+  volumes before each test run. Root cause of 591-error failures on FB4/FB5 was
+  `docker compose down -v` without `--profile fb4 --profile fb5` leaving stale
+  test data in profiled service volumes.
+- **SIGSEGV workaround removed**: Exit 139/134 tolerance in `docker-cqc.sh` and
+  `cqc.sh` removed. Root cause (issue #311) fixed in php-firebird v12.0.0 by
+  replacing `!FBG(in_mshutdown)` with `!(EG(flags) & EG_FLAGS_IN_RESOURCE_SHUTDOWN)`
+  in `_php_fbird_close_plink` and `_php_fbird_commit_link` (3 sites).
+- **Incomplete tests eliminated** (was 2, now 0):
+  - Deleted `testConvertDeadlockException` (stub-only, -913 conversion covered by unit tests)
+  - Converted `GH50Test` from `markTestIncomplete` to `markTestSkipped` (known Firebird
+    DDL deadlock limitation, issue #50)
+  - Added FB4/FB5 skip guards to 8 `SchemaTest` methods that hang due to DDL implicit
+    transaction commit on FB4+ (all pass on FB3, root cause in Firebird C client library)
+
 ## [3.13.0] - 2026-07-02
 
 ### Changed

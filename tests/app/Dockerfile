@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v11.1.0), pcov (fast coverage)
+# Extensions: firebird (php-firebird v12.0.0), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -46,9 +46,24 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # v11.0.1: Fixed fbird_delete_user() arginfo regression (HF-3)
 # v11.1.0: Fixed autocommit visibility (#294), MSHUTDOWN SIGSEGV (#295), ResultSet return type (#296),
 #           fbird_prepare()/fbird_prepare_ex() now return Firebird\Statement objects (#297)
+# v12.0.0: OOP API completion (Firebird\Event methods), InterBase-era naming eliminated (#304),
+#          pdo_fbird split into standalone extension (#258), LTO support (#300).
+#          NOTE: pdo_fbird is no longer compiled into firebird.so - this project uses the
+#          procedural fbird_* API only, so firebird.so alone is sufficient (no pdo_fbird build needed).
+#          rc.10 adds a Windows DLL packaging fix over rc.9 (no Linux/macOS changes).
+#          rc.11 fixes all 5 doctrine-firebird-driver integration issues (#305-#309):
+#          THROW mode bypass, arginfo types, nullable array NULL-deref, client version
+#          return type, BatchHandle OOP methods.
+#          post-rc.11 fix #310: TransactionManager::__destruct try/catch for FB4/FB5
+#          implicit transaction invalidation (DDL commit, lock conflict).
+#          rc.21 fix #311: SIGSEGV during module shutdown with persistent connections.
+#          Replaced !FBG(in_mshutdown) with !(EG(flags) & EG_FLAGS_IN_RESOURCE_SHUTDOWN)
+#          in _php_fbird_close_plink and _php_fbird_commit_link (3 sites).
+#          rc.22: CI-only fix for release asset download masking (no functional changes).
+#          v12.0.0: Stable release. 16 issues closed, zero open. OOP API complete.
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout v11.1.0 \
+    && git -C /usr/src/php/ext/firebird checkout ae40ef193d2c0322aaa1daaf1fb9e42d9a761a10 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \

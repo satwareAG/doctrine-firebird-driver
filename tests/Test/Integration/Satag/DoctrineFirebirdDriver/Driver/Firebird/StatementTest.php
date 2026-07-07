@@ -124,7 +124,7 @@ class StatementTest extends AbstractIntegrationTestCase
 
         try {
             $statement = $this->connection->prepare('SELECT ?');
-            $statement->bindParam(1, $variable);
+            $statement->bindValue(1, $variable);
             $statement->execute();
         } catch (Throwable $t) {
             self::assertSame(SyntaxErrorException::class, $t::class);

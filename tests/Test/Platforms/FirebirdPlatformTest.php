@@ -733,7 +733,14 @@ SQL
      */
     protected function getQuotedAlterTableChangeColumnLengthSQL(): array
     {
-        self::markTestIncomplete('Not implemented yet');
+        return [
+            'ALTER TABLE mytable ALTER unquoted1 TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER unquoted2 TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER unquoted3 TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER "create" TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER "table" TYPE VARCHAR(255)',
+            'ALTER TABLE mytable ALTER "select" TYPE VARCHAR(255)',
+        ];
     }
 
     protected function getQuotesDropForeignKeySQL(): string

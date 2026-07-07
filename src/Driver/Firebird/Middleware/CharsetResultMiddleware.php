@@ -142,6 +142,9 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
      */
     private function decodeValue(mixed $value, int|string|null $column = null): mixed
     {
+        // Note: This checks for PHP stream resources (BLOB content returned as
+        // php_stream by php-firebird's PARAM_LOB handling), NOT Firebird
+        // connection/transaction handles which are Firebird\* objects since v11.
         if (is_resource($value)) {
             // If we know the column type is BINARY, return the resource as-is
             if ($column !== null && isset($this->columnTypes[$column])) {

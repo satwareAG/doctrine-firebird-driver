@@ -1,6 +1,6 @@
 {
   "name": "doctrine-firebird-driver",
-  "version": "3.13.0",
+  "version": "3.14.0",
   "sdd_source": "https://github.com/satwareAG/spec-kit",
   "forge": "github",
   "visibility": "public",
@@ -22,7 +22,8 @@
       "url": "https://github.com/satwareAG/php-firebird",
       "forge": "github",
       "local_path": "~/external/php-firebird",
-      "role": "native-driver-provider"
+      "role": "native-driver-provider",
+      "version": "12.0.0"
     }
   },
   "downstream": {

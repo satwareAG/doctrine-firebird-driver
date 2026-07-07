@@ -133,6 +133,17 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         't1',
         't2',
         'retry_lock_test',
+        'table_to_create',
+        'table_to_alter',
+        'table_to_drop',
+    ];
+
+    /** @var list<string> List of sequences created by schema tests that need cleanup */
+    private static array $schemaTestSequences = [
+        'create_sequences_test_seq',
+        'list_sequences_test_seq',
+        'sequence_1',
+        'sequence_2',
     ];
 
     public function testCreateSequence(): void
@@ -145,6 +156,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $name = 'create_sequences_test_seq';
 
+        $this->dropSequenceIfExists($name);
         $this->schemaManager->createSequence(new Sequence($name));
 
         self::assertTrue($this->hasElementWithName($this->schemaManager->listSequences(), $name));
@@ -163,6 +175,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $this->expectExceptionMessageMatches('/.*not supported.*/');
         }
 
+        $this->dropSequenceIfExists('list_sequences_test_seq');
         $this->schemaManager->createSequence(
             new Sequence('list_sequences_test_seq', 20, 10),
         );
@@ -1370,7 +1383,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $sequence2InitialValue   = 4;
         $sequence1               = new Sequence($sequence1Name, $sequence1AllocationSize, $sequence1InitialValue);
         $sequence2               = new Sequence($sequence2Name, $sequence2AllocationSize, $sequence2InitialValue);
-
+        $this->dropSequenceIfExists($sequence1Name);
+        $this->dropSequenceIfExists($sequence2Name);
         $this->schemaManager->createSequence($sequence1);
 
         if (! ($this->connection->getDatabasePlatform() instanceof Firebird3Platform)) {
@@ -1957,6 +1971,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
                     @$fbirdConnection?->rollBack();
                 } catch (Throwable) {
                 }
+            }
+        }
+
+        // Drop sequences created by schema tests
+        foreach (self::$schemaTestSequences as $sequenceName) {
+            try {
+                $this->dropSequenceIfExists($sequenceName);
+            } catch (Throwable) {
+                // Ignore cleanup errors
             }
         }
 

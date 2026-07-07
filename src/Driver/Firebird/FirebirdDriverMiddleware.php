@@ -29,6 +29,7 @@ use Satag\DoctrineFirebirdDriver\Compat\Override;
  * correctly handles {@see \Doctrine\DBAL\VersionAwarePlatformDriver} via
  * {@see AbstractDriverMiddleware::createDatabasePlatformForVersion()}.
  */
+/** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
 final class FirebirdDriverMiddleware implements MiddlewareInterface
 {
     #[Override]

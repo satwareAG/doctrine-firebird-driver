@@ -27,7 +27,7 @@ use const FBIRD_FETCH_DATE_OBJ;
 
 final class Result implements ResultInterface
 {
-    /** @var resource|int|ResultSet|null */
+    /** @var ResultSet|int|null */
     private mixed $firebirdResultResource = null;
 
     /**
@@ -41,7 +41,8 @@ final class Result implements ResultInterface
      * @throws Exception
      */
 
-    /** @param resource|int|null $firebirdResultResource */
+    /** @param ResultSet|int|null $firebirdResultResource */
+    // phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint -- accepts resource|object for dual-accept bridge
     public function __construct(
         $firebirdResultResource,
         private readonly Connection $connection,

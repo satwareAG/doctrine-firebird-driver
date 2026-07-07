@@ -2,14 +2,19 @@
 # Docker Compose - Doctrine Firebird Driver Test Environment
 # =============================================================================
 # Usage:
+#   ./tests/run-matrix.sh                    # Default: PHP 8.4 x FB 3.0
+#   ./tests/run-matrix.sh --all              # Full matrix (12 combos)
+#   ./tests/run-matrix.sh --help             # Show all options
+#
+# Or manual:
 #   cd tests
 #   CURRENT_UID=$(id -u) CURRENT_GID=$(id -g) docker compose up -d firebird3
 #   docker compose run --rm app composer install
-#   docker compose run --rm app vendor/bin/phpunit -c phpunit.xml --testsuite Unit
+#   docker compose run --rm app vendor/bin/phpunit -c phpunit.xml
 #
 # Optional Firebird 4.0/5.0 (not started by default):
 #   docker compose --profile fb4 up -d firebird4
-#   docker compose run --rm -e DB_HOST=firebird4 app vendor/bin/phpunit -c phpunit-firebird4.xml
+#   docker compose run --rm -e DB_HOST=firebird4 app vendor/bin/phpunit
 #
 # Clean slate:
 #   docker compose down -v
@@ -114,9 +119,6 @@ services:
     working_dir: /app
     volumes:
       - ./../:/app
-    depends_on:
-      firebird3:
-        condition: service_healthy
     tmpfs:
       - /tmp:mode=1777
     # Keep container running for interactive use

@@ -26,6 +26,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
         $statements = $this->_platform->getCreateTableSQL($table);
@@ -44,6 +45,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
@@ -75,6 +77,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
@@ -128,6 +131,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('foo', 'integer');
         $table->addIndex(['foo']);
@@ -186,6 +190,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $table->addColumn('foo', 'integer');
         $table->addUniqueIndex(['foo']);
@@ -218,6 +223,7 @@ class CreateTest extends AbstractIntegrationTestCase
     {
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $table      = new Table($tableName);
         $comment    = 'Lorem ipsum';
         $table->addColumn('foo', 'integer', ['comment' => $comment]);

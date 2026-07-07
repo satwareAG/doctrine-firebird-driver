@@ -62,12 +62,13 @@ final class Statement implements StatementInterface
     private readonly BlobHandler $blobHandler;
 
     /**
-     * @param resource|Transaction|false|null $statement
-     * @param array<int|string>               $parameterMap
-     * @param string                          $sql          The SQL statement for DML detection
+     * @param \Firebird\Statement|Transaction|false|null $statement
+     * @param array<int|string>                          $parameterMap
+     * @param string                                     $sql          The SQL statement for DML detection
      *
      * @throws Exception
      */
+    // phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint -- accepts resource|object for dual-accept bridge
     public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], private string $sql = '')
     {
         $this->blobHandler = new BlobHandler();
@@ -159,6 +160,10 @@ final class Statement implements StatementInterface
     #[Override]
     public function execute($params = null): ResultInterface
     {
+        // Defense-in-depth: with php-firebird v12.0.0+ (#305 fixed),
+        // fbird_prepare_ex failures throw under THROW mode, making this path
+        // unreachable in THROW mode. Kept for SILENT mode users and as a
+        // safety net against unexpected null returns.
         if (! $this->isStatementValid()) {
             throw new DriverException('Statement is not valid or has been closed.');
         }

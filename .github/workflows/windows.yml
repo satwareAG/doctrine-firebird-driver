@@ -118,7 +118,7 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          $patterns = @("php_firebird-v11\.1\.0-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v11\.1\.0-${phpVer}-nts-.*-$arch\.zip", "php_firebird-v11\..*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v11\..*-${phpVer}-nts-.*-$arch\.zip", "php_firebird-.*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-.*-${phpVer}-nts-.*-$arch\.zip")
+          $patterns = @("php_firebird-v12\.0\.0-rc\.11-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v12\.0\.0-rc\..*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v12\..*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v12\..*-${phpVer}-nts-.*-$arch\.zip", "php_firebird-.*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-.*-${phpVer}-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {

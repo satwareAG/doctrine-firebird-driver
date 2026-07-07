@@ -139,6 +139,7 @@ class BlobTest extends FunctionalTestCase
             "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)",
         );
 
+        // @phpstan-ignore-next-line — bindParam is deprecated but this test verifies late-binding (by-reference) behavior
         $stmt->bindParam(1, $stream, ParameterType::LARGE_OBJECT);
 
         // Bind param does late binding (bind by reference), so create the stream only now:

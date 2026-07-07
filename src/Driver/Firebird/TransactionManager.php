@@ -330,14 +330,13 @@ final class TransactionManager
         // Validate the native handle before passing to fbird_trans_start().
         // v10+: connection may be a \Firebird\Connection object (M3 migration),
         // not a resource. Both are accepted by fbird_trans_start() via dual-accept.
-        if ($conn === null || $conn === false) {
+        if ($conn === null) {
             throw new DriverException(
                 'Native connection handle is invalid (closed or destroyed).',
             );
         }
 
         try {
-            /** @phpstan-ignore argument.type */
             $transaction = fbird_trans_start($conn, $options);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);

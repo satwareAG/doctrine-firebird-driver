@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\ORM\EntityManager\Repository;
 
 use Doctrine\Common\Collections\Collection;
-use Satag\DoctrineFirebirdDriver\Test\Integration\ReadOnlyIntegrationTestCase;
+use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
 use Satag\DoctrineFirebirdDriver\Test\Resource\Entity;
 
-class FindTest extends ReadOnlyIntegrationTestCase
+class FindTest extends AbstractIntegrationTestCase
 {
     public function testFindAlbum(): void
     {
