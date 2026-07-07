@@ -62,7 +62,6 @@ run_phpstan() {
     local stan_start
     stan_start=$(date +%s)
 
-    # SIGSEGV issue was fixed in php-firebird v11.1.0.
     vendor/bin/phpstan analyse --memory-limit=2G --error-format=table 2>&1 | tee tests/var/reports/phpstan-report.txt
     local phpstan_exit=${PIPESTATUS[0]}
     if [[ $phpstan_exit -eq 0 ]]; then
@@ -110,13 +109,6 @@ run_tests_with_coverage() {
 
         php -d pcov.enabled=1 vendor/bin/phpunit -c tests/phpunit.xml --coverage-text 2>&1 | tee tests/var/reports/phpunit-fb3-report.txt
         local phpunit_exit=${PIPESTATUS[0]}
-        # SIGSEGV (exit 139/134) during shutdown is a known php-firebird issue.
-        if [[ $phpunit_exit -eq 139 || $phpunit_exit -eq 134 ]]; then
-            if grep -q "^OK" tests/var/reports/phpunit-fb3-report.txt 2>/dev/null; then
-                print_info "PHP crashed with exit $phpunit_exit during shutdown, but tests passed."
-                phpunit_exit=0
-            fi
-        fi
         if [[ $phpunit_exit -eq 0 ]]; then
         print_success "Firebird 3 Tests: PASSED"
     else
@@ -140,10 +132,6 @@ run_multiversion_tests() {
         print_info "Testing Firebird 4.0..."
         DB_HOST=firebird4 vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tail -10
         local fb4_exit=${PIPESTATUS[0]}
-        # SIGSEGV during shutdown is a known php-firebird issue.
-        if [[ $fb4_exit -eq 139 || $fb4_exit -eq 134 ]]; then
-            fb4_exit=0  # Tests passed before crash (output checked via tail)
-        fi
         if [[ $fb4_exit -eq 0 ]]; then
         print_success "Firebird 4.0: PASSED"
     else
@@ -155,10 +143,6 @@ run_multiversion_tests() {
         print_info "Testing Firebird 5.0..."
         DB_HOST=firebird5 vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tail -10
         local fb5_exit=${PIPESTATUS[0]}
-        # SIGSEGV during shutdown is a known php-firebird issue.
-        if [[ $fb5_exit -eq 139 || $fb5_exit -eq 134 ]]; then
-            fb5_exit=0  # Tests passed before crash (output checked via tail)
-        fi
         if [[ $fb5_exit -eq 0 ]]; then
         print_success "Firebird 5.0: PASSED"
     else

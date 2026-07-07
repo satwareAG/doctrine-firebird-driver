@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v12.0.0-rc.11), pcov (fast coverage)
+# Extensions: firebird (php-firebird v12.0.0-rc.22), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -56,9 +56,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 #          return type, BatchHandle OOP methods.
 #          post-rc.11 fix #310: TransactionManager::__destruct try/catch for FB4/FB5
 #          implicit transaction invalidation (DDL commit, lock conflict).
+#          rc.21 fix #311: SIGSEGV during module shutdown with persistent connections.
+#          Replaced !FBG(in_mshutdown) with !(EG(flags) & EG_FLAGS_IN_RESOURCE_SHUTDOWN)
+#          in _php_fbird_close_plink and _php_fbird_commit_link (3 sites).
+#          rc.22: CI-only fix for release asset download masking (no functional changes).
 RUN docker-php-source extract \
     && git clone https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
-    && git -C /usr/src/php/ext/firebird checkout d4d38519752f8ac48833607ce6f9860d8962ec59 \
+    && git -C /usr/src/php/ext/firebird checkout 019bee7648a7c79c49054a5b07847fc59b2386a0 \
     && git -C /usr/src/php/ext/firebird fetch --tags --depth 1 \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \

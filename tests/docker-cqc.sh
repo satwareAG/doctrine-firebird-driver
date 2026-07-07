@@ -231,7 +231,7 @@ run_phpstan() {
     local start_time
     start_time=$(date +%s)
     
-    # Use PHPStan parallel mode (php-firebird v12 has no SIGSEGV issues)
+    # Use PHPStan parallel mode
     local phpstan_cmd="vendor/bin/phpstan analyse --memory-limit=2G --error-format=table"
     local report_file="tests/var/reports/phpstan-report.txt"
     
@@ -308,25 +308,14 @@ run_tests_with_coverage() {
     local start_time
     start_time=$(date +%s)
     
-    # Relative to /app inside container, and relative to tests/ on host
+    # Relative to /app inside container
     local report_rel="var/reports/phpunit-fb3-report.txt"
     local report_container="tests/$report_rel"
-    local report_host="$SCRIPT_DIR/$report_rel"
     
     local cmd="php -d pcov.enabled=1 -d pcov.directory=/app/src vendor/bin/phpunit -c tests/phpunit.xml --coverage-text --coverage-html=tests/var/coverage/html 2>&1 | tee $report_container"
 
     local exit_code=0
     run_in_docker "$cmd" 1200 "firebird3" || exit_code=$?
-
-    # SIGSEGV (exit 139/134) during shutdown is a known php-firebird issue.
-    # If PHPUnit reported "OK" before the crash, treat as success.
-    if [[ $exit_code -eq 139 || $exit_code -eq 134 ]]; then
-        if grep -q "^OK" "$report_host" 2>/dev/null; then
-            print_info "PHP crashed with exit $exit_code during shutdown, but tests passed."
-            print_success "Firebird 3 Tests: PASSED"
-            exit_code=0
-        fi
-    fi
 
     if [[ $exit_code -eq 0 ]]; then
         print_success "Firebird 3 Tests: PASSED"
@@ -360,7 +349,6 @@ run_multiversion_tests() {
         local host="$2"
         local report_rel="var/reports/phpunit-fb${version//./}-report.txt"
         local report_container="tests/$report_rel"
-        local report_host="$SCRIPT_DIR/$report_rel"
         
         print_info "Testing Firebird $version..."
         docker compose restart "$host"
@@ -369,15 +357,6 @@ run_multiversion_tests() {
         local cmd="vendor/bin/phpunit -c tests/phpunit.xml --no-coverage 2>&1 | tee $report_container | tail -10"
         local exit_code=0
         run_in_docker "$cmd" 1200 "$host" || exit_code=$?
-        
-        # SIGSEGV (exit 139/134) during shutdown is a known php-firebird issue.
-        if [[ $exit_code -eq 139 || $exit_code -eq 134 ]]; then
-            if grep -q "^OK" "$report_host" 2>/dev/null; then
-                print_info "PHP crashed with exit $exit_code during shutdown, but tests passed."
-                print_success "Firebird $version: PASSED"
-                return 0
-            fi
-        fi
         
         if [[ $exit_code -eq 0 ]]; then
             print_success "Firebird $version: PASSED"

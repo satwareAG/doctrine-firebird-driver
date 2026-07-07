@@ -180,14 +180,14 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v12.0.0-rc.11-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v12.0.0-rc.22-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v12.0.0-rc.11 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v12.0.0-rc.11 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v12.0.0-rc.22 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v12.0.0-rc.22 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
@@ -406,15 +406,15 @@ jobs:
         with:
           path: /tmp/php-firebird-bin
           # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
-          # v6: bust cache for php-firebird v12.0.0-rc.11 (OOP completion, pdo_fbird split, LTO)
-          key: php-firebird-v12.0.0-rc.11-php8.4-v40-quality-v6
+          # v8: bust cache for php-firebird v12.0.0-rc.22 (rc.22 CI fix + SIGSEGV workaround removal)
+          key: php-firebird-v12.0.0-rc.22-php8.4-v40-quality-v8
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v12.0.0-rc.11 for PHP 8.4 (quality-checks, FB_API_VER=40)"
-          git clone --depth 1 --branch v12.0.0-rc.11 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v12.0.0-rc.22 for PHP 8.4 (quality-checks, FB_API_VER=40)"
+          git clone --depth 1 --branch v12.0.0-rc.22 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           # Enable FB_API_VER=40 so all functions (including fbird_batch_*) are compiled.

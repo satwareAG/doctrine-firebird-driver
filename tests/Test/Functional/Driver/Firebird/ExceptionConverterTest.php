@@ -13,7 +13,6 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Group;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ExceptionConverter;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
@@ -88,30 +87,6 @@ class ExceptionConverterTest extends FunctionalTestCase
         );
     }
 
-    /**
-     * Note: True deadlock simulation requires concurrent execution (circular wait):
-     * - Transaction A locks row 1, wants row 2
-     * - Transaction B locks row 2, wants row 1
-     *
-     * In single-threaded PHP, we can only create a lock wait scenario (not a circular deadlock).
-     * Firebird's lock timeout is typically longer than PHPUnit's test timeout.
-     *
-     * This test is marked incomplete as true deadlock cannot be reliably simulated
-     * in a single-threaded PHP process without pcntl_fork() or similar mechanisms.
-     *
-     * The ExceptionConverter IS tested indirectly:
-     * - Code -913 maps to DeadlockException
-     * - Code -901 with "transaction deadlock" maps to DeadlockException
-     */
-    #[Group('skip-on-ci')]
-    public function testConvertDeadlockException(): void
-    {
-        $this->markTestIncomplete(
-            'True deadlock (code -913) cannot be reliably simulated in single-threaded PHP. ' .
-            'This test creates a lock wait scenario which times out before Firebird detects deadlock. ' .
-            'The ExceptionConverter handling for -913 and "transaction deadlock" is verified via unit tests.',
-        );
-    }
 
     protected function setUp(): void
     {

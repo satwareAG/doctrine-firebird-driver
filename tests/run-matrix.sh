@@ -422,7 +422,7 @@ ${BOLD}Matrix:${NC}
 
 ${BOLD}Docker Images:${NC}
   Built as dfd-app-php{82,83,84,85} via tests/app/Dockerfile
-  php-firebird v12.0.0-rc.11 (commit d4d3851, includes #310 fix)
+  php-firebird v12.0.0-rc.22 (commit 019bee7, includes #311 SIGSEGV fix + CI asset download fix)
 
 EOF
     exit 0
