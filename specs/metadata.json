@@ -22,7 +22,8 @@
       "url": "https://github.com/satwareAG/php-firebird",
       "forge": "github",
       "local_path": "~/external/php-firebird",
-      "role": "native-driver-provider"
+      "role": "native-driver-provider",
+      "version": "12.0.0"
     }
   },
   "downstream": {

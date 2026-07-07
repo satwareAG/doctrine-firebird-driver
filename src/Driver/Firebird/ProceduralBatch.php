@@ -20,7 +20,7 @@ use function fbird_prepare_ex;
 /**
  * Wrapper around the procedural fbird_batch_* API.
  *
- * php-firebird v12.0.0-rc.11+ provides OOP methods on Firebird\BatchHandle
+ * php-firebird v12.0.0+ provides OOP methods on Firebird\BatchHandle
  * (getBlobAlignment, setDefaultBpb, cancel, execute, add, addBlob). This
  * wrapper uses the procedural API for proven reliability and because it
  * predates the OOP methods. Consider migrating to BatchHandle OOP methods
