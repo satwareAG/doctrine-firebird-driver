@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-07-09 - Charset transparency for query()/exec()/prepare() SQL body
+
+### Added
+- **`CharsetConnectionMiddleware::query()` override** (#116): re-encodes the SQL
+  body from the PHP encoding to the database encoding AND wraps the returned
+  `Result` in `CharsetResultMiddleware` so fetched rows decode back to the PHP
+  encoding. Closes the parameterless `SELECT` bypass where DBAL
+  `Connection::executeQuery()` takes a shortcut through
+  `Driver\Connection::query()` (`vendor/doctrine/dbal/src/Connection.php:1106`)
+  when no params are supplied. Previously, the entire charset middleware chain
+  was bypassed for these queries, returning raw Windows-1252 bytes.
+- **`CharsetConnectionMiddleware::exec()` override** (#116): re-encodes the SQL
+  body for parameterless DML. Closes the symmetric bypass for
+  `Connection::executeStatement()` which shortcuts through
+  `Driver\Connection::exec()` (`vendor/doctrine/dbal/src/Connection.php:1216`).
+- **`CharsetConversionException`** (`src/Driver/Firebird/Middleware/Exception/`):
+  typed exception for the defense-in-depth `mb_convert_encoding === false`
+  guard. Unreachable under default PHP config (invalid bytes are substituted
+  rather than returning false) but satisfies PHPStan and fails loudly should
+  the runtime ever return false via a custom `mb_substitute_character`.
+- **28 new unit tests** covering query/exec/prepare SQL body re-encoding for
+  7 Amicron special-character strings (Faßbrause für 30€?, Ärger mit Öl,
+  Straße 123, Müller & Söhne, €uro, äöüÄÖÜß, Produkt: Grüner Tee 500g).
+- **Spec update** (`specs/001-charset-transparency-middleware/spec.md`): added
+  User Story 6 and functional requirements FR-008 (query SQL re-encode +
+  Result wrap), FR-009 (exec SQL re-encode), FR-010 (prepare SQL re-encode).
+
+### Changed
+- **`CharsetConnectionMiddleware::prepare()` now re-encodes the SQL body**
+  before delegating to the inner connection, in addition to its existing
+  `CharsetStatementMiddleware` wrapping. **Behavior change**: callers that
+  previously worked around the latent gap by manually transcoding inline SQL
+  literals to Windows-1252 before calling `prepare()` will now double-encode
+  and silently corrupt data. Downstream consumers
+  (`satag-amicron-entity-bundle`, `amicron-platform`) should audit and drop
+  any such workarounds - see tracking issues in those repos.
+- **`CharsetMiddleware` class docblock** expanded: full coverage map of all
+  SQL-carrying entry points + explicit list of non-charset-aware escape
+  hatches (`executeAuto`, `queryInTransaction`, `createBatch`, `executeBatch`,
+  `getNativeConnection`).
+
+### Fixed
+- **#116**: `CharsetConnectionMiddleware` missed the `query()` path.
+  Parameterless queries (`SELECT * FROM table`, no bound parameters) bypassed
+  the entire charset transcoding chain, returning raw Windows-1252 bytes
+  instead of UTF-8. Caused `json_encode()` "Malformed UTF-8 characters"
+  failures and corrupted all non-ASCII data in downstream consumers.
+- **QueryBuilder literal-fragment gap** (deeper issue surfaced during #116
+  investigation): `$qb->andWhere("name LIKE '%Müller%'")` was concatenated
+  byte-for-byte into the final SQL by `QueryBuilder::getSQL()` and never
+  reached `bindValue()`, so the middleware never saw the UTF-8 literal. The
+  fix re-encodes the SQL body at all three inbound entry points.
+
 ## [3.15.0] - 2026-07-08 - forceNewConnection option and role parameter fix
 
 ### Added
