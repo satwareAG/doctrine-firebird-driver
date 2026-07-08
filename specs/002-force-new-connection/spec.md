@@ -29,10 +29,27 @@ yet expose it.
 
 ### Latent bug discovered during research
 
-`Driver::connect()` never passes `$params['role']` to `fbird_connect()`, although
+`Driver::connect()` never passed `$params['role']` to `fbird_connect()`, although
 `docs/DSN.md` documents `role` as a supported parameter and `DsnParserTest` confirms it
 flows into `$params['role']`. This is fixed in the same change since the `FORCE_NEW`
 flag is the 8th argument, forcing us to pass the 7th (`role`) explicitly.
+
+### Firebird role validation (from engine source)
+
+During attachment (`scl.epp:1120-1150`), Firebird validates the requested role via
+`SCL_role_granted()` (`scl.epp:983-1030`), which checks `RDB$ROLES` CROSS
+`RDB$USER_PRIVILEGES` for an "M" (member) privilege granted to the user or PUBLIC.
+If the role is not found or not granted, it is **silently dropped**
+(`sql_role = NULL`, scl.epp:1143-1144) and `CURRENT_ROLE` falls back to
+`NULL_ROLE = "NONE"` (`constants.h:93`).
+
+Key implications:
+- `RDB$ADMIN` is a system constant (`constants.h:94`), NOT a row in `RDB$ROLES`.
+  Connecting with `role='RDB$ADMIN'` silently drops it; `CURRENT_ROLE` returns `NONE`.
+- `CREATE ROLE` (`DdlNodes.epp:15294`) only inserts into `RDB$ROLES`; it does NOT
+  auto-grant membership. An explicit `GRANT ... TO PUBLIC` (or to the user) is
+  required for `SCL_role_granted()` to return true.
+- The role name must match exactly (case-sensitive `CHAR` comparison in BLR).
 
 ## User Scenarios & Testing
 
