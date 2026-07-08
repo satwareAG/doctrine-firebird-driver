@@ -48,6 +48,12 @@ firebird://SYSDBA:masterkey@localhost:3050/var/db/myapp.fdb
 firebird://user:password@hostname:port/path/to/database.fdb?charset=UTF8&role=ADMIN
 ```
 
+Example with `forceNewConnection` (test/CI environments):
+
+```text
+firebird://SYSDBA:masterkey@localhost:3050/var/db/myapp.fdb?charset=UTF8&forceNewConnection=1
+```
+
 Supported query parameters:
 
 | Parameter | Description | Default |
@@ -55,6 +61,7 @@ Supported query parameters:
 | `charset` | Character set (e.g. `UTF8`, `WIN1252`) | `UTF8` |
 | `role` | SQL role name | none |
 | `persistent` | Use persistent connections (`1`/`0`) | `0` |
+| `forceNewConnection` | Force a new connection, bypassing connection reuse (`1`/`0`) | `0` |
 
 #### Service name (Firebird service manager path)
 
@@ -114,6 +121,7 @@ $connection = DriverManager::getConnection([
 | `charset` | `string` | Character set (default: `UTF8`) |
 | `role` | `string` | SQL role name (optional) |
 | `persistent` | `bool` | Use `fbird_pconnect()` instead of `fbird_connect()` |
+| `forceNewConnection` | `bool` | Force a new connection via `FBIRD_CONNECT_FORCE_NEW` (default: `false`) |
 | `driverOptions` | `array` | Driver-specific options (see below) |
 
 ### Driver Options (`driverOptions`)

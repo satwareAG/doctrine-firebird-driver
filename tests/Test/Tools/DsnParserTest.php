@@ -122,4 +122,32 @@ final class DsnParserTest extends TestCase
         self::assertSame('localhost', $actual3['host']);
         self::assertSame(3050, $actual3['port']);
     }
+
+    /**
+     * DSN with forceNewConnection query parameter.
+     * The DsnParser passes query params through via parse_str + array_merge,
+     * so forceNewConnection lands directly in $params.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/114
+     */
+    public function testDatabaseUrlWithForceNewConnection(): void
+    {
+        $parser = new DsnParser(['firebird' => Driver::class]);
+        $actual = $parser->parse('firebird://SYSDBA:masterkey@localhost:3050/var/db/myapp.fdb?forceNewConnection=1');
+
+        $expected = [
+            'host'                => 'localhost',
+            'port'                => 3050,
+            'user'                => 'SYSDBA',
+            'password'            => 'masterkey',
+            'driverClass'         => Driver::class,
+            'dbname'              => 'var/db/myapp.fdb',
+            'forceNewConnection'  => '1',
+        ];
+
+        ksort($expected);
+        ksort($actual);
+
+        self::assertSame($expected, $actual);
+    }
 }
