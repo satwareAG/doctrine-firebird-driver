@@ -22,6 +22,7 @@ use function fbird_service_attach;
 use function fbird_service_detach;
 use function stristr;
 
+use const FBIRD_CONNECT_FORCE_NEW;
 use const FBIRD_SVC_SERVER_VERSION;
 
 /**
@@ -56,7 +57,9 @@ final class Driver extends FirebirdDriver
         $charset    = $params['charset'] ?? 'UTF8';
         $buffers    = $params['buffers'] ?? 0;
         $dialect    = $params['dialect'] ?? 3;
+        $role       = $params['role'] ?? null;
         $persistent = ! empty($params['persistent']);
+        $forceNew   = ! empty($params['forceNewConnection']);
 
         $connectString = $this->buildConnectString($params);
 
@@ -83,11 +86,13 @@ final class Driver extends FirebirdDriver
 
         try {
             if ($persistent) {
-                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
+            } elseif ($forceNew) {
+                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
             } else {
                 // Handle "I/O error ... no such file or directory" warning below as a valid case
                 // (database doesn't exist yet, will be created by schema tool).
-                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
             }
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);

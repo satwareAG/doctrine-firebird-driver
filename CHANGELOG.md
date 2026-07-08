@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`forceNewConnection` option** (#114): New connection parameter that bypasses
+  php-firebird's default connection reuse by passing `FBIRD_CONNECT_FORCE_NEW` to
+  `fbird_connect()`. Eliminates a race condition in test suites that boot/shutdown
+  Doctrine kernels between tests (PHPUnit, Pest) where GC-collected destructors
+  close reused links out from under new connections. Default: `false` (production
+  behavior unchanged). Configure via array params (`forceNewConnection => true`)
+  or DSN query parameter (`?forceNewConnection=1`). Persistent connections are
+  unaffected (separate pool, no reuse race).
+
+### Fixed
+- **`role` parameter silently ignored**: `Driver::connect()` now passes
+  `$params['role']` to `fbird_connect()` and `fbird_pconnect()` as the 7th
+  argument (`$role`). Previously the `role` parameter was documented and parsed
+  by `DsnParser` but never forwarded to the native function. Verified via
+  `SELECT CURRENT_ROLE FROM RDB$DATABASE` returning the expected role name.
+
 ## [3.14.0] - 2026-07-07 - php-firebird v12.0.0 stable integration
 
 ### Changed
