@@ -116,8 +116,11 @@ verification against a real DB).
 - **FR-004**: `forceNewConnection` MUST be ignored for persistent connections
   (`fbird_pconnect()` has no `$flags` parameter; persistent connections use a separate
   pool and are not affected by the reuse race).
-- **FR-005**: `Driver::connect()` MUST pass `$params['role'] ?? null` as the 7th argument
-  (`$role`) to both `fbird_connect()` and `fbird_pconnect()`.
+- **FR-005**: `Driver::connect()` MUST pass `$params['role'] ?? ''` as the 7th argument
+  (`$role`) to both `fbird_connect()` and `fbird_pconnect()`. An empty string is
+  used instead of `null` because the C implementation (`zend_parse_parameters`
+  with format `s`) requires a string, not null - despite the stubs declaring
+  `?string`.
 - **FR-006**: The DSN query parameter `forceNewConnection=1` MUST be supported without
   changes to `DsnParser` (Doctrine's `parse_str` + `array_merge` already delivers it
   into `$params`).

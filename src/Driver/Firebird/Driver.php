@@ -57,7 +57,7 @@ final class Driver extends FirebirdDriver
         $charset    = $params['charset'] ?? 'UTF8';
         $buffers    = $params['buffers'] ?? 0;
         $dialect    = $params['dialect'] ?? 3;
-        $role       = $params['role'] ?? null;
+        $role       = $params['role'] ?? '';
         $persistent = ! empty($params['persistent']);
         $forceNew   = ! empty($params['forceNewConnection']);
 
