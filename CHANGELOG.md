@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-07-08 - forceNewConnection option and role parameter fix
+
 ### Added
 - **`forceNewConnection` option** (#114): New connection parameter that bypasses
   php-firebird's default connection reuse by passing `FBIRD_CONNECT_FORCE_NEW` to
