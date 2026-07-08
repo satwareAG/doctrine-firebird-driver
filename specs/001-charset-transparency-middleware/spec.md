@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-charset-transparency-middleware`
 **Created**: 2026-03-10
-**Status**: Implemented
+**Status**: Implemented (extended GH-116: `query()`/`exec()`/`prepare()` SQL body re-encoding)
 
 ## Context
 
@@ -93,6 +93,43 @@ returned driver is a `CharsetDriverMiddleware` with the configured encodings.
    **Then** `CharsetMiddleware` is registered as a `doctrine.middleware` tagged service
    with `priority=100`.
 
+### User Story 6 - Parameterless query / DML transparency (Priority: P1, GH-116)
+
+**Why this priority**: DBAL `Connection::executeQuery()` and `executeStatement()` take
+a fast path through `Driver\Connection::query()` / `::exec()` when no bound parameters
+are supplied (see `vendor/doctrine/dbal/src/Connection.php` L1105-1106, L1215-1216).
+Without overrides on these methods, every parameterless `SELECT`/`INSERT`/`UPDATE`/`DELETE`
+silently bypasses the entire charset middleware chain: SQL literals are sent raw, and
+result rows are not decoded back to PHP encoding. This also covers QueryBuilder literal
+fragments like `->andWhere("name LIKE '%Münster%'")`, which `getSQL()` concatenates
+byte-for-byte into the final SQL string - never a bound parameter, so
+`CharsetStatementMiddleware::bindValue()` never sees them.
+**Independent Test**: Construct a `CharsetConnectionMiddleware` wrapping a mock
+`Driver\Connection`; call `query()` / `exec()` with a UTF-8 SQL literal; assert the
+inner connection receives the Windows-1252 byte sequence and that `query()` returns
+a `CharsetResultMiddleware`.
+
+**Acceptance Scenarios**:
+1. **Given** a SQL string containing UTF-8 literals (e.g. `SELECT 'Müller' AS ort`),
+   **When** `CharsetConnectionMiddleware::query()` is invoked,
+   **Then** the inner driver connection receives the SQL with the literal re-encoded
+   to the database encoding (Windows-1252 bytes), and the returned `Result` is wrapped
+   in `CharsetResultMiddleware` so fetched rows decode back to UTF-8.
+2. **Given** a DML string containing UTF-8 literals (e.g. `UPDATE t SET name='Faß'`),
+   **When** `CharsetConnectionMiddleware::exec()` is invoked,
+   **Then** the inner driver connection receives the SQL with the literal re-encoded
+   to the database encoding.
+3. **Given** a SQL string containing UTF-8 literals prepared via `prepare()`,
+   **When** the statement is later executed,
+   **Then** the inner driver connection received the SQL body with literals re-encoded
+   to the database encoding, in addition to any bound-parameter encoding performed by
+   `CharsetStatementMiddleware`.
+4. **Given** a QueryBuilder fragment `->andWhere("name LIKE '%suchemitÄß%'")` with no
+   other bound parameters,
+   **When** `executeQuery($qb->getSQL())` runs (parameterless shortcut),
+   **Then** the literal survives the round trip: SQL is re-encoded inbound and result
+   rows are decoded outbound by `CharsetConnectionMiddleware::query()`.
+
 ## Requirements
 
 ### Functional Requirements
@@ -111,13 +148,27 @@ returned driver is a `CharsetDriverMiddleware` with the configured encodings.
   so neither the `Connection` nor `Type` classes require encoding logic.
 - **FR-007**: System SHOULD support `Connection::quote()` by encoding the input value
   to the database charset before calling the inner connection's `quote()`.
+- **FR-008**: System MUST re-encode the SQL body of every parameterless query passed
+  to `CharsetConnectionMiddleware::query()` from the PHP encoding to the database
+  encoding, and MUST wrap the returned `Result` in `CharsetResultMiddleware` so fetched
+  values are decoded back to the PHP encoding. (GH-116)
+- **FR-009**: System MUST re-encode the SQL body of every parameterless statement passed
+  to `CharsetConnectionMiddleware::exec()` from the PHP encoding to the database encoding.
+  (GH-116)
+- **FR-010**: System MUST re-encode the SQL body of every statement passed to
+  `CharsetConnectionMiddleware::prepare()` from the PHP encoding to the database
+  encoding before delegating to the inner connection, so that QueryBuilder literal
+  fragments and other inline string literals are transparently transcoded in the
+  prepared-statement path as well. (GH-116)
 
 ### Key Entities
 
 - **CharsetMiddleware**: DBAL `Middleware` implementation; entry point for wiring.
   Wraps the driver with a `CharsetDriverMiddleware`.
 - **CharsetConnectionMiddleware**: Wraps `Driver\Connection`; encodes `quote()` inputs;
-  produces `CharsetStatementMiddleware` from `prepare()`.
+  re-encodes the SQL body of `query()`, `exec()`, and `prepare()` from PHP encoding to
+  database encoding; wraps `query()` results in `CharsetResultMiddleware`; produces
+  `CharsetStatementMiddleware` from `prepare()`.
 - **CharsetStatementMiddleware**: Wraps `Driver\Statement`; encodes `bindValue()` and
   inline `execute()` parameters; returns `CharsetResultMiddleware` from `execute()`.
 - **CharsetResultMiddleware**: Wraps `Driver\Result`; decodes string and stream column
@@ -155,3 +206,10 @@ returned driver is a `CharsetDriverMiddleware` with the configured encodings.
   functional test suite, gated by `DB_*` environment variables).
 - The `Utf8String` and `Utf8Text` Doctrine type classes in the amicron entity bundle
   (they delegate entirely to this middleware and are identity pass-throughs).
+- DBAL 4.x compatibility (`composer.json` currently restricts to `^3.10`; the existing
+  `quote()` signature would need reconciliation with DBAL 4's tightened contract).
+  Tracked separately from GH-116.
+- Charset-aware handling of native escape-hatch methods on `Driver\Firebird\Connection`
+  (`executeAuto()`, `queryInTransaction()`, `createBatch()`, `executeBatch()`,
+  `getNativeConnection()`). These bypass the DBAL middleware stack entirely and remain
+  non-charset-aware; callers must encode values manually.

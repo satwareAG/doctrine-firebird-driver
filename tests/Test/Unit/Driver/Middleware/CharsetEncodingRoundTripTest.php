@@ -425,4 +425,116 @@ class CharsetEncodingRoundTripTest extends TestCase
 
         self::assertSame('NULL', $result);
     }
+
+    // -----------------------------------------------------------------------
+    // Connection::query() round-trip (GH-116: parameterless SELECT path)
+    // -----------------------------------------------------------------------
+
+    /**
+     * FR-008: A parameterless query with a UTF-8 literal MUST round-trip:
+     * SQL is re-encoded PHP -> DB encoding inbound, and the wrapped Result
+     * decodes the WIN1252 bytes back to the original UTF-8 string outbound.
+     *
+     * @dataProvider amicronSpecialStringProvider
+     */
+    #[DataProvider('amicronSpecialStringProvider')]
+    public function testQueryRoundTripsUtf8LiteralInParameterlessSelect(string $utf8String): void
+    {
+        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
+        $win1252Sql   = "SELECT '" . $win1252Bytes . "' AS ort";
+
+        // Inner driver connection receives the SQL with the literal already
+        // re-encoded to Windows-1252.
+        $innerResult = $this->createMock(DriverResult::class);
+        $innerResult->method('fetchOne')->willReturn($win1252Bytes);
+
+        $innerConnection = $this->createMock(DriverConnection::class);
+        $innerConnection->expects(self::once())
+            ->method('query')
+            ->with($win1252Sql)
+            ->willReturn($innerResult);
+
+        $conn   = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
+        $result = $conn->query("SELECT '" . $utf8String . "' AS ort");
+
+        // The Result is wrapped in CharsetResultMiddleware, which decodes the
+        // WIN1252 bytes back to the original UTF-8 string.
+        self::assertInstanceOf(CharsetResultMiddleware::class, $result);
+        self::assertSame($utf8String, $result->fetchOne());
+    }
+
+    /**
+     * FR-008: Result wrapping MUST happen even for ASCII-only SQL, so the
+     * returned rows decode back to PHP encoding regardless of SQL content.
+     * This is the regression test for the exact symptom reported in GH-116.
+     */
+    public function testQueryWrapsResultForParameterlessAsciiSelect(): void
+    {
+        $win1252Bytes = mb_convert_encoding('Müster', 'Windows-1252', 'UTF-8');
+
+        $innerResult = $this->createMock(DriverResult::class);
+        $innerResult->method('fetchFirstColumn')->willReturn([$win1252Bytes, $win1252Bytes]);
+
+        $innerConnection = $this->createMock(DriverConnection::class);
+        $innerConnection->expects(self::once())
+            ->method('query')
+            ->with('SELECT ort FROM adressen')
+            ->willReturn($innerResult);
+
+        $conn   = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
+        $result = $conn->query('SELECT ort FROM adressen');
+
+        self::assertInstanceOf(CharsetResultMiddleware::class, $result);
+        self::assertSame(['Müster', 'Müster'], $result->fetchFirstColumn());
+    }
+
+    // -----------------------------------------------------------------------
+    // Connection::exec() round-trip (GH-116: parameterless DML path)
+    // -----------------------------------------------------------------------
+
+    /**
+     * FR-009: A parameterless DML statement with UTF-8 literals MUST have the
+     * SQL body re-encoded to the database encoding before reaching the driver.
+     *
+     * @dataProvider amicronSpecialStringProvider
+     */
+    #[DataProvider('amicronSpecialStringProvider')]
+    public function testExecEncodesUtf8LiteralInParameterlessDml(string $utf8String): void
+    {
+        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
+        $win1252Sql   = "UPDATE adressen SET ort = '" . $win1252Bytes . "'";
+
+        $innerConnection = $this->createMock(DriverConnection::class);
+        $innerConnection->expects(self::once())
+            ->method('exec')
+            ->with($win1252Sql)
+            ->willReturn(1);
+
+        $conn = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
+        $conn->exec("UPDATE adressen SET ort = '" . $utf8String . "'");
+    }
+
+    /**
+     * FR-010: prepare() MUST re-encode the SQL body so that QueryBuilder literal
+     * fragments (and other inline literals in prepared statements) are transcoded
+     * before reaching Firebird, in addition to any bound-parameter encoding.
+     *
+     * @dataProvider amicronSpecialStringProvider
+     */
+    #[DataProvider('amicronSpecialStringProvider')]
+    public function testPrepareEncodesUtf8LiteralInSqlBody(string $utf8String): void
+    {
+        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
+        $win1252Sql   = "SELECT * FROM adressen WHERE name LIKE '%" . $win1252Bytes . "%'";
+
+        $innerStatement = $this->createMock(DriverStatement::class);
+        $innerConnection = $this->createMock(DriverConnection::class);
+        $innerConnection->expects(self::once())
+            ->method('prepare')
+            ->with($win1252Sql)
+            ->willReturn($innerStatement);
+
+        $conn = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
+        $conn->prepare("SELECT * FROM adressen WHERE name LIKE '%" . $utf8String . "%'");
+    }
 }

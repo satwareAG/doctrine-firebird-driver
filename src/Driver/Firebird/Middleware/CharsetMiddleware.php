@@ -18,6 +18,29 @@ use SensitiveParameter;
  * string values between the PHP application encoding (default: UTF-8) and the
  * Firebird wire encoding (default: Windows-1252) at the DBAL driver level.
  *
+ * Coverage (every SQL-carrying driver entry point):
+ *   - CharsetConnectionMiddleware::prepare()  re-encodes the SQL body (covers
+ *     QueryBuilder literal fragments like ->andWhere("name LIKE '%Müller%'")
+ *     and other inline string literals that bypass bindValue()) AND wraps the
+ *     returned Statement in CharsetStatementMiddleware for bound-param encoding.
+ *   - CharsetConnectionMiddleware::query()    re-encodes the SQL body AND wraps
+ *     the Result in CharsetResultMiddleware (closes the GH-116 parameterless
+ *     SELECT path: DBAL Connection::executeQuery() shortcut).
+ *   - CharsetConnectionMiddleware::exec()     re-encodes the SQL body for
+ *     parameterless DML (DBAL Connection::executeStatement() shortcut).
+ *   - CharsetConnectionMiddleware::quote()    re-encodes scalar string inputs.
+ *   - CharsetStatementMiddleware::bindValue()/execute()   re-encodes bound
+ *     parameters (covers QueryBuilder ->setParameter('search', '%Faß%')).
+ *   - CharsetResultMiddleware::fetch*()       decodes string and TEXT BLOB
+ *     results back to the PHP encoding.
+ *
+ * Non-charset-aware escape hatches (bypass this middleware entirely; callers
+ * must mb_convert_encoding values manually):
+ *   - Driver\Firebird\Connection::executeAuto()
+ *   - Driver\Firebird\Connection::queryInTransaction()
+ *   - Driver\Firebird\Connection::createBatch() / executeBatch()
+ *   - Driver\Firebird\Connection::getNativeConnection() (direct fbird_* calls)
+ *
  * Usage with DoctrineBundle (service.xml / services.yaml):
  * ```xml
  * <service id="Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware">
@@ -32,7 +55,9 @@ use SensitiveParameter;
  * ```
  *
  * Flow:
- *   PHP ($phpEncoding) → CharsetStatementMiddleware::bindValue() → $databaseEncoding → Firebird
+ *   PHP ($phpEncoding) → CharsetConnectionMiddleware re-encodes SQL body
+ *                     → CharsetStatementMiddleware::bindValue() re-encodes bound params
+ *                     → $databaseEncoding → Firebird
  *   Firebird → $databaseEncoding → CharsetResultMiddleware::fetch*() → $phpEncoding → PHP
  */
 /** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
