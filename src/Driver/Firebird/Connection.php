@@ -9,7 +9,7 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
-use Doctrine\DBAL\SQL\Parser;
+use Satag\DoctrineFirebirdDriver\SQL\Parser;
 use Firebird\Connection as FirebirdConnection;
 use Firebird\Database;
 use Firebird\DbInfo;
