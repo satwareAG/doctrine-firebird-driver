@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.1] - 2026-07-13 - SQL Parser/Visitor decoupling patch
+
+### Fixed
+- **Symfony DebugClassLoader `@internal` deprecation notice** (#122, #124):
+  `ConvertParameters` implemented `Doctrine\DBAL\SQL\Parser\Visitor`, which is
+  marked `@internal`. The Symfony DebugClassLoader vendor-prefix suppression
+  (`strncmp("Satag", "Doctrine", 5)`) rejects cross-vendor usage, so the notice
+  fired for every downstream consumer (including amicron-platform). Copied the
+  DBAL 3.10.5 SQL Parser stack (`Parser`, `Visitor`, `Exception`,
+  `RegularExpressionError`) into `Satag\DoctrineFirebirdDriver\SQL` namespace,
+  removing the `@internal` annotation from the copied `Visitor` interface.
+  The vendor-prefix check now passes (`Satag == Satag`), eliminating the
+  deprecation entirely.
+
+### Changed
+- `ConvertParameters` now implements `Satag\DoctrineFirebirdDriver\SQL\Parser\Visitor`
+  instead of `Doctrine\DBAL\SQL\Parser\Visitor`
+- `Connection` now uses `Satag\DoctrineFirebirdDriver\SQL\Parser` instead of
+  `Doctrine\DBAL\SQL\Parser`
+- Copied code is byte-identical to DBAL 3.10.5 (only namespace and
+  `@internal` annotation differ)
+
+### Verified
+- 2350/2350 tests pass (139 pre-existing skips, 0 failures)
+- PHPStan level 8: clean
+- Psalm: clean (0 errors)
+
 ## [3.16.0] - 2026-07-09 - Charset transparency for query()/exec()/prepare() SQL body
 
 ### Added
