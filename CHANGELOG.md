@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-07-14 - Binary BLOB corruption fix
+
+### Fixed
+- **Binary BLOB data corruption through charset middleware** (#127): JPEG, PNG,
+  PDF, and other binary BLOB data was corrupted when the connection used a
+  non-UTF-8 charset (e.g., ISO8859_1). Both the read path
+  (`CharsetResultMiddleware::decodeValue()`) and the write path
+  (`CharsetStatementMiddleware::bindValue()`) unconditionally called
+  `mb_convert_encoding()` on binary data, mangling bytes > 0x7F
+  (e.g., JPEG `\xFF\xD8` → `??`). Fixed by adding a NULL-byte heuristic
+  that detects binary data and skips transcoding. All common binary formats
+  (JPEG, PNG, GIF, PDF, ZIP, BMP, TIFF) contain `\x00` in their first few bytes.
+
+- **Dead `columnTypes` parameter removed** (#129): The `CharsetResultMiddleware`
+  constructor accepted a `columnTypes` map from `CharsetStatementMiddleware`,
+  but this contained **parameter** types (from `WHERE` clause `bindValue()`
+  calls), not **result** column types. The type-based binary check at lines
+  150-155 never worked correctly. Removed entirely; binary detection uses
+  the NULL-byte heuristic only.
+
+### Added
+- **Integration tests with ISO8859_1 charset** (#128): New `BlobBinaryCharsetTest`
+  creates a connection with ISO8859_1 charset + `CharsetMiddleware` (matching
+  production config). Tests write→read roundtrip for JPEG, PNG, all-256-bytes,
+  and 64KB binary payloads. Also verifies text BLOB transcoding still works.
+  The existing test suite used UTF8 charset where `mb_convert_encoding` is a
+  no-op, giving false confidence.
+
+- **6 new unit tests** for binary string detection in `CharsetResultMiddleware`:
+  JPEG header, PNG header, all-256-bytes, text transcoding boundary, empty
+  string, ASCII-only passthrough.
+
+### Changed
+- `CharsetResultMiddleware`: constructor no longer accepts `$columnTypes` parameter
+- `CharsetStatementMiddleware`: no longer tracks `$boundTypes` or passes them to result middleware
+- `CharsetConnectionMiddleware`: updated docblock (columnTypes reference removed)
+- `Issue91ReproductionTest`: updated for heuristic-only approach, documents
+  known limitation (binary without `\x00` is transcoded)
+
+### Known limitation
+
+Binary data without NULL bytes AND with bytes > 0x7F would still be transcoded.
+This is near-zero probability for real binary formats. Replace with
+`fbird_field_info()['sub_type']` when php-firebird exposes it (upstream issue filed).
+
+### Verified
+- 2367/2367 tests pass (139 pre-existing skips, 0 failures)
+- PHPStan level 8: clean
+- Psalm: clean
+
 ## [3.16.1] - 2026-07-13 - SQL Parser/Visitor decoupling patch
 
 ### Fixed
