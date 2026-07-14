@@ -56,9 +56,8 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
      * around line 1106). Without this override the entire charset middleware
      * chain is bypassed for parameterless SELECTs (GH-116).
      *
-     * columnTypes is left empty because the driver-middleware layer does not
-     * know the result column types at query() time; CharsetResultMiddleware's
-     * existing 512-byte NUL-byte heuristic covers BLOB detection instead.
+     * Binary BLOB detection uses a NULL-byte heuristic in CharsetResultMiddleware.
+     * jane: replace with fbird_field_info()['sub_type'] when php-firebird exposes it.
      */
     #[Override]
     public function query(string $sql): Result

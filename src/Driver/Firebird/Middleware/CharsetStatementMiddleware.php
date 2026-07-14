@@ -15,6 +15,7 @@ use function is_resource;
 use function is_string;
 use function mb_convert_encoding;
 use function stream_get_contents;
+use function strpos;
 
 /**
  * Encodes all string parameters from the PHP encoding to the database encoding
@@ -23,12 +24,12 @@ use function stream_get_contents;
  * This middleware wraps every Statement so that raw DBAL bindValue() calls
  * (and execute() with inline params) transparently encode strings to the
  * database wire encoding, regardless of whether the ORM type system is used.
+ *
+ * Binary BLOB data (containing NULL bytes) is passed through without
+ * transcoding to prevent corruption on the write path (#127 symmetric fix).
  */
 final class CharsetStatementMiddleware extends AbstractStatementMiddleware
 {
-    /** @var array<int|string, int> */
-    private array $boundTypes = [];
-
     public function __construct(
         Statement $statement,
         private readonly string $databaseEncoding,
@@ -43,14 +44,12 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     #[Override]
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
-        $this->boundTypes[$param] = $type;
-
         if (is_resource($value)) {
             $value = stream_get_contents($value);
         }
 
         if (is_string($value) && in_array($type, [ParameterType::STRING, ParameterType::ASCII, ParameterType::LARGE_OBJECT], true)) {
-            $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+            $value = $this->encodeString($value);
         }
 
         return parent::bindValue($param, $value, $type);
@@ -75,7 +74,7 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
                     continue;
                 }
 
-                $params[$key] = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+                $params[$key] = $this->encodeString($value);
             }
         }
 
@@ -83,7 +82,27 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
             parent::execute($params),
             $this->databaseEncoding,
             $this->phpEncoding,
-            $this->boundTypes,
         );
+    }
+
+    /**
+     * Encode a string from PHP encoding to database encoding.
+     *
+     * Binary strings containing NULL bytes are passed through without
+     * transcoding. This prevents corruption of binary BLOB data (JPEG, PNG,
+     * etc.) that would be mangled by mb_convert_encoding (e.g., \xFF → ?).
+     *
+     * jane: NULL-byte heuristic. Replace with fbird_field_info()['sub_type']
+     * when php-firebird exposes it, matching CharsetResultMiddleware.
+     */
+    private function encodeString(string $value): string
+    {
+        if (strpos($value, "\x00") !== false) {
+            return $value;
+        }
+
+        $encoded = @mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+
+        return $encoded === false ? $value : $encoded;
     }
 }
