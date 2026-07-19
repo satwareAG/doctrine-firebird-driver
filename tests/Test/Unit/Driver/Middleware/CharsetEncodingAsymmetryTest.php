@@ -43,7 +43,7 @@ class CharsetEncodingAsymmetryTest extends TestCase
                 throw new \LogicException('Not implemented in mock');
             }
 
-            public function quote($value, $type = ParameterType::STRING)
+            public function quote(string $value): string
             {
                 return "'" . $value . "'";
             }
@@ -53,7 +53,7 @@ class CharsetEncodingAsymmetryTest extends TestCase
                 throw new \LogicException('Not implemented in mock');
             }
 
-            public function lastInsertId($name = null): never
+            public function lastInsertId(): never
             {
                 throw new \LogicException('Not implemented in mock');
             }
@@ -69,6 +69,11 @@ class CharsetEncodingAsymmetryTest extends TestCase
             }
 
             public function rollBack(): never
+            {
+                throw new \LogicException('Not implemented in mock');
+            }
+
+            public function getNativeConnection(): never
             {
                 throw new \LogicException('Not implemented in mock');
             }
