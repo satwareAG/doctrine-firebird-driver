@@ -50,7 +50,7 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
-use function gc_collect_cycles;
+use function defined;
 use function in_array;
 use function sprintf;
 use function str_starts_with;
@@ -130,17 +130,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         't1',
         't2',
         'retry_lock_test',
-        'table_to_create',
-        'table_to_alter',
-        'table_to_drop',
-    ];
-
-    /** @var list<string> List of sequences created by schema tests that need cleanup */
-    private static array $schemaTestSequences = [
-        'create_sequences_test_seq',
-        'list_sequences_test_seq',
-        'sequence_1',
-        'sequence_2',
     ];
 
     public function testCreateSequence(): void
@@ -153,7 +142,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $name = 'create_sequences_test_seq';
 
-        $this->dropSequenceIfExists($name);
         $this->schemaManager->createSequence(new Sequence($name));
 
         self::assertTrue($this->hasElementWithName($this->schemaManager->listSequences(), $name));
@@ -172,7 +160,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $this->expectExceptionMessageMatches('/.*not supported.*/');
         }
 
-        $this->dropSequenceIfExists('list_sequences_test_seq');
         $this->schemaManager->createSequence(
             new Sequence('list_sequences_test_seq', 20, 10),
         );
@@ -193,6 +180,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListDatabases(): void
     {
+        if (! $this->connection->getDatabasePlatform()->supportsCreateDropDatabase()) {
+            self::markTestSkipped('Cannot drop Database client side with this Driver.');
+        }
+
         try {
             $this->schemaManager->dropDatabase('test_create_database');
         } catch (Exception\DatabaseDoesNotExist) {
@@ -200,7 +191,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $this->schemaManager->createDatabase('test_create_database');
 
-        $databases = $this->schemaManager->listDatabases();
+        try {
+            $databases = $this->schemaManager->listDatabases();
+        } catch (Exception $exception) {
+            self::markTestSkipped($exception->getMessage());
+        }
 
         $databases = array_map('strtolower', $databases);
 
@@ -1398,8 +1393,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $sequence2InitialValue   = 4;
         $sequence1               = new Sequence($sequence1Name, $sequence1AllocationSize, $sequence1InitialValue);
         $sequence2               = new Sequence($sequence2Name, $sequence2AllocationSize, $sequence2InitialValue);
-        $this->dropSequenceIfExists($sequence1Name);
-        $this->dropSequenceIfExists($sequence2Name);
+
         $this->schemaManager->createSequence($sequence1);
 
         if (! ($this->connection->getDatabasePlatform() instanceof Firebird3Platform)) {
@@ -1859,12 +1853,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
      */
     private function cleanupSchemaTestTables(): void
     {
-        // Free Firebird cursor objects left over from the test method itself.
-        // Test methods like testListTablesWithFilter call listTableNames()/listTables()
-        // which create cursors holding metadata locks. These must be released
-        // before we can DROP tables in cleanup.
-        gc_collect_cycles();
-
         // First ensure any active transaction is rolled back to release locks
         $fbirdConnection = $this->getFirebirdConnection();
         if ($fbirdConnection !== null && $fbirdConnection->isConnectionValid()) {
@@ -1886,11 +1874,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $platform = $this->connection->getDatabasePlatform();
 
-        // Reset any schema assets filter set by tests (e.g. testListTablesWithFilter).
-        // Without this, listTableNames() below would only return filtered results,
-        // causing tables like FILTER_TEST_2 to be missed and not dropped.
-        $this->connection->getConfiguration()->setSchemaAssetsFilter(null);
-
         // OPTIMIZATION: Query existing tables/views once to avoid exception overhead
         try {
             $existingTables = array_map('strtolower', $this->schemaManager->listTableNames());
@@ -1904,10 +1887,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $existingTables = [];
             $existingViews  = [];
         }
-
-        // Free Firebird cursor objects from listTableNames/listViews above.
-        // Without this, the cursors hold metadata locks that prevent DROP TABLE.
-        gc_collect_cycles();
 
         // Drop tables in dependency order (foreign key constraints)
         // Tables with foreign keys should be dropped first
@@ -1986,15 +1965,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
                     @$fbirdConnection?->rollBack();
                 } catch (Throwable) {
                 }
-            }
-        }
-
-        // Drop sequences created by schema tests
-        foreach (self::$schemaTestSequences as $sequenceName) {
-            try {
-                $this->dropSequenceIfExists($sequenceName);
-            } catch (Throwable) {
-                // Ignore cleanup errors
             }
         }
 

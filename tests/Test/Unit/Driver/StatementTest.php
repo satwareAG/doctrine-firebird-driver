@@ -11,20 +11,20 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
-use ReflectionProperty;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
-
-use function fclose;
-use function fopen;
-use function rewind;
-use function stream_get_contents;
-use function fwrite;
 
 /**
  * Unit tests for Statement class.
+ *
+ * Tests cover:
+ * - Constructor behavior with valid/invalid resources
+ * - Destructor cleanup
+ * - bindValue() with various parameter types
+ * - bindParam() deprecated functionality
+ * - SQL detection methods (DML, INSERT, RETURNING)
+ * - Parameter binding error handling
  */
 #[CoversClass(Statement::class)]
 class StatementTest extends TestCase
@@ -36,9 +36,6 @@ class StatementTest extends TestCase
         // Connection is final, so use reflection to create instance without constructor
         $reflection = new ReflectionClass(Connection::class);
         $this->connection = $reflection->newInstanceWithoutConstructor();
-
-        $transactionManager = new TransactionManager($this->connection);
-        $this->setPrivateProperty($this->connection, 'transactionManager', $transactionManager);
     }
 
     // ====================================
@@ -65,6 +62,8 @@ class StatementTest extends TestCase
     public function constructorWithFalseStatementCallsCheckLastApiCall(): void
     {
         // When statement is false, checkLastApiCall is called
+        // We verify the Statement is still created (checkLastApiCall doesn't throw
+        // with a reflection-created Connection that has no fbird handle)
         $statement = new Statement($this->connection, false, [], '');
 
         // Verify the statement was stored (even though it's false)
@@ -77,6 +76,8 @@ class StatementTest extends TestCase
     public function constructorWithNullStatementCallsCheckLastApiCall(): void
     {
         // When statement is null, checkLastApiCall is called
+        // We verify the Statement is still created (checkLastApiCall doesn't throw
+        // with a reflection-created Connection that has no fbird handle)
         $statement = new Statement($this->connection, null, [], '');
 
         // Verify the statement was stored (as null)
@@ -94,7 +95,7 @@ class StatementTest extends TestCase
             $this->connection,
             $resource,
             [],
-            'INSERT INTO test (id) VALUES (1)'
+            'INSERT INTO test (id) VALUES (1) RETURNING id'
         );
 
         // Verify flags via reflection
@@ -105,6 +106,9 @@ class StatementTest extends TestCase
 
         $isInsertProp = $reflection->getProperty('isInsert');
         $this->assertTrue($isInsertProp->getValue($statement));
+
+        $hasReturningProp = $reflection->getProperty('hasReturning');
+        $this->assertTrue($hasReturningProp->getValue($statement));
 
         fclose($resource);
     }
@@ -199,7 +203,7 @@ class StatementTest extends TestCase
     }
 
     #[Test]
-    public function bindValueWithLargeObjectPassesStreamThrough(): void
+    public function bindValueWithLargeObjectConvertsStreamToString(): void
     {
         $statement = $this->createStatementWithParameterMap([1 => '?']);
         
@@ -210,19 +214,13 @@ class StatementTest extends TestCase
         // DBAL4: bindValue() returns void - success means no exception thrown
         $statement->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
 
-        $this->assertTrue($result);
-        
-        // Verify the stream stays as a resource (v10 native support)
+        // Verify the stream was converted to string
         $reflection = new ReflectionClass($statement);
         $bindingsProp = $reflection->getProperty('queryParamBindings');
         $bindings = $bindingsProp->getValue($statement);
         
-        $this->assertIsResource($bindings[1]);
-        
-        // In v10 we pass it through, so it's the SAME resource
-        $this->assertSame($stream, $bindings[1]);
-        
-        fclose($stream);
+        // The binding should now be a string
+        $this->assertSame('stream_content', $bindings[1]);
     }
 
     #[Test]
@@ -376,12 +374,45 @@ class StatementTest extends TestCase
         ];
     }
 
+    #[Test]
+    #[DataProvider('returningClauseProvider')]
+    public function detectReturningClauseRecognizesCorrectly(string $sql, bool $expected): void
+    {
+        $method = $this->getPrivateMethod('detectReturningClause');
+        $statement = $this->createStatementWithoutConstructor();
+
+        $result = $method->invoke($statement, $sql);
+
+        $this->assertSame($expected, $result, "Failed for SQL: $sql");
+    }
+
+    /**
+     * @return array<string, array{string, bool}>
+     */
+    public static function returningClauseProvider(): array
+    {
+        return [
+            // With RETURNING clause (should return true)
+            'insert with returning' => ['INSERT INTO test (col) VALUES (1) RETURNING id', true],
+            'update with returning' => ['UPDATE test SET col = 1 RETURNING col', true],
+            'delete with returning' => ['DELETE FROM test WHERE id = 1 RETURNING id', true],
+            'returning lowercase' => ['insert into test values (1) returning id', true],
+            'returning with multiple columns' => ['INSERT INTO test VALUES (1) RETURNING id, col1, col2', true],
+            
+            // Without RETURNING clause (should return false)
+            'simple insert' => ['INSERT INTO test VALUES (1)', false],
+            'simple update' => ['UPDATE test SET col = 1', false],
+            'simple delete' => ['DELETE FROM test', false],
+            'select' => ['SELECT * FROM test', false],
+        ];
+    }
+
     // ====================================
     // Destructor Tests
     // ====================================
 
     #[Test]
-    public function testDestructorHandlesNullStatementProperty(): void
+    public function destructorHandlesNullStatementProperty(): void
     {
         // Create statement via reflection to test destructor with null statement
         $statement = $this->createStatementWithoutConstructor();
@@ -430,9 +461,69 @@ class StatementTest extends TestCase
     }
 
     // ====================================
+    // Edge Cases
+    // ====================================
+
+    #[Test]
+    public function bindValueWithEmptyString(): void
+    {
+        $statement = $this->createStatementWithParameterMap([1 => '?']);
+
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, '', ParameterType::STRING);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function bindValueWithZero(): void
+    {
+        $statement = $this->createStatementWithParameterMap([1 => '?']);
+
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 0, ParameterType::INTEGER);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function bindValueWithNegativeNumber(): void
+    {
+        $statement = $this->createStatementWithParameterMap([1 => '?']);
+
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, -42, ParameterType::INTEGER);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function bindValueWithFloatValue(): void
+    {
+        $statement = $this->createStatementWithParameterMap([1 => '?']);
+
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, 3.14159, ParameterType::STRING);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function bindValueWithLargeString(): void
+    {
+        $statement = $this->createStatementWithParameterMap([1 => '?']);
+
+        $largeString = str_repeat('x', 100000);
+        // DBAL4: bindValue() returns void - success means no exception thrown
+        $statement->bindValue(1, $largeString, ParameterType::STRING);
+        $this->assertTrue(true);
+    }
+
+    // ====================================
     // Helper Methods
     // ====================================
 
+    /**
+     * Create a Statement instance with a specific parameter map.
+     *
+     * @param array<int|string, string> $parameterMap
+     */
     private function createStatementWithParameterMap(array $parameterMap): Statement
     {
         $resource = fopen('php://memory', 'r+');
@@ -445,21 +536,25 @@ class StatementTest extends TestCase
         );
     }
 
+    /**
+     * Create a Statement instance without calling constructor (for testing private methods).
+     */
     private function createStatementWithoutConstructor(): Statement
     {
         $reflection = new ReflectionClass(Statement::class);
-        return $reflection->newInstanceWithoutConstructor();
+        /** @var Statement $instance */
+        $instance = $reflection->newInstanceWithoutConstructor();
+        
+        return $instance;
     }
 
+    /**
+     * Get a private method for testing via reflection.
+     */
     private function getPrivateMethod(string $methodName): ReflectionMethod
     {
         $method = new ReflectionMethod(Statement::class, $methodName);
-        return $method;
-    }
 
-    private function setPrivateProperty(object $object, string $propertyName, mixed $value): void
-    {
-        $reflection = new ReflectionProperty($object, $propertyName);
-        $reflection->setValue($object, $value);
+        return $method;
     }
 }

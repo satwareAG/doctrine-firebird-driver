@@ -46,9 +46,11 @@ class ConnectionTest extends FunctionalTestCase
     {
         $this->createTestTable();
 
-        // Ensure savepoints are disabled — previous tests on the shared connection
-        // may have enabled them, which would bypass the deprecation path under test.
-        $this->connection->setNestTransactionsWithSavepoints(false);
+        // DBAL4: savepoints are always enabled when platform supports them.
+        // Inner rollback rolls back to savepoint only - does NOT mark outer as rollback-only.
+        // Outer transaction can still commit successfully after inner rollback.
+        $this->connection->beginTransaction();
+        self::assertSame(1, $this->connection->getTransactionNestingLevel());
 
         try {
             $this->connection->beginTransaction();

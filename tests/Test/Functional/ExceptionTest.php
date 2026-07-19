@@ -6,6 +6,8 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -18,9 +20,12 @@ use function array_merge;
 use function chmod;
 use function error_reporting;
 use function exec;
+use function file_exists;
 use function posix_geteuid;
 use function posix_getpwuid;
 use function sprintf;
+use function sys_get_temp_dir;
+use function touch;
 use function uniqid;
 use function unlink;
 
@@ -286,15 +291,66 @@ class ExceptionTest extends FunctionalTestCase
         $this->connection->executeQuery($sql);
     }
 
-    /** @param array<string, mixed> $params */
-    #[DataProvider('getConnectionParams')]
-    public function testConnectionException(array $params): void
+    public function testConnectionExceptionSqLite(): void
     {
-        $params = array_merge(TestUtil::getConnectionParams(), $params);
+        if (! ($this->connection->getDatabasePlatform() instanceof SqlitePlatform)) {
+            self::markTestSkipped('Only fails this way on sqlite');
+        }
+
+        // mode 0 is considered read-only on Windows
+        $mode = PHP_OS_FAMILY !== 'Windows' ? 0444 : 0000;
+
+        $filename = sprintf('%s/%s', sys_get_temp_dir(), 'doctrine_failed_connection_' . $mode . '.db');
+
+        if (file_exists($filename)) {
+            $this->cleanupReadOnlyFile($filename);
+        }
+
+        touch($filename);
+        chmod($filename, $mode);
+
+        if ($this->isLinuxRoot()) {
+            exec(sprintf('chattr +i %s', $filename));
+        }
+
+        $params = [
+            'driver' => 'pdo_sqlite',
+            'path'   => $filename,
+        ];
         $conn   = DriverManager::getConnection($params);
 
-        $this->expectException(Exception\ConnectionException::class);
-        $conn->connect();
+        $schema = new Schema();
+        $table  = $schema->createTable('no_connection');
+        $table->addColumn('id', Types::INTEGER);
+
+        $this->expectException(Exception\ReadOnlyException::class);
+        $this->expectExceptionMessage(
+            'An exception occurred while executing a query: SQLSTATE[HY000]: ' .
+            'General error: 8 attempt to write a readonly database',
+        );
+
+        try {
+            foreach ($schema->toSql($conn->getDatabasePlatform()) as $sql) {
+                $conn->executeStatement($sql);
+            }
+        } finally {
+            $this->cleanupReadOnlyFile($filename);
+        }
+    }
+
+    public function testInvalidUserName(): void
+    {
+        $this->testConnectionException(['user' => 'not_existing']);
+    }
+
+    public function testInvalidPassword(): void
+    {
+        $this->testConnectionException(['password' => 'really_not']);
+    }
+
+    public function testInvalidHost(): void
+    {
+        $this->testConnectionException(['host' => 'localnope']);
     }
 
     /** @return array<int, array<int, mixed>> */
@@ -303,6 +359,27 @@ class ExceptionTest extends FunctionalTestCase
         yield [['user' => 'not_existing']];
         yield [['password' => 'really_not']];
         yield [['host' => 'localnope']];
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @psalm-param Params $params
+     */
+    #[DataProvider('getConnectionParams')]
+    private function testConnectionException(array $params): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        if ($platform instanceof SqlitePlatform) {
+            self::markTestSkipped('The SQLite driver does not use a network connection');
+        }
+
+        $params = array_merge(TestUtil::getConnectionParams(), $params);
+        $conn   = DriverManager::getConnection($params);
+
+        $this->expectException(Exception\ConnectionException::class);
+        // DBAL4: Connection::connect() is protected; trigger connection by executing a query
+        $conn->executeQuery('SELECT 1 FROM RDB$DATABASE');
     }
 
     private function setUpForeignKeyConstraintViolationExceptionTest(): void
