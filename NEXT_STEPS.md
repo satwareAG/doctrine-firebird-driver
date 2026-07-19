@@ -1,118 +1,86 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last updated:** 2026-07-07
-**Branch:** `integration/php-firebird-12.0.0` (from `3.10.x`)
-**Extension:** php-firebird v12.0.0 stable (commit `ae40ef1`)
-**Status:** v3.14.0 release ready. All tests green. Merging to `3.10.x`.
+**Last updated:** 2026-07-19
+**Branch:** `4.4.x` | **Target:** `v4.5.0` | **PHP:** 8.2-8.5 | **Firebird:** 3.0/4.0/5.0
+**Extension:** php-firebird v13.0.0 | **DBAL:** 4.4.3
 
 ---
 
 ## Current State
 
-### Test Results (PHP 8.4 x Firebird 3.0/4.0/5.0)
+### v4.5.0 — php-firebird v13.0 on DBAL 4.4.x
 
-| FB | Tests | Skipped | Errors | Failures | Incomplete |
-|----|-------|---------|--------|----------|------------|
-| 3.0 | 2319 | 139 | 0 | 0 | 0 |
-| 4.0 | 2319 | 135 | 0 | 0 | 0 |
-| 5.0 | 2319 | 135 | 0 | 0 | 0 |
+**Status:** Ready for release.
 
-Full matrix (PHP 8.2-8.5 x FB 3.0/4.0/5.0 = 12 combos) verified at commit `566cda4`.
-PHP 8.4 x FB 3/4/5 re-verified after v12.0.0 stable upgrade and cleanup fixes.
+The `4.4.x` branch has been restructured to merge the modern `3.10.x` base
+(v3.13.0-v3.19.0, 181 commits) with DBAL4-specific API adaptations on top.
+The result is a clean driver that works with DBAL 4.4.x + ext-firebird v13.0.0.
+
+### Test Results
+
+| Suite | Tests | Errors | Failures | Skipped |
+|-------|-------|--------|----------|---------|
+| Unit | 1460 | 3 (pre-existing PHP 8.5) | 0 | 45 |
+| Functional FB3 | 530 | 0 | 0 | 40 |
+| Functional FB4 | 530 | 0 | 0 | 36 |
+| Functional FB5 | 530 | 0 | 0 | 36 |
+| Integration-ReadOnly | 24 | 0 | 0 | 0 |
+| Integration-Write | 96 | 0 | 0 | 3 |
 
 ### Quality Gates
 
 | Gate | Result |
 |------|--------|
-| PHPCS | 0 errors |
-| PHPStan Level 8 | 0 errors |
-| Psalm | 0 errors (68-line baseline) |
+| PHPStan Level 8 | 0 errors (90 baselined DBAL 4.4->5.0 deprecation warnings) |
+| ext-firebird | v13.0.0 loaded |
+| DBAL | 4.4.3 installed |
+| Stubs | v13.0.0 |
 
----
+### What was done (v4.5.0)
 
-## Completed Work
+1. **Merge 3.10.x into 4.4.x** — brought all 181 modern commits (v3.13.0-v3.19.0)
+   including v13 support, #127 BLOB fix, #114/#115 forceNewConnection, #124 SQL
+   Parser decoupling, #117/#119 charset asymmetry docs + tests.
+2. **DBAL4 API adaptations** — re-applied Connection/Statement/Platform/Schema
+   signature changes for DBAL4 (quote, lastInsertId, beginTransaction/commit/
+   rollBack void, getNativeConnection, TransactionIsolationLevel enum,
+   ColumnDiff API, getCreateTableSQL, getLocateExpression, doModifyLimitQuery).
+3. **CI promotion** — FB4/FB5 promoted from experimental to required.
+4. **v13 optimizations** — R3 (fbird_ping), R4 (fbird_server_version replaces
+   service-attach), R9 (fbird_escape_literal).
+5. **Code review fixes** — dead code in ConnectionWrapper::lastInsertId(),
+   setLastInsertTable moved after failure check, misnamed test renamed.
+6. **SchemaTest investigation** — root cause identified (Firebird metadata locks
+   at transaction level), issue filed to php-firebird (#540).
 
-### php-firebird v12.0.0 Stable Integration (2026-07-07)
+### DBAL 3 series (3.10.x branch) — COMPLETE
 
-- Upgraded `ext-firebird` constraint from `^11.1` to `^12.0`
-- Upgraded `satwareag/php-firebird-stubs` from `^11.1` to `^12.0.0` (stable, no `@rc`)
-- Pinned Docker test image to commit `ae40ef1` (v12.0.0 stable)
-- Updated CI workflows to clone `v12.0.0` tag, cache key v9
-- Removed SIGSEGV exit 139/134 workarounds (root cause fixed in v12.0.0 via #311)
-- Added test script auto-cleanup (`cleanup_all()`, `cleanup_fb_version()`)
-- Eliminated all incomplete tests (was 2, now 0)
+The `3.10.x` branch is in maintenance mode. Last release: `v3.19.0` (2026-07-19).
+All critical fixes are in v3.19.0. No further 3.10.x releases planned unless
+critical bugs are found.
 
-### php-firebird v12.0.0-rc.11 Initial Integration (2026-07-06)
+### Known issues
 
-- Updated docblock return types for v12 stubs accuracy (`resource` -> `Firebird\*` objects)
-- Typed `ProceduralBatch::$batchHandle` as `Firebird\BatchHandle` (was `mixed`)
-- Added `FirebirdSchemaManager::getCurrentSequenceValue()` for Firebird-specific sequence value reading
-- Removed `@phpstan-ignore argument.type` on `fbird_trans_start` (v12 fixed arginfo)
-- 7 issues opened on `satwareAG/php-firebird` (#305-#311) - ALL FIXED in v12.0.0
+1. **Metadata lock hang** (php-firebird #540) — `fbird_commit_ret()` holds
+   metadata locks from SELECT cursors, causing DDL to hang after schema
+   introspection. Workaround: `gc_collect_cycles()` before DDL. Filed:
+   https://github.com/satwareAG/php-firebird/issues/540
 
-### FB4/FB5 Fixes (2026-07-06)
+2. **DBAL 4.4 -> 5.0 deprecations** — 90 PHPStan baseline entries for
+   deprecated methods (`getQuotedName`, `getName`, etc.). Forward-looking;
+   will be addressed when DBAL 5.0 is released.
 
-- **`Connection::queryInTransaction()`**: Added `Firebird\TransactionManager` handling
-  (from `TBuilder::start()`). Extracts `Firebird\Transaction` via `getResource()`.
-  Fixes "must be a Firebird transaction resource" TypeError on FB4/FB5.
-- **`Connection::createBatch()` / `executeBatch()`**: Widened `$transaction` parameter
-  type to `TransactionManager|FirebirdTransactionManager|null`.
-- **`BatchTest::setUp()`**: Removed redundant `createBatch('SELECT 1...')` probe
-  that failed because IBatch requires parameterized statements.
-- **php-firebird #310**: `TransactionManager::__destruct` THROW mode fix.
+3. **3 pre-existing PHP 8.5 errors** — PhpunitScriptTest `realpath()` returns
+   `false` for non-existent paths on PHP 8.5. Same as 3.10.x.
 
-### Test Quality Improvements (2026-07-06)
+### Deferred for future releases
 
-- Fixed test fixture pollution in `ExceptionConverterTest` (setUp/tearDown cleanup)
-- Fixed `installFirebirdDatabase()` seeding: `UPDATE OR INSERT` with explicit IDs
-  + `ALTER TABLE ... RESTART WITH` for identity generators
-- Added `dropTableIfExists()` cleanup to all Integration-Write tests that create tables
-- Added `dropSequenceIfExists()` helper and cleanup to functional schema tests
-- Deleted deprecated `ReadOnlyIntegrationTestCase`, `ConfigurableLikeCastLengthTest`
-- Replaced `bindParam()` with `bindValue()` in functional tests (kept 2 by-ref tests)
-- Implemented 4 previously incomplete `testQuotesAlterTableChangeColumnLength` tests
-- Reduced Psalm baseline from 167 to 68 lines
+- R1 (BLOB sub_type via fbird_field_info) — needs middleware refactor
+- R5-R7 (statement timeout, schema introspection, DecFloat) — medium effort
+- R10-R12 (error_field, blob_export, per-stmt timeout) — low ROI
+- Merge 4.4.x -> main — separate decision
+- Firebird 6.0 features — deferred to v14
 
-### Test Script Consolidation (2026-07-06)
+### Spec
 
-- Rewrote `tests/run-matrix.sh` as primary test runner
-- Created `tests/lib/common.sh` (shared helpers: colors, print, cleanup)
-- Deduplicated `docker-cqc.sh` and `cqc.sh` to source `common.sh`
-- Deleted `phpunit.sh`, `phpunit-lowest-versions.sh`, per-version phpunit XMLs
-- Added `cleanup_all()` and `cleanup_fb_version()` for automatic volume cleanup
-- Healthcheck-based container readiness polling (replaces fixed 5s sleep)
-- Volume removal retry loop (Docker may briefly hold references)
-
-### php-firebird v11.1.0 Integration (v3.13.0, 2026-07-02)
-
-- Upgraded from `^10.6` to `^11.1`
-- Migrated from `is_resource()` checks to `instanceof` assertions
-- Fixed SIGSEGV exit-code handling in CI
-
----
-
-## Release Plan
-
-php-firebird v12.0.0 stable released on 2026-07-07. All integration work is complete.
-
-- [x] Update `composer.json` constraint to `^12.0.0` (stable)
-- [x] Update Dockerfile to v12.0.0 commit `ae40ef1`
-- [x] Update CI workflows to `v12.0.0` tag
-- [x] Re-verify full test suite (0 errors, 0 failures, 0 incomplete)
-- [x] Remove SIGSEGV workarounds
-- [x] Add test script auto-cleanup
-- [ ] Merge `integration/php-firebird-12.0.0` into `3.10.x` via PR
-- [ ] Tag `v3.14.0`, create GitHub release
-- [ ] Update downstream consumers:
-  - `satag-amicron-entity-bundle`: bump to `^3.14.0`, update `php-firebird` to `^12.0`
-  - `amicron-platform`: bump to `^3.14.0`, update `php-firebird` to `^12.0`
-
----
-
-## Reference
-
-- php-firebird v12.0.0 release: https://github.com/satwareAG/php-firebird/releases/tag/v12.0.0
-- Gap analysis plan: `docs/plans/2026-03-03-dbal3-gap-implementation.md`
-- Charset spec: `specs/001-charset-transparency-middleware/spec.md` (Status: Implemented)
-- DBAL 4.x research: `docs/research/dbal4-migration.md`
-- DBAL 4.x work: `4.4.x` branch (dormant, needs v12 upgrade)
+See `specs/003-php-firebird-v13-on-dbal4/spec.md` for full design document.
