@@ -212,4 +212,8 @@ a `CharsetResultMiddleware`.
 - Charset-aware handling of native escape-hatch methods on `Driver\Firebird\Connection`
   (`executeAuto()`, `queryInTransaction()`, `createBatch()`, `executeBatch()`,
   `getNativeConnection()`). These bypass the DBAL middleware stack entirely and remain
-  non-charset-aware; callers must encode values manually.
+  non-charset-aware; callers must encode values manually. Tracked in
+  [GH-119](https://github.com/satwareAG/doctrine-firebird-driver/issues/119);
+  decision: **document only** (option 1). Escape hatches are explicit opt-outs;
+  callers using them have chosen to bypass DBAL abstractions and are responsible
+  for their own encoding.

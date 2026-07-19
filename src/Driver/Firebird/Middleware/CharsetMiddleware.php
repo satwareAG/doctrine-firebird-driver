@@ -41,6 +41,12 @@ use SensitiveParameter;
  *   - Driver\Firebird\Connection::createBatch() / executeBatch()
  *   - Driver\Firebird\Connection::getNativeConnection() (direct fbird_* calls)
  *
+ * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/119
+ *     Decision: document only (option 1). Escape hatches are explicit opt-outs;
+ *     callers using them have chosen to bypass DBAL abstractions and are
+ *     responsible for their own encoding. No charset-aware wrappers will be
+ *     added unless downstream demand materializes.
+ *
  * Usage with DoctrineBundle (service.xml / services.yaml):
  * ```xml
  * <service id="Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware">
