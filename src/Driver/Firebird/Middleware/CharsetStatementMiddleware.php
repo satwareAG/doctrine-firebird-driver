@@ -92,6 +92,14 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      * transcoding. This prevents corruption of binary BLOB data (JPEG, PNG,
      * etc.) that would be mangled by mb_convert_encoding (e.g., \xFF → ?).
      *
+     * Lenient on invalid bytes: returns the original value on conversion
+     * failure rather than throwing. Bound parameters are data, not syntax -
+     * crashing on bad data is worse than mojibake. See encodeSql() in
+     * CharsetConnectionMiddleware for the stricter treatment applied to
+     * SQL body literals.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/117
+     *
      * jane: NULL-byte heuristic. Replace with fbird_field_info()['sub_type']
      * when php-firebird exposes it, matching CharsetResultMiddleware.
      */

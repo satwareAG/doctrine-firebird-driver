@@ -197,6 +197,28 @@ a `CharsetResultMiddleware`.
   and fetched from a mock result returns the original UTF-8 string unchanged (verified
   by `CharsetEncodingRoundTripTest::testBindValueAndFetchOneRoundTrip`).
 
+## Design Decisions
+
+### Encoding Error Handling Asymmetry (GH-117)
+
+The charset middleware deliberately uses **different error handling** for SQL
+body literals vs bound values vs result data:
+
+| Call site | On invalid bytes | Rationale |
+|-----------|-----------------|-----------|
+| `encodeSql()` (SQL body) | Throws `CharsetConversionException` | SQL body is **syntax** - invalid bytes indicate a programming error (bad literal in source code). Fail loud. |
+| `quote()`, `bindValue()`, `execute()` (bound values) | Silent byte substitution | Bound values are **data** - invalid bytes are a data quality issue, not a programming error. Crashing on bad data is worse than mojibake. |
+| `decodeValue()` (result decoding) | Silent byte substitution | Result data is **external input** - the database may contain legacy/mixed-encoding data. Throwing would crash every query on a single bad row. |
+
+This asymmetry is intentional. Extracting a `CharsetConverter` collaborator
+and routing all call sites through it would either (a) make bound values
+throw like SQL body (breaking change for consumers who rely on leniency)
+or (b) make SQL body lenient like bound values (silently corrupting syntax).
+Neither is desirable.
+
+Decision: **document only** (option 1). No `CharsetConverter` extraction.
+See [GH-117](https://github.com/satwareAG/doctrine-firebird-driver/issues/117).
+
 ## Out of Scope
 
 - Encoding detection or auto-detection (encoding pair is configured explicitly).

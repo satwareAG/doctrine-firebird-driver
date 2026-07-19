@@ -187,6 +187,13 @@ final class CharsetResultMiddleware extends AbstractResultMiddleware
         // bytes are present. All common binary formats (JPEG, PNG, GIF, PDF, ZIP,
         // BMP, TIFF) contain \x00 in their first few bytes.
         // jane: replace with fbird_field_info()['sub_type'] === 0 when available
+        //
+        // Lenient on invalid bytes: relies on PHP's default substitution rather
+        // than throwing. Result data is external input - the database may contain
+        // legacy/mixed-encoding data; throwing would crash every query on a
+        // single bad row. See encodeSql() in CharsetConnectionMiddleware for
+        // the stricter treatment applied to SQL body literals.
+        // @see https://github.com/satwareAG/doctrine-firebird-driver/issues/117
         if (strpos($value, "\x00") !== false) {
             return $value;
         }

@@ -88,6 +88,13 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
     /**
      * Encode string values from PHP encoding to database encoding before quoting.
      *
+     * Lenient on invalid bytes: relies on PHP's default mb_substitute_character
+     * substitution rather than throwing. Bound values are data, not syntax -
+     * crashing on bad data is worse than mojibake. See encodeSql() for the
+     * stricter treatment applied to SQL body literals.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/117
+     *
      * Note: signature uses untyped $value/$type and no return type hint to
      * match the parent AbstractConnectionMiddleware which was written before
      * PHP 8 union types. DBAL 4.x tightens this signature; reconciliation is
