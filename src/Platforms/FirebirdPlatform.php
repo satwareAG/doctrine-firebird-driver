@@ -1340,7 +1340,7 @@ SQL
      * {@inheritDoc}
      */
     #[Override]
-    protected function doModifyLimitQuery($query, $limit, $offset): string
+    protected function doModifyLimitQuery(string $query, ?int $limit, int $offset): string
     {
         if ($limit === null && $offset <= 0) {
             return $query;

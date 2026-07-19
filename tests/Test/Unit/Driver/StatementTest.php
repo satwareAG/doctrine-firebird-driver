@@ -209,8 +209,6 @@ class StatementTest extends TestCase
 
         // DBAL4: bindValue() returns void - success means no exception thrown
         $statement->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
-
-        $this->assertTrue($result);
         
         // Verify the stream stays as a resource (v10 native support)
         $reflection = new ReflectionClass($statement);

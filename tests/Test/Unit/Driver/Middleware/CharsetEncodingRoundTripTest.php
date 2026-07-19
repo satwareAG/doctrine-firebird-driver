@@ -420,16 +420,19 @@ class CharsetEncodingRoundTripTest extends TestCase
 
     public function testQuotePassesThroughNonStringValuesUnchanged(): void
     {
+        // DBAL4: quote() accepts string only. Non-string values must be
+        // cast by the caller. This test verifies that an empty string
+        // is quoted correctly.
         $innerConnection = $this->createMock(DriverConnection::class);
         $innerConnection->expects(self::once())
             ->method('quote')
-            ->with(null, ParameterType::STRING)
-            ->willReturn('NULL');
+            ->with('')
+            ->willReturn("''");
 
         $conn   = new CharsetConnectionMiddleware($innerConnection, 'Windows-1252', 'UTF-8');
-        $result = $conn->quote(null, ParameterType::STRING);
+        $result = $conn->quote('');
 
-        self::assertSame('NULL', $result);
+        self::assertSame("''", $result);
     }
 
     // -----------------------------------------------------------------------

@@ -210,7 +210,7 @@ class ConnectionTest extends TestCase
         $connection->setLastInsertId(456);
 
         // Names containing dots should return cached value (v10 refactoring path)
-        self::assertSame(456, $connection->lastInsertId('schema.sequence'));
+        self::assertSame(456, $connection->lastInsertIdBySequence('schema.sequence'));
     }
 
     public function testLastInsertIdThrowsExceptionForInvalidName(): void
@@ -232,11 +232,9 @@ class ConnectionTest extends TestCase
     {
         $connection = $this->createConnectionThroughReflection();
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('must be null or a string');
-
-        // @phpstan-ignore argument.type
-        $connection->lastInsertId(123);
+        // DBAL4: lastInsertId() takes no $name parameter.
+        // When no identity has been generated, returns 0 (not throws).
+        self::assertSame(0, $connection->lastInsertId());
     }
 
     // ==========================================================================
@@ -291,12 +289,15 @@ class ConnectionTest extends TestCase
     // getNativeConnection() Tests
     // ==========================================================================
 
-    public function testGetNativeConnectionReturnsNull(): void
+    public function testGetNativeConnectionThrowsWhenNull(): void
     {
         $connection = $this->createConnectionThroughReflection();
         $this->setPrivateProperty($connection, 'connection', null);
 
-        self::assertNull($connection->getNativeConnection());
+        // DBAL4: getNativeConnection() must return object|resource, not null.
+        // When connection is not established, it throws RuntimeException.
+        $this->expectException(\RuntimeException::class);
+        $connection->getNativeConnection();
     }
 
     // ==========================================================================

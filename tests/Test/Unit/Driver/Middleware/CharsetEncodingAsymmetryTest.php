@@ -128,7 +128,8 @@ class CharsetEncodingAsymmetryTest extends TestCase
      */
     public function testQuoteWithNonStringValuePassesThrough(): void
     {
-        $result = $this->middleware->quote(42, ParameterType::INTEGER);
+        // DBAL4: quote() accepts string only. Integer must be cast by caller.
+        $result = $this->middleware->quote('42');
 
         self::assertSame("'42'", $result);
     }

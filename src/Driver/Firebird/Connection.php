@@ -197,7 +197,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     {
         switch ($attribute) {
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
-                $this->transactionManager->setIsolationLevel((int) $value);
+                $this->transactionManager->setIsolationLevel($value);
                 break;
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT:
                 $this->transactionManager->setWaitTimeout((int) $value);
@@ -378,6 +378,19 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
      */
     public function lastInsertIdBySequence(string $name): int|string|false
     {
+        // Validate non-dotted names first — input validation before runtime checks.
+        if (! str_contains($name, '.')) {
+            $maxGeneratorLength = 31;
+            $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
+            if (preg_match($regex, $name) !== 1) {
+                throw new UnexpectedValueException(sprintf(
+                    "Expects argument \$name to match regular expression '%s'. Found: %s",
+                    $regex,
+                    ValueFormatter::found($name),
+                ));
+            }
+        }
+
         if (! $this->isConnectionValid()) {
             return $this->connectionInsertId ?? false;
         }
@@ -484,17 +497,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             return $this->connectionInsertId ?? false;
         }
 
-        // Named generator: validate and delegate to fbird_gen_id().
-        $maxGeneratorLength = 31;
-        $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
-        if (preg_match($regex, $name) !== 1) {
-            throw new UnexpectedValueException(sprintf(
-                "Expects argument \$name to match regular expression '%s'. Found: %s",
-                $regex,
-                ValueFormatter::found($name),
-            ));
-        }
-
+        // Named generator: delegate to fbird_gen_id().
         try {
             /** @phpstan-ignore argument.type */
             $lastVal = fbird_gen_id($name, 0, $this->connection);

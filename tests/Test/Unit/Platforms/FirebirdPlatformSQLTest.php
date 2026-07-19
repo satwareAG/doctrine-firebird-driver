@@ -116,7 +116,7 @@ class FirebirdPlatformSQLTest extends TestCase
     }
 
     #[DataProvider('dataProvider_testGetLocateExpression')]
-    public function testGetLocateExpression($expected, $startPos): void
+    public function testGetLocateExpression(string $expected, ?string $startPos): void
     {
         $found = $this->_platform->getLocateExpression('foo', 'o', $startPos);
         self::assertIsString($found);
@@ -125,8 +125,8 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public static function dataProvider_testGetLocateExpression(): Iterator
     {
-        yield ['POSITION (o in foo)', false];
-        yield ['POSITION (o, foo, 1)', 1];
+        yield ['POSITION (o in foo)', null];
+        yield ['POSITION (o, foo, 1)', '1'];
     }
 
     public function testGetRegexpExpression(): void

@@ -8,6 +8,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\ExecutionMode;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\TransactionState;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -32,7 +33,7 @@ class TransactionManagerTest extends TestCase
     public function testSetGetIsolationLevel(): void
     {
         $this->manager->setIsolationLevel(1);
-        self::assertSame(1, $this->manager->getIsolationLevel());
+        self::assertSame(TransactionIsolationLevel::READ_UNCOMMITTED, $this->manager->getIsolationLevel());
     }
 
     public function testSetGetWaitTimeout(): void
