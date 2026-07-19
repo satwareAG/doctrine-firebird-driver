@@ -46,10 +46,8 @@ class ConnectionTest extends FunctionalTestCase
     {
         $this->createTestTable();
 
-        // Ensure savepoints are disabled — previous tests on the shared connection
-        // may have enabled them, which would bypass the deprecation path under test.
-        $this->connection->setNestTransactionsWithSavepoints(false);
-
+        // DBAL4: setNestTransactionsWithSavepoints(false) is no longer supported.
+        // Savepoints are always enabled for nested transactions in DBAL4.
         try {
             $this->connection->beginTransaction();
             self::assertSame(2, $this->connection->getTransactionNestingLevel());

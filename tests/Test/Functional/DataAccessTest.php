@@ -108,7 +108,7 @@ class DataAccessTest extends FunctionalTestCase
         $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(1, $paramInt, ParameterType::INTEGER);
         $stmt->bindValue(2, $paramStr, ParameterType::STRING);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
 
         $row = $result->fetchAssociative();
         self::assertNotFalse($row);
@@ -415,9 +415,9 @@ class DataAccessTest extends FunctionalTestCase
         $sql .= $platform->getLocateExpression("'foo'", 'test_string') . ' AS locate5, ';
         $sql .= $platform->getLocateExpression("'barfoobaz'", 'test_string') . ' AS locate6, ';
         $sql .= $platform->getLocateExpression("'bar'", 'test_string') . ' AS locate7, ';
-        $sql .= $platform->getLocateExpression('test_string', "'oo'", 2) . ' AS locate8, ';
-        $sql .= $platform->getLocateExpression('test_string', "'oo'", 3) . ' AS locate9, ';
-        $sql .= $platform->getLocateExpression('test_string', "'foo'", 1) . ' AS locate10, ';
+        $sql .= $platform->getLocateExpression('test_string', "'oo'", '2') . ' AS locate8, ';
+        $sql .= $platform->getLocateExpression('test_string', "'oo'", '3') . ' AS locate9, ';
+        $sql .= $platform->getLocateExpression('test_string', "'foo'", '1') . ' AS locate10, ';
         $sql .= $platform->getLocateExpression('test_string', "'oo'", '1 + 1') . ' AS locate11 ';
         $sql .= 'FROM ' . $this->table;
 

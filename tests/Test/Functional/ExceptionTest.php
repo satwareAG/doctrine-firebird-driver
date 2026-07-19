@@ -294,7 +294,8 @@ class ExceptionTest extends FunctionalTestCase
         $conn   = DriverManager::getConnection($params);
 
         $this->expectException(Exception\ConnectionException::class);
-        $conn->connect();
+        // DBAL4: connect() is protected; trigger connection via query
+        $conn->executeQuery('SELECT 1 FROM RDB$DATABASE');
     }
 
     /** @return array<int, array<int, mixed>> */

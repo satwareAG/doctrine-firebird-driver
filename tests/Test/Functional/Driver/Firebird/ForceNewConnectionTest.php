@@ -131,10 +131,8 @@ class ForceNewConnectionTest extends TestCase
      */
     private function getNativeConnection(Connection $conn): mixed
     {
-        $driverConn = $conn->getWrappedConnection();
-
-        self::assertInstanceOf(FirebirdConnection::class, $driverConn);
-
-        return $driverConn->getNativeConnection();
+        // DBAL4: getWrappedConnection() removed; use getNativeConnection()
+        // which returns the raw Firebird\Connection object
+        return $conn->getNativeConnection();
     }
 }

@@ -30,7 +30,7 @@ class RetryOnLockTest extends FunctionalTestCase
         // We intentionally free the statement to verify that the Transaction lock causes the issue,
         // not the active statement handle (which covers SchemaManager usage patterns).
         $stmt   = $conn->prepare('SELECT * FROM ' . $this->tableName);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
         $row    = $result->fetchNumeric();
 
         // Free stmt/result to ensure only transaction lock remains
@@ -60,7 +60,7 @@ class RetryOnLockTest extends FunctionalTestCase
 
         // 2. Select to hold lock
         $stmt   = $conn->prepare('SELECT * FROM ' . $this->tableName);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
         $row    = $result->fetchNumeric();
 
         // Free stmt/result. Lock persists via transaction (commit_ret).

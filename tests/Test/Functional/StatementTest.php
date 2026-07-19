@@ -130,7 +130,7 @@ EOF
 
         $stmt2 = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
         $stmt2->bindValue(1, 1, ParameterType::INTEGER);
-        $result = $stmt2->execute();
+        $result = $stmt2->executeQuery();
         self::assertSame(1, $result->fetchOne());
     }
 
@@ -142,7 +142,7 @@ EOF
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
 
         $stmt->bindValue(1, 1, ParameterType::INTEGER);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
 
         $id = $result->fetchOne();
         self::assertSame(1, $id);
@@ -150,7 +150,7 @@ EOF
         $result->free();
 
         $stmt->bindValue(1, 2, ParameterType::INTEGER);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
 
         $id = $result->fetchOne();
         self::assertSame(2, $id);
@@ -200,12 +200,12 @@ EOF
 
         $x = 1;
         $stmt->bindValue(1, $x, ParameterType::INTEGER);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
         self::assertSame(1, $result->fetchOne());
 
         $y = 2;
         $stmt->bindValue(1, $y, ParameterType::INTEGER);
-        $result = $stmt->execute();
+        $result = $stmt->executeQuery();
         self::assertSame(2, $result->fetchOne());
     }
 

@@ -31,7 +31,7 @@ class TransactionTest extends FunctionalTestCase
         $statement = $this->connection->prepare($sql);
 
         // Execution should be "fake" successful
-        $result = $statement->execute();
+        $result = $statement->executeQuery();
 
         self::assertTrue(true, 'SET TRANSACTION should not fail or hang');
     }

@@ -134,18 +134,16 @@ class BlobTest extends FunctionalTestCase
 
     public function testBindParamProcessesStream(): void
     {
-        $stream = null;
-        $stmt   = $this->connection->prepare(
+        // DBAL4: bindParam() removed; use bindValue() with stream
+        $stream = fopen('data://text/plain,test', 'r');
+
+        $stmt = $this->connection->prepare(
             "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)",
         );
 
-        // @phpstan-ignore-next-line — bindParam is deprecated but this test verifies late-binding (by-reference) behavior
-        $stmt->bindParam(1, $stream, ParameterType::LARGE_OBJECT);
+        $stmt->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
 
-        // Bind param does late binding (bind by reference), so create the stream only now:
-        $stream = fopen('data://text/plain,test', 'r');
-
-        $stmt->execute();
+        $stmt->executeQuery();
 
         $this->assertBlobContains('test');
     }
