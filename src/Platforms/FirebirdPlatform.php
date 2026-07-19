@@ -1546,7 +1546,7 @@ SQL
             'double'        => Types::FLOAT,
             'decimal'       => Types::DECIMAL,
             'date'          => Types::DATE_MUTABLE,
-            'float'         => Types::FLOAT,
+            'float'         => Types::SMALLFLOAT,
             'int'           => Types::INTEGER,
             'integer'       => Types::INTEGER,
             'int64'         => Types::BIGINT,
@@ -1559,7 +1559,7 @@ SQL
             'tinyint'       => TYPES::SMALLINT,
             'text'          => Types::STRING, // Yes, really. 'char' is internally called text.
             'time'          => Types::TIME_MUTABLE,
-            'real'          => Types::FLOAT,
+            'real'          => Types::SMALLFLOAT,
             'short'         => TYPES::SMALLINT,
             'timestamp'     => Types::DATETIME_MUTABLE,
             'varchar'       => Types::STRING,
