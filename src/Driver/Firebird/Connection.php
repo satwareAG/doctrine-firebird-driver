@@ -38,6 +38,7 @@ use function fbird_connection_info;
 use function fbird_drop_table_force;
 use function fbird_errcode;
 use function fbird_errmsg;
+use function fbird_escape_literal;
 use function fbird_escape_string;
 use function fbird_execute_auto;
 use function fbird_fetch_row;
@@ -297,7 +298,10 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     #[Override]
     public function quote(string $value): string
     {
-        return "'" . fbird_escape_string($value) . "'";
+        // R9: Use fbird_escape_literal() (v13.0.0) which wraps in single
+        // quotes and doubles internal quotes — same as manual quoting but
+        // handled server-side for correctness.
+        return fbird_escape_literal($value);
     }
 
     #[Override]
