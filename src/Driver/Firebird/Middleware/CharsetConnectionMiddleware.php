@@ -17,12 +17,28 @@ use function mb_convert_encoding;
 /** @psalm-suppress DeprecatedInterface */
 final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
 {
+    /** The wrapped driver connection (stored for middleware chain traversal). */
+    private readonly Connection $driverConnection;
+
     public function __construct(
         Connection $connection,
         private readonly string $databaseEncoding,
         private readonly string $phpEncoding,
     ) {
         parent::__construct($connection);
+        $this->driverConnection = $connection;
+    }
+
+    /**
+     * Returns the wrapped driver connection.
+     *
+     * DBAL4 removes getWrappedConnection(); this method allows
+     * ConnectionWrapper to traverse the middleware chain and find
+     * the underlying Firebird driver connection.
+     */
+    public function getWrappedDriverConnection(): Connection
+    {
+        return $this->driverConnection;
     }
 
     /**

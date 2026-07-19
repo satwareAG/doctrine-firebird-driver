@@ -11,6 +11,7 @@ use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetConnectionMiddleware;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 use function is_string;
@@ -22,18 +23,35 @@ final class ConnectionWrapper extends Connection
     /**
      * Returns the underlying Firebird driver connection.
      *
-     * DBAL4 removes getWrappedConnection(); this method provides access
-     * to the native driver connection for tests and low-level operations.
+     * DBAL4 removes getWrappedConnection(); this method traverses the
+     * middleware chain (if any) to find the raw Firebird\Connection.
      */
-    public function getFirebirdDriverConnection(): Connection|null
+    public function getFirebirdDriverConnection(): \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection|null
     {
         if ($this->_conn === null) {
             $this->connect();
         }
 
-        return $this->_conn instanceof Connection
-            ? $this->_conn
-            : null;
+        // Direct connection (no middleware wrapping)
+        if ($this->_conn instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+            return $this->_conn;
+        }
+
+        // Traverse middleware chain via getWrappedDriverConnection()
+        $conn = $this->_conn;
+        while ($conn instanceof \Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware) {
+            if ($conn instanceof CharsetConnectionMiddleware) {
+                $inner = $conn->getWrappedDriverConnection();
+                if ($inner instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                    return $inner;
+                }
+                $conn = $inner;
+            } else {
+                break;
+            }
+        }
+
+        return null;
     }
 
     #[Override]
