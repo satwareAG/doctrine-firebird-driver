@@ -228,7 +228,7 @@ class ConnectionTest extends TestCase
         $connection->lastInsertIdBySequence('this_generator_name_is_way_too_long_for_firebird');
     }
 
-    public function testLastInsertIdThrowsExceptionForNonStringName(): void
+    public function testLastInsertIdReturnsZeroWhenNoIdentityGenerated(): void
     {
         $connection = $this->createConnectionThroughReflection();
 

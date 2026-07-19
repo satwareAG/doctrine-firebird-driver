@@ -25,6 +25,11 @@ final class ConnectionWrapper extends Connection
      *
      * DBAL4 removes getWrappedConnection(); this method traverses the
      * middleware chain (if any) to find the raw Firebird\Connection.
+     *
+     * Limitation: only CharsetConnectionMiddleware is supported for chain
+     * traversal. If a non-charset middleware (e.g., logging, profiling) is
+     * stacked between ConnectionWrapper and the driver, this method returns
+     * null. Callers should handle null gracefully.
      */
     public function getFirebirdDriverConnection(): \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection|null
     {
@@ -83,9 +88,10 @@ final class ConnectionWrapper extends Connection
     #[Override]
     public function lastInsertId(): int|string
     {
-        // Delegating to connection for native last_insert_id() / gen_id()
-        $connection = $this->getNativeConnection();
-        if ($connection instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+        // Use getFirebirdDriverConnection() to traverse middleware chain
+        // and get our driver-level Connection (not the native Firebird object).
+        $connection = $this->getFirebirdDriverConnection();
+        if ($connection !== null) {
             return $connection->lastInsertId();
         }
 

@@ -248,8 +248,18 @@ final class Statement implements StatementInterface
             }
         }
 
-        // Cache the INSERT table name so that lastInsertId(null) can resolve the IDENTITY
-        // generator on Firebird 3.0/4.0 (where fbird_last_insert_id() requires a generator name).
+        if ($fbirdResultRc === false) {
+            throw new DriverException(
+                (string) fbird_errmsg(),
+                null,
+                (int) fbird_errcode(),
+            );
+        }
+
+        // Cache the INSERT table name ONLY on successful execution, so that
+        // lastInsertId(null) can resolve the IDENTITY generator on Firebird 3.0/4.0
+        // (where fbird_last_insert_id() requires a generator name). Caching before
+        // the failure check would record the table from a failed INSERT.
         if (
             $this->isInsert && preg_match(
                 '/INSERT\s+INTO\s+"?([A-Za-z_\x80-\xFF][A-Za-z0-9_$\x80-\xFF]*)"?\s*[(\s]/i',
@@ -258,14 +268,6 @@ final class Statement implements StatementInterface
             ) === 1
         ) {
             $this->connection->setLastInsertTable(strtoupper(trim($m[1], '"')));
-        }
-
-        if ($fbirdResultRc === false) {
-            throw new DriverException(
-                (string) fbird_errmsg(),
-                null,
-                (int) fbird_errcode(),
-            );
         }
 
         $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
