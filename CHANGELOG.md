@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-07-19 - php-firebird v13.0 required + CI fixes + charset docs
+
+### Changed
+- **`ext-firebird` constraint bumped from `^12.0 || ^13.0` to `^13.0`** (#131):
+  v13.0.0 is now the required minimum. Consumers still on v12 must upgrade to
+  v13.0.0+ or stay on v3.18.0. Justified by Phase A verification: full PHPUnit
+  suite (2367 tests, 5030 assertions) passes against ext-firebird v13.0.0 on
+  Firebird 3.0.14 with zero v13-specific failures.
+- **`satwareag/php-firebird-stubs` constraint bumped from `^12.0.0 || ^13.0.0`
+  to `^13.0.0`** (#131): matching the runtime extension constraint.
+- **CI matrix: php-firebird v12.0.0 replaced with v13.0.0** (#131): both the
+  test matrix and quality-checks job now build ext-firebird v13.0.0 from
+  source. Cache keys bumped v9 -> v10.
+- **IPADP metadata synced**: `specs/metadata.json` version 3.16.0 -> 3.19.0,
+  php-firebird upstream version 12.0.0 -> 13.0.0.
+
+### Added
+- **Charset escape-hatch documentation** (#119): `CharsetMiddleware` docblock
+  and spec.md Out of Scope section now cross-reference issue #119 with the
+  decision rationale (option 1: document only; escape hatches are explicit
+  opt-outs, callers responsible for encoding).
+- **Encoding asymmetry documentation** (#117): spec.md new Design Decisions
+  section documents the deliberate error handling asymmetry between
+  `encodeSql()` (strict, throws) and `quote()`/`bindValue()`/`decodeValue()`
+  (lenient, substitutes). Docblocks added to all lenient call sites.
+- **`CharsetEncodingAsymmetryTest`** (#117): 4 regression tests documenting
+  the intentional asymmetry, preventing accidental unification.
+
+### Fixed
+- **CI Code Quality job: 10 PHPCS violations** (since 2026-07-13): auto-fixed
+  by phpcbf across 5 files (Visitor.php, Parser.php, RegularExpressionError.php,
+  Connection.php, BlobBinaryCharsetTest.php). CI Code Quality had been failing
+  for 6 days.
+- **CI Firebird 4.0/5.0 jobs: missing phpunit config files** (since
+  2026-07-13): commit b795b63 deleted `phpunit-firebird4.xml` and
+  `phpunit-firebird5.xml` but the CI matrix still referenced them. All
+  Firebird versions now use `phpunit.xml` (the test suite is the same;
+  the Firebird server version is determined by the Docker container).
+
+### Verified
+- 2367/2367 tests pass against ext-firebird v13.0.0 (139 pre-existing skips,
+  3 pre-existing PhpunitScriptTest errors on PHP 8.5, 0 v13 failures):
+  - Unit: 1599 tests, 2634 assertions (3 pre-existing PHP 8.5 errors)
+  - Integration-ReadOnly: 24 tests, 150 assertions
+  - Integration-Write: 97 tests, 606 assertions
+  - Functional: 647 tests, 1640 assertions (118 skipped)
+- PHPStan level 8: clean
+- Psalm: clean
+- PHPCS: clean (0 violations)
+
+### Deprecated
+- v3.18.0 GitHub Release skipped. Consumers should target v3.19.0 directly.
+  The v3.18.0 tag remains published (immutable) but has no Release notes.
+
 ## [3.18.0] - 2026-07-19 - ext-firebird v13 constraint widening
 
 ### Changed
