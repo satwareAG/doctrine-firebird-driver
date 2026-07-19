@@ -41,9 +41,6 @@ jobs:
   test:
     name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}
     runs-on: ubuntu-latest
-    # Firebird 4.0/5.0 are experimental — php-firebird has known crashes with FB5.
-    # Don't fail the overall CI for experimental targets.
-    continue-on-error: ${{ matrix.firebird.experimental }}
     permissions:
       contents: read
 
@@ -80,22 +77,19 @@ jobs:
         # may use PHP 8.2+ syntax. PHP 8.1 EOL Dec 2025.
         # Minimum effective PHP version is 8.2.
         php-version: ['8.2', '8.3', '8.4', '8.5']
-        # Firebird configs: [display-version, docker-tag, phpunit-config, experimental]
-        # Firebird 3.0 is the primary target (Amicron ERP). FB4/FB5 are informational.
-        # php-firebird has known SIGABRT crashes with FB5 — marked experimental.
+        # Firebird configs: [display-version, docker-tag, phpunit-config]
+        # All three Firebird versions (3.0/4.0/5.0) are fully supported
+        # with php-firebird v13.0.0 (FB4+/FB5+ feature coverage complete).
         firebird:
           - version: '3.0'
             docker-tag: '3'
             config: 'phpunit.xml'
-            experimental: false
           - version: '4.0'
             docker-tag: '4'
             config: 'phpunit.xml'
-            experimental: true
           - version: '5.0'
             docker-tag: '5'
             config: 'phpunit.xml'
-            experimental: true
 
     env:
       # Default Firebird credentials
