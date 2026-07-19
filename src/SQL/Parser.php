@@ -68,7 +68,7 @@ final class Parser
             self::OTHER,
         ]);
 
-        $sqlPattern        = sprintf('(%s)', implode('|', $patterns));
+        $sqlPattern         = sprintf('(%s)', implode('|', $patterns));
         $this->tokenPattern = '~\\G'
             . '(?P<named>' . self::NAMED_PARAMETER . ')'
             . '|(?P<positional>' . self::POSITIONAL_PARAMETER . ')'

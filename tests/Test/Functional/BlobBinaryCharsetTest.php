@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
@@ -20,8 +21,6 @@ use function fwrite;
 use function mb_convert_encoding;
 use function rewind;
 use function str_repeat;
-use function stream_get_contents;
-use function strlen;
 use function strpos;
 
 /**
@@ -42,63 +41,9 @@ use function strpos;
  */
 class BlobBinaryCharsetTest extends FunctionalTestCase
 {
-    private \Doctrine\DBAL\Connection $isoConn;
-
     private const TABLE_NAME = 'blob_binary_charset_test';
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Create a separate connection with ISO8859_1 charset + CharsetMiddleware
-        $params            = $this->connection->getParams();
-        $params['charset'] = 'ISO8859_1';
-
-        $configuration = new Configuration();
-        $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        $configuration->setMiddlewares([
-            new CharsetMiddleware('ISO-8859-1', 'UTF-8'),
-        ]);
-
-        $params['persistent']                  = false;
-        $params['driverOptions']['persistent'] = false;
-
-        $this->isoConn = DriverManager::getConnection($params, $configuration);
-
-        // Ensure test table exists
-        $tableReady = false;
-        try {
-            $this->isoConn->executeStatement('DELETE FROM ' . self::TABLE_NAME);
-            $tableReady = true;
-        } catch (Throwable) {
-            // Table doesn't exist yet
-        }
-
-        if (! $tableReady) {
-            $table = new Table(self::TABLE_NAME);
-            $table->addColumn('id', Types::INTEGER);
-            $table->addColumn('binary_blob', Types::BLOB);
-            $table->addColumn('text_blob', Types::TEXT);
-            $table->setPrimaryKey(['id']);
-            $this->isoConn->createSchemaManager()->createTable($table);
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-
-        try {
-            $this->isoConn->close();
-        } catch (Throwable) {
-        }
-
-        parent::tearDown();
-    }
-
-    // -----------------------------------------------------------------------
-    // Write-through roundtrip: insert binary via middleware, read back via middleware
-    // -----------------------------------------------------------------------
+    private Connection $isoConn;
 
     /**
      * JPEG binary data must survive a full write→read roundtrip through
@@ -256,6 +201,64 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
 
         self::assertSame($utf8Text, $fetched, 'High-byte text without NULL must be transcoded');
     }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create a separate connection with ISO8859_1 charset + CharsetMiddleware
+        $params            = $this->connection->getParams();
+        $params['charset'] = 'ISO8859_1';
+
+        $configuration = new Configuration();
+        $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
+        $configuration->setMiddlewares([
+            new CharsetMiddleware('ISO-8859-1', 'UTF-8'),
+        ]);
+
+        $params['persistent']                  = false;
+        $params['driverOptions']['persistent'] = false;
+
+        $this->isoConn = DriverManager::getConnection($params, $configuration);
+
+        // Ensure test table exists
+        $tableReady = false;
+        try {
+            $this->isoConn->executeStatement('DELETE FROM ' . self::TABLE_NAME);
+            $tableReady = true;
+        } catch (Throwable) {
+            // Table doesn't exist yet
+        }
+
+        if ($tableReady) {
+            return;
+        }
+
+        $table = new Table(self::TABLE_NAME);
+        $table->addColumn('id', Types::INTEGER);
+        $table->addColumn('binary_blob', Types::BLOB);
+        $table->addColumn('text_blob', Types::TEXT);
+        $table->setPrimaryKey(['id']);
+        $this->isoConn->createSchemaManager()->createTable($table);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->markConnectionNotReusable();
+
+        try {
+            $this->isoConn->close();
+        } catch (Throwable) {
+        }
+
+        parent::tearDown();
+    }
+
+// -----------------------------------------------------------------------
+
+// Write-through roundtrip: insert binary via middleware, read back via middleware
+// -----------------------------------------------------------------------
+
 
     // -----------------------------------------------------------------------
     // Helpers
