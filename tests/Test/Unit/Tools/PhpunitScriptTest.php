@@ -28,7 +28,13 @@ class PhpunitScriptTest extends TestCase
             $this->markTestSkipped('Skipping PhpunitScriptTest in CI to avoid nested Docker issues.');
         }
 
-        $this->scriptPath = realpath(__DIR__ . '/../../../phpunit.sh');
+        $scriptPath = realpath(__DIR__ . '/../../../phpunit.sh');
+
+        if ($scriptPath === false) {
+            $this->markTestSkipped('phpunit.sh not found — Docker-based test runner was removed during 3.10.x merge.');
+        }
+
+        $this->scriptPath = $scriptPath;
     }
 
     /**
