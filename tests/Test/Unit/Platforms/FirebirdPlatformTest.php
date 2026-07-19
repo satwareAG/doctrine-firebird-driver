@@ -275,8 +275,8 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public static function dataProvider_testDoModifyLimitQuery(): Iterator
     {
-        yield ['foo', 'foo', null, null];
-        yield ['foo FETCH FIRST 3 ROWS ONLY', 'foo', 3, null];
+        yield ['foo', 'foo', null, 0];
+        yield ['foo FETCH FIRST 3 ROWS ONLY', 'foo', 3, 0];
         yield ['foo OFFSET 3 ROWS', 'foo', null, 3];
         yield ['foo OFFSET 3 ROWS FETCH NEXT 3 ROWS ONLY', 'foo', 3, 3];
     }

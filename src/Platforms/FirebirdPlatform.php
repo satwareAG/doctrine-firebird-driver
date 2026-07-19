@@ -1347,18 +1347,14 @@ SQL
         }
 
         if ($offset === 0) {
-            // A limit is specified, but no offset, so the syntax ROWS <n> is used
-            return $query . ' ROWS 1 TO ' . (int) $limit;
+            return $query . ' FETCH FIRST ' . $limit . ' ROWS ONLY';
         }
 
-        $from = $offset + 1; // Firebird starts the offset at 1
         if ($limit === null) {
-            $to = PHP_INT_MAX; // should be beyond a reasonable  number of rows
-        } else {
-            $to = $from + $limit - 1;
+            return $query . ' OFFSET ' . $offset . ' ROWS';
         }
 
-        return $query . ' ROWS ' . $from . ' TO ' . $to;
+        return $query . ' OFFSET ' . $offset . ' ROWS FETCH NEXT ' . $limit . ' ROWS ONLY';
     }
 
     /**
@@ -1664,6 +1660,19 @@ SQL
                 'TABLE ' . $name;
 
         $query .= ' (' . $columnListSql;
+
+        // Extract column-level CHECK constraints (DBAL4's getCheckDeclarationSQL()
+        // handles table-level only; column-level checks need manual extraction).
+        $checkConstraints = [];
+        foreach ($columns as $column) {
+            if (isset($column['check']) && is_string($column['check']) && $column['check'] !== '') {
+                $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
+            }
+        }
+
+        if (! empty($checkConstraints)) {
+            $query .= ', ' . implode(', ', $checkConstraints);
+        }
 
         $query .= ')';
 
