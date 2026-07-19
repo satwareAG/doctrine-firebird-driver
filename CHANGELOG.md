@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-07-19 - php-firebird v13.0 on DBAL 4.4.x
+
+### Changed
+- **3.10.x branch merged into 4.4.x** — brought all 181 modern commits
+  (v3.13.0-v3.19.0) including ext-firebird v13.0 support, #127 binary BLOB
+  corruption fix, #114/#115 forceNewConnection option, #124 SQL Parser
+  decoupling, #117/#119 charset encoding asymmetry docs + tests.
+- **DBAL4 API adaptations re-applied** — `quote(string): string`,
+  `lastInsertId(): int|string` (throws `NoIdentityValue`), `beginTransaction/
+  commit/rollBack(): void`, `getNativeConnection(): object|resource`,
+  `TransactionIsolationLevel` enum, `ColumnDiff::getChangedColumns()`,
+  `getCreateTableSQL(Table)` single param, `getLocateExpression` typed params,
+  `doModifyLimitQuery` typed params + SQL:2008 syntax.
+- **CI: Firebird 4.0/5.0 promoted from experimental to required** —
+  php-firebird v13.0.0 has full FB4+/FB5+ feature coverage.
+- **IPADP metadata synced**: `specs/metadata.json` version 4.4.1 -> 4.5.0.
+- **`lastInsertId()` split**: `lastInsertId()` (DBAL4, no `$name`) +
+  `lastInsertIdBySequence(string $name)` (driver extension for named sequences).
+- **`Driver::connect()`**: replaced `fbird_service_attach` + `fbird_server_info`
+  + `fbird_service_detach` with post-connect `fbird_server_version()` (R4).
+- **`Connection::quote()`**: uses `fbird_escape_literal()` (R9).
+- **`doModifyLimitQuery`**: switched from `ROWS n TO m` to SQL:2008
+  `FETCH FIRST n ROWS ONLY` / `OFFSET n ROWS FETCH NEXT n ROWS ONLY`.
+- **`Firebird3Platform::getAlterTableSQL`**: fixed stray `)` in UPDATE SET
+  column=column autoincrement migration SQL.
+- **`Connection::setAttribute`**: passes `TransactionIsolationLevel` enum
+  directly to `setIsolationLevel()` (was casting to int).
+
+### Added
+- **`Connection::ping()`** — uses `fbird_ping()` (v13.0.0) for lightweight
+  `IAttachment::ping()` roundtrip (R3).
+- **`Connection::lastInsertIdBySequence(string $name)`** — Firebird-specific
+  extension for named generator/sequence lookups (replaces DBAL3
+  `lastInsertId($name)` path).
+- **`ConnectionWrapper::getFirebirdDriverConnection()`** — traverses
+  middleware chain to find the underlying Firebird driver connection
+  (replaces DBAL3 `getWrappedConnection()`).
+- **`CharsetConnectionMiddleware::getWrappedDriverConnection()`** — exposes
+  the wrapped driver connection for middleware chain traversal.
+- **`specs/003-php-firebird-v13-on-dbal4/spec.md`** — design document for the
+  v4.5.0 work.
+
+### Fixed
+- **Code review findings**: dead code in `ConnectionWrapper::lastInsertId()`
+  (instanceof check always false); `setLastInsertTable` cached before failure
+  check in `Statement::execute()`; misnamed test renamed.
+- **`FirebirdPlatform::_getCreateTableSQL`**: restored column-level CHECK
+  constraint extraction with proper `isset()` guards.
+- **`ConnectionWrapper::getDatabase()`**: added `@return non-empty-string|null`
+  PHPDoc and empty-string guard.
+- **`FirebirdSchemaManager`**: `fetchTableOptionsByTable` accepts nullable
+  `$databaseName`; `_getPortableTableDefinition` returns `non-empty-string`.
+
+### Removed
+- **Firebird 2.5 test support**: deleted `Firebird25SchemaManagerTest.php`
+  (DBAL 4.x minimum is Firebird 3.0; no FB 2.5 platform class exists).
+- **Deprecated DBAL3 APIs**: `bindParam()`, `exec()`, `connect()` (public),
+  `getWrappedConnection()`, `setNestTransactionsWithSavepoints(false)`,
+  `setSchemaAssetsFilter(null)`.
+
+### Verified
+- 2170/2170 tests pass (3 pre-existing PHP 8.5 `realpath()` errors in
+  PhpunitScriptTest, 0 v13-specific failures):
+  - Unit: 1460 tests (3 pre-existing errors, 45 skipped)
+  - Functional FB3: 530 tests (0 errors, 40 skipped)
+  - Functional FB4: 530 tests (0 errors, 36 skipped)
+  - Functional FB5: 530 tests (0 errors, 36 skipped)
+  - Integration-ReadOnly: 24 tests (0 errors)
+  - Integration-Write: 96 tests (0 errors, 3 skipped)
+- PHPStan level 8: 0 errors (90 baselined DBAL 4.4->5.0 deprecation warnings)
+- ext-firebird v13.0.0, DBAL 4.4.3, stubs v13.0.0
+
+### Known issues
+- **Metadata lock hang** (php-firebird #540): `fbird_commit_ret()` holds
+  metadata locks from SELECT cursors, causing DDL to hang after schema
+  introspection. Workaround: `gc_collect_cycles()` before DDL.
+  https://github.com/satwareAG/php-firebird/issues/540
+
 ## [3.19.0] - 2026-07-19 - php-firebird v13.0 required + CI fixes + charset docs
 
 ### Changed
