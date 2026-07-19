@@ -19,6 +19,23 @@ use function sprintf;
 /** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection
 {
+    /**
+     * Returns the underlying Firebird driver connection.
+     *
+     * DBAL4 removes getWrappedConnection(); this method provides access
+     * to the native driver connection for tests and low-level operations.
+     */
+    public function getFirebirdDriverConnection(): Connection|null
+    {
+        if ($this->_conn === null) {
+            $this->connect();
+        }
+
+        return $this->_conn instanceof Connection
+            ? $this->_conn
+            : null;
+    }
+
     #[Override]
     public function prepare(string $sql): Statement
     {
