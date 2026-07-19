@@ -161,10 +161,8 @@ EOF
         $this->connection->insert('stmt_test', ['id' => 1]);
         $this->connection->insert('stmt_test', ['id' => 2]);
 
-        // DBAL4: bindParam() removed; use explicit bindValue() calls before each execute.
+        // DBAL4: bindParam() removed; use bindValue() for each query
         $stmt = $this->connection->prepare('SELECT id FROM stmt_test WHERE id = ?');
-        // @phpstan-ignore-next-line — bindParam is deprecated but this test verifies reference-binding behavior
-        $stmt->bindParam(1, $id, ParameterType::INTEGER);
 
         $stmt->bindValue(1, 1, ParameterType::INTEGER);
         $result = $stmt->executeQuery();
