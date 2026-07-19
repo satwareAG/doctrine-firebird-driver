@@ -48,6 +48,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         $tableName      = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__ . json_encode(func_get_args())), 0, 12));
         $columnTypeName = FirebirdSchemaManager::getFieldTypeIdToColumnTypeMap()[$inputFieldType];
 
+        $this->dropTableIfExists($tableName);
         $table = new Table($tableName);
         $table->addColumn('foo', $columnTypeName, $options);
 
@@ -184,6 +185,7 @@ class CreateWithColumnsTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
 
+        $this->dropTableIfExists($tableName);
         $table     = new Table($tableName);
         $columns   = [];
         $columns[] = $table->addColumn('char_a', 'string', ['length' => 11, 'fixed' => true]);

@@ -218,31 +218,31 @@ class FirebirdPlatformSQLTest extends TestCase
     public function testModifyLimitQuery(): void
     {
         $sql = $this->_platform->modifyLimitQuery('SELECT * FROM user', 10, 0);
-        self::assertSame('SELECT * FROM user ROWS 1 TO 10', $sql);
+        self::assertSame('SELECT * FROM user FETCH FIRST 10 ROWS ONLY', $sql);
     }
 
     public function testModifyLimitQueryWithEmptyOffset(): void
     {
         $sql = $this->_platform->modifyLimitQuery('SELECT * FROM user', 10);
-        self::assertSame('SELECT * FROM user ROWS 1 TO 10', $sql);
+        self::assertSame('SELECT * FROM user FETCH FIRST 10 ROWS ONLY', $sql);
     }
 
     public function testModifyLimitQueryWithEmptyLimit(): void
     {
         $sql = $this->_platform->modifyLimitQuery('SELECT * FROM user', null, 10);
-        self::assertEquals('SELECT * FROM user ROWS 11 TO ' . PHP_INT_MAX, $sql);
+        self::assertEquals('SELECT * FROM user OFFSET 10 ROWS', $sql);
     }
 
     public function testModifyLimitQueryWithAscOrderBy(): void
     {
         $sql = $this->_platform->modifyLimitQuery('SELECT * FROM user ORDER BY username ASC', 10);
-        self::assertSame('SELECT * FROM user ORDER BY username ASC ROWS 1 TO 10', $sql);
+        self::assertSame('SELECT * FROM user ORDER BY username ASC FETCH FIRST 10 ROWS ONLY', $sql);
     }
 
     public function testModifyLimitQueryWithDescOrderBy(): void
     {
         $sql = $this->_platform->modifyLimitQuery('SELECT * FROM user ORDER BY username DESC', 10);
-        self::assertSame('SELECT * FROM user ORDER BY username DESC ROWS 1 TO 10', $sql);
+        self::assertSame('SELECT * FROM user ORDER BY username DESC FETCH FIRST 10 ROWS ONLY', $sql);
     }
 
     public function testGenerateTableWithAutoincrement(): void

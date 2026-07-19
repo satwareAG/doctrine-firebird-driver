@@ -8,32 +8,26 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Deprecations\Deprecation;
-use Override;
-use RuntimeException;
+use Firebird\ResultSet;
+use Firebird\Transaction;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
 
 use function array_flip;
 use function array_map;
 use function array_unshift;
 use function assert;
-use function count;
 use function fbird_affected_rows;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
-use function fbird_fetch_assoc;
 use function fbird_free_query;
-use function fclose;
-use function get_resource_type;
+use function func_num_args;
 use function is_int;
-use function is_numeric;
-use function is_resource;
 use function ksort;
 use function preg_match;
 use function sprintf;
-use function str_starts_with;
-use function strcasecmp;
-use function stream_get_contents;
 use function strtoupper;
 use function trim;
 
@@ -65,26 +59,28 @@ final class Statement implements StatementInterface
     /** @var bool True if this is specifically an INSERT statement */
     private bool $isInsert = false;
 
-    /** @var bool True if this statement has a RETURNING clause */
-    private bool $hasReturning = false;
+    private readonly BlobHandler $blobHandler;
 
     /**
-     * @param resource|false|null $statement
-     * @param array<int|string>   $parameterMap
-     * @param string              $sql          The SQL statement for DML detection
+     * @param \Firebird\Statement|Transaction|false|null $statement
+     * @param array<int|string>                          $parameterMap
+     * @param string                                     $sql          The SQL statement for DML detection
      *
      * @throws Exception
      */
-    public function __construct(protected Connection $connection, protected $statement, private mixed $parameterMap = [], string $sql = '')
+    // phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint -- accepts resource|object for dual-accept bridge
+    public function __construct(protected Connection $connection, private $statement = null, private mixed $parameterMap = [], private string $sql = '')
     {
-        if (is_resource($statement)) {
+        $this->blobHandler = new BlobHandler();
+
+        if ($this->statement !== null) {
             // Determine if this is a DML statement by examining the SQL
             $this->isDml = $this->detectDmlStatement($sql);
             // Specifically check if it's an INSERT
             $this->isInsert = $this->detectInsertStatement($sql);
-            // Check if this statement has a RETURNING clause
-            $this->hasReturning = $this->detectReturningClause($sql);
+        }
 
+        if ($this->isStatementValid()) {
             return;
         }
 
@@ -93,21 +89,15 @@ final class Statement implements StatementInterface
 
     public function __destruct()
     {
-        if (! is_resource($this->statement)) {
+        // Only free Statement handles; Transaction handles are managed by TransactionManager.
+        if (! $this->statement instanceof \Firebird\Statement) {
             return;
         }
 
-        $statementType = get_resource_type($this->statement);
-
-        // Skip cleanup for transaction resources (php-firebird v7.0.0+)
-        if ($statementType === 'Firebird transaction') {
-            return;
-        }
-
-        // Free query resources (php-firebird v7.0.0+)
-        if ($statementType === 'Firebird query') {
+        // Destructors must not throw — wrap cleanup in try-catch
+        try {
             fbird_free_query($this->statement);
-            unset($this->statement);
+        } catch (Throwable) {
         }
 
         $this->statement = null;
@@ -148,28 +138,30 @@ final class Statement implements StatementInterface
 
     /**
      * {@inheritDoc}
-     *
-     * @throws RuntimeException
      */
     #[Override]
     public function execute(): ResultInterface
     {
-        assert(is_resource($this->statement));
+        // Defense-in-depth: with php-firebird v12.0.0+ (#305 fixed),
+        // fbird_prepare_ex failures throw under THROW mode, making this path
+        // unreachable in THROW mode. Kept for SILENT mode users and as a
+        // safety net against unexpected null returns.
+        if (! $this->isStatementValid()) {
+            throw new DriverException('Statement is not valid or has been closed.');
+        }
 
         if ($this->currentResult !== null) {
             try {
                 $this->currentResult->free();
-            } catch (Exception) {
+            } catch (Throwable) {
                 // Ignore if already freed or invalid
             }
 
             $this->currentResult = null;
         }
 
-        // Check if statement is actually a transaction resource (used for implicit commits)
-        // php-firebird v7.0.0+ resource type
-        $resourceType = get_resource_type($this->statement);
-        if ($resourceType === 'Firebird transaction') {
+        // Check if statement is actually a transaction handle (used for implicit commits)
+        if ($this->statement instanceof Transaction) {
             $fbirdResultRc = 1;
         } else {
             // Execute statement
@@ -178,18 +170,10 @@ final class Statement implements StatementInterface
                     continue;
                 }
 
-                $variable = $this->queryParamBindings[$param];
-                if ($variable === null || ! is_resource($variable)) {
-                    continue;
-                }
-
-                // Workaround for php-firebird 6.2.0+ stability:
-                // Read stream into memory and pass as string. Tested with php-firebird 7.3.0
-                // which still requires this as it doesn't natively consume stream resources.
-                $content = stream_get_contents($variable);
-                fclose($variable);
-
-                $this->queryParamBindings[$param] = $content;
+                $this->queryParamBindings[$param] = $this->blobHandler->toInternalValue(
+                    $this->queryParamBindings[$param],
+                    $type,
+                );
                 $this->queryParamTypes[$param]    = ParameterType::STRING;
             }
 
@@ -202,35 +186,21 @@ final class Statement implements StatementInterface
 
             $conn = $this->connection->getNativeConnection();
 
-            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-            // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
             try {
-                $fbirdResultRc = @fbird_execute(...$callArgs);
-
-                if ($fbirdResultRc === false) {
-                    // fbird_execute returns false on failure and emits a warning or sets error info
-                    $this->connection->checkLastApiCall();
-
-                    // If checkLastApiCall didn't throw, report generic failure
-                    throw new Exception(sprintf(
-                        'fbird_execute returned false without error info. Error code: %s, Message: %s',
-                        (string) fbird_errcode(),
-                        (string) fbird_errmsg(),
-                    ));
-                }
+                $fbirdResultRc = fbird_execute(...$callArgs);
             } catch (Throwable $e) {
-                throw Exception::fromThrowable($e);
+                throw DriverException::fromThrowable($e);
             }
 
             // Result seems ok - is either #rows or result handle
             // As the fbird-api does not have an auto-commit-mode, autocommit is simulated by calling the
             // function autoCommit of the connection
 
-            if (! is_resource($fbirdResultRc)) {
+            if (! $fbirdResultRc instanceof ResultSet) {
                 // fbird_execute() returned boolean/integer (direct DML without prepared statement)
                 if ($fbirdResultRc === true) {
                     // For DML operations that return true, get affected rows count
-                    $postExecAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    $postExecAffectedRows = $this->connection->isConnectionValid() ? fbird_affected_rows($conn) : 0;
                     if ($postExecAffectedRows > 0) {
                         $fbirdResultRc = $postExecAffectedRows;
                     } elseif ($this->isInsert) {
@@ -252,50 +222,9 @@ final class Statement implements StatementInterface
                 if ($this->isDml) {
                     // This is a DML statement (INSERT/UPDATE/DELETE/MERGE/EXECUTE)
 
-                    if ($this->hasReturning) {
-                        // DML with RETURNING clause - fetch the returned values
-                        // This is used by ConnectionWrapper to get identity column values
-                        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-                        try {
-                            $returnedRow = @fbird_fetch_assoc($fbirdResultRc);
-                        } catch (Throwable $e) {
-                            throw Exception::fromThrowable($e);
-                        }
-
-                        if ($returnedRow !== false) {
-                            // Look for identity column value in returned row
-                            // ConnectionWrapper sets connectionInsertColumn when RETURNING is added
-                            $identityColumn = $this->connection->getConnectionInsertColumn();
-
-                            // Try to find the identity value in the returned row
-                            foreach ($returnedRow as $key => $value) {
-                                // ConnectionWrapper uses alias format: ID<hash>.<hash>
-                                // Also check for the actual column name
-                                if (
-                                    $identityColumn !== null && (
-                                    strcasecmp($key, $identityColumn) === 0 ||
-                                    str_starts_with(strtoupper($key), 'ID')
-                                    )
-                                ) {
-                                    if (is_numeric($value)) {
-                                        $this->connection->setLastInsertId((int) $value);
-                                        break;
-                                    }
-                                }
-
-                                // Fallback: if only one numeric value returned, assume it's the ID
-                                if (! is_numeric($value) || count($returnedRow) !== 1) {
-                                    continue;
-                                }
-
-                                $this->connection->setLastInsertId((int) $value);
-                            }
-                        }
-                    }
-
                     // Get affected rows BEFORE commit - fbird_affected_rows returns count
                     // for the last DML operation in the current transaction
-                    $preCommitAffectedRows = is_resource($conn) ? fbird_affected_rows($conn) : 0;
+                    $preCommitAffectedRows = $this->connection->isConnectionValid() ? fbird_affected_rows($conn) : 0;
 
                     // Commit the transaction
                     $this->connection->autoCommit();
@@ -319,9 +248,45 @@ final class Statement implements StatementInterface
             }
         }
 
+        // Cache the INSERT table name so that lastInsertId(null) can resolve the IDENTITY
+        // generator on Firebird 3.0/4.0 (where fbird_last_insert_id() requires a generator name).
+        if (
+            $this->isInsert && preg_match(
+                '/INSERT\s+INTO\s+"?([A-Za-z_\x80-\xFF][A-Za-z0-9_$\x80-\xFF]*)"?\s*[(\s]/i',
+                $this->sql,
+                $m,
+            ) === 1
+        ) {
+            $this->connection->setLastInsertTable(strtoupper(trim($m[1], '"')));
+        }
+
+        if ($fbirdResultRc === false) {
+            throw new DriverException(
+                (string) fbird_errmsg(),
+                null,
+                (int) fbird_errcode(),
+            );
+        }
+
         $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
 
         return $this->currentResult;
+    }
+
+    /**
+     * Check if the statement handle is valid.
+     *
+     * php-firebird v11.1.0+: fbird_prepare()/fbird_prepare_ex() return
+     * Firebird\Statement objects (M3 migration complete, issue #297).
+     * Transaction handles (Firebird\Transaction) are also valid for implicit commits.
+     *
+     * @psalm-assert-if-true \Firebird\Statement|Transaction $this->statement
+     * @phpstan-assert-if-true \Firebird\Statement|Transaction $this->statement
+     */
+    public function isStatementValid(): bool
+    {
+        return $this->statement instanceof \Firebird\Statement
+            || $this->statement instanceof Transaction;
     }
 
     /**
@@ -337,29 +302,20 @@ final class Statement implements StatementInterface
 
         if (is_int($param)) {
             if (! isset($this->parameterMap[$param])) {
-                throw new Exception(sprintf('Positional Parameter %d not found in the parameter map', $param));
+                throw new DriverException(sprintf('Positional Parameter %d not found in the parameter map', $param));
             }
         } else {
             $params = array_flip($this->parameterMap);
             if (! isset($params[$param])) {
-                throw new Exception(sprintf('Named Parameter %s not found in the parameter map', $param));
+                throw new DriverException(sprintf('Named Parameter %s not found in the parameter map', $param));
             }
 
             $param = $params[$param];
         }
 
         if ($type === ParameterType::LARGE_OBJECT) {
-            if ($variable !== null && is_resource($variable)) {
-                // Workaround for php-firebird 6.2.0+ stability:
-                // Read stream into memory and pass as string. Tested with php-firebird 7.3.0
-                // which still requires this as it doesn't natively consume stream resources.
-                // This avoids fbird_blob_create/add/close which seem to cause instability.
-                $content = stream_get_contents($variable);
-                fclose($variable);
-
-                $variable = $content;
-                $type     = ParameterType::STRING;
-            }
+            $variable = $this->blobHandler->toInternalValue($variable, $type);
+            $type     = ParameterType::STRING;
         }
 
         assert(is_int($param));
@@ -392,14 +348,5 @@ final class Statement implements StatementInterface
             '/^\s*(?:\/\*.*?\*\/\s*)*(?:WITH\s+.*?\s+)?INSERT\b/is',
             trim($sql),
         );
-    }
-
-    /**
-     * Detect if the SQL statement has a RETURNING clause.
-     */
-    private function detectReturningClause(string $sql): bool
-    {
-        // Check for RETURNING keyword (case-insensitive)
-        return preg_match('/\bRETURNING\b/i', $sql) === 1;
     }
 }

@@ -31,6 +31,7 @@ class AlterTest extends AbstractIntegrationTestCase
         self::assertTrue(true);
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
+        $this->dropTableIfExists($tableName);
         $sql        = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);
 

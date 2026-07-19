@@ -6,6 +6,8 @@
 .junie/
 /tests/databases/
 .phpcs-cache
+.env
+.phpunit.cache/
 
 /tests/.phpunit.result.cache
 

@@ -6,14 +6,16 @@ parameters:
     # NOTE: SIGSEGV issue with php-firebird extension was resolved in v7.0.0-rc.37
     # See: https://github.com/satwareAG/php-firebird/issues/55
     # See: docs/issues/2025-12-23-phpstan-parallel-segfault-investigation.md
-    # NOTE: Use scanFiles (not stubFiles) for vendor stubs so PHPStan discovers
-    # fbird_* functions/constants even when ext-firebird is not installed.
-    # stubFiles only overrides symbols already known from an installed extension.
+    # NOTE: Use scanFiles (not stubFiles) so PHPStan discovers fbird_*
+    # functions/constants.  The CI quality-checks job installs ext-firebird
+    # so PHPStan sees native types; scanFiles supplement with userland classes
+    # and v10-specific constants.
     scanFiles:
         - vendor/satwareag/php-firebird-stubs/firebird-stubs.php
         - vendor/satwareag/php-firebird-stubs/firebird-classes.php
+        - stubs/firebird-batch-stubs.php
         - stubs/firebird-userland-classes.php
-        - stubs/firebird-global-functions.php
+        - stubs/firebird-v10-functions.php
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false

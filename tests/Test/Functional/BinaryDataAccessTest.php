@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function array_change_key_case;
 use function array_keys;
@@ -21,11 +22,6 @@ use const CASE_LOWER;
 
 class BinaryDataAccessTest extends FunctionalTestCase
 {
-    public function tearDown(): void
-    {
-        $this->markConnectionNotReusable();
-    }
-
     public function testPrepareWithBindValue(): void
     {
         $sql  = 'SELECT test_int, test_binary FROM binary_fetch_table WHERE test_int = ? AND test_binary = ?';
@@ -337,12 +333,27 @@ class BinaryDataAccessTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('binary_fetch_table');
-        $table->addColumn('test_int', 'integer');
-        $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
-        $table->setPrimaryKey(['test_int']);
+        // Avoid DROP+CREATE on every test to prevent Firebird metadata lock
+        // corruption. The dropTableForce() path can invalidate OO API
+        // connection pointers, causing NULL-pointer errors on subsequent tests.
+        // Instead: DELETE existing rows (fast DML, no DDL locks), or create
+        // the table on first run / after connection reset.
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM binary_fetch_table');
+            $tableReady = true;
+        } catch (Throwable) {
+            // Table doesn't exist yet - create it
+        }
 
-        $this->dropAndCreateTable($table);
+        if (! $tableReady) {
+            $table = new Table('binary_fetch_table');
+            $table->addColumn('test_int', 'integer');
+            $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
+            $table->setPrimaryKey(['test_int']);
+
+            $this->dropAndCreateTable($table);
+        }
 
         $this->connection->insert('binary_fetch_table', [
             'test_int' => 1,
@@ -350,5 +361,8 @@ class BinaryDataAccessTest extends FunctionalTestCase
         ], [
             'test_binary' => ParameterType::BINARY,
         ]);
+
+        // Prevent disconnect() from dropping the table between tests.
+        $this->createdTables = [];
     }
 }

@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Query;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -17,12 +16,6 @@ final class QueryBuilderTest extends FunctionalTestCase
 {
     public function testForUpdateOrdinary(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-
-        if ($platform instanceof SqlitePlatform) {
-            self::markTestSkipped('Skipping on SQLite');
-        }
-
         $qb1 = $this->connection->createQueryBuilder();
         $qb1->select('id')
             ->from('for_update')

@@ -5,67 +5,528 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.4.1] - 2026-04-10
+## [Unreleased]
 
-### Fixed
-- **Windows CI workflow** - Updated `windows.yml` to include `4.4.x` branch as push/PR trigger,
-  add `continue-on-error: true` on the job, pin all GitHub Action SHAs, and use improved
-  php-firebird DLL download patterns (prefer v10.6.2 stable over latest). Resolves stale
-  Windows CI failure on the `4.4.x` branch that occurred due to the outdated workflow file.
-
-## [4.4.0] - 2026-04-09
-
-### Added
-- **DBAL 4.x Support** — Full compatibility with `doctrine/dbal` 4.4.x. This is the first release
-  targeting DBAL 4 as the primary supported version.
-- **PHP 8.5 support** — CI matrix extended to cover PHP 8.2 / 8.3 / 8.4 / 8.5 against
-  Firebird 3.0 / 4.0 / 5.0 (13 matrix jobs, all green).
+## [3.19.0] - 2026-07-19 - php-firebird v13.0 required + CI fixes + charset docs
 
 ### Changed
-- **`doctrine/dbal` requirement** — Upgraded from `^3.10` to `^4.4`.
-- **`TransactionIsolationLevel`** — Property type changed from `int` to `TransactionIsolationLevel`
-  enum (backed enum in DBAL 4). Integer values passed via `setAttribute()` are still accepted and
-  converted automatically for backward compatibility.
-- **`getEmptyIdentityInsertSQL()`** — Parameter types tightened to `string` in `FirebirdPlatform`
-  to match the DBAL 4 parent signature.
-- **`getDropTableSQL()`** — Parameter type tightened to `string` in `FirebirdPlatform`; the
-  deprecated `Table` object overload (removed in DBAL 4) has been dropped.
+- **`ext-firebird` constraint bumped from `^12.0 || ^13.0` to `^13.0`** (#131):
+  v13.0.0 is now the required minimum. Consumers still on v12 must upgrade to
+  v13.0.0+ or stay on v3.18.0. Justified by Phase A verification: full PHPUnit
+  suite (2367 tests, 5030 assertions) passes against ext-firebird v13.0.0 on
+  Firebird 3.0.14 with zero v13-specific failures.
+- **`satwareag/php-firebird-stubs` constraint bumped from `^12.0.0 || ^13.0.0`
+  to `^13.0.0`** (#131): matching the runtime extension constraint.
+- **CI matrix: php-firebird v12.0.0 replaced with v13.0.0** (#131): both the
+  test matrix and quality-checks job now build ext-firebird v13.0.0 from
+  source. Cache keys bumped v9 -> v10.
+- **IPADP metadata synced**: `specs/metadata.json` version 3.16.0 -> 3.19.0,
+  php-firebird upstream version 12.0.0 -> 13.0.0.
 
-### Removed
-- **`KeywordList::getName()`** — Removed from `Firebird3/4/5Keywords` (method removed in DBAL 4).
-- **`AbstractPlatform::isCommentedDoctrineType()`** — Removed override from `Firebird3Platform`;
-  DBAL 4 uses `Type::requiresSQLCommentHint()` instead.
-- **`onSchemaAlterTable*()` hooks** — Removed from `getAlterTableSQL()` in `Firebird3Platform`
-  (the entire event hook system was removed in DBAL 4).
-- **`TableDiff::getName()` / `ColumnDiff::getOldColumnName()`** — Removed deprecated usages;
-  replaced with `getOldTable()` / `getOldColumn()->getQuotedName()`.
-- **`Connection::lastInsertId($name)` with argument** — DBAL 4 drops the `$name` parameter
-  entirely. `ConnectionWrapper::lastInsertId()` now takes zero arguments; sequence values must
-  be queried directly via `GEN_ID(seq_name, 0) FROM RDB$DATABASE`. All functional tests updated.
+### Added
+- **Charset escape-hatch documentation** (#119): `CharsetMiddleware` docblock
+  and spec.md Out of Scope section now cross-reference issue #119 with the
+  decision rationale (option 1: document only; escape hatches are explicit
+  opt-outs, callers responsible for encoding).
+- **Encoding asymmetry documentation** (#117): spec.md new Design Decisions
+  section documents the deliberate error handling asymmetry between
+  `encodeSql()` (strict, throws) and `quote()`/`bindValue()`/`decodeValue()`
+  (lenient, substitutes). Docblocks added to all lenient call sites.
+- **`CharsetEncodingAsymmetryTest`** (#117): 4 regression tests documenting
+  the intentional asymmetry, preventing accidental unification.
 
 ### Fixed
-- **`getReservedKeywordsClass()` removed** — Replaced the DBAL 3 template-method pattern with
-  direct `createReservedKeywordsList()` overrides in `FirebirdPlatform`, `Firebird3Platform`,
-  `Firebird4Platform`, and `Firebird5Platform`. The base method was removed in DBAL 4.
-- **Column-level CHECK constraints** — DBAL 4's `getCheckDeclarationSQL()` no longer processes
-  the `check` key in column definitions (it now only handles `min`/`max` range constraints).
-  `FirebirdPlatform::_getCreateTableSQL()` now extracts column-level `check` constraints
-  directly to preserve this capability.
-- **`getDefaultValueDeclarationSQL()` TypeError** — DBAL 4's implementation calls
-  `quoteStringLiteral()` on default values for general types, causing a `TypeError` when
-  the default is a PHP `bool`. The override now converts `bool` defaults to `'1'`/`'0'`
-  only for non-`PhpIntegerMappingType`, non-`BooleanType` columns (DBAL 4 handles those two
-  paths internally without string quoting).
-- **`FirebirdComparator::normalizeColumn` integer bool defaults** — The comparator's
-  `normalizeColumn()` now skips `bool`→`string` conversion for `PhpIntegerMappingType` columns.
-  Converting `false`→`'0'` caused `DEFAULT 0` to appear in generated `ALTER TABLE` SQL for
-  integer columns that had no explicit default.
-- **`BatchTest` missing class guard** — `BatchTest::setUp()` now calls
-  `class_exists('Firebird\\Batch')` and marks the test skipped when the class is absent
-  (php-firebird versions below v7.0.0). Prevents `Error: Class "Firebird\Batch" not found`
-  on CI runners using older extension builds.
-- **PHPStan** — Regenerated baseline against DBAL 4; `[OK] No errors` at level 8 (157 known
-  pre-existing warnings captured in baseline).
+- **CI Code Quality job: 10 PHPCS violations** (since 2026-07-13): auto-fixed
+  by phpcbf across 5 files (Visitor.php, Parser.php, RegularExpressionError.php,
+  Connection.php, BlobBinaryCharsetTest.php). CI Code Quality had been failing
+  for 6 days.
+- **CI Firebird 4.0/5.0 jobs: missing phpunit config files** (since
+  2026-07-13): commit b795b63 deleted `phpunit-firebird4.xml` and
+  `phpunit-firebird5.xml` but the CI matrix still referenced them. All
+  Firebird versions now use `phpunit.xml` (the test suite is the same;
+  the Firebird server version is determined by the Docker container).
+
+### Verified
+- 2367/2367 tests pass against ext-firebird v13.0.0 (139 pre-existing skips,
+  3 pre-existing PhpunitScriptTest errors on PHP 8.5, 0 v13 failures):
+  - Unit: 1599 tests, 2634 assertions (3 pre-existing PHP 8.5 errors)
+  - Integration-ReadOnly: 24 tests, 150 assertions
+  - Integration-Write: 97 tests, 606 assertions
+  - Functional: 647 tests, 1640 assertions (118 skipped)
+- PHPStan level 8: clean
+- Psalm: clean
+- PHPCS: clean (0 violations)
+
+### Deprecated
+- v3.18.0 GitHub Release skipped. Consumers should target v3.19.0 directly.
+  The v3.18.0 tag remains published (immutable) but has no Release notes.
+
+## [3.18.0] - 2026-07-19 - ext-firebird v13 constraint widening
+
+### Changed
+- **`ext-firebird` constraint widened** from `^12.0` to `^12.0 || ^13.0` to
+  allow consumers to install alongside the upcoming `php-firebird` v13 native
+  extension. No code changes; pure `composer.json` constraint widening.
+- **`satwareag/php-firebird-stubs` constraint widened** from `^12.0.0` to
+  `^12.0.0 || ^13.0.0` to match the runtime extension constraint and let
+  PHPStan/Psalm resolve v13 stubs in CI and downstream consumers.
+
+### Compatibility
+- No runtime behavior change.
+- No DBAL version constraint change (`doctrine/dbal: ^3.10` unchanged).
+- Branch `3.10.x` (production). Branch `4.4.x` already uses `ext-firebird: *`
+  and does not require a release for this widening.
+
+### Verified
+- `composer.json` valid JSON.
+- Test suite not re-run: v13 native extension is not yet available; widening
+  is purely permissive on a constraint that previously blocked installation.
+  Will be validated end-to-end when `php-firebird` v13 is published.
+
+## [3.17.0] - 2026-07-14 - Binary BLOB corruption fix
+
+### Fixed
+- **Binary BLOB data corruption through charset middleware** (#127): JPEG, PNG,
+  PDF, and other binary BLOB data was corrupted when the connection used a
+  non-UTF-8 charset (e.g., ISO8859_1). Both the read path
+  (`CharsetResultMiddleware::decodeValue()`) and the write path
+  (`CharsetStatementMiddleware::bindValue()`) unconditionally called
+  `mb_convert_encoding()` on binary data, mangling bytes > 0x7F
+  (e.g., JPEG `\xFF\xD8` → `??`). Fixed by adding a NULL-byte heuristic
+  that detects binary data and skips transcoding. All common binary formats
+  (JPEG, PNG, GIF, PDF, ZIP, BMP, TIFF) contain `\x00` in their first few bytes.
+
+- **Dead `columnTypes` parameter removed** (#129): The `CharsetResultMiddleware`
+  constructor accepted a `columnTypes` map from `CharsetStatementMiddleware`,
+  but this contained **parameter** types (from `WHERE` clause `bindValue()`
+  calls), not **result** column types. The type-based binary check at lines
+  150-155 never worked correctly. Removed entirely; binary detection uses
+  the NULL-byte heuristic only.
+
+### Added
+- **Integration tests with ISO8859_1 charset** (#128): New `BlobBinaryCharsetTest`
+  creates a connection with ISO8859_1 charset + `CharsetMiddleware` (matching
+  production config). Tests write→read roundtrip for JPEG, PNG, all-256-bytes,
+  and 64KB binary payloads. Also verifies text BLOB transcoding still works.
+  The existing test suite used UTF8 charset where `mb_convert_encoding` is a
+  no-op, giving false confidence.
+
+- **6 new unit tests** for binary string detection in `CharsetResultMiddleware`:
+  JPEG header, PNG header, all-256-bytes, text transcoding boundary, empty
+  string, ASCII-only passthrough.
+
+### Changed
+- `CharsetResultMiddleware`: constructor no longer accepts `$columnTypes` parameter
+- `CharsetStatementMiddleware`: no longer tracks `$boundTypes` or passes them to result middleware
+- `CharsetConnectionMiddleware`: updated docblock (columnTypes reference removed)
+- `Issue91ReproductionTest`: updated for heuristic-only approach, documents
+  known limitation (binary without `\x00` is transcoded)
+
+### Known limitation
+
+Binary data without NULL bytes AND with bytes > 0x7F would still be transcoded.
+This is near-zero probability for real binary formats. Replace with
+`fbird_field_info()['sub_type']` when php-firebird exposes it (upstream issue filed).
+
+### Verified
+- 2367/2367 tests pass (139 pre-existing skips, 0 failures)
+- PHPStan level 8: clean
+- Psalm: clean
+
+## [3.16.1] - 2026-07-13 - SQL Parser/Visitor decoupling patch
+
+### Fixed
+- **Symfony DebugClassLoader `@internal` deprecation notice** (#122, #124):
+  `ConvertParameters` implemented `Doctrine\DBAL\SQL\Parser\Visitor`, which is
+  marked `@internal`. The Symfony DebugClassLoader vendor-prefix suppression
+  (`strncmp("Satag", "Doctrine", 5)`) rejects cross-vendor usage, so the notice
+  fired for every downstream consumer (including amicron-platform). Copied the
+  DBAL 3.10.5 SQL Parser stack (`Parser`, `Visitor`, `Exception`,
+  `RegularExpressionError`) into `Satag\DoctrineFirebirdDriver\SQL` namespace,
+  removing the `@internal` annotation from the copied `Visitor` interface.
+  The vendor-prefix check now passes (`Satag == Satag`), eliminating the
+  deprecation entirely.
+
+### Changed
+- `ConvertParameters` now implements `Satag\DoctrineFirebirdDriver\SQL\Parser\Visitor`
+  instead of `Doctrine\DBAL\SQL\Parser\Visitor`
+- `Connection` now uses `Satag\DoctrineFirebirdDriver\SQL\Parser` instead of
+  `Doctrine\DBAL\SQL\Parser`
+- Copied code is byte-identical to DBAL 3.10.5 (only namespace and
+  `@internal` annotation differ)
+
+### Verified
+- 2350/2350 tests pass (139 pre-existing skips, 0 failures)
+- PHPStan level 8: clean
+- Psalm: clean (0 errors)
+
+## [3.16.0] - 2026-07-09 - Charset transparency for query()/exec()/prepare() SQL body
+
+### Added
+- **`CharsetConnectionMiddleware::query()` override** (#116): re-encodes the SQL
+  body from the PHP encoding to the database encoding AND wraps the returned
+  `Result` in `CharsetResultMiddleware` so fetched rows decode back to the PHP
+  encoding. Closes the parameterless `SELECT` bypass where DBAL
+  `Connection::executeQuery()` takes a shortcut through
+  `Driver\Connection::query()` (`vendor/doctrine/dbal/src/Connection.php:1106`)
+  when no params are supplied. Previously, the entire charset middleware chain
+  was bypassed for these queries, returning raw Windows-1252 bytes.
+- **`CharsetConnectionMiddleware::exec()` override** (#116): re-encodes the SQL
+  body for parameterless DML. Closes the symmetric bypass for
+  `Connection::executeStatement()` which shortcuts through
+  `Driver\Connection::exec()` (`vendor/doctrine/dbal/src/Connection.php:1216`).
+- **`CharsetConversionException`** (`src/Driver/Firebird/Middleware/Exception/`):
+  typed exception for the defense-in-depth `mb_convert_encoding === false`
+  guard. Unreachable under default PHP config (invalid bytes are substituted
+  rather than returning false) but satisfies PHPStan and fails loudly should
+  the runtime ever return false via a custom `mb_substitute_character`.
+- **28 new unit tests** covering query/exec/prepare SQL body re-encoding for
+  7 Amicron special-character strings (Faßbrause für 30€?, Ärger mit Öl,
+  Straße 123, Müller & Söhne, €uro, äöüÄÖÜß, Produkt: Grüner Tee 500g).
+- **Spec update** (`specs/001-charset-transparency-middleware/spec.md`): added
+  User Story 6 and functional requirements FR-008 (query SQL re-encode +
+  Result wrap), FR-009 (exec SQL re-encode), FR-010 (prepare SQL re-encode).
+
+### Changed
+- **`CharsetConnectionMiddleware::prepare()` now re-encodes the SQL body**
+  before delegating to the inner connection, in addition to its existing
+  `CharsetStatementMiddleware` wrapping. **Behavior change**: callers that
+  previously worked around the latent gap by manually transcoding inline SQL
+  literals to Windows-1252 before calling `prepare()` will now double-encode
+  and silently corrupt data. Downstream consumers
+  (`satag-amicron-entity-bundle`, `amicron-platform`) should audit and drop
+  any such workarounds - see tracking issues in those repos.
+- **`CharsetMiddleware` class docblock** expanded: full coverage map of all
+  SQL-carrying entry points + explicit list of non-charset-aware escape
+  hatches (`executeAuto`, `queryInTransaction`, `createBatch`, `executeBatch`,
+  `getNativeConnection`).
+
+### Fixed
+- **#116**: `CharsetConnectionMiddleware` missed the `query()` path.
+  Parameterless queries (`SELECT * FROM table`, no bound parameters) bypassed
+  the entire charset transcoding chain, returning raw Windows-1252 bytes
+  instead of UTF-8. Caused `json_encode()` "Malformed UTF-8 characters"
+  failures and corrupted all non-ASCII data in downstream consumers.
+- **QueryBuilder literal-fragment gap** (deeper issue surfaced during #116
+  investigation): `$qb->andWhere("name LIKE '%Müller%'")` was concatenated
+  byte-for-byte into the final SQL by `QueryBuilder::getSQL()` and never
+  reached `bindValue()`, so the middleware never saw the UTF-8 literal. The
+  fix re-encodes the SQL body at all three inbound entry points.
+
+## [3.15.0] - 2026-07-08 - forceNewConnection option and role parameter fix
+
+### Added
+- **`forceNewConnection` option** (#114): New connection parameter that bypasses
+  php-firebird's default connection reuse by passing `FBIRD_CONNECT_FORCE_NEW` to
+  `fbird_connect()`. Eliminates a race condition in test suites that boot/shutdown
+  Doctrine kernels between tests (PHPUnit, Pest) where GC-collected destructors
+  close reused links out from under new connections. Default: `false` (production
+  behavior unchanged). Configure via array params (`forceNewConnection => true`)
+  or DSN query parameter (`?forceNewConnection=1`). Persistent connections are
+  unaffected (separate pool, no reuse race).
+
+### Fixed
+- **`role` parameter silently ignored**: `Driver::connect()` now passes
+  `$params['role']` to `fbird_connect()` and `fbird_pconnect()` as the 7th
+  argument (`$role`). Previously the `role` parameter was documented and parsed
+  by `DsnParser` but never forwarded to the native function. Verified via
+  `SELECT CURRENT_ROLE FROM RDB$DATABASE` returning the expected role name.
+
+## [3.14.0] - 2026-07-07 - php-firebird v12.0.0 stable integration
+
+### Changed
+- **php-firebird v12.0.0**: Upgraded extension dependency from `^11.1` to `^12.0`
+  in `composer.json`; upgraded `satwareag/php-firebird-stubs` from `^11.1` to
+  `^12.0.0`. php-firebird v12.0.0 completes the OOP API (`Firebird\Event`
+  methods), eliminates all InterBase-era naming (#304), separates `pdo_fbird`
+  into a standalone extension (#258), and fixes SIGSEGV during module shutdown
+  with persistent connections (#311). 16 issues closed, zero open. This project
+  uses the procedural `fbird_*` API exclusively, so the `pdo_fbird` split has
+  no runtime impact - `firebird.so` alone is sufficient.
+- **Docker test image**: Pinned php-firebird checkout to commit `ae40ef1`
+  (v12.0.0 stable) in `tests/app/Dockerfile`.
+- **Docblock return types updated** for v12 stubs accuracy:
+  - `Connection::executeAuto()`: `resource|int|false` -> `\Firebird\ResultSet|int|false`
+  - `Connection::reconnectLimboTransaction()`: `resource|false` -> `\Firebird\Transaction|false`
+  - `ProceduralBatch::$batchHandle`: `resource` (mixed) -> `\Firebird\BatchHandle` (typed)
+  - `ProceduralBatch::__construct() $transResource`: added `|\Firebird\Transaction` to union
+- **CI workflows**: Upgraded php-firebird from v11.1.0 to v12.0.0 in all GitHub
+  Actions workflows (cache keys, clone steps). Updated Windows DLL download patterns
+  for v12.0.0 release assets.
+- **`Connection::queryInTransaction()`**: Added support for `Firebird\TransactionManager`
+  (from `TBuilder::start()`) in addition to the driver's own `TransactionManager`.
+  Extracts the `Firebird\Transaction` via `getResource()` and passes it to
+  `fbird_query_params_tx()`. Fixes FB4/FB5 "must be a Firebird transaction resource"
+  TypeError when using independent transactions.
+- **`Connection::createBatch()` / `executeBatch()`**: Widened `$transaction` parameter
+  type to `TransactionManager|FirebirdTransactionManager|null` for the same reason.
+  Error messages for invalid transactions now match `queryInTransaction()` (was
+  "No valid transaction available for batch operation.", now "Invalid transaction
+  resource." / "Transaction already committed or rolled back.").
+- **`Connection::resolveTransactionResource()`**: New private helper that deduplicates
+  transaction resolution logic (driver `TransactionManager`, php-firebird
+  `TransactionManager`, or raw `Firebird\Transaction`) across `queryInTransaction()`
+  and `createBatch()`.
+- **`TransactionManager::__destruct`** (php-firebird #310): Replaced `@fbird_rollback()`
+  suppression with try/catch in THROW mode to prevent uncaught `Firebird\Exception`
+  during transaction cleanup. Fixed in php-firebird v12.0.0.
+- **`fbird_trans_start` arginfo**: Removed `@phpstan-ignore argument.type` — v12.0.0
+  fixed the signature from `mixed $options = 0` to `?array $options = null`.
+
+### Fixed
+- **FB4/FB5 test failures**: 4 errors in `QueryInTransactionTest` on Firebird 4.0/5.0
+  caused by `Firebird\TransactionManager` not being recognized by `queryInTransaction()`.
+  Root cause: `TBuilder::start()` returns `Firebird\TransactionManager`, but the driver
+  only checked `instanceof` against its own `Satag\...\TransactionManager`.
+- **BatchTest probe failure**: Removed redundant `createBatch('SELECT 1 FROM RDB$DATABASE')`
+  probe in `BatchTest::setUp()` that failed on FB4/FB5 because IBatch correctly requires
+  parameterized statements. `function_exists('fbird_batch_create')` is sufficient
+  (the C function is only registered when `FB_API_VER >= 40`).
+- **Test fixture pollution**: Added `dropTableIfExists()` / `dropSequenceIfExists()`
+  cleanup before `createTable()` / `createSequence()` in 6 functional test classes
+  to prevent errors when running the full suite without a clean database.
+- **Identity generator reset**: Changed `installFirebirdDatabase()` seeding to use
+  `UPDATE OR INSERT ... MATCHING` with explicit IDs + `ALTER TABLE ... RESTART WITH`
+  for identity generators (not `SET GENERATOR`, which is silently ignored on
+  identity columns).
+- **ExceptionConverterTest pollution**: Added setUp/tearDown cleanup for fixture data.
+- **4 incomplete tests**: Implemented `testQuotesAlterTableChangeColumnLength` in
+  `FirebirdPlatformTest` and `Firebird3PlatformTest` with expected SQL arrays.
+
+### Removed
+- **`ReadOnlyIntegrationTestCase`**: Deleted deprecated test base class; migrated 5
+  test classes to `AbstractIntegrationTestCase`.
+- **`ConfigurableLikeCastLengthTest`**: Deleted deprecated test class (covered by
+  `FirebirdConnectionTest`).
+- **`tests/phpunit.sh`**: Deleted; functionality merged into `run-matrix.sh`
+  (test execution, --suite, --filter, --coverage) and `docker-cqc.sh` (quality pipeline).
+- **`tests/phpunit-lowest-versions.sh`**: Deleted; multi-PHP testing is now via
+  `run-matrix.sh --php` or `run-matrix.sh --all`.
+- **`tests/phpunit-firebird4.xml`, `phpunit-firebird5.xml`, `phpunit-firebird25.xml`,
+  `phpunit-deprecated.xml`**: Deleted; all Firebird versions use single `phpunit.xml`
+  with `DB_HOST` environment variable override.
+- **Psalm baseline**: Reduced from 167 to 68 lines by adding inline `@psalm-suppress`
+  for false-positive `UnusedClass` detections.
+
+### Changed (test infrastructure)
+- **`tests/run-matrix.sh`**: Complete rewrite as primary test runner. Defaults to
+  PHP 8.4 x Firebird 3.0. Supports `--all` (12-combo matrix), `--php`, `--fb`,
+  `--suite`, `--filter`, `--coverage`, `--build`, `--list`, `--clean`. Uses
+  `docker run --rm` instead of `docker compose run` (bypasses depends_on).
+  Parallel FB execution (3 at once per PHP version). Pre-builds 4 images tagged
+  `dfd-app-php{82,83,84,85}`.
+- **`tests/docker-cqc.sh`**: Removed PHP 8.1 references, Firebird 2.5 tests,
+  SIGSEGV exit code 139/134 handling (fixed in php-firebird v12.0.0 via
+  `EG_FLAGS_IN_RESOURCE_SHUTDOWN` guard, issue #311), and
+  `PHPSTAN_WORKERS=1` workaround. Changed `composer update` to `composer install`.
+  Uses single `phpunit.xml` for all FB versions. Added `cleanup_all()` and
+  `cleanup_fb_version()` helpers for automatic volume cleanup before each run
+  (fixes dirty-database failures on FB4/FB5 caused by profiled services not
+  being stopped by `docker compose down -v` without `--profile fb4 --profile fb5`).
+  Healthcheck-based container readiness polling replaces fixed 5s sleep.
+- **`tests/cqc.sh`**: Removed Firebird 2.5 test block and per-version phpunit
+  config references.
+- **`tests/docker-compose.yml`**: Removed `depends_on: firebird3` from `app`
+  service. Updated usage comments to reference `run-matrix.sh`.
+- **`tests/app/Dockerfile`**: Updated comment from "v11.1.0" to "v12.0.0".
+
+### Changed (test cleanup)
+- Replaced `bindParam()` with `bindValue()` in functional/integration tests (kept
+  `bindParam` in 2 tests that specifically test by-reference binding behavior).
+- Replaced `execute([params])` with `bindValue()` + `execute()` in functional tests
+  (kept in unit mock tests that don't trigger DBAL deprecation).
+- Changed `stopOnDefect` to `false` in `phpunit.xml` for better error visibility.
+- Added `FirebirdSchemaManager::getCurrentSequenceValue()` using `GEN_ID(name, 0)`.
+- Removed stale `@todo` from `FirebirdSchemaManager`.
+
+### Notes
+- No new v12 features adopted. The only new v12 feature (`Firebird\Event` OOP methods:
+  `wait()`, `cancel()`, `getName()`, `getCount()`) is for database event monitoring
+  (POST_EVENT triggers), which is outside the scope of a DBAL driver.
+- The v12 OOP method signature changes (`Connection::prepare()` now requires
+  `Transaction`, `Statement::execute()` takes `Transaction`) do not affect this
+  project because it uses the procedural `fbird_*` API, not the OOP API.
+- Skipped tests are all legitimate: 15 inline column comments (Firebird uses
+  `COMMENT ON COLUMN` statement, not inline DDL), 3 sequence cache (FB2.5 only),
+  8 SchemaTest DDL+introspect on FB4+ (Firebird C client hangs on implicit
+  transaction commit), 3 GH50Test DDL deadlock (FB3 only, issue #50).
+- Full test matrix verified: PHP 8.2/8.3/8.4/8.5 x Firebird 3.0/4.0/5.0 = 12 combos,
+  2319 tests each, 0 errors, 0 failures, 0 incomplete.
+- **Test script auto-cleanup**: Added `cleanup_all()` to `tests/lib/common.sh` —
+  properly stops ALL containers (including profiled FB4/FB5) and removes ALL
+  volumes before each test run. Root cause of 591-error failures on FB4/FB5 was
+  `docker compose down -v` without `--profile fb4 --profile fb5` leaving stale
+  test data in profiled service volumes.
+- **SIGSEGV workaround removed**: Exit 139/134 tolerance in `docker-cqc.sh` and
+  `cqc.sh` removed. Root cause (issue #311) fixed in php-firebird v12.0.0 by
+  replacing `!FBG(in_mshutdown)` with `!(EG(flags) & EG_FLAGS_IN_RESOURCE_SHUTDOWN)`
+  in `_php_fbird_close_plink` and `_php_fbird_commit_link` (3 sites).
+- **Incomplete tests eliminated** (was 2, now 0):
+  - Deleted `testConvertDeadlockException` (stub-only, -913 conversion covered by unit tests)
+  - Converted `GH50Test` from `markTestIncomplete` to `markTestSkipped` (known Firebird
+    DDL deadlock limitation, issue #50)
+  - Added FB4/FB5 skip guards to 8 `SchemaTest` methods that hang due to DDL implicit
+    transaction commit on FB4+ (all pass on FB3, root cause in Firebird C client library)
+
+## [3.13.0] - 2026-07-02
+
+### Changed
+- **php-firebird v11.1.0**: Upgraded extension dependency from `^10.6` to `^11.1` in `composer.json`;
+  upgraded `satwareag/php-firebird-stubs` from `^10.6` to `^11.1`. php-firebird v11.0.0 introduces the
+  M3 opaque-object migration (`fbird_connect()`/`fbird_pconnect()` return `Firebird\Connection` objects,
+  `fbird_trans()` returns `Firebird\Transaction`, `fbird_execute()` returns `Firebird\ResultSet` for
+  SELECT, `fbird_blob_create()`/`fbird_blob_open()` return `Firebird\Blob`).
+  v11.1.0 completes the M3 migration: `fbird_prepare()`/`fbird_prepare_ex()` now return
+  `Firebird\Statement` objects (#297), `fbird_query()`/`fbird_execute()` return `Firebird\ResultSet`
+  objects (#296), autocommit visibility is fixed (#294), and MSHUTDOWN SIGSEGV on persistent
+  connection cleanup is fixed (#295).
+- **Driver simplification**: Replaced broad `is_object()` / `!== null && !== false` validity checks
+  with strict `instanceof` assertions:
+  - `Statement::isStatementValid()` → `instanceof \Firebird\Statement || instanceof \Firebird\Transaction`
+  - `Result::isResultValid()` → `instanceof \Firebird\ResultSet`
+  - `Connection::isConnectionValid()` already used `instanceof FirebirdConnection` (unchanged)
+  - `TransactionManager::isTransactionValid()` already used `instanceof \Firebird\Transaction` (unchanged)
+- **CI workflows**: Upgraded php-firebird from v10.6.2 to v11.1.0 in all GitHub Actions workflows
+  (cache keys, clone steps). Removed SIGSEGV (exit 139/134) workaround from all test and coverage
+  steps — the MSHUTDOWN crash is fixed in v11.1.0 (#295). Simplified test steps to direct
+  `phpunit` invocation without output capture and exit-code filtering.
+- **Docker test image**: Upgraded php-firebird checkout from v10.6.2 to v11.1.0 in `tests/app/Dockerfile`.
+  Fixed default `ARG PHP_VERSION` from `8.1` to `8.2` (was below the `composer.json` minimum of `^8.2`).
+- **SchemaManager::dropDatabase()**: Removed v8 default-link workaround (`is_resource()` fallback
+  branches, `IBG(default_link)` corruption comment). With v11 opaque objects, the default-link
+  semantics no longer apply — simplified to `instanceof Connection` check only.
+- **resolveIdentityGenerator()**: Updated comment from "#294 workaround" to "Doctrine best practice"
+  (matches Oracle OCI8 and SQL Server driver patterns for metadata queries within active transaction).
+- **README**: Updated php-firebird minimum version from `v11.0+` to `v11.1+` in Requirements and
+  Test Requirements sections.
+- **IPADP metadata**: Bumped project version to `3.13.0`. Added `amicron-platform` to downstream
+  consumers in `specs/metadata.json` (L3 conformance gap — `amicron-platform` requires
+  `satag/doctrine-firebird-driver: ^3.11.0` but was not declared in downstream metadata).
+
+### Removed
+- `is_resource()` import from `FirebirdSchemaManager` (no longer used after v8 workaround removal).
+- SIGSEGV exit-code handling (139, 134) from CI test steps — php-firebird v11.1.0 fixes the
+  persistent connection cleanup crash (#295).
+
+## [3.12.5] - 2026-04-10
+
+### Fixed
+- **CI infrastructure** - Upgraded all GitHub Actions SHAs to latest pinned versions, fixed
+  test assertion mismatches in AlbumTest (SQL:2008 syntax) and StatementTest (column indices,
+  public setUp signature). ([commit 07b8993])
+- **Code Quality (Psalm)** - Resolved all Psalm CI failures by converting global
+  `psalm.xml.dist` suppressions to inline `@psalm-suppress` annotations in source files.
+  Affected: `Driver.php`, `FirebirdDriverMiddleware.php`, `CharsetMiddleware.php`,
+  `CharsetConnectionMiddleware.php`, `Connection.php`, `FirebirdDriver.php`,
+  `FirebirdPlatform.php`, `FirebirdSchemaManager.php`. Code Quality workflow now passes
+  cleanly. ([commits 9b369f5..69924d1])
+- **Code Quality (PHPStan)** - Added inline `@phpstan-ignore` suppressions for
+  `argument.type` on `fbird_query()`/`fbird_fetch_row()` and removed useless cast.
+  ([commit 57b1016])
+- **Code Quality (PHPCS)** - Moved `resolveIdentityGenerator()` to private section in
+  `FirebirdSchemaManager`, fixed if-alignment in `Statement.php`. ([commit c6ccc22])
+- **`lastInsertId()` on Firebird 3.0/4.0** - Comprehensive fix for identity column
+  sequence resolution. Correct order: `fbird_last_insert_id()` first, then `GEN_ID()`
+  via `executeAuto()`, then `RDB$RELATION_FIELDS` fallback. Handles dotted sequence names,
+  prevents transaction-aborting calls, wraps in try/catch for safety.
+  ([commits f2107c1..e90701e])
+- **Schema - bool defaults for string columns** - `normalizeColumn()` now converts PHP
+  `false` to empty string `''` (not `'0'`) for string-type columns, fixing spurious
+  `DEFAULT ''` diffs on schema comparison. ([commit 878456d])
+- **Functional tests** - Resolved lock conflict in `resolveIdentityGenerator()` by avoiding
+  exclusive DDL locks during sequence lookup, restored BatchTest guard for missing
+  `Firebird\Batch` class. ([commit 9fba1f9])
+
+## [3.12.4] - 2026-04-09
+
+### Fixed
+- **FirebirdComparator bool→integer default guard** (backport from 4.4.x) — `normalizeColumn()`
+  now skips bool-to-string conversion (`false` → `'0'`) for columns whose DBAL type implements
+  `PhpIntegerMappingType`. Previously, integer columns with a `false` PHP default were
+  normalised to `'0'`, causing `ALTER TABLE … DEFAULT 0` to be emitted on every schema diff
+  even when no change was intended. Boolean and string columns still receive `'0'`/`'1'`
+  normalisation so that PHP's loose `'' == false` comparison in `hasDefaultChanged()` is
+  handled correctly. ([commits 1f5b4ca/c9fefc9 on 4.4.x])
+- **BatchTest graceful skip when `Firebird\Batch` is unavailable** (backport from 4.4.x) —
+  `BatchTest::setUp()` now checks `class_exists('Firebird\Batch')` before attempting to call
+  `createBatch()`. Without this guard, a missing class (php-firebird < v7.0.0) caused a
+  fatal PHP `Error` instead of a clean `markTestSkipped()`. The catch block is narrowed to
+  `RuntimeException` (FB_API_VER mismatch), removing the now-redundant
+  `'Class "Firebird\Batch" not found'` string match. ([commit e85d91e on 4.4.x])
+
+### Docs
+- **README**: Fixed incorrect `composer install` → `composer require` in Installation section.
+- **README**: Updated PHPUnit version badge from `10.5` to `11` in Test Coverage section.
+
+## [3.10.5] - 2026-04-07
+
+### Changed
+- **php-firebird v10.6.2**: Upgraded extension dependency from `^10.3.2` to `^10.6` in `composer.json`; removed redundant `paragonie/polyfill-php82` (commit 4c056a5)
+- **CI workflows**: Upgraded php-firebird to v10.6.2 in all GitHub Actions workflows (commit 57fd3fa)
+- **CI security**: Pinned all GitHub Actions to immutable SHA digests (commit 379f2bf)
+- **Docker test image**: Upgraded php-firebird checkout from v10.3.9 to v10.6.2 in `tests/app/Dockerfile` (commit 0f9f4c9)
+
+### Fixed
+- **TransactionTest**: Fixed SERIALIZABLE isolation race condition via `markConnectionNotReusable()` to prevent connection reuse after dirty state (commit 91ea882)
+
+### Verified
+- Full test suite: Firebird 3/4/5 all PASS (2324-2336 tests) with PHP 8.4 + DBAL 3.10.5 + ORM 3.6.3
+
+## [3.10.4] - 2026-03-31
+
+### Added
+- **Resource reference registry** in `Connection.php` - prevents premature `fbird_close()` when
+  multiple DBAL layers share the same native connection resource. Static registry tracks reference
+  counts per resource/object ID; destructor only closes when count reaches zero.
+- **`ProceduralBatch` wrapper** (`src/Driver/Firebird/ProceduralBatch.php`) - reliable alternative
+  to the OO `Firebird\Batch` class whose private constructor and `Batch::fromQuery()` fail with
+  "invalid batch handle" in php-firebird v10.3.9. Uses procedural `fbird_batch_create`,
+  `fbird_batch_add`, `fbird_batch_execute` API.
+- **`ProceduralBatchResult`** (`src/Driver/Firebird/ProceduralBatchResult.php`) - result object
+  wrapping `fbird_batch_execute()` return with `successCount`, `errorCount`, `totalProcessed`.
+- **Gap analysis tests** - `TransactionTest` (#65), `DefaultValueTest` (#66),
+  `ComparatorTest` (#67) covering transaction nesting, DDL default values, and schema comparison.
+- **Integration test suites** - `Integration-ReadOnly` and `Integration-Write` added to FB4/FB5
+  PHPUnit configurations.
+
+### Changed
+- **php-firebird v10.3.9** - Upgraded from v10.3.7. Fixes SIGFPE on parameterless batch (#180),
+  SIGSEGV at shutdown (#183), OO API handle loss (#184), IBatch invalidation (#185).
+- **CI pipeline** - Fixed php-firebird build from source: corrected version tag from v8.2.0 to
+  v10.3.9 matching `composer.json` requirement `ext-firebird: ^10.3.2`. Added OO API PHP file
+  caching and installation for `Firebird\Connection`, `Database`, `TBuilder` classes.
+- **PHPCS compliance** - Fixed 13 coding standard violations across 6 files: use statement
+  sorting, constructor property promotion, class structure ordering, doc comment formatting,
+  FQN references, early exit patterns.
+- **Test suite** - Stabilized BatchTest with known-failure markers for php-firebird OO API bugs;
+  DDL commit between DROP/CREATE in FunctionalTestCase.
+
+### Fixed
+- **SIGSEGV resolution** - Eliminated segmentation faults caused by premature `fbird_close()` on
+  shared connection resources. Root cause: DBAL connection wrapper and user code holding
+  references to the same native resource, with destructor closing it while still in use.
+- **Resource type guard completion** - All `@phpstan-assert-if-true` guards verified across
+  `Connection`, `Result`, `Statement`, and `TransactionManager` classes.
+
+### Tests
+- **Full suite: 2336 tests, ALL PASSED** (Firebird 4.0)
+- **PHPStan Level 8: 0 errors**
+- **PHPCS: 0 violations**
+
+## [3.12.3] - 2026-03-19
+
+### Fixed
+- **Standard SQL Pagination (Firebird 3.0+)** — Replaced legacy `ROWS` syntax with standard
+  SQL `OFFSET <m> ROWS FETCH NEXT <n> ROWS ONLY` for `Firebird3Platform`, `Firebird4Platform`,
+  and `Firebird5Platform`. This improves compatibility with modern SQL standards and Doctrine
+  DBAL 3.10+ expectations (#93)
+
+### Changed
+- **Platform Test Coverage** — Enhanced `Firebird4PlatformTest` and `Firebird5PlatformTest` by
+  extending `Firebird3PlatformTest` to ensure full feature parity and regression testing
+  for pagination across all supported Firebird 3.0+ versions.
+- **Docker Test Stability** — Refactored `TestUtil::initializeDatabase` and corrected directory
+  permissions in Firebird containers to resolve intermittent database creation failures (#93)
 
 ## [3.12.2] - 2026-03-18
 
@@ -437,11 +898,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.1...HEAD
-[4.4.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.4.0...v4.4.1
-[4.4.0]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.2...v4.4.0
-[3.12.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1...v3.12.2
-[3.12.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.1-rc.1...v3.12.1
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.5...HEAD
+[3.12.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.4...v3.12.5
+[3.12.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.5...v3.12.4
+[3.10.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...v3.10.5
+[3.10.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.2...v3.10.4
 [3.12.1-rc.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0...v3.12.1-rc.1
 [3.12.0-RC.3]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-RC.2...v3.12.0-RC.3
 [3.12.0-RC.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.0-rc.1...v3.12.0-RC.2

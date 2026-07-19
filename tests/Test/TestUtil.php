@@ -8,16 +8,10 @@ use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Exception\DatabaseDoesNotExist;
-use Doctrine\DBAL\Logging\Middleware;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Portability\Middleware;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
-use Monolog\Processor\MemoryUsageProcessor;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Throwable;
 
 use function array_keys;
@@ -29,6 +23,7 @@ use function getenv;
 use function implode;
 use function in_array;
 use function is_string;
+use function md5;
 use function mkdir;
 use function str_ends_with;
 use function str_replace;
@@ -36,7 +31,6 @@ use function str_starts_with;
 use function strlen;
 use function strtoupper;
 use function substr;
-use function unlink;
 
 use const PHP_OS_FAMILY;
 
@@ -45,8 +39,19 @@ use const PHP_OS_FAMILY;
  */
 class TestUtil
 {
-    /** Whether the database schema is initialized. */
-    private static bool $initialized = false;
+    /** Whether the database schema is initialized for the current test run. */
+    private static bool $runInitialized = false;
+
+    /** Cached shared connection - reused across tests to avoid reconnection issues. */
+    private static Connection|null $sharedConnection = null;
+
+    /**
+     * Map of class-level initialization flags.
+     * Some test classes require a truly fresh database.
+     *
+     * @var array<string, bool>
+     */
+    private static array $classInitialized = [];
 
     /** The actual database name being used (after resolving locks). */
     private static string|null $effectiveDbName = null;
@@ -72,23 +77,54 @@ class TestUtil
      */
     public static function getConnection(): Connection
     {
-        if (self::hasRequiredConnectionParams() && ! self::$initialized) {
-            self::initializeDatabase();
-            self::$initialized = true;
+        // Return cached connection if still valid (avoids reconnection issues
+        // with php-firebird where a second connect to the same DB file fails
+        // with empty DB path and false health check).
+        if (self::$sharedConnection !== null) {
+            try {
+                self::$sharedConnection->fetchOne('SELECT 1 FROM RDB$DATABASE');
+
+                return self::$sharedConnection;
+            } catch (Throwable) {
+                self::$sharedConnection = null;
+            }
         }
 
-        $params                 = self::getConnectionParams();
+        if (self::hasRequiredConnectionParams() && ! self::$runInitialized) {
+            self::initializeDatabase();
+            self::$runInitialized = true;
+        }
+
+        $params                 = self::getTestConnectionParameters();
         $params['wrapperClass'] = ConnectionWrapper::class;
-        $configuration          = self::createConfiguration();
+
+        // Force non-persistent connections in tests to avoid shutdown crashes
+        // and lock issues on both Linux and Windows runners.
+        $params['persistent']                  = false;
+        $params['driverOptions']['persistent'] = false;
+
+        $configuration = self::createConfiguration();
 
         $configuration->setMiddlewares([
-            new \Doctrine\DBAL\Portability\Middleware(0, ColumnCase::UPPER),
+            new Middleware(0, ColumnCase::UPPER),
         ]);
 
-        return DriverManager::getConnection(
+        self::$sharedConnection = DriverManager::getConnection(
             $params,
             $configuration,
         );
+
+        return self::$sharedConnection;
+    }
+
+    /**
+     * Reset the shared connection cache without calling close().
+     * Used when the underlying native resource has been invalidated
+     * and we need a fresh connection on next getConnection() call.
+     */
+    public static function resetSharedConnection(): void
+    {
+        self::$sharedConnection = null;
     }
 
     /** @return mixed[] */
@@ -130,102 +166,174 @@ class TestUtil
         ), $rows));
     }
 
+    /**
+     * Create/recreate the test database file.
+     * Public so integration tests can call it independently of getConnection().
+     */
+    public static function initializeDatabase(bool $force = false, string|null $className = null): void
+    {
+        // Skip if already initialized for this run, unless $force is true.
+        if (! $force) {
+            if ($className !== null && isset(self::$classInitialized[$className])) {
+                return;
+            }
+
+            if ($className === null && self::$runInitialized) {
+                return;
+            }
+        }
+
+        $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
+
+        // On Windows CI, ensure we use a simple writable path that Firebird likes
+        if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
+            $tempDir = 'C:\\firebird_tests';
+            if (! file_exists($tempDir)) {
+                @mkdir($tempDir, 0777, true);
+            }
+
+            $baseName = $baseParams['dbname'];
+            if (! str_starts_with($baseName, $tempDir)) {
+                $baseName = basename(str_replace('\\', '/', $baseName));
+                $baseName = $tempDir . '\\' . $baseName;
+            }
+
+            if ($force && $className !== null) {
+                $uniqueId = substr(md5($className), 0, 8);
+                $ext      = str_ends_with($baseName, '.fdb') ? '.fdb' : '';
+                if ($ext !== '') {
+                    $baseName = substr($baseName, 0, -4);
+                }
+
+                $baseName .= '_' . $uniqueId . $ext;
+            }
+
+            $baseParams['dbname'] = $baseName;
+        }
+
+        // Connect to the database. If it doesn't exist, create it.
+        $params                                = $baseParams;
+        $params['persistent']                  = false;
+        $params['driverOptions']['persistent'] = false;
+        $params['wrapperClass']                = ConnectionWrapper::class;
+
+        $connection = null;
+        try {
+            $connection = DriverManager::getConnection($params, self::createConfiguration());
+            $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
+        } catch (Throwable) {
+            // DB doesn't exist yet — create it via a privileged connection
+            if ($connection !== null) {
+                try {
+                    $connection->close();
+                } catch (Throwable) {
+                }
+            }
+
+            $privilegedParams                                = self::getPrivilegedConnectionParameters();
+            $privilegedParams['dbname']                      = $baseParams['dbname'];
+            $privilegedParams['persistent']                  = false;
+            $privilegedParams['driverOptions']['persistent'] = false;
+
+            try {
+                $privilegedConnection = DriverManager::getConnection($privilegedParams);
+                $sm                   = $privilegedConnection->createSchemaManager();
+                $sm->createDatabase($baseParams['dbname']);
+
+                if ($privilegedConnection->isTransactionActive()) {
+                    $privilegedConnection->rollBack();
+                }
+
+                $privilegedConnection->close();
+            } catch (Throwable) {
+                // DB may already exist (race) or creation failed — fall through
+            }
+
+            // Connect to the freshly created DB
+            $connection = DriverManager::getConnection($params, self::createConfiguration());
+        }
+
+        // When force=true (integration tests), clean all user objects so
+        // installFirebirdDatabase() can recreate schema from scratch.
+        // Each block must be executed separately - Firebird executes one statement per call.
+        if ($force) {
+            $cleanupBlocks = [
+                "EXECUTE BLOCK AS\n"
+                . "  DECLARE cname VARCHAR(63);\n"
+                . "  DECLARE tname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT rc.RDB\$CONSTRAINT_NAME, rc.RDB\$RELATION_NAME\n"
+                . "      FROM RDB\$RELATION_CONSTRAINTS rc\n"
+                . "      WHERE rc.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'\n"
+                . "      INTO :cname, :tname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'ALTER TABLE \"' || TRIM(:tname) || '\" DROP CONSTRAINT \"' || TRIM(:cname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . 'END',
+                "EXECUTE BLOCK AS\n"
+                . "  DECLARE tname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS\n"
+                . "      WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL\n"
+                . "      INTO :tname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'DROP TABLE \"' || TRIM(:tname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . 'END',
+                "EXECUTE BLOCK AS\n"
+                . "  DECLARE gname VARCHAR(63);\n"
+                . "BEGIN\n"
+                . "  FOR SELECT RDB\$GENERATOR_NAME FROM RDB\$GENERATORS\n"
+                . "      WHERE RDB\$SYSTEM_FLAG = 0\n"
+                . "      INTO :gname DO\n"
+                . "  BEGIN\n"
+                . "    EXECUTE STATEMENT 'DROP SEQUENCE \"' || TRIM(:gname) || '\"';\n"
+                . "    WHEN ANY DO BEGIN /* ignore */ END\n"
+                . "  END\n"
+                . 'END',
+            ];
+
+            foreach ($cleanupBlocks as $block) {
+                try {
+                    $connection->executeStatement($block);
+                } catch (Throwable) {
+                    // Cleanup errors are non-fatal (tables may not exist yet)
+                }
+            }
+
+            // Explicitly commit any pending DDL from EXECUTE STATEMENT inside blocks.
+            try {
+                if ($connection->isTransactionActive()) {
+                    $connection->commit();
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        self::$effectiveDbName  = $baseParams['dbname'];
+        self::$sharedConnection = $connection;
+
+        if ($className !== null) {
+            self::$classInitialized[$className] = true;
+        } else {
+            self::$runInitialized = true;
+        }
+    }
+
     private static function hasRequiredConnectionParams(): bool
     {
         return isset($GLOBALS['db_driver_class']);
     }
 
-    private static function initializeDatabase(): void
-    {
-        $baseParams = self::mapConnectionParameters($GLOBALS, 'db_');
-        $baseName   = $baseParams['dbname'];
-
-        // On Windows CI, ensure we use a simple writable path that Firebird likes
-        if (PHP_OS_FAMILY === 'Windows' && getenv('CI')) {
-            $tempDir = 'C:\\firebird_tests';
-            if (! str_starts_with($baseName, $tempDir)) {
-                // Strip any path and force into tempDir
-                $baseName = basename(str_replace('\\', '/', $baseName));
-                $baseName = $tempDir . '\\' . $baseName;
-            }
-
-            $baseParams['dbname'] = $baseName;
-            if (! file_exists($tempDir)) {
-                @mkdir($tempDir, 0777, true);
-            }
-        }
-
-        $ext = '';
-        if (str_ends_with($baseName, '.fdb')) {
-            $baseName = substr($baseName, 0, -4);
-            $ext      = '.fdb';
-        }
-
-        $maxSlots = 5;
-        for ($i = 0; $i < $maxSlots; $i++) {
-            $currentName = $i === 0 ? $baseParams['dbname'] : $baseName . '_' . $i . $ext;
-
-            $params           = $baseParams;
-            $params['dbname'] = $currentName;
-            // Explicitly disable persistence
-            $params['persistent']                  = false;
-            $params['driverOptions']['persistent'] = false;
-
-            $connection = DriverManager::getConnection($params);
-            // Silencing createSchemaManager/dropDatabase because they might trigger connection which warns if DB doesn't exist
-            try {
-                $sm = @$connection->createSchemaManager();
-                try {
-                    @$sm->dropDatabase($currentName);
-                } catch (DatabaseDoesNotExist) {
-                    // Expected
-                } catch (Exception $e) {
-                    // Fallback: try local unlink if possible
-                    if (! str_ends_with($currentName, '.fdb') || ! file_exists($currentName)) {
-                        // If we cannot drop/delete, and it's not the last slot, try next slot
-                        if ($i < $maxSlots - 1) {
-                            $connection->close();
-                            continue;
-                        }
-
-                        throw $e;
-                    }
-
-                    unlink($currentName);
-                }
-
-                // If we are here, database is dropped or didn't exist. Now create it.
-                $sm->createDatabase($currentName);
-                self::$effectiveDbName = $currentName;
-                $connection->close();
-
-                return;
-            } catch (Throwable $e) {
-                $connection->close();
-                if ($i === $maxSlots - 1) {
-                    throw $e;
-                }
-            }
-        }
-    }
-
     private static function createConfiguration(): Configuration
     {
-        static $logger = null;
         $configuration = new Configuration();
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
-        if ($logger === null) {
-            $logger = new Logger('sql_logger');
-            $logger
-                ->pushProcessor(new MemoryUsageProcessor())
-                ->pushHandler(
-                    new StreamHandler(__DIR__ . '/../../../var/sql_query.log', Level::Debug),
-                );
-        }
 
-        $configuration->setMiddlewares([
-            new Middleware($logger),
-        ]);
+        // Logging middleware disabled - DG\BypassFinals\MutatingWrapper in
+        // Docker test env breaks stream_open for log files.
 
         return $configuration;
     }
@@ -261,8 +369,7 @@ class TestUtil
     {
         $parameters  = [];
         $driverClass = $configuration['db_driver_class'] ?? 'Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver';
-
-        $dbHost = getenv('DB_HOST') ?: ($configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1');
+        $dbHost      = getenv('DB_HOST') ?: ($configuration['db_host'] ?? $configuration[$prefix . 'host'] ?? '127.0.0.1');
 
         foreach (
             [

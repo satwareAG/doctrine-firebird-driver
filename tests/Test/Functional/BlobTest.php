@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
+use Throwable;
 
 use function fopen;
 use function str_repeat;
@@ -131,23 +132,55 @@ class BlobTest extends FunctionalTestCase
         $this->assertBlobContains('test2');
     }
 
+    public function testBindParamProcessesStream(): void
+    {
+        $stream = null;
+        $stmt   = $this->connection->prepare(
+            "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)",
+        );
+
+        // @phpstan-ignore-next-line — bindParam is deprecated but this test verifies late-binding (by-reference) behavior
+        $stmt->bindParam(1, $stream, ParameterType::LARGE_OBJECT);
+
+        // Bind param does late binding (bind by reference), so create the stream only now:
+        $stream = fopen('data://text/plain,test', 'r');
+
+        $stmt->execute();
+
+        $this->assertBlobContains('test');
+    }
+
     public function testBlobBindingDoesNotOverwritePrevious(): void
     {
-        $table = new Table('blob_table');
+        // Use a separate table name to avoid DDL on the shared blob_table,
+        // which would trigger dropTableForce() and corrupt OO API pointers.
+        $table = new Table('blob_table_multi');
         $table->addColumn('id', 'integer');
         $table->addColumn('blobcolumn1', 'blob', ['notnull' => false]);
         $table->addColumn('blobcolumn2', 'blob', ['notnull' => false]);
         $table->setPrimaryKey(['id']);
-        $this->dropAndCreateTable($table);
+
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM blob_table_multi');
+            $tableReady = true;
+        } catch (Throwable) {
+        }
+
+        if (! $tableReady) {
+            $this->dropAndCreateTable($table);
+        }
+
+        $this->createdTables = [];
 
         $params = ['test1', 'test2'];
         $this->connection->executeStatement(
-            'INSERT INTO blob_table(id, blobcolumn1, blobcolumn2) VALUES (1, ?, ?)',
+            'INSERT INTO blob_table_multi(id, blobcolumn1, blobcolumn2) VALUES (1, ?, ?)',
             $params,
             [ParameterType::LARGE_OBJECT, ParameterType::LARGE_OBJECT],
         );
 
-        $blobs = $this->connection->fetchNumeric('SELECT blobcolumn1, blobcolumn2 FROM blob_table');
+        $blobs = $this->connection->fetchNumeric('SELECT blobcolumn1, blobcolumn2 FROM blob_table_multi');
         self::assertIsArray($blobs);
 
         $actual = [];
@@ -161,13 +194,28 @@ class BlobTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('blob_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
-        $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        // Avoid DROP+CREATE on every test to prevent Firebird metadata lock
+        // corruption. See BinaryDataAccessTest for full rationale.
+        $tableReady = false;
+        try {
+            $this->connection->executeStatement('DELETE FROM blob_table');
+            $tableReady = true;
+        } catch (Throwable) {
+            // Table doesn't exist or has wrong schema - create it
+        }
 
-        $this->dropAndCreateTable($table);
+        if (! $tableReady) {
+            $table = new Table('blob_table');
+            $table->addColumn('id', Types::INTEGER);
+            $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
+            $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
+            $table->setPrimaryKey(['id']);
+
+            $this->dropAndCreateTable($table);
+        }
+
+        // Prevent disconnect() from dropping the table between tests.
+        $this->createdTables = [];
     }
 
     private function assertBlobContains(string $text): void

@@ -23,7 +23,7 @@ use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function class_exists;
 use function str_contains;

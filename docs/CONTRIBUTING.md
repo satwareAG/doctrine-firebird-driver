@@ -6,8 +6,8 @@ Thank you for your interest in contributing to the Doctrine Firebird Driver!
 
 ### Prerequisites
 
-1. **PHP 8.1+** with `ext-interbase` extension
-2. **Docker & Docker Compose** for running tests
+1. **PHP 8.2+** with the `ext-firebird` extension available for local non-Docker work
+2. **Docker & Docker Compose** for the supported multi-version test workflow
 3. **Composer** for dependency management
 4. **Git** for version control
 
@@ -21,7 +21,7 @@ cd doctrine-firebird-driver
 # Install dependencies
 composer install
 
-# Run tests to verify setup
+# Run the default Firebird 3 test flow to verify setup
 cd tests && ./phpunit.sh
 ```
 
@@ -32,9 +32,9 @@ cd tests && ./phpunit.sh
 cd tests && ./phpunit.sh
 ```
 
-**All Firebird versions:**
+**All supported CI Firebird versions:**
 ```bash
-cd tests && ./phpunit-all.sh
+cd tests && ./phpunit.sh -v all
 ```
 
 **For comprehensive testing documentation, see [TESTING.md](TESTING.md)**
@@ -54,17 +54,17 @@ Before submitting a pull request, ensure your changes meet the following require
 
 ### 1. Code Quality
 
-- [ ] **PHP 8.1+ compatibility** - Use modern PHP features
+- [ ] **PHP 8.2+ compatibility** - Use modern PHP features supported by the active branch
 - [ ] **Type declarations** - All function parameters and return types declared
 - [ ] **Strict types** - `declare(strict_types=1);` at top of all files
-- [ ] **PSR-12 coding standard** - Run `composer cs-fix` before committing
-- [ ] **PHPStan Level 8** - No static analysis errors (`composer phpstan`)
+- [ ] **PSR-12 coding standard** - Run `vendor/bin/phpcs` before committing
+- [ ] **PHPStan Level 8** - No static analysis errors (`vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=1G`)
 - [ ] **No deprecations** - Code must not trigger deprecation warnings
 
 ### 2. Testing Requirements
 
 - [ ] **All new features have tests** - Unit tests for logic, functional tests for DB features
-- [ ] **All tests pass** - Run `cd tests && ./phpunit-all.sh`
+- [ ] **All tests pass** - Run `cd tests && ./phpunit.sh -v all`
 - [ ] **Test coverage maintained** - New code should have ≥80% coverage
 - [ ] **Namespace matches directory** - See [TESTING.md](TESTING.md#namespace-and-directory-mapping)
 - [ ] **Tests extend proper base class** - `TestCase` for unit, `FunctionalTestCase` for functional
@@ -100,7 +100,8 @@ Fixes #16
 
 ### 5. Multi-Version Compatibility
 
-The driver supports **Firebird 2.5, 3.0, 4.0, and 5.0**. Ensure your changes:
+The active release line is validated against **Firebird 3.0, 4.0, and 5.0** in CI. Ensure your
+changes:
 
 - [ ] Work on all supported Firebird versions
 - [ ] Use version checks if feature is version-specific
@@ -111,22 +112,29 @@ The driver supports **Firebird 2.5, 3.0, 4.0, and 5.0**. Ensure your changes:
 if (version_compare($connection->getServerVersion(), '3.0', '>=')) {
     // Use Firebird 3+ feature
 } else {
-    // Fallback for Firebird 2.5
+    // Fallback for older or unsupported server behavior
 }
 ```
+
+> Note: legacy Firebird 2.5 local-only artifacts may still exist in the repository for historical
+> debugging, but routine contributor work should target the supported 3.0, 4.0, and 5.0 matrix.
 
 ## Development Workflow
 
 ### 1. Create a Feature Branch
 
 ```bash
-git checkout -b feature/configurable-like-cast-length
+git checkout -b feat/configurable-like-cast-length
 ```
 
 Use descriptive branch names:
-- `feature/feature-name` - New features
+- `feat/feature-name` - New features
 - `fix/bug-description` - Bug fixes
 - `docs/documentation-topic` - Documentation updates
+- `chore/maintenance-topic` - CI, dependency, and housekeeping work
+
+Routine pull requests should target **`3.10.x`**. The `4.4.x` branch is reserved for future DBAL 4
+work and should only receive changes when that line is actively being resumed.
 
 ### 2. Write Tests First (TDD)
 
@@ -161,14 +169,18 @@ final class NewFeature
 ### 4. Run Quality Checks
 
 ```bash
-# Code style
-composer cs-fix
+# Recommended all-in-one Docker pipeline
+cd tests && ./docker-cqc.sh
+
+# Or run the core checks individually from project root
+vendor/bin/phpcs
 
 # Static analysis
-composer phpstan
+vendor/bin/phpstan analyse src/ --level=8 --no-progress --memory-limit=1G
+vendor/bin/psalm --no-cache
 
-# Run all tests
-cd tests && ./phpunit-all.sh
+# Run supported Firebird versions
+cd tests && ./phpunit.sh -v all
 
 # Back to project root
 cd ..
@@ -190,7 +202,7 @@ Detailed description of what was added and why.
 
 Fixes #123"
 
-git push origin feature/feature-name
+git push origin feat/feature-name
 ```
 
 ### 7. Open Pull Request
@@ -199,6 +211,7 @@ git push origin feature/feature-name
 - Reference related issues (`Fixes #123`)
 - Ensure all CI checks pass
 - Request review from maintainers
+- Note whether the change should later be forward-ported to `4.4.x`
 
 ## Code Style Guidelines
 
@@ -240,7 +253,7 @@ final class ExampleClass
 **Key style points:**
 - `declare(strict_types=1);` at top of every file
 - Final classes by default (unless designed for inheritance)
-- Readonly properties where applicable (PHP 8.1+)
+- Readonly properties where applicable (PHP 8.2+)
 - Constructor property promotion
 - Type hints for all parameters and return values
 - Early returns instead of nested conditionals
@@ -364,7 +377,7 @@ When reporting bugs or requesting features:
 Clear description of the issue or feature request.
 
 ## Environment
-- PHP version: 8.1.x
+- PHP version: 8.2.x or newer
 - Firebird version: 3.0.x
 - Driver version: x.x.x
 - Operating system: Linux/Windows/macOS

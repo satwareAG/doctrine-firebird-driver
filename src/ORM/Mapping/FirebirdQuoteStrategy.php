@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\ORM\Mapping;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\DefaultQuoteStrategy;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function strtoupper;
 

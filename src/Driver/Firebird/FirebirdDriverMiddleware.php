@@ -7,7 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware as MiddlewareInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 /**
  * DBAL Driver Middleware support for the Firebird driver.
@@ -29,11 +29,13 @@ use Override;
  * correctly handles {@see \Doctrine\DBAL\VersionAwarePlatformDriver} via
  * {@see AbstractDriverMiddleware::createDatabasePlatformForVersion()}.
  */
+/** @psalm-suppress UnusedClass — used by downstream consumers or via DI service registration */
 final class FirebirdDriverMiddleware implements MiddlewareInterface
 {
     #[Override]
     public function wrap(Driver $driver): Driver
     {
+        /** @psalm-suppress DeprecatedInterface */
         return new class ($driver) extends AbstractDriverMiddleware {
         };
     }

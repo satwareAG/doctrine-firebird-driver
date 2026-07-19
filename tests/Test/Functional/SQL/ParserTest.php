@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\SQL;
 
-use Doctrine\DBAL\SQL\Parser;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
+use Satag\DoctrineFirebirdDriver\SQL\Parser;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 /**

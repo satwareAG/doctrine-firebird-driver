@@ -12,7 +12,7 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Types;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
@@ -115,7 +115,7 @@ class Firebird3Platform extends FirebirdPlatform
                 );
 
                 // Step 2: Copy the data from the original column to the temporary column
-                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $tempColumn . '=' . $oldColumnName . ' )';
+                $sql[] = 'UPDATE ' . $tableNameSQL . ' SET ' . $tempColumn . '=' . $oldColumnName;
                 // Step 3: Drop the original column
                 $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP ' . $oldColumnName;
                 // Step 4: Rename the temporary column to the original column name
@@ -344,6 +344,27 @@ ___query___;
         parent::initializeDoctrineTypeMappings();
 
         $this->doctrineTypeMapping['boolean'] = Types::BOOLEAN;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    #[Override]
+    protected function doModifyLimitQuery($query, $limit, $offset): string
+    {
+        if ($limit === null && $offset <= 0) {
+            return $query;
+        }
+
+        if ($offset <= 0) {
+            return $query . ' FETCH FIRST ' . $limit . ' ROWS ONLY';
+        }
+
+        if ($limit === null) {
+            return $query . ' OFFSET ' . $offset . ' ROWS';
+        }
+
+        return $query . ' OFFSET ' . $offset . ' ROWS FETCH NEXT ' . $limit . ' ROWS ONLY';
     }
 
     /**

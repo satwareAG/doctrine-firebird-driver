@@ -1,90 +1,118 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last session:** 2026-04-09
-**Branch:** `4.4.x` | **Status:** CI GREEN - DBAL4 migration complete
-**Target:** `doctrine/dbal` v4.4.3 | **PHP:** 8.2 / 8.3 / 8.4 / 8.5 | **Firebird:** 3.0 / 4.0 / 5.0
+**Last updated:** 2026-07-07
+**Branch:** `integration/php-firebird-12.0.0` (from `3.10.x`)
+**Extension:** php-firebird v12.0.0 stable (commit `ae40ef1`)
+**Status:** v3.14.0 release ready. All tests green. Merging to `3.10.x`.
 
 ---
 
-## Current State (4.4.x branch)
+## Current State
 
-### CI Status
+### Test Results (PHP 8.4 x Firebird 3.0/4.0/5.0)
 
-**All jobs green** as of CI run `24192492873` (commit `e5bc55e`).
+| FB | Tests | Skipped | Errors | Failures | Incomplete |
+|----|-------|---------|--------|----------|------------|
+| 3.0 | 2319 | 139 | 0 | 0 | 0 |
+| 4.0 | 2319 | 135 | 0 | 0 | 0 |
+| 5.0 | 2319 | 135 | 0 | 0 | 0 |
 
-### Commits (latest first, this session)
+Full matrix (PHP 8.2-8.5 x FB 3.0/4.0/5.0 = 12 combos) verified at commit `566cda4`.
+PHP 8.4 x FB 3/4/5 re-verified after v12.0.0 stable upgrade and cleanup fixes.
 
-| Hash | Description |
-|------|-------------|
-| e5bc55e | fix: update testLastInsertIdSequence for DBAL4 (no $name in lastInsertId) |
-| e85d91e | fix: skip BatchTest gracefully when Firebird\Batch class is unavailable |
-| 1f5b4ca | fix: skip bool→string normalisation in comparator for integer-type columns |
-| 99dde2f | fix: narrow bool→string conversion in getDefaultValueDeclarationSQL to non-integer/non-boolean columns |
-| c9fefc9 | fix: remove stale psalm baseline entry for getDefaultValueDeclarationSQL |
-| 1794b91 | fix: multiple DBAL4 compatibility issues (phpcs, StatementTest, TypeError) |
-| d67f777 | fix(dbal4): fix DBAL4 test compatibility - TableDiff, ForeignKeyConstraint, inline comments, keywords |
+### Quality Gates
 
-### Fixes Applied (this session)
-
-- [x] `getDefaultValueDeclarationSQL` TypeError for bool defaults - narrow conversion to non-integer/non-boolean types only
-- [x] `FirebirdComparator::normalizeColumn` bool→string conversion skips integer types (prevents `DEFAULT 0` in SQL)
-- [x] `BatchTest` now guards `class_exists('Firebird\Batch')` - graceful skip on php-firebird < v7.0.0
-- [x] `testLastInsertIdSequence` - DBAL4 dropped `$name` from `lastInsertId()`; use `GEN_ID(seq, 0)` directly
-
-### Key Technical Decisions (DBAL4)
-
-- `getDefaultValueDeclarationSQL`: Only convert bool→string for non-integer, non-boolean column types.
-  DBAL4 handles `PhpIntegerMappingType` via string concatenation (no TypeError) and `BooleanType` via `convertBooleans()`.
-- `FirebirdComparator::normalizeColumn`: Skip bool→string for integer types because normalized values
-  flow into `TableDiff` SQL generation - converting `false`→`'0'` causes `DEFAULT 0` instead of `DEFAULT `.
-- `Connection::lastInsertId()` in DBAL4 has no `$name` parameter. Use `GEN_ID(seq, 0)` for sequence lookups.
+| Gate | Result |
+|------|--------|
+| PHPCS | 0 errors |
+| PHPStan Level 8 | 0 errors |
+| Psalm | 0 errors (68-line baseline) |
 
 ---
 
-## All Fixes Applied (DBAL4 migration - complete)
+## Completed Work
 
-- [x] `Statement::bindParam()` removed - replaced with `bindValue()` in tests
-- [x] `Connection::getWrappedConnection()` removed - added `getFirebirdDriverConnection()` to `ConnectionWrapper`
-- [x] `Type::getName()` removed - removed from PHPUnit mocks
-- [x] `TableDiff::getName()` / `getNewName()` removed - replaced with `getOldTable()`
-- [x] `TableDiff` public properties removed - replaced with accessor methods
-- [x] `setNestTransactionsWithSavepoints(false)` throws `InvalidArgumentException`
-- [x] `ForeignKeyConstraint::__construct()` requires `string` name
-- [x] `getInlineColumnCommentSQL()` throws `NotSupported` - tests skip properly
-- [x] `getReservedKeywordsClass()` removed - use `getReservedKeywordsList()`
-- [x] `TrimMode` is enum in DBAL4 - test updated
-- [x] `isCommentedDoctrineType()` removed from AbstractPlatform
-- [x] `getColumnComment()` removed - use `Column::getComment()`
-- [x] DBAL4 `Types::ARRAY` / `Types::OBJECT` removed from tests
-- [x] `getDefaultValueDeclarationSQL` TypeError for bool defaults
-- [x] `FirebirdComparator::normalizeColumn` integer type bool normalisation
-- [x] `BatchTest` graceful skip when `Firebird\Batch` class unavailable
-- [x] `testLastInsertIdSequence` DBAL4 `lastInsertId()` API change
+### php-firebird v12.0.0 Stable Integration (2026-07-07)
+
+- Upgraded `ext-firebird` constraint from `^11.1` to `^12.0`
+- Upgraded `satwareag/php-firebird-stubs` from `^11.1` to `^12.0.0` (stable, no `@rc`)
+- Pinned Docker test image to commit `ae40ef1` (v12.0.0 stable)
+- Updated CI workflows to clone `v12.0.0` tag, cache key v9
+- Removed SIGSEGV exit 139/134 workarounds (root cause fixed in v12.0.0 via #311)
+- Added test script auto-cleanup (`cleanup_all()`, `cleanup_fb_version()`)
+- Eliminated all incomplete tests (was 2, now 0)
+
+### php-firebird v12.0.0-rc.11 Initial Integration (2026-07-06)
+
+- Updated docblock return types for v12 stubs accuracy (`resource` -> `Firebird\*` objects)
+- Typed `ProceduralBatch::$batchHandle` as `Firebird\BatchHandle` (was `mixed`)
+- Added `FirebirdSchemaManager::getCurrentSequenceValue()` for Firebird-specific sequence value reading
+- Removed `@phpstan-ignore argument.type` on `fbird_trans_start` (v12 fixed arginfo)
+- 7 issues opened on `satwareAG/php-firebird` (#305-#311) - ALL FIXED in v12.0.0
+
+### FB4/FB5 Fixes (2026-07-06)
+
+- **`Connection::queryInTransaction()`**: Added `Firebird\TransactionManager` handling
+  (from `TBuilder::start()`). Extracts `Firebird\Transaction` via `getResource()`.
+  Fixes "must be a Firebird transaction resource" TypeError on FB4/FB5.
+- **`Connection::createBatch()` / `executeBatch()`**: Widened `$transaction` parameter
+  type to `TransactionManager|FirebirdTransactionManager|null`.
+- **`BatchTest::setUp()`**: Removed redundant `createBatch('SELECT 1...')` probe
+  that failed because IBatch requires parameterized statements.
+- **php-firebird #310**: `TransactionManager::__destruct` THROW mode fix.
+
+### Test Quality Improvements (2026-07-06)
+
+- Fixed test fixture pollution in `ExceptionConverterTest` (setUp/tearDown cleanup)
+- Fixed `installFirebirdDatabase()` seeding: `UPDATE OR INSERT` with explicit IDs
+  + `ALTER TABLE ... RESTART WITH` for identity generators
+- Added `dropTableIfExists()` cleanup to all Integration-Write tests that create tables
+- Added `dropSequenceIfExists()` helper and cleanup to functional schema tests
+- Deleted deprecated `ReadOnlyIntegrationTestCase`, `ConfigurableLikeCastLengthTest`
+- Replaced `bindParam()` with `bindValue()` in functional tests (kept 2 by-ref tests)
+- Implemented 4 previously incomplete `testQuotesAlterTableChangeColumnLength` tests
+- Reduced Psalm baseline from 167 to 68 lines
+
+### Test Script Consolidation (2026-07-06)
+
+- Rewrote `tests/run-matrix.sh` as primary test runner
+- Created `tests/lib/common.sh` (shared helpers: colors, print, cleanup)
+- Deduplicated `docker-cqc.sh` and `cqc.sh` to source `common.sh`
+- Deleted `phpunit.sh`, `phpunit-lowest-versions.sh`, per-version phpunit XMLs
+- Added `cleanup_all()` and `cleanup_fb_version()` for automatic volume cleanup
+- Healthcheck-based container readiness polling (replaces fixed 5s sleep)
+- Volume removal retry loop (Docker may briefly hold references)
+
+### php-firebird v11.1.0 Integration (v3.13.0, 2026-07-02)
+
+- Upgraded from `^10.6` to `^11.1`
+- Migrated from `is_resource()` checks to `instanceof` assertions
+- Fixed SIGSEGV exit-code handling in CI
 
 ---
 
-## Next Work
+## Release Plan
 
-### Suggested (no blockers)
+php-firebird v12.0.0 stable released on 2026-07-07. All integration work is complete.
 
-1. **Merge `4.4.x` → `main`** - DBAL4 migration is stable with full CI coverage
-2. **Tag release** - First stable DBAL4 release (e.g. `v4.0.0`)
-3. **Update README** - Document DBAL4 requirement (`doctrine/dbal: ^4.4`)
-4. **CHANGELOG** - Add DBAL4 migration section
+- [x] Update `composer.json` constraint to `^12.0.0` (stable)
+- [x] Update Dockerfile to v12.0.0 commit `ae40ef1`
+- [x] Update CI workflows to `v12.0.0` tag
+- [x] Re-verify full test suite (0 errors, 0 failures, 0 incomplete)
+- [x] Remove SIGSEGV workarounds
+- [x] Add test script auto-cleanup
+- [ ] Merge `integration/php-firebird-12.0.0` into `3.10.x` via PR
+- [ ] Tag `v3.14.0`, create GitHub release
+- [ ] Update downstream consumers:
+  - `satag-amicron-entity-bundle`: bump to `^3.14.0`, update `php-firebird` to `^12.0`
+  - `amicron-platform`: bump to `^3.14.0`, update `php-firebird` to `^12.0`
 
 ---
 
-## DBAL 3 series (3.10.x branch) - COMPLETE
+## Reference
 
-The `3.10.x` branch is in maintenance mode (critical fixes only).
-- Last release: `v3.12.2` (2026-03-18)
-
----
-
-## Architecture Decisions
-
-- `ConnectionWrapper::getFirebirdDriverConnection()` replaces DBAL3's `getWrappedConnection()`
-- All keyword lists implement `createReservedKeywordsList()` (DBAL4 abstract method)
-- PHPUnit 11 mocks must NOT configure methods that don't exist on the class being mocked
-- `TableDiff` in DBAL4: `new TableDiff(Table $oldTable, ...)` - no mock needed for empty diff tests
-- `Connection::lastInsertId()` DBAL4: no `$name` param - use platform SQL for sequence lookups
+- php-firebird v12.0.0 release: https://github.com/satwareAG/php-firebird/releases/tag/v12.0.0
+- Gap analysis plan: `docs/plans/2026-03-03-dbal3-gap-implementation.md`
+- Charset spec: `specs/001-charset-transparency-middleware/spec.md` (Status: Implemented)
+- DBAL 4.x research: `docs/research/dbal4-migration.md`
+- DBAL 4.x work: `4.4.x` branch (dormant, needs v12 upgrade)

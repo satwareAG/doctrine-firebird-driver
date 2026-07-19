@@ -1,598 +1,193 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to an undefined method Firebird\\Transaction\:\:getResource\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: '#^Call to an undefined static method Doctrine\\DBAL\\TransactionIsolationLevel\:\:from\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: '#^Function fbird_prepare invoked with 3 parameters, 1 required\.$#'
+			message: '#^Function fbird_last_insert_id invoked with 1 parameter, 2 required\.$#'
 			identifier: arguments.count
-			count: 1
+			count: 2
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getNativeConnection\(\) never returns object so it can be removed from the return type\.$#'
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getActiveTransaction\(\) never returns resource so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:lastInsertId\(\) never returns string so it can be removed from the return type\.$#'
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getActiveTransaction\(\) should return resource\|null but returns Firebird\\Transaction\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getNativeConnection\(\) never returns resource so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Parameter \#1 \$query of function fbird_prepare expects string, resource\|null given\.$#'
+			message: '#^Parameter \#1 \$link_identifier of function fbird_connection_info expects resource\|null, Firebird\\Connection given\.$#'
 			identifier: argument.type
-			count: 2
-			path: src/Driver/Firebird/Connection.php
-
-		-
-			message: '#^Return type \(object\|resource\|null\) of method Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Connection\:\:getNativeConnection\(\) should be covariant with return type \(object\|resource\) of method Doctrine\\DBAL\\Driver\\Connection\:\:getNativeConnection\(\)$#'
-			identifier: method.childReturnType
 			count: 1
 			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Call to an undefined method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getIdentitySequenceName\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: src/Driver/Firebird/ConnectionWrapper.php
-
-		-
-			message: '''
-				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
-				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
-				            contexts, convert the resulting name to string using \{@see Name\:\:toString\(\)\}\.$#
-			'''
-			identifier: method.deprecated
-			count: 3
-			path: src/Driver/Firebird/ConnectionWrapper.php
-
-		-
-			message: '''
-				#^Call to deprecated method introspectTable\(\) of class Doctrine\\DBAL\\Schema\\AbstractSchemaManager\:
-				Use \{@see introspectTableByUnquotedName\(\)\} or \{@see introspectTableByQuotedName\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Driver/Firebird/ConnectionWrapper.php
-
-		-
-			message: '''
-				#^Call to deprecated method listSequences\(\) of class Doctrine\\DBAL\\Schema\\AbstractSchemaManager\:
-				Use \{@see introspectSequences\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Driver/Firebird/ConnectionWrapper.php
-
-		-
-			message: '#^Parameter \#1 \$value of method Doctrine\\DBAL\\Driver\\Middleware\\AbstractConnectionMiddleware\:\:quote\(\) expects string, string\|false given\.$#'
+			message: '#^Parameter \#1 \$link_identifier of function fbird_execute_auto expects resource, Firebird\\Connection given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Driver/Firebird/Middleware/CharsetConnectionMiddleware.php
+			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Parameter \#4 \$columnTypes of class Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Middleware\\CharsetResultMiddleware constructor expects array\<int\|string, int\>, array\<int\|string, Doctrine\\DBAL\\ParameterType\> given\.$#'
+			message: '#^Parameter \#1 \$link_identifier of function fbird_get_limbo_transactions expects resource\|null, Firebird\\Connection given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Driver/Firebird/Middleware/CharsetStatementMiddleware.php
+			path: src/Driver/Firebird/Connection.php
 
 		-
-			message: '#^Parameter \#1 \$link_identifier of function fbird_affected_rows expects resource\|null, object\|resource\|null given\.$#'
+			message: '#^Parameter \#1 \$link_identifier of function fbird_prepare_ex expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_query_params_tx expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_reconnect_transaction expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_drop_table_force expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_kill_attachment expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_or_trans of function fbird_list_table_blockers expects resource, Firebird\\Connection given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$result of function fbird_fetch_row expects resource, int\|resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#2 \$statement of class Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Statement constructor expects Firebird\\Transaction\|resource\|false\|null, Firebird\\Statement\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#2 \$trans_handle of function fbird_query_params_tx expects resource, Firebird\\Transaction\|resource\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#3 \$trans_handle of function fbird_prepare_ex expects resource\|null, Firebird\\Transaction\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between Firebird\\Transaction and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Driver/Firebird/Connection.php
+
+		-
+			message: '#^Parameter \#1 \$link_identifier of function fbird_prepare_ex expects resource, Firebird\\Connection\|resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Parameter \#1 \$query of function fbird_batch_create expects resource, Firebird\\Statement given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Property Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\ProceduralBatch\:\:\$batchHandle \(resource\) does not accept Firebird\\BatchHandle\|resource\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Driver/Firebird/ProceduralBatch.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_affected_rows expects resource\|null, Firebird\\Connection\|resource\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Driver/Firebird/Result.php
 
 		-
-			message: '#^PHPDoc tag @throws with type Satag\\DoctrineFirebirdDriver\\Driver\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
+			message: '#^Property Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Result\:\:\$firebirdResultResource \(Firebird\\ResultSet\|int\|resource\|null\) is never assigned Firebird\\ResultSet so it can be removed from the property type\.$#'
+			identifier: property.unusedType
 			count: 1
-			path: src/Driver/FirebirdDriver.php
+			path: src/Driver/Firebird/Result.php
 
 		-
-			message: '''
-				#^Call to deprecated method getCache\(\) of class Doctrine\\DBAL\\Schema\\Sequence\:
-				Use \{@see getCacheSize\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
+			message: '#^Parameter \#1 \$firebirdResultResource of class Satag\\DoctrineFirebirdDriver\\Driver\\Firebird\\Result constructor expects int\|resource\|null, Firebird\\ResultSet\|int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_affected_rows expects resource\|null, Firebird\\Connection\|resource\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Driver/Firebird/Statement.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_commit expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_commit_ret expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_release_savepoint expects resource, Firebird\\Transaction given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Driver/Firebird/TransactionManager.php
+
+		-
+			message: '#^Parameter \#1 \$link of function fbird_rollback expects resource\|null, Firebird\\Transaction given\.$#'
+			identifier: argument.type
 			count: 3
-			path: src/Platforms/Firebird3Platform.php
+			path: src/Driver/Firebird/TransactionManager.php
 
 		-
-			message: '''
-				#^Call to deprecated method getModifiedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff\:
-				Use \{@see getChangedColumns\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
-				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
-				            contexts, convert the resulting name to string using \{@see Name\:\:toString\(\)\}\.$#
-			'''
-			identifier: method.deprecated
-			count: 2
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getQuotedName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} followed
-				by \{@see Name\:\:toSQL\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 13
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getRenamedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff\:
-				Use \{@see getChangedColumns\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '#^Access to an undefined property Doctrine\\DBAL\\Schema\\ColumnDiff\:\:\$fromColumn\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Binary operation "\." between ''DATEADD\('' and Doctrine\\DBAL\\Platforms\\DateIntervalUnit results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\DBAL\\Schema\\ColumnDiff\:\:getOldColumnName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\DBAL\\Schema\\TableDiff\:\:getName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\DBAL\\Types\\Type\:\:getName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getColumnComment\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:onSchemaAlterTable\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:onSchemaAlterTableAddColumn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:onSchemaAlterTableChangeColumn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:onSchemaAlterTableRemoveColumn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:onSchemaAlterTableRenameColumn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined static method Doctrine\\DBAL\\Exception\:\:notSupported\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 4
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Call to an undefined static method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:isCommentedDoctrineType\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getCache\(\) of class Doctrine\\DBAL\\Schema\\Sequence\:
-				Use \{@see getCacheSize\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 2
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getModifiedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff\:
-				Use \{@see getChangedColumns\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
-				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
-				            contexts, convert the resulting name to string using \{@see Name\:\:toString\(\)\}\.$#
-			'''
-			identifier: method.deprecated
-			count: 14
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getQuotedName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} followed
-				by \{@see Name\:\:toSQL\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 29
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Offset ''check'' does not exist on array\{.*\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getRenamedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff\:
-				Use \{@see getChangedColumns\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method isQuoted\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Depending on the concrete class of the object, use \{@see NamedObject\:\:getObjectName\(\)\} or
-				            \{@see OptionallyNamedObject\:\:getObjectName\(\)\} to get the name\. Then, depending on the type of the
-				            name, use \{@see UnqualifiedName\:\:getIdentifier\(\)\}, \{@see OptionallyQualifiedName\:\:getQualifier\(\)\},
-				            or \{@see OptionallyQualifiedName\:\:getUnqualifiedName\(\)\} to get the corresponding identifiers\. Then,
-				            use \{@see Identifier\:\:\$isQuoted\(\)\}\.$#
-			'''
-			identifier: method.deprecated
-			count: 3
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '''
-				#^Call to deprecated method quoteIdentifier\(\) of class Doctrine\\DBAL\\Platforms\\AbstractPlatform\:
-				Use \{@link quoteSingleIdentifier\(\)\} individually for each part of a qualified name instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 2
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Cannot instantiate interface Doctrine\\DBAL\\Exception\.$#'
-			identifier: new.interface
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Default value of the parameter \#3 \$startPos \(false\) of method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getLocateExpression\(\) is incompatible with type string\|null\.$#'
-			identifier: parameter.defaultValue
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Fetching deprecated class constant CREATE_INDEXES of class Doctrine\\DBAL\\Platforms\\AbstractPlatform\.$#'
-			identifier: classConstant.deprecated
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^If condition is always false\.$#'
-			identifier: if.alwaysFalse
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Instanceof between string and Doctrine\\DBAL\\Schema\\Sequence will always evaluate to false\.$#'
-			identifier: instanceof.alwaysFalse
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getCreateTableSQL\(\) invoked with 2 parameters, 1 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getUniqueConstraintDeclarationSQL\(\) invoked with 2 parameters, 1 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:_getCreateTableSQL\(\) has parameter \$name with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:_getCreateTableSQL\(\) should return list\<string\> but returns non\-empty\-array\<string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$limit with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$offset with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$query with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getCreateTableSQL\(\) has parameter \$createFlags with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getCreateViewSQL\(\) has parameter \$name with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getCreateViewSQL\(\) has parameter \$sql with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDateDiffExpression\(\) has parameter \$date1 with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDateDiffExpression\(\) has parameter \$date2 with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDropForeignKeySQL\(\) has parameter \$foreignKey with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDropForeignKeySQL\(\) has parameter \$table with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDropTableSQL\(\) has parameter \$table with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getDropViewSQL\(\) has parameter \$name with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getEmptyIdentityInsertSQL\(\) has parameter \$quotedIdentifierColumnName with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getEmptyIdentityInsertSQL\(\) has parameter \$quotedTableName with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getListSequencesSQL\(\) has parameter \$database with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getListTableConstraintsSQL\(\) has parameter \$table with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getListTableForeignKeysSQL\(\) has parameter \$table with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getListViewsSQL\(\) has parameter \$database with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getSetTransactionIsolationSQL\(\) has parameter \$level with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getTruncateTableSQL\(\) has parameter \$cascade with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getTruncateTableSQL\(\) has parameter \$tableName with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Parameter \#1 \$column of method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getCreateAutoincrementSql\(\) expects Doctrine\\DBAL\\Schema\\AbstractAsset\|string, int\<0, max\> given\.$#'
+			message: '#^Parameter \#1 \$link of function fbird_rollback_savepoint expects resource, Firebird\\Transaction given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Platforms/FirebirdPlatform.php
+			path: src/Driver/Firebird/TransactionManager.php
 
 		-
-			message: '#^Parameter \#1 \$constraint of method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getUniqueConstraintDeclarationSQL\(\) expects Doctrine\\DBAL\\Schema\\UniqueConstraint, int\<0, max\> given\.$#'
+			message: '#^Parameter \#1 \$link of function fbird_savepoint expects resource, Firebird\\Transaction given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/Platforms/FirebirdPlatform.php
+			path: src/Driver/Firebird/TransactionManager.php
 
 		-
-			message: '#^Parameter \#1 \$name of method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getDropSequenceSQL\(\) expects string, Doctrine\\DBAL\\Schema\\Sequence given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Parameter \#1 \$name of method Doctrine\\DBAL\\Platforms\\AbstractPlatform\:\:getDropSequenceSQL\(\) expects string, Doctrine\\DBAL\\Schema\\Sequence\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:__construct\(\) does not call parent constructor from Doctrine\\DBAL\\Platforms\\AbstractPlatform\.$#'
-			identifier: constructor.missingParentCall
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between Doctrine\\DBAL\\Schema\\Column and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type Doctrine\\DBAL\\Schema\\Column\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Class Satag\\DoctrineFirebirdDriver\\Platforms\\Keywords\\FirebirdKeywords extends deprecated class Doctrine\\DBAL\\Platforms\\Keywords\\KeywordList\.$#'
-			identifier: class.extendsDeprecatedClass
-			count: 1
-			path: src/Platforms/Keywords/FirebirdKeywords.php
-
-		-
-			message: '#^Call to an undefined static method Doctrine\\DBAL\\Exception\:\:notSupported\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 2
-			path: src/Platforms/SQL/Builder/FirebirdSelectSQLBuilder.php
-
-		-
-			message: '''
-				#^Call to deprecated method getPlatformOptions\(\) of class Doctrine\\DBAL\\Schema\\Column\:
-				Use \{@see getCharset\(\)\}, \{@see getCollation\(\)\}, \{@see getMinimumValue\(\)\}, \{@see getMaximumValue\(\)\}
-				            or \{@see getEnumType\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Schema/FirebirdComparator.php
-
-		-
-			message: '''
-				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
-				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
-				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
-				            contexts, convert the resulting name to string using \{@see Name\:\:toString\(\)\}\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Schema/FirebirdSchemaManager.php
-
-		-
-			message: '''
-				#^Call to deprecated method quoteIdentifier\(\) of class Doctrine\\DBAL\\Platforms\\AbstractPlatform\:
-				Use \{@link quoteSingleIdentifier\(\)\} individually for each part of a qualified name instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Schema/FirebirdSchemaManager.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Schema\\FirebirdSchemaManager\:\:_getPortableTableDefinition\(\) should return non\-empty\-string but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Schema/FirebirdSchemaManager.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Schema\\FirebirdSchemaManager\:\:fetchTableOptionsByTable\(\) should return array\<non\-empty\-string, array\<string, mixed\>\> but returns array\<string, array\{comment\: mixed\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Schema/FirebirdSchemaManager.php
-
-		-
-			message: '#^Parameter \#2 \$tableName of method Satag\\DoctrineFirebirdDriver\\Schema\\FirebirdSchemaManager\:\:fetchTableOptionsByTable\(\) expects non\-empty\-string\|null, string given\.$#'
+			message: '#^Parameter \#1 \$connection of function fbird_drop_db expects resource\|string\|null, Firebird\\Connection\|resource given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Schema/FirebirdSchemaManager.php

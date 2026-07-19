@@ -8,27 +8,28 @@ use Doctrine\DBAL\Driver\Middleware\AbstractStatementMiddleware;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\ParameterType;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 
 use function in_array;
 use function is_resource;
 use function is_string;
 use function mb_convert_encoding;
 use function stream_get_contents;
+use function strpos;
 
 /**
  * Encodes all string parameters from the PHP encoding to the database encoding
  * before sending to Firebird.
  *
  * This middleware wraps every Statement so that raw DBAL bindValue() calls
- * transparently encode strings to the database wire encoding, regardless of
- * whether the ORM type system is used.
+ * (and execute() with inline params) transparently encode strings to the
+ * database wire encoding, regardless of whether the ORM type system is used.
+ *
+ * Binary BLOB data (containing NULL bytes) is passed through without
+ * transcoding to prevent corruption on the write path (#127 symmetric fix).
  */
 final class CharsetStatementMiddleware extends AbstractStatementMiddleware
 {
-    /** @var array<int|string, ParameterType> */
-    private array $boundTypes = [];
-
     public function __construct(
         Statement $statement,
         private readonly string $databaseEncoding,
@@ -38,42 +39,78 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     }
 
     /**
-     * Encode string parameters from PHP encoding to database encoding before binding.
-     *
-     * For TEXT BLOB columns, stream resources are extracted and transcoded.
-     * Supported parameter types: STRING, ASCII, and LARGE_OBJECT.
-     *
      * {@inheritDoc}
      */
     #[Override]
     public function bindValue(string|int $param, mixed $value, ParameterType $type): void
     {
-        $this->boundTypes[$param] = $type;
-
         if (is_resource($value)) {
             $value = stream_get_contents($value);
         }
 
         if (is_string($value) && in_array($type, [ParameterType::STRING, ParameterType::ASCII, ParameterType::LARGE_OBJECT], true)) {
-            $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+            $value = $this->encodeString($value);
         }
 
         parent::bindValue($param, $value, $type);
     }
 
     /**
-     * Execute the statement and wrap the result in CharsetResultMiddleware.
-     *
      * {@inheritDoc}
      */
     #[Override]
     public function execute(): ResultInterface
     {
+        // If inline params are passed (deprecated path), encode them first
+        if ($params !== null) {
+            foreach ($params as $key => $value) {
+        // Note: This checks for PHP stream resources (BLOB content passed as
+        // php_stream for LARGE_OBJECT params), NOT Firebird handle objects.
+                if (is_resource($value)) {
+                    $value = stream_get_contents($value);
+                }
+
+                if (! is_string($value)) {
+                    continue;
+                }
+
+                $params[$key] = $this->encodeString($value);
+            }
+        }
+
         return new CharsetResultMiddleware(
             parent::execute(),
             $this->databaseEncoding,
             $this->phpEncoding,
-            $this->boundTypes,
         );
+    }
+
+    /**
+     * Encode a string from PHP encoding to database encoding.
+     *
+     * Binary strings containing NULL bytes are passed through without
+     * transcoding. This prevents corruption of binary BLOB data (JPEG, PNG,
+     * etc.) that would be mangled by mb_convert_encoding (e.g., \xFF → ?).
+     *
+     * Lenient on invalid bytes: returns the original value on conversion
+     * failure rather than throwing. Bound parameters are data, not syntax -
+     * crashing on bad data is worse than mojibake. See encodeSql() in
+     * CharsetConnectionMiddleware for the stricter treatment applied to
+     * SQL body literals.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/117
+     *
+     * jane: NULL-byte heuristic. Replace with fbird_field_info()['sub_type']
+     * when php-firebird exposes it, matching CharsetResultMiddleware.
+     */
+    private function encodeString(string $value): string
+    {
+        if (strpos($value, "\x00") !== false) {
+            return $value;
+        }
+
+        $encoded = @mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+
+        return $encoded === false ? $value : $encoded;
     }
 }

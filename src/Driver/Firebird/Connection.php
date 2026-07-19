@@ -7,126 +7,98 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
-use Doctrine\DBAL\SQL\Parser;
-use Doctrine\DBAL\TransactionIsolationLevel;
-use Firebird\Batch;
-use Firebird\BatchResult;
+use Doctrine\DBAL\ParameterType;
+use Firebird\Connection as FirebirdConnection;
 use Firebird\Database;
 use Firebird\DbInfo;
+use Firebird\ResultSet as FirebirdResultSet;
 use Firebird\TBuilder;
-use Firebird\Transaction;
-use Override;
+use Firebird\Transaction as FirebirdTransaction;
+use Firebird\TransactionManager as FirebirdTransactionManager;
+use InvalidArgumentException;
 use PDO;
-use RuntimeException;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
+use Satag\DoctrineFirebirdDriver\SQL\Parser;
 use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use Throwable;
 use UnexpectedValueException;
 
-use function addcslashes;
-use function assert;
+use function array_key_exists;
 use function class_exists;
-use function defined;
+use function explode;
 use function fbird_close;
 use function fbird_commit;
-use function fbird_commit_ret;
 use function fbird_connection_info;
 use function fbird_drop_table_force;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_escape_string;
 use function fbird_execute_auto;
+use function fbird_fetch_row;
+use function fbird_gen_id;
 use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
+use function fbird_last_insert_id;
 use function fbird_list_table_blockers;
-use function fbird_prepare;
+use function fbird_prepare_ex;
 use function fbird_query_params_tx;
 use function fbird_reconnect_transaction;
-use function fbird_release_savepoint;
 use function fbird_rollback;
-use function fbird_rollback_savepoint;
-use function fbird_savepoint;
 use function fbird_set_exception_mode;
-use function fbird_trans_start;
 use function file_exists;
-use function function_exists;
-use function get_resource_type;
-use function in_array;
+use function is_array;
 use function is_dir;
+use function is_float;
+use function is_int;
+use function is_numeric;
 use function is_object;
-use function is_resource;
-use function method_exists;
+use function is_scalar;
+use function is_string;
 use function preg_match;
 use function sprintf;
 use function str_contains;
 use function str_replace;
-use function str_starts_with;
+use function strtoupper;
+use function trim;
 use function version_compare;
 
-use const FBIRD_COMMITTED;
-use const FBIRD_CONCURRENCY;
-use const FBIRD_CONSISTENCY;
 use const FBIRD_EXCEPTION_MODE_THROW;
-use const FBIRD_NOWAIT;
-use const FBIRD_REC_VERSION;
-use const FBIRD_WAIT;
-use const FBIRD_WRITE;
 
 /**
  * Based on https://github.com/helicon-os/doctrine-dbal
  * and Doctrine\DBAL\Driver\OCI8\Connection
+ *
+ * @psalm-suppress DeprecatedInterface
+ * @psalm-suppress TooFewArguments
+ * @psalm-suppress PossiblyNullArgument
+ * @psalm-suppress RedundantConditionGivenDocblockType
  */
 final class Connection implements \Doctrine\DBAL\Driver\Connection
 {
-    /**
-     * Valid resource types for Firebird connection.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_CONNECTION = ['Firebird link'];
-
-    /**
-     * Valid resource types for Firebird persistent connection.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_PERSISTENT_CONNECTION = ['Firebird persistent link'];
-
-    /**
-     * Valid resource types for Firebird transaction.
-     * php-firebird v7.0.0+ resource type strings only.
-     */
-    private const RESOURCE_TYPES_TRANSACTION = ['Firebird transaction'];
-
-    private readonly ExecutionMode $executionMode;
-
-    /**
-     * Isolation level used when a transaction is started.
-     */
-    private TransactionIsolationLevel $attrDcTransIsolationLevel = TransactionIsolationLevel::READ_COMMITTED;
-
-    /**
-     * Wait timeout used in transactions
-     *
-     * @var int  Number of seconds to wait.
-     */
-    private int $attrDcTransWait = 5;
-
-    /**
-     * True if auto-commit is enabled
-     */
-    private bool $attrAutoCommit = true;
-
     private string|null $connectionInsertColumn = null;
 
     private int|null $connectionInsertId = null;
 
+    /** Caches the last resolved identity value across dotted-name and null lookups */
+    private int|string|null $lastResolvedIdentityId = null;
+
+    /** Stores the table name of the most recent INSERT for lastInsertId(null) IDENTITY lookup */
+    private string|null $lastInsertTable = null;
+
+    /**
+     * Per-connection cache: table name (upper) => generator name (or null if none found).
+     * Avoids repeated RDB$RELATION_FIELDS queries for the same table.
+     *
+     * @var array<string, string|null>
+     */
+    private array $identityGeneratorCache = [];
+
     private readonly Parser $parser;
 
-    private int $fbirdTransactionLevel = 0;
-
-    /** @var resource|null */
-    private $firebirdActiveTransaction = null;
+    private readonly TransactionManager $transactionManager;
 
     /**
      * Load Firebird OO API classes if they are available as PHP files.
@@ -135,29 +107,31 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     private static bool $ooApiLoaded = false;
 
     /**
-     * @param resource|null        $connection
      * @param array<string, mixed> $params
      *
      * @throws Exception
      */
-    public function __construct(private $connection, private readonly string $serverVersion, protected bool $isPersistent, private readonly Exception|null $databaseNotFoundException, array $params)
-    {
+    public function __construct(
+        private mixed $connection,
+        private readonly string $serverVersion,
+        protected bool $isPersistent,
+        private readonly Exception|null $databaseNotFoundException,
+        array $params,
+    ) {
         self::loadOoApi();
 
-        $this->parser        = new Parser(false);
-        $this->executionMode = new ExecutionMode();
+        $this->parser             = new Parser(false);
+        $this->transactionManager = new TransactionManager($this);
 
-        if ($connection !== null) {
-            // Enable Exception Mode API if available (php-firebird v7.0.0-rc.6+)
-            // This provides PDO::ERRMODE_EXCEPTION-like behavior where Firebird API
-            // functions throw Firebird\Exception instead of returning false on errors.
-            // Note: This is a GLOBAL setting affecting all Firebird operations in this process.
-            // We enable it AFTER connection is established to avoid interfering with database creation.
-            if (function_exists('fbird_set_exception_mode') && defined('FBIRD_EXCEPTION_MODE_THROW')) {
-                fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
-            }
+        if ($this->connection !== null) {
+            // Enable Exception Mode (php-firebird v8.0.0+, guaranteed available)
+            fbird_set_exception_mode(FBIRD_EXCEPTION_MODE_THROW);
 
-            $this->firebirdActiveTransaction = $this->createTransaction();
+            $this->transactionManager->beginTransaction();
+            // Reset level and mode after initial transaction start
+            $this->transactionManager->reset();
+            $this->transactionManager->beginTransaction();
+            $this->transactionManager->commit(); // Start standard auto-commit cycle
         }
 
         foreach ($params as $key => $value) {
@@ -167,57 +141,48 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
     public function __destruct()
     {
-        $connectionClosable = false;
-        if (is_resource($this->connection)) {
-            $type = get_resource_type($this->connection);
-            if (in_array($type, self::RESOURCE_TYPES_CONNECTION, true)) {
-                $connectionClosable = true;
-            } elseif (in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true)) {
-                $connectionClosable = false;
-            } elseif ($type === 'Unknown') {
-                $this->connection = null;
-            }
+        // Guard against uninitialized typed property (PHP 8.4+ throws if
+        // constructor hasn't completed, e.g. during global shutdown).
+        if (! isset($this->connection)) {
+            return;
         }
 
-        if (is_resource($this->connection) && is_resource($this->firebirdActiveTransaction)) {
-            $type = get_resource_type($this->firebirdActiveTransaction);
-            if (in_array($type, self::RESOURCE_TYPES_TRANSACTION, true)) {
-                // Try commit first, but if it fails (e.g., due to FK constraint locks),
-                // fall back to rollback. Wrap in try-catch because Exception Mode (php-firebird
-                // v7.0.0+) throws Firebird\Exception even with @ suppression. Destructors must
-                // not throw exceptions, so we silently catch any errors during cleanup.
+        if (! $this->isConnectionValid()) {
+            return;
+        }
+
+        // Commit or rollback any pending transaction
+        if ($this->isTransactionValid()) {
+            $activeTransaction = $this->getActiveTransaction();
+            if ($this->transactionManager->getLevel() > 0) {
                 try {
-                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                        // If commit fails, try rollback to clean up gracefully
-                        @fbird_rollback($this->firebirdActiveTransaction);
-                    }
+                    fbird_commit($activeTransaction);
                 } catch (Throwable) {
-                    // Silently ignore exceptions during destructor cleanup.
-                    // Destructors cannot throw; best effort cleanup only.
                     try {
-                        @fbird_rollback($this->firebirdActiveTransaction);
+                        fbird_rollback($activeTransaction);
                     } catch (Throwable) {
-                        // Ignore - nothing more we can do during destruction
                     }
                 }
             }
 
-            unset($this->firebirdActiveTransaction);
-            $this->firebirdActiveTransaction = null;
+            $this->transactionManager->reset();
         }
 
-        if ($connectionClosable) {
-            fbird_close($this->connection);
+        // Close non-persistent connections (persistent connections are managed by the extension)
+        if (! $this->isPersistent) {
+            try {
+                fbird_close($this->connection);
+            } catch (Throwable) {
+                // Destructors must not throw
+            }
         }
 
-        unset($this->connection);
         $this->connection = null;
     }
 
-    /** @return resource|null */
-    public function getActiveTransaction()
+    public function getActiveTransaction(): FirebirdTransaction|null
     {
-        return $this->firebirdActiveTransaction;
+        return $this->transactionManager->getActiveTransaction();
     }
 
     /**
@@ -229,15 +194,15 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     {
         switch ($attribute) {
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL:
-                $this->attrDcTransIsolationLevel = $value instanceof TransactionIsolationLevel
-                    ? $value
-                    : TransactionIsolationLevel::from((int) $value);
+                $this->transactionManager->setIsolationLevel((int) $value);
                 break;
             case FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT:
-                $this->attrDcTransWait = $value;
+                $this->transactionManager->setWaitTimeout((int) $value);
                 break;
             case FirebirdDriver::ATTR_AUTOCOMMIT:
-                $this->attrAutoCommit = $value;
+                $this->transactionManager->setExecutionMode(
+                    (bool) $value ? Enum\ExecutionMode::AUTO_COMMIT : Enum\ExecutionMode::MANUAL_COMMIT,
+                );
                 break;
         }
     }
@@ -246,11 +211,11 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     {
         return match ($attribute) {
             FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL
-              => $this->attrDcTransIsolationLevel,
+              => $this->transactionManager->getIsolationLevel(),
             FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT
-              => $this->attrDcTransWait,
+              => $this->transactionManager->getWaitTimeout(),
             PDO::ATTR_AUTOCOMMIT
-              => $this->attrAutoCommit,
+              => $this->transactionManager->getExecutionMode() === Enum\ExecutionMode::AUTO_COMMIT,
             PDO::ATTR_PERSISTENT
               => $this->isPersistent,
             default => null,
@@ -270,7 +235,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
     /**
      * @throws Exception
-     * @throws Exception
      * @throws Parser\Exception
      */
     #[Override]
@@ -281,7 +245,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         }
 
         // Defensive check: validate connection and transaction are still valid
-        // PHP Firebird extension 6.2.0 crashes if called with invalid resources
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
         }
@@ -297,20 +260,13 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         $sql = $visitor->getSQL();
 
         // Defensive check: ensure SQL is not empty after parameter conversion
-        // PHP Firebird extension 6.2.0 crashes with empty/null SQL
         if ($sql === '') {
             throw new DriverException('SQL statement is empty.');
         }
 
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
             /** @phpstan-ignore arguments.count */
-            $stmt = @fbird_prepare($this->connection, $this->firebirdActiveTransaction, $sql);
-
-            if ($stmt === false) {
-                $this->checkLastApiCall();
-            }
+            $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
@@ -337,15 +293,15 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     #[Override]
     public function quote(string $value): string
     {
-        // Use extension-provided escaping if available (php-firebird v7.0.0-rc.25+)
-        if (function_exists('fbird_escape_string')) {
-            return "'" . fbird_escape_string($value) . "'";
+        if (is_int($value) || is_float($value)) {
+            return $value;
         }
 
-        // Fallback for older versions
-        $value = str_replace("'", "''", $value);
+        if (! is_scalar($value)) {
+            throw new InvalidArgumentException('Given value is not scalar.');
+        }
 
-        return "'" . addcslashes($value, "\000\n\r\\\032") . "'";
+        return "'" . fbird_escape_string((string) $value) . "'";
     }
 
     #[Override]
@@ -357,34 +313,18 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     /**
      * {@inheritDoc}
      *
-     * Returns the ID of the last inserted row.
-     * For Firebird, this returns the last auto-increment value captured by the driver.
-     * Use lastInsertIdBySequence() for sequence-based lookups.
+     * @throws InvalidArgumentException
+     * @throws UnexpectedValueException
      */
     #[Override]
     public function lastInsertId(): int|string
     {
-        return $this->connectionInsertId ?? 0;
-    }
-
-    /**
-     * Returns the last insert ID for a specific Firebird generator/sequence.
-     *
-     * This is a Firebird-specific extension that looks up the current value
-     * of a named generator. Use this instead of lastInsertId() when working
-     * with explicit Firebird sequences.
-     *
-     * @throws UnexpectedValueException
-     */
-    public function lastInsertIdBySequence(string $name): int|string|false
-    {
-        if (str_contains($name, '.')) {
-            return $this->connectionInsertId ?? false;
+        /** @psalm-suppress DocblockTypeContradiction */
+        if ($name !== null && ! is_string($name)) {
+            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
         }
 
-        if (str_starts_with($name, 'SELECT RDB')) {
-            $name = (string) $this->query($name)->fetchOne();
-        } else {
+        if ($name !== null && ! str_contains($name, '.')) {
             $maxGeneratorLength = 31;
             $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
             if (preg_match($regex, $name) !== 1) {
@@ -396,10 +336,164 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             }
         }
 
-        $sql     = 'SELECT GEN_ID(' . $name . ', 0) LAST_VAL FROM RDB$DATABASE';
-        $lastVal = $this->query($sql)->fetchOne();
+        if (! $this->isConnectionValid()) {
+            // Return cached value if connection is null/invalid (Unit Test path)
+            return $this->connectionInsertId ?? false;
+        }
 
-        return $lastVal === 0 ? false : $lastVal;
+        if ($name !== null && str_contains($name, '.')) {
+            // Dotted names (e.g. '"ALBUM"."id"') come from getIdentitySequenceName() for native identity columns.
+
+            $parts      = explode('.', str_replace('"', '', $name), 2);
+            $tableName  = strtoupper($parts[0]);
+            $columnName = strtoupper($parts[1] ?? '');
+
+            // Step 1: Look up the internal identity generator name from RDB$RELATION_FIELDS.
+            //         Use $this->query() (standard DBAL path) — matches Doctrine best practice.
+            $genName = null;
+            if ($columnName !== '') {
+                try {
+                    $rdbResult = $this->query(sprintf(
+                        'SELECT TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
+                        . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
+                        . ' AND UPPER(TRIM(RDB$FIELD_NAME)) = \'%s\''
+                        . ' AND RDB$GENERATOR_NAME IS NOT NULL',
+                        str_replace("'", "''", $tableName),
+                        str_replace("'", "''", $columnName),
+                    ));
+                    $rdbRow    = $rdbResult->fetchNumeric();
+                    if ($rdbRow !== false && isset($rdbRow[0]) && is_string($rdbRow[0])) {
+                        $tmp = trim($rdbRow[0]);
+                        if ($tmp !== '') {
+                            $genName = $tmp;
+                        }
+                    }
+                } catch (Throwable) {
+                }
+            }
+
+            if ($genName !== null) {
+                // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
+                try {
+                    /** @phpstan-ignore argument.type */
+                    $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                    if ($lastVal > 0) {
+                        $this->lastResolvedIdentityId = $lastVal;
+
+                        return $lastVal;
+                    }
+                } catch (Throwable) {
+                }
+
+                // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
+                //          php-firebird v10+ returns Firebird\Result objects; v7 returns resources.
+                try {
+                    $autoResult = $this->executeAuto(sprintf(
+                        'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
+                        str_replace('"', '""', $genName),
+                    ));
+                    if ($autoResult !== false && $autoResult !== null) {
+                        $autoRow = fbird_fetch_row($autoResult);
+                        if (is_array($autoRow) && isset($autoRow[0]) && is_numeric($autoRow[0])) {
+                            $lastVal = (int) $autoRow[0];
+                            if ($lastVal > 0) {
+                                $this->lastResolvedIdentityId = $lastVal;
+
+                                return $lastVal;
+                            }
+                        }
+                    }
+                } catch (Throwable) {
+                }
+
+                // Step 2c: SQL GEN_ID within current transaction — double-quoted identifier (Firebird 3.0+).
+                try {
+                    $genResult = $this->query(sprintf(
+                        'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
+                        str_replace('"', '""', $genName),
+                    ));
+                    $genRow    = $genResult->fetchNumeric();
+                    if ($genRow !== false && isset($genRow[0]) && is_numeric($genRow[0])) {
+                        $lastVal = (int) $genRow[0];
+                        if ($lastVal > 0) {
+                            $this->lastResolvedIdentityId = $lastVal;
+
+                            return $lastVal;
+                        }
+                    }
+                } catch (Throwable) {
+                }
+            }
+
+            // Last resort: fbird_last_insert_id() without name — Firebird 5.0+ only.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false && $id > 0) {
+                    $this->lastResolvedIdentityId = $id;
+
+                    return $id;
+                }
+            } catch (Throwable) {
+                // On FB 3.0/4.0 this throws; transaction may be aborted — restart if needed.
+                if (! $this->isTransactionValid()) {
+                    try {
+                        $this->transactionManager->beginTransaction();
+                    } catch (Throwable) {
+                    }
+                }
+            }
+
+            return $this->connectionInsertId ?? false;
+        }
+
+        if ($name === null) {
+            // Firebird 5.0+: fbird_last_insert_id() works without a generator name.
+            try {
+                /** @phpstan-ignore argument.type */
+                $id = @fbird_last_insert_id($this->connection);
+                if ($id !== false && $id > 0) {
+                    return $id;
+                }
+            } catch (Throwable) {
+                // Not supported on this FB version — fall through to table-based lookup.
+            }
+
+            // Firebird 3.0/4.0: look up the IDENTITY generator for the last INSERT table.
+            // Statement::execute() caches the table name via setLastInsertTable() after every INSERT.
+            if ($this->lastInsertTable !== null) {
+                $genName = $this->resolveIdentityGenerator($this->lastInsertTable);
+                if ($genName !== null) {
+                    try {
+                        /** @phpstan-ignore argument.type */
+                        $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                        if ($lastVal !== false && $lastVal > 0) {
+                            $this->lastResolvedIdentityId = $lastVal;
+
+                            return $lastVal;
+                        }
+                    } catch (Throwable) {
+                    }
+                }
+            }
+
+            // Fall back to the cached value from a prior dotted-name lookup.
+            if ($this->lastResolvedIdentityId !== null) {
+                return $this->lastResolvedIdentityId;
+            }
+
+            return $this->connectionInsertId ?? false;
+        }
+
+        // Delegate to fbird_gen_id() for named sequences/generators
+        try {
+            /** @phpstan-ignore argument.type */
+            $lastVal = fbird_gen_id($name, 0, $this->connection);
+
+            return $lastVal === 0 ? false : $lastVal;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function setLastInsertId(int $id): void
@@ -407,182 +501,45 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         $this->connectionInsertId = $id;
     }
 
+    /**
+     * Cache the table name of the most recently executed INSERT statement.
+     * Called by Statement::execute() so that lastInsertId(null) can resolve
+     * the IDENTITY generator on Firebird 3.0/4.0.
+     */
+    public function setLastInsertTable(string|null $table): void
+    {
+        $this->lastInsertTable = $table;
+    }
+
     #[Override]
     public function beginTransaction(): void
     {
-        if ($this->fbirdTransactionLevel === 0) {
-            // as Firebird always generates a transaction, we have to commit everything now.
-            if (is_resource($this->firebirdActiveTransaction)) {
-                // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-                try {
-                    if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                        // If implicit commit fails, try rollback to clear state before throwing
-                        @fbird_rollback($this->firebirdActiveTransaction);
-                        $this->checkLastApiCall();
-                    }
-                } catch (Throwable $e) {
-                    // Try rollback to clear state, then convert exception
-                    try {
-                        @fbird_rollback($this->firebirdActiveTransaction);
-                    } catch (Throwable) {
-                        // Ignore rollback exception during cleanup
-                    }
-
-                    throw DriverException::fromThrowable($e);
-                }
-            }
-
-            $this->firebirdActiveTransaction = $this->createTransaction();
-        } else {
-            // Nested transaction: create a savepoint
-            $this->createSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
-        }
-
-        $this->fbirdTransactionLevel++;
-        $this->executionMode->disableAutoCommit();
+        $this->transactionManager->beginTransaction();
     }
 
     #[Override]
     public function commit(): void
     {
-        if ($this->fbirdTransactionLevel > 0) {
-            $this->fbirdTransactionLevel--;
-        }
-
-        if ($this->fbirdTransactionLevel === 0) {
-            if (! is_resource($this->firebirdActiveTransaction)) {
-                throw new RuntimeException('No active transaction resource.');
-            }
-
-            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-            try {
-                if (! @fbird_commit($this->firebirdActiveTransaction)) {
-                    // Capture error, attempt rollback cleanup, then throw
-                    $lastError = $this->errorInfo();
-                    @fbird_rollback($this->firebirdActiveTransaction);
-
-                    if (isset($lastError['code']) && $lastError['code'] !== 0) {
-                        throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
-                    }
-                }
-            } catch (Throwable $e) {
-                // Try rollback cleanup, then convert exception
-                try {
-                    @fbird_rollback($this->firebirdActiveTransaction);
-                } catch (Throwable) {
-                    // Ignore rollback exception during cleanup
-                }
-
-                throw DriverException::fromThrowable($e);
-            }
-
-            $this->firebirdActiveTransaction = $this->createTransaction();
-            $this->executionMode->enableAutoCommit();
-        } else {
-            // Nested transaction: release savepoint
-            $this->releaseSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
-        }
+        $this->transactionManager->commit();
     }
 
     /**
      * Commits the transaction if autocommit is enabled no explicte transaction has been started.
      *
-     * @throws RuntimeException|Exception
+     * @throws DriverException
      */
     public function autoCommit(): void
     {
-        if (! $this->executionMode->isAutoCommitEnabled() || $this->fbirdTransactionLevel >= 1) {
-            return;
-        }
-
-        if (is_resource($this->firebirdActiveTransaction) === false) {
-            throw new RuntimeException(sprintf(
-                'No active transaction. $this->_fbirdTransactionLevel = %d',
-                $this->fbirdTransactionLevel,
-            ));
-        }
-
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        try {
-            if (@fbird_commit_ret($this->firebirdActiveTransaction) !== false) {
-                return;
-            }
-
-            $this->checkLastApiCall();
-        } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
-        }
+        $this->transactionManager->autoCommit();
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * @throws RuntimeException
+     * {@inheritdoc)
      */
     #[Override]
     public function rollBack(): void
     {
-        if ($this->fbirdTransactionLevel > 0) {
-            $this->fbirdTransactionLevel--;
-        }
-
-        if ($this->fbirdTransactionLevel === 0) {
-            // Defensive check: if transaction resource is invalid, reset state without attempting rollback
-            // This prevents crashes when called on corrupted resources during cleanup
-            if (! $this->isTransactionValid()) {
-                // If connection is still valid, create a new transaction; otherwise reset to null
-                if ($this->isConnectionValid()) {
-                    try {
-                        $this->firebirdActiveTransaction = $this->createTransaction();
-                    } catch (DriverException) {
-                        // If we can't create transaction, set to null - connection might be closed
-                        $this->firebirdActiveTransaction = null;
-                    }
-                } else {
-                    $this->firebirdActiveTransaction = null;
-                }
-
-                $this->executionMode->enableAutoCommit();
-
-                return;
-            }
-
-            // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-            $lastError = null;
-            $success   = false;
-            try {
-                $success = @fbird_rollback($this->firebirdActiveTransaction);
-
-                if (! $success) {
-                    // Capture error before resetting state
-                    $lastError = $this->errorInfo();
-                }
-            } catch (Throwable $e) {
-                $success   = false;
-                $lastError = ['code' => $e->getCode(), 'message' => $e->getMessage(), 'exception' => $e];
-            }
-
-            // Always attempt to restore valid state for next operation
-            if ($this->isConnectionValid()) {
-                try {
-                    $this->firebirdActiveTransaction = $this->createTransaction();
-                } catch (DriverException) {
-                    // If we can't create transaction, set to null - connection might be closed
-                    $this->firebirdActiveTransaction = null;
-                }
-            } else {
-                $this->firebirdActiveTransaction = null;
-            }
-
-            $this->executionMode->enableAutoCommit();
-
-            if (! $success && isset($lastError['code']) && $lastError['code'] !== 0) {
-                throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
-            }
-        } else {
-            // Nested transaction: rollback to savepoint
-            $this->rollbackSavepoint($this->getSavepointName($this->fbirdTransactionLevel));
-        }
+        $this->transactionManager->rollBack();
     }
 
     /**
@@ -592,24 +549,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
      */
     public function createSavepoint(string $savepoint): void
     {
-        // Use isTransactionValid() to check resource type, not just existence
-        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
-        if (! $this->isTransactionValid()) {
-            throw new RuntimeException('No valid transaction resource.');
-        }
-
-        assert(is_resource($this->firebirdActiveTransaction));
-
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        try {
-            if (! @fbird_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-                $this->checkLastApiCall();
-
-                throw new DriverException(sprintf('Failed to create savepoint "%s"', $savepoint));
-            }
-        } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
-        }
+        $this->transactionManager->createSavepoint($savepoint);
     }
 
     /**
@@ -619,24 +559,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
      */
     public function releaseSavepoint(string $savepoint): void
     {
-        // Use isTransactionValid() to check resource type, not just existence
-        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
-        if (! $this->isTransactionValid()) {
-            throw new RuntimeException('No valid transaction resource.');
-        }
-
-        assert(is_resource($this->firebirdActiveTransaction));
-
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        try {
-            if (! @fbird_release_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-                $this->checkLastApiCall();
-
-                throw new DriverException(sprintf('Failed to release savepoint "%s"', $savepoint));
-            }
-        } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
-        }
+        $this->transactionManager->releaseSavepoint($savepoint);
     }
 
     /**
@@ -646,24 +569,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
      */
     public function rollbackSavepoint(string $savepoint): void
     {
-        // Use isTransactionValid() to check resource type, not just existence
-        // PHP Firebird extension 6.2.0 crashes if called with invalid/Unknown resources
-        if (! $this->isTransactionValid()) {
-            throw new RuntimeException('No valid transaction resource.');
-        }
-
-        assert(is_resource($this->firebirdActiveTransaction));
-
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        try {
-            if (! @fbird_rollback_savepoint($this->firebirdActiveTransaction, $savepoint)) {
-                $this->checkLastApiCall();
-
-                throw new DriverException(sprintf('Failed to rollback to savepoint "%s"', $savepoint));
-            }
-        } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
-        }
+        $this->transactionManager->rollbackSavepoint($savepoint);
     }
 
     /**
@@ -702,36 +608,34 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    /** @return object|resource|null */
-    public function getNativeConnection(): mixed
+    public function getNativeConnection(): FirebirdConnection|null
     {
-        return $this->connection;
+        // fbird_connect()/fbird_pconnect() return \Firebird\Connection objects
+        // since php-firebird v11.0.0 (M3 opaque-object migration).
+        if ($this->connection !== null) {
+            return $this->connection;
+        }
+
+        return null;
     }
 
     /**
-     * Check if the connection resource is valid.
+     * Check if the connection handle is valid.
      *
-     * @return bool True if connection is a valid Firebird resource
+     * php-firebird v11.0.0+: fbird_connect()/fbird_pconnect() return
+     * Firebird\Connection objects (M3 opaque-object migration).
+     * v11.1.0+: Complete M3 migration — all fbird_* functions return opaque objects.
+     *
+     * @psalm-assert-if-true FirebirdConnection $this->connection
+     * @phpstan-assert-if-true FirebirdConnection $this->connection
      */
     public function isConnectionValid(): bool
     {
-        if ($this->connection === null) {
+        if (! isset($this->connection)) {
             return false;
         }
 
-        if (is_resource($this->connection)) {
-            return $this->isResourceTypeValid($this->connection);
-        }
-
-        // In DBAL 3.10+, getNativeConnection() might return an object that wraps the resource.
-        // If we are called on such an object, we need to unwrap it.
-        if (is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')) {
-            $native = $this->connection->getNativeConnection();
-
-            return is_resource($native) && $this->isResourceTypeValid($native);
-        }
-
-        return false;
+        return $this->connection instanceof FirebirdConnection && $this->connection->isConnected();
     }
 
     /**
@@ -741,135 +645,91 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
      */
     public function isTransactionValid(): bool
     {
-        if (! is_resource($this->firebirdActiveTransaction)) {
-            return false;
-        }
-
-        return in_array(get_resource_type($this->firebirdActiveTransaction), self::RESOURCE_TYPES_TRANSACTION, true);
+        return $this->transactionManager->isTransactionValid();
     }
 
     /**
      * List attachments blocking access to a table.
      *
-     * Queries the monitoring tables to find active attachments that hold
-     * locks on the specified table. Useful for identifying connections
-     * blocking DDL operations.
-     *
-     * @param string $tableName Name of the table to check for blockers
-     *
      * @return array<int, array<string, mixed>>|false Array of blocker info or false on error
      */
     public function listTableBlockers(string $tableName): array|false
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             return false;
         }
 
-        $result = fbird_list_table_blockers($this->connection, $tableName);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
+        try {
+            return fbird_list_table_blockers($this->connection, $tableName);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        return $result;
     }
 
     /**
      * Kill a specific database attachment.
      *
-     * Terminates another database connection by attachment ID. Requires SYSDBA
-     * privileges or owner rights.
-     *
-     * @param int $attachmentId The MON$ATTACHMENT_ID of the attachment to kill
-     *
      * @throws DriverException
      */
     public function killAttachment(int $attachmentId): bool
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
-        $result = fbird_kill_attachment($this->connection, $attachmentId);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
+        try {
+            return fbird_kill_attachment($this->connection, $attachmentId);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        return $result;
     }
 
     /**
      * Force drop a table by killing blocking attachments first.
      *
-     * Terminates all blocking attachments and then drops the table.
-     * Requires SYSDBA privileges.
-     *
-     * WARNING: This is a destructive operation that will terminate other
-     * sessions and permanently delete the table.
-     *
-     * @param string $tableName Name of the table to drop
-     *
      * @throws DriverException
      */
     public function dropTableForce(string $tableName): bool
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
-        $result = fbird_drop_table_force($this->connection, $tableName);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
+        try {
+            return fbird_drop_table_force($this->connection, $tableName);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        return $result;
     }
 
     /**
      * Execute SQL in an autonomous transaction (auto-commit).
      *
-     * Executes a SQL statement in a separate autonomous transaction that is
-     * automatically committed on success or rolled back on failure.
-     *
-     * @param string            $sql    SQL statement to execute
      * @param array<mixed>|null $params Optional array of bind parameters
      *
-     * @return resource|int|false Result resource for SELECT, affected-row count for DML, or false on failure
+     * @return FirebirdResultSet|int|false Result set for SELECT, affected-row count for DML, or false on failure
      *
      * @throws DriverException
      */
     public function executeAuto(string $sql, array|null $params = null): mixed
     {
-        if (! is_resource($this->connection)) {
+        if (! $this->isConnectionValid()) {
             throw new DriverException('No active connection.');
         }
 
-        $result = fbird_execute_auto($this->connection, $sql, $params ?? []);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
+        try {
+            return fbird_execute_auto($this->connection, $sql, $params ?? []);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        return $result;
     }
 
     /**
      * Execute a query within a specific transaction context.
      *
-     * UNIQUE TO php-firebird: This method uses fbird_query_params_tx() to execute
-     * queries within a specific transaction. No other PHP Firebird driver has this
-     * capability.
-     *
-     * Use cases:
-     * - Audit logging that persists regardless of main transaction outcome
-     * - CQRS patterns with different isolation levels for reads/writes
-     * - Multi-transaction workflows (e.g., long-running batch with progress tracking)
-     *
-     * @param resource|Transaction    $transaction Transaction resource or OO wrapper
-     * @param string                  $sql         SQL statement to execute
-     * @param array<int|string,mixed> $params      Optional bind parameters
+     * @param resource|TransactionManager $transaction Transaction resource or OO wrapper
+     * @param string                      $sql         SQL statement to execute
+     * @param array<int|string,mixed>     $params      Optional bind parameters
      *
      * @return mixed Query result resource or affected row count
      *
@@ -881,39 +741,17 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        // Support both raw resource and OO Transaction wrapper
-        $transResource = $transaction instanceof Transaction
-            ? $transaction->getResource()
-            : $transaction;
+        $transResource = $this->resolveTransactionResource($transaction);
 
-        if (! is_resource($transResource)) {
-            throw new DriverException('Invalid transaction resource.');
+        try {
+            return fbird_query_params_tx($this->connection, $transResource, $sql, $params);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        // isConnectionValid() above guarantees $this->connection is a valid resource.
-        assert(is_resource($this->connection));
-        $result = fbird_query_params_tx($this->connection, $transResource, $sql, $params);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
     }
 
     /**
      * Create a new independent transaction using the TBuilder fluent API.
-     *
-     * This allows creating transactions with specific isolation levels and
-     * parameters, independent of the DBAL-managed transaction.
-     *
-     * Example:
-     *   $auditTx = $conn->createIndependentTransaction()
-     *       ->readCommitted()
-     *       ->wait(10)
-     *       ->start();
-     *   $conn->queryInTransaction($auditTx, 'INSERT INTO audit_log...');
-     *   $auditTx->commit();
      *
      * @return TBuilder Transaction builder for fluent configuration
      *
@@ -930,11 +768,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
     /**
      * Wrap the native connection in an OO Database wrapper.
-     *
-     * This provides access to the full php-firebird OO API including:
-     * - Transaction builder pattern
-     * - BLOB streaming
-     * - Database info queries
      *
      * @return Database OO wrapper for the native connection
      *
@@ -957,25 +790,14 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     /**
      * Create a batch operation for efficient bulk INSERTs.
      *
-     * The IBatch API (Firebird 4.0+) provides 10-12x performance improvement
-     * over individual INSERT statements by batching multiple rows into a
-     * single server round-trip.
+     * @param string                                             $sql         INSERT statement with placeholders
+     * @param TransactionManager|FirebirdTransactionManager|null $transaction Optional transaction (uses active if null)
      *
-     * Example:
-     *   $batch = $conn->createBatch('INSERT INTO users (name, email) VALUES (?, ?)');
-     *   $batch->add(['Alice', 'alice@example.com']);
-     *   $batch->add(['Bob', 'bob@example.com']);
-     *   $result = $batch->execute();
-     *   echo "Inserted: " . $result->count() . " rows";
-     *
-     * @param string           $sql         INSERT statement with placeholders
-     * @param Transaction|null $transaction Optional transaction (uses active if null)
-     *
-     * @return Batch Batch object for adding rows and executing
+     * @return ProceduralBatch Batch object for adding rows and executing
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function createBatch(string $sql, Transaction|null $transaction = null): Batch
+    public function createBatch(string $sql, TransactionManager|FirebirdTransactionManager|null $transaction = null): ProceduralBatch
     {
         if (! $this->isConnectionValid()) {
             throw new DriverException('Connection is not valid or has been closed.');
@@ -996,59 +818,36 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         }
 
         // Use provided transaction or fall back to active transaction
-        $transResource = $transaction instanceof Transaction
-            ? $transaction->getResource()
-            : $this->firebirdActiveTransaction;
+        if ($transaction instanceof TransactionManager || $transaction instanceof FirebirdTransactionManager) {
+            $transResource = $this->resolveTransactionResource($transaction);
+        } else {
+            $transResource = $this->transactionManager->getActiveTransaction();
 
-        if (! is_resource($transResource)) {
-            throw new DriverException('No valid transaction available for batch operation.');
-        }
-
-        // Check for static factory method (php-firebird v7.2.0+)
-        if (method_exists(Batch::class, 'fromQuery')) {
-            $query = @fbird_prepare($this->connection, $transResource, $sql);
-            if (! is_resource($query)) {
-                $this->checkLastApiCall();
-
-                throw new DriverException('Failed to prepare batch query');
+            if ($transResource === null || $transResource === false) {
+                throw new DriverException('No valid transaction available for batch operation.');
             }
-
-            return Batch::fromQuery($query);
         }
 
-        /** @phpstan-ignore-next-line */
-        return new Batch($this->connection, $sql, $transResource);
+        // Use procedural fbird_batch_* API via ProceduralBatch wrapper.
+        // The OO Firebird\Batch class has a private constructor and Batch::fromQuery()
+        // fails with "invalid batch handle" in php-firebird v10.3.9.
+
+        /** @phpstan-ignore argument.type (connection validated above; transResource null-checked above) */
+        return new ProceduralBatch($this->connection, $sql, $transResource);
     }
 
     /**
      * Execute a batch INSERT with data array (convenience method).
      *
-     * High-level convenience wrapper around createBatch() for simple use cases.
-     * Automatically creates batch, adds all rows, executes, and returns result.
+     * @param string                                             $sql         INSERT statement with placeholders
+     * @param array<int, array<int|string, mixed>>               $rows        Array of row data arrays
+     * @param TransactionManager|FirebirdTransactionManager|null $transaction Optional transaction
      *
-     * Example:
-     *   $result = $conn->executeBatch(
-     *       'INSERT INTO users (name, email) VALUES (?, ?)',
-     *       [
-     *           ['Alice', 'alice@example.com'],
-     *           ['Bob', 'bob@example.com'],
-     *           ['Charlie', 'charlie@example.com'],
-     *       ]
-     *   );
-     *   echo "Inserted: " . $result->count() . " rows";
-     *   foreach ($result->getErrors() as $error) {
-     *       echo "Row " . $error->getRow() . " failed: " . $error->getMessage();
-     *   }
-     *
-     * @param string                               $sql         INSERT statement with placeholders
-     * @param array<int, array<int|string, mixed>> $rows        Array of row data arrays
-     * @param Transaction|null                     $transaction Optional transaction
-     *
-     * @return BatchResult Result with row counts and any errors
+     * @return ProceduralBatchResult Result with row counts and any errors
      *
      * @throws DriverException If Firebird version < 4.0 or connection invalid.
      */
-    public function executeBatch(string $sql, array $rows, Transaction|null $transaction = null): BatchResult
+    public function executeBatch(string $sql, array $rows, TransactionManager|FirebirdTransactionManager|null $transaction = null): ProceduralBatchResult
     {
         $batch = $this->createBatch($sql, $transaction);
 
@@ -1066,14 +865,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     /**
      * Get connection statistics and information.
      *
-     * Returns detailed connection metrics including:
-     * - Current reads/writes/fetches
-     * - Memory usage
-     * - Buffer pool statistics
-     * - Transaction statistics
-     *
-     * Useful for monitoring, diagnostics, and performance tuning.
-     *
      * @return DbInfo|array<string, mixed>|false Connection info or false on error
      *
      * @throws DriverException
@@ -1084,18 +875,11 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        // Use OO API if available (php-firebird v7+)
-        // Falls back to procedural fbird_connection_info() if OO not available
         if (class_exists(DbInfo::class)) {
             return DbInfo::fromConnection($this->connection);
         }
 
-        // Procedural fallback
-        if (function_exists('fbird_connection_info')) {
-            return fbird_connection_info($this->connection);
-        }
-
-        return false;
+        return fbird_connection_info($this->connection);
     }
 
     // =========================================================================
@@ -1105,12 +889,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
     /**
      * Get list of limbo (in-doubt) transactions.
-     *
-     * Limbo transactions occur during two-phase commit failures.
-     * This method returns transaction IDs that need manual recovery
-     * (commit or rollback decision by DBA).
-     *
-     * Requires SYSDBA or database owner privileges.
      *
      * @return array<int>|false Array of limbo transaction IDs or false on error
      *
@@ -1122,33 +900,19 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        if (! function_exists('fbird_get_limbo_transactions')) {
-            throw new DriverException(
-                'fbird_get_limbo_transactions() requires php-firebird v7.0.0+',
-            );
+        try {
+            return fbird_get_limbo_transactions($this->connection);
+        } catch (Throwable $e) {
+            throw DriverException::fromThrowable($e);
         }
-
-        $result = fbird_get_limbo_transactions($this->connection);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
     }
 
     /**
      * Reconnect to a limbo transaction for recovery.
      *
-     * After reconnecting, the transaction can be committed or rolled back
-     * to resolve the limbo state. This is typically used by DBAs to
-     * recover from two-phase commit failures.
-     *
-     * Requires SYSDBA or database owner privileges.
-     *
      * @param int $transactionId The limbo transaction ID to reconnect
      *
-     * @return resource|false Transaction resource for commit/rollback, or false on error
+     * @return FirebirdTransaction|false Transaction object for commit/rollback, or false on error
      *
      * @throws DriverException
      */
@@ -1158,92 +922,96 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
-        if (! function_exists('fbird_reconnect_transaction')) {
-            throw new DriverException(
-                'fbird_reconnect_transaction() requires php-firebird v7.0.0+',
-            );
-        }
-
-        assert(is_resource($this->connection));
-
-        $result = fbird_reconnect_transaction($this->connection, $transactionId);
-
-        if ($result === false) {
-            $this->checkLastApiCall();
-        }
-
-        return $result;
-    }
-
-    /** @param resource $resource */
-    private function isResourceTypeValid($resource): bool
-    {
-        $type = get_resource_type($resource);
-
-        return in_array($type, self::RESOURCE_TYPES_CONNECTION, true)
-            || in_array($type, self::RESOURCE_TYPES_PERSISTENT_CONNECTION, true);
-    }
-
-    private function getSavepointName(int $level): string
-    {
-        return 'TARGET_SP_' . $level;
-    }
-
-    /**
-     * @return resource The firebird transaction.
-     * @psalm-return resource
-     *
-     * @throws DriverException
-     */
-    private function createTransaction()
-    {
-        if (! is_resource($this->connection) || get_resource_type($this->connection) === 'Unknown') {
-            $this->checkLastApiCall();
-        }
-
-        $options = ['access_mode' => FBIRD_WRITE];
-
-        switch ($this->attrDcTransIsolationLevel) {
-            case TransactionIsolationLevel::READ_UNCOMMITTED:
-                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
-                break;
-            case TransactionIsolationLevel::READ_COMMITTED:
-                $options['isolation'] = FBIRD_COMMITTED | FBIRD_REC_VERSION;
-                break;
-            case TransactionIsolationLevel::REPEATABLE_READ:
-                $options['isolation'] = FBIRD_CONCURRENCY;
-                break;
-            case TransactionIsolationLevel::SERIALIZABLE:
-                $options['isolation'] = FBIRD_CONSISTENCY;
-                break;
-        }
-
-        if ($this->attrDcTransWait === -1) {
-            $options['lock_resolution'] = FBIRD_WAIT;
-        } elseif ($this->attrDcTransWait === 0) {
-            $options['lock_resolution'] = FBIRD_NOWAIT;
-        } else {
-            $options['lock_resolution'] = FBIRD_WAIT;
-            $options['lock_timeout']    = $this->attrDcTransWait;
-        }
-
-        // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
-        // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
-            /** @phpstan-ignore argument.type */
-            $result = fbird_trans_start($this->connection, $options);
-
-            if (! is_resource($result)) {
-                $this->checkLastApiCall();
-
-                // If checking last API call didn't throw an exception but we don't have a resource, something is wrong
-                throw new DriverException('Failed to create transaction');
-            }
-
-            return $result;
+            return fbird_reconnect_transaction($this->connection, $transactionId);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
         }
+    }
+
+    /**
+     * Resolve a transaction argument to a Firebird\Transaction resource.
+     *
+     * Accepts the driver's TransactionManager, php-firebird's TransactionManager
+     * (from TBuilder::start()), or a raw Firebird\Transaction.
+     *
+     * @param mixed $transaction Transaction to resolve
+     *
+     * @return mixed The resolved Firebird\Transaction
+     *
+     * @throws DriverException If the transaction is invalid or already closed.
+     */
+    private function resolveTransactionResource(mixed $transaction): mixed
+    {
+        if ($transaction instanceof TransactionManager) {
+            if (! $transaction->isTransactionValid()) {
+                throw new DriverException('Invalid transaction resource.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        if ($transaction instanceof FirebirdTransactionManager) {
+            // From TBuilder::start() — independent transaction (Firebird 4.0+).
+            if (! $transaction->isActive()) {
+                throw new DriverException('Transaction already committed or rolled back.');
+            }
+
+            return $transaction->getResource();
+        }
+
+        /** @psalm-suppress DocblockTypeContradiction */
+        if ($transaction === null || $transaction === false) {
+            throw new DriverException('Invalid transaction handle.');
+        }
+
+        return $transaction;
+    }
+
+    // =========================================================================
+    // Resource Reference Registry - prevents premature fbird_close()
+    // =========================================================================
+
+    /**
+     * Look up the IDENTITY generator name for a given table from RDB$RELATION_FIELDS.
+     * Returns null if no IDENTITY column is found or the lookup fails.
+     *
+     * Uses $this->query() (DBAL path) which runs within the active transaction.
+     * This matches Doctrine best practice (Oracle OCI8, SQL Server drivers) where
+     * metadata queries use the active transaction context for consistent reads.
+     */
+    private function resolveIdentityGenerator(string $tableName): string|null
+    {
+        $key = strtoupper($tableName);
+
+        if (array_key_exists($key, $this->identityGeneratorCache)) {
+            return $this->identityGeneratorCache[$key];
+        }
+
+        $result = null;
+
+        try {
+            // Use $this->query() (DBAL path) which runs within the active transaction.
+            $sql       = sprintf(
+                'SELECT FIRST 1 TRIM(RDB$GENERATOR_NAME) FROM RDB$RELATION_FIELDS'
+                . ' WHERE UPPER(TRIM(RDB$RELATION_NAME)) = \'%s\''
+                . ' AND RDB$GENERATOR_NAME IS NOT NULL',
+                str_replace("'", "''", $key),
+            );
+            $rdbResult = $this->query($sql);
+            $rdbRow    = $rdbResult->fetchNumeric();
+            if (is_array($rdbRow) && isset($rdbRow[0]) && is_string($rdbRow[0])) {
+                $tmp = trim($rdbRow[0]);
+                if ($tmp !== '') {
+                    $result = $tmp;
+                }
+            }
+        } catch (Throwable) {
+        }
+
+        $this->identityGeneratorCache[$key] = $result;
+
+        return $result;
     }
 
     private static function loadOoApi(): void
@@ -1270,7 +1038,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             'ProcessEventPoller.php',
             'BlobId.php',
             'DbInfo.php',
-            'Transaction.php',
+            'TransactionManager.php',
             'TBuilder.php',
             'Database.php',
             'BatchError.php',

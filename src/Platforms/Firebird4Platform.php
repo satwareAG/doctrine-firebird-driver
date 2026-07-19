@@ -17,7 +17,7 @@ namespace Satag\DoctrineFirebirdDriver\Platforms;
  */
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Types\Types;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird4Keywords;
 
 class Firebird4Platform extends Firebird3Platform

@@ -27,6 +27,7 @@ class TemporaryTableTest extends FunctionalTestCase
 
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('
                 . $platform->getColumnDeclarationListSQL($columnDefinitions) . ')';
+        $this->dropTableIfExists($tempTable);
         $this->connection->executeStatement($createTempTableSQL);
 
         $table = new Table('nontemporary');

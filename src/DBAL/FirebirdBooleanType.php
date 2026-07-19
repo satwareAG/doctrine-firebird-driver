@@ -5,7 +5,15 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Types\BooleanType;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 final class FirebirdBooleanType extends BooleanType
 {
+    /** @psalm-suppress MissingOverrideAttribute */
+    #[Override]
+    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
+    {
+        return $platform::class === FirebirdPlatform::class;
+    }
 }

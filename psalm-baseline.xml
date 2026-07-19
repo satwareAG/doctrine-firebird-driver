@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.16.1@f1f5de594dc76faf8784e02d3dc4716c91c6f6ac">
-  <file src="src/Compat/Compat.php">
-    <UnusedClass>
-      <code><![CDATA[Compat]]></code>
-    </UnusedClass>
-  </file>
   <file src="src/DBAL/FirebirdConnection.php">
     <InternalMethod>
       <code><![CDATA[getParams]]></code>
@@ -12,29 +7,13 @@
     <InvalidArrayOffset>
       <code><![CDATA[$params['firebird']]]></code>
     </InvalidArrayOffset>
-    <UnusedClass>
-      <code><![CDATA[FirebirdConnection]]></code>
-    </UnusedClass>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
-    <ImplementedReturnTypeMismatch>
-      <code><![CDATA[object|resource|null]]></code>
-    </ImplementedReturnTypeMismatch>
-    <MissingOverrideAttribute>
-      <code><![CDATA[public function getNativeConnection(): mixed]]></code>
-    </MissingOverrideAttribute>
-    <NoValue>
-      <code><![CDATA[$this->connection]]></code>
-    </NoValue>
-    <PossiblyNullArgument>
-      <code><![CDATA[$this->connection]]></code>
-    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
       <code><![CDATA[createIndependentTransaction]]></code>
+      <code><![CDATA[createSavepoint]]></code>
       <code><![CDATA[dropTableForce]]></code>
-      <code><![CDATA[executeAuto]]></code>
       <code><![CDATA[executeBatch]]></code>
-      <code><![CDATA[getActiveTransaction]]></code>
       <code><![CDATA[getConnectionInfo]]></code>
       <code><![CDATA[getLimboTransactions]]></code>
       <code><![CDATA[getOOWrapper]]></code>
@@ -43,94 +22,24 @@
       <code><![CDATA[listTableBlockers]]></code>
       <code><![CDATA[queryInTransaction]]></code>
       <code><![CDATA[reconnectLimboTransaction]]></code>
+      <code><![CDATA[releaseSavepoint]]></code>
+      <code><![CDATA[rollbackSavepoint]]></code>
     </PossiblyUnusedMethod>
-    <RedundantConditionGivenDocblockType>
-      <code><![CDATA[is_resource($this->connection)]]></code>
-    </RedundantConditionGivenDocblockType>
     <TypeDoesNotContainType>
-      <code><![CDATA[is_object($this->connection)]]></code>
-      <code><![CDATA[is_object($this->connection) && method_exists($this->connection, 'getNativeConnection')]]></code>
+      <code><![CDATA[$transResource === false]]></code>
+      <code><![CDATA[$transResource === null || $transResource === false]]></code>
     </TypeDoesNotContainType>
-    <UndefinedMethod>
-      <code><![CDATA[TransactionIsolationLevel::from((int) $value)]]></code>
-    </UndefinedMethod>
-    <UnusedVariable>
-      <code><![CDATA[$success]]></code>
-    </UnusedVariable>
   </file>
   <file src="src/Driver/Firebird/ConnectionWrapper.php">
-    <DeprecatedMethod>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[introspectTable]]></code>
-      <code><![CDATA[listSequences]]></code>
-    </DeprecatedMethod>
     <InternalMethod>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
+      <code><![CDATA[getParams]]></code>
     </InternalMethod>
-    <MissingParamType>
-      <code><![CDATA[$sql]]></code>
-    </MissingParamType>
-    <UndefinedMethod>
-      <code><![CDATA[getIdentitySequenceName]]></code>
-      <code><![CDATA[getIdentitySequenceName]]></code>
-    </UndefinedMethod>
   </file>
-  <file src="src/Driver/Firebird/Driver.php">
-    <InvalidArrayOffset>
-      <code><![CDATA[$params['buffers']]]></code>
-      <code><![CDATA[$params['dialect']]]></code>
-      <code><![CDATA[$params['firebird']]]></code>
-    </InvalidArrayOffset>
-  </file>
-  <file src="src/Driver/Firebird/Driver/FirebirdConnectString.php">
-    <InvalidOperand>
-      <code><![CDATA[$params['port']]]></code>
-    </InvalidOperand>
-  </file>
-  <file src="src/Driver/Firebird/Exception.php">
-    <PossiblyInvalidArgument>
-      <code><![CDATA[$exception->getCode()]]></code>
-    </PossiblyInvalidArgument>
-  </file>
-  <file src="src/Driver/Firebird/FirebirdDriverMiddleware.php">
-    <UnusedClass>
-      <code><![CDATA[FirebirdDriverMiddleware]]></code>
-    </UnusedClass>
-  </file>
-  <file src="src/Driver/Firebird/Middleware/CharsetConnectionMiddleware.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[$value]]></code>
-    </PossiblyFalseArgument>
-  </file>
-  <file src="src/Driver/Firebird/Middleware/CharsetMiddleware.php">
-    <UnusedClass>
-      <code><![CDATA[CharsetMiddleware]]></code>
-    </UnusedClass>
-  </file>
-  <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
-    <DocblockTypeContradiction>
-      <code><![CDATA[$columnType === ParameterType::BINARY]]></code>
-      <code><![CDATA[$columnType === ParameterType::LARGE_OBJECT]]></code>
-      <code><![CDATA[$columnType === ParameterType::LARGE_OBJECT]]></code>
-    </DocblockTypeContradiction>
-    <PossiblyFalseArgument>
-      <code><![CDATA[$buffer]]></code>
-      <code><![CDATA[$rest]]></code>
-    </PossiblyFalseArgument>
-    <PossiblyFalseOperand>
-      <code><![CDATA[$buffer]]></code>
-      <code><![CDATA[$rest]]></code>
-    </PossiblyFalseOperand>
-    <RedundantFunctionCall>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCall>
-    <RedundantFunctionCallGivenDocblockType>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCallGivenDocblockType>
+  <file src="src/Driver/Firebird/ProceduralBatchResult.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[hasErrors]]></code>
+      <code><![CDATA[isComplete]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="src/Driver/Firebird/Middleware/CharsetStatementMiddleware.php">
     <InvalidArgument>
@@ -151,273 +60,9 @@
     </UnusedProperty>
   </file>
   <file src="src/Driver/Firebird/Statement.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[$callArgs]]></code>
-    </PossiblyFalseArgument>
-    <PossiblyUnusedMethod>
-      <code><![CDATA[bindParam]]></code>
-    </PossiblyUnusedMethod>
-    <RedundantCondition>
-      <code><![CDATA[$fbirdResultRc === true]]></code>
-    </RedundantCondition>
-    <UnusedParam>
-      <code><![CDATA[$length]]></code>
-    </UnusedParam>
-  </file>
-  <file src="src/Driver/FirebirdDriver.php">
-    <PossiblyUnusedMethod>
-      <code><![CDATA[getSchemaManager]]></code>
-    </PossiblyUnusedMethod>
-    <UndefinedDocblockClass>
-      <code><![CDATA[Exception]]></code>
-    </UndefinedDocblockClass>
-  </file>
-  <file src="src/Platforms/Firebird3Platform.php">
-    <DeprecatedClass>
-      <code><![CDATA[KeywordList]]></code>
-    </DeprecatedClass>
-    <InternalClass>
-      <code><![CDATA[new Identifier((string) $oldColumnName)]]></code>
-    </InternalClass>
-    <InternalMethod>
-      <code><![CDATA[getCommentOnColumnSQL]]></code>
-      <code><![CDATA[getCommentOnColumnSQL]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[getQuotedName]]></code>
-      <code><![CDATA[new Identifier((string) $oldColumnName)]]></code>
-    </InternalMethod>
-    <InvalidOperand>
-      <code><![CDATA[$sequence->getCache()]]></code>
-    </InvalidOperand>
-    <MissingOverrideAttribute>
-      <code><![CDATA[public function getAlterTableSQL(TableDiff $diff): array]]></code>
-      <code><![CDATA[public function getCreateAutoincrementSql(string|AbstractAsset $column, string|AbstractAsset $tableName): array]]></code>
-      <code><![CDATA[public function getDropAutoincrementSql(string $table): string]]></code>
-      <code><![CDATA[public function getIdentitySequenceName(string $tableName, string $columnName): string]]></code>
-      <code><![CDATA[public function getListTableColumnsSQL($table, $database = null): string]]></code>
-      <code><![CDATA[public function prefersIdentityColumns(): bool]]></code>
-      <code><![CDATA[public function usesSequenceEmulatedIdentityColumns(): bool]]></code>
-    </MissingOverrideAttribute>
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $oldColumnName]]></code>
-    </RedundantCastGivenDocblockType>
-    <RedundantCondition>
-      <code><![CDATA[$addedColumn->getComment()]]></code>
-      <code><![CDATA[$newColumn->getComment()]]></code>
-      <code><![CDATA[$oldColumn->getComment()]]></code>
-    </RedundantCondition>
-    <RedundantFunctionCall>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCall>
-    <TypeDoesNotContainNull>
-      <code><![CDATA['']]></code>
-      <code><![CDATA['']]></code>
-      <code><![CDATA['']]></code>
-    </TypeDoesNotContainNull>
-  </file>
-  <file src="src/Platforms/Firebird4Platform.php">
-    <DeprecatedClass>
-      <code><![CDATA[KeywordList]]></code>
-    </DeprecatedClass>
-  </file>
-  <file src="src/Platforms/Firebird5Platform.php">
-    <DeprecatedClass>
-      <code><![CDATA[KeywordList]]></code>
-    </DeprecatedClass>
-    <MissingOverrideAttribute>
-      <code><![CDATA[public function getName(): string]]></code>
-    </MissingOverrideAttribute>
-  </file>
-  <file src="src/Platforms/FirebirdPlatform.php">
-    <DeprecatedClass>
-      <code><![CDATA[KeywordList]]></code>
-    </DeprecatedClass>
-    <DeprecatedConstant>
-      <code><![CDATA[self::CREATE_INDEXES]]></code>
-    </DeprecatedConstant>
-    <InternalClass>
-      <code><![CDATA[new Identifier($name)]]></code>
-      <code><![CDATA[new Identifier($name)]]></code>
-      <code><![CDATA[new Identifier($name)]]></code>
-      <code><![CDATA[new Identifier($needQuote ? $this->quoteIdentifier($fullId) : $fullId)]]></code>
-      <code><![CDATA[new Identifier($needQuote ? $this->quoteIdentifier($shortId) : $shortId)]]></code>
-      <code><![CDATA[new Identifier($oldColumnName)]]></code>
-      <code><![CDATA[new Identifier($tableName)]]></code>
-      <code><![CDATA[new Identifier(strtoupper($name))]]></code>
-    </InternalClass>
-    <InvalidArgument>
-      <code><![CDATA[[$aTable]]]></code>
-    </InvalidArgument>
-    <InvalidArrayOffset>
-      <code><![CDATA[$column['autoinc']]]></code>
-      <code><![CDATA[$column['check']]]></code>
-      <code><![CDATA[$column['sequence']]]></code>
-      <code><![CDATA[$options['temporary']]]></code>
-    </InvalidArrayOffset>
-    <InvalidOperand>
-      <code><![CDATA[$column['length']]]></code>
-    </InvalidOperand>
-    <LessSpecificReturnStatement>
-      <code><![CDATA[$sql]]></code>
-    </LessSpecificReturnStatement>
-    <MissingOverrideAttribute>
-      <code><![CDATA[public function createSchemaManager(Connection $connection): AbstractSchemaManager]]></code>
-      <code><![CDATA[public function getAlterTableSQL(TableDiff $diff): array]]></code>
-      <code><![CDATA[public function getBigIntTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getBlobTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getBooleanTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getClobTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getCurrentDatabaseExpression(): string]]></code>
-      <code><![CDATA[public function getDateDiffExpression($date1, $date2): string]]></code>
-      <code><![CDATA[public function getDateTimeTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getDateTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getIntegerTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getListViewsSQL($database): string]]></code>
-      <code><![CDATA[public function getLocateExpression($str, $substr, $startPos = false): string]]></code>
-      <code><![CDATA[public function getSetTransactionIsolationSQL($level): string]]></code>
-      <code><![CDATA[public function getSmallIntTypeDeclarationSQL(array $column): string]]></code>
-      <code><![CDATA[public function getTimeTypeDeclarationSQL(array $column): string]]></code>
-    </MissingOverrideAttribute>
-    <MissingParamType>
-      <code><![CDATA[$cascade]]></code>
-      <code><![CDATA[$createFlags]]></code>
-      <code><![CDATA[$database]]></code>
-      <code><![CDATA[$database]]></code>
-      <code><![CDATA[$date1]]></code>
-      <code><![CDATA[$date2]]></code>
-      <code><![CDATA[$level]]></code>
-      <code><![CDATA[$limit]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$offset]]></code>
-      <code><![CDATA[$query]]></code>
-      <code><![CDATA[$sql]]></code>
-      <code><![CDATA[$table]]></code>
-      <code><![CDATA[$table]]></code>
-      <code><![CDATA[$tableName]]></code>
-    </MissingParamType>
-    <MoreSpecificReturnType>
-      <code><![CDATA[array]]></code>
-    </MoreSpecificReturnType>
-    <ParamNameMismatch>
-      <code><![CDATA[$column]]></code>
-      <code><![CDATA[$sequence]]></code>
-      <code><![CDATA[$startPos]]></code>
-      <code><![CDATA[$str]]></code>
-      <code><![CDATA[$substr]]></code>
-    </ParamNameMismatch>
-    <PossiblyInvalidArgument>
-      <code><![CDATA[$aSequence]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$table]]></code>
-      <code><![CDATA[$tableName]]></code>
-    </PossiblyInvalidArgument>
-    <PossiblyInvalidCast>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$name]]></code>
-      <code><![CDATA[$oldColumnName]]></code>
-    </PossiblyInvalidCast>
-    <PossiblyInvalidOperand>
-      <code><![CDATA[$name]]></code>
-    </PossiblyInvalidOperand>
-    <PossiblyUnusedMethod>
-      <code><![CDATA[getBinaryDefaultLength]]></code>
-      <code><![CDATA[getListTableColumnsSQL]]></code>
-      <code><![CDATA[getListTableConstraintsSQL]]></code>
-      <code><![CDATA[getListTableForeignKeysSQL]]></code>
-      <code><![CDATA[getListTableIndexesSQL]]></code>
-      <code><![CDATA[getListTablesSQL]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getNowExpression]]></code>
-      <code><![CDATA[prefersIdentityColumns]]></code>
-      <code><![CDATA[supportsCreateDropDatabase]]></code>
-      <code><![CDATA[supportsForeignKeyConstraints]]></code>
-      <code><![CDATA[supportsLimitOffset]]></code>
-      <code><![CDATA[supportsViews]]></code>
-      <code><![CDATA[usesSequenceEmulatedIdentityColumns]]></code>
-    </PossiblyUnusedMethod>
-    <PossiblyUnusedParam>
-      <code><![CDATA[$database]]></code>
-    </PossiblyUnusedParam>
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(array) $options['foreignKeys']]]></code>
-    </RedundantCastGivenDocblockType>
-    <RedundantCondition>
-      <code><![CDATA[$column->getComment()]]></code>
-      <code><![CDATA[$columnDiff->getOldColumn()]]></code>
-      <code><![CDATA[$columnDiff->getOldColumn() !== null]]></code>
-      <code><![CDATA[$oldColumn !== null]]></code>
-    </RedundantCondition>
-    <RedundantFunctionCall>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCall>
-    <RedundantFunctionCallGivenDocblockType>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCallGivenDocblockType>
-    <RiskyTruthyFalsyComparison>
-      <code><![CDATA[empty($options['primary'])]]></code>
-      <code><![CDATA[empty($options['uniqueConstraints'])]]></code>
-    </RiskyTruthyFalsyComparison>
-    <TypeDoesNotContainNull>
-      <code><![CDATA[$columnDiff->fromColumn]]></code>
-      <code><![CDATA[$comment === null]]></code>
-      <code><![CDATA[$comment === null]]></code>
-      <code><![CDATA['']]></code>
-    </TypeDoesNotContainNull>
     <TypeDoesNotContainType>
-      <code><![CDATA[$startPos === false]]></code>
+      <code><![CDATA[$this->statement instanceof Transaction]]></code>
     </TypeDoesNotContainType>
-    <UndefinedMethod>
-      <code><![CDATA[getOldColumnName]]></code>
-    </UndefinedMethod>
-    <UndefinedPropertyFetch>
-      <code><![CDATA[$columnDiff->fromColumn]]></code>
-    </UndefinedPropertyFetch>
-  </file>
-  <file src="src/Platforms/Keywords/Firebird3Keywords.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[protected function getKeywords(): array]]></code>
-      <code><![CDATA[public function getName(): string]]></code>
-    </MissingOverrideAttribute>
-  </file>
-  <file src="src/Platforms/Keywords/Firebird4Keywords.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[protected function getKeywords(): array]]></code>
-      <code><![CDATA[public function getName(): string]]></code>
-    </MissingOverrideAttribute>
-  </file>
-  <file src="src/Platforms/Keywords/Firebird5Keywords.php">
-    <MissingOverrideAttribute>
-      <code><![CDATA[protected function getKeywords(): array]]></code>
-      <code><![CDATA[public function getName(): string]]></code>
-    </MissingOverrideAttribute>
-  </file>
-  <file src="src/Platforms/Keywords/FirebirdKeywords.php">
-    <DeprecatedClass>
-      <code><![CDATA[KeywordList]]></code>
-    </DeprecatedClass>
-    <MissingOverrideAttribute>
-      <code><![CDATA[protected function getKeywords(): array]]></code>
-    </MissingOverrideAttribute>
-    <PossiblyUnusedMethod>
-      <code><![CDATA[getName]]></code>
-    </PossiblyUnusedMethod>
   </file>
   <file src="src/Schema/FirebirdComparator.php">
     <DeprecatedMethod>
@@ -435,47 +80,8 @@
     </RedundantCast>
   </file>
   <file src="src/Schema/FirebirdSchemaManager.php">
-    <ArgumentTypeCoercion>
-      <code><![CDATA[$normalizedName]]></code>
-    </ArgumentTypeCoercion>
-    <DeprecatedMethod>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[getName]]></code>
-      <code><![CDATA[isQuoted]]></code>
-      <code><![CDATA[listTableColumns]]></code>
-      <code><![CDATA[listTableForeignKeys]]></code>
-      <code><![CDATA[listTableIndexes]]></code>
-      <code><![CDATA[quoteIdentifier]]></code>
-    </DeprecatedMethod>
-    <InternalClass>
-      <code><![CDATA[new Identifier($name)]]></code>
-      <code><![CDATA[new Identifier($tableName)]]></code>
-    </InternalClass>
-    <LessSpecificImplementedReturnType>
-      <code><![CDATA[array]]></code>
-    </LessSpecificImplementedReturnType>
-    <LessSpecificReturnStatement>
-      <code><![CDATA[$tableOptions]]></code>
-      <code><![CDATA[$this->getQuotedIdentifierName(trim((string) $table['rdb$relation_name']))]]></code>
-    </LessSpecificReturnStatement>
-    <MoreSpecificReturnType>
-      <code><![CDATA[array]]></code>
-      <code><![CDATA[string]]></code>
-    </MoreSpecificReturnType>
-    <ParamNameMismatch>
-      <code><![CDATA[$tableForeignKeys]]></code>
-      <code><![CDATA[$tableIndexes]]></code>
-    </ParamNameMismatch>
-    <PossiblyNullArgument>
-      <code><![CDATA[$tableForeignKey['name'] ?? $tableForeignKey['constraint_name'] ?? null]]></code>
-    </PossiblyNullArgument>
     <PossiblyUnusedMethod>
-      <code><![CDATA[listTableDetails]]></code>
+      <code><![CDATA[getCurrentSequenceValue]]></code>
     </PossiblyUnusedMethod>
-  </file>
-  <file src="src/Schema/FirebirdSchemaManagerFactory.php">
-    <UnusedClass>
-      <code><![CDATA[FirebirdSchemaManagerFactory]]></code>
-    </UnusedClass>
   </file>
 </files>

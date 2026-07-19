@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Types;
-use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
 
 /**
@@ -14,9 +13,12 @@ use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
  *
  * Firebird 5.0 extends Firebird 4.0 with additional features.
  */
-class Firebird5PlatformTest extends TestCase
+class Firebird5PlatformTest extends Firebird3PlatformTest
 {
-    private Firebird5Platform $platform;
+    public function createPlatform(): AbstractPlatform
+    {
+        return new Firebird5Platform();
+    }
 
     public function testGetName(): void
     {
@@ -78,10 +80,5 @@ class Firebird5PlatformTest extends TestCase
         self::assertTrue($this->platform->supportsIdentityColumns());
         self::assertTrue($this->platform->supportsSavepoints());
         self::assertTrue($this->platform->supportsCommentOnStatement());
-    }
-
-    protected function setUp(): void
-    {
-        $this->platform = new Firebird5Platform();
     }
 }

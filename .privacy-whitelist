@@ -1,0 +1,17 @@
+# .privacy-whitelist — Whitelisted patterns for IPADP L2 Privacy Validation
+#
+# Patterns allowed in this repository (one extended regex per line).
+# These patterns will be skipped by check-privacy-leaks.sh.
+
+# Internal URLs (Authorized in this private wiki repo)
+gitlab\.satware\.com
+git\.satware\.ai
+
+# Private IP ranges used in documentation/examples
+10\.[0-9]+\.[0-9]+\.[0-9]+
+172\.(1[6-9]|2[0-9]|3[1-1])\.[0-9]+\.[0-9]+
+192\.168\.[0-9]+\.[0-9]+
+
+# Placeholder/Example credentials in documentation
+api[_-]?key.*EXAMPLE
+token.*PLACEHOLDER

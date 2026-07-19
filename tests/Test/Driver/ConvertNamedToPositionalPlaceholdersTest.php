@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Driver;
 
-use Doctrine\DBAL\SQL\Parser;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
+use Satag\DoctrineFirebirdDriver\SQL\Parser;
 
 class ConvertNamedToPositionalPlaceholdersTest extends TestCase
 {

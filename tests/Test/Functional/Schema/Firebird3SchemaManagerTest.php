@@ -60,6 +60,7 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         $tableToCreate = new Table('table_to_create');
         $tableToCreate->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $tableToCreate->setPrimaryKey(['id']);
+        $this->dropTableIfExists('table_to_create');
         $this->schemaManager->createTable($tableToCreate);
 
         // Verify using table-level checks (faster than introspectSchema)

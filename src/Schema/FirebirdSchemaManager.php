@@ -15,7 +15,8 @@ use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
 use Doctrine\DBAL\Types\Type;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -29,22 +30,21 @@ use function array_merge;
 use function dirname;
 use function fbird_close;
 use function fbird_connect;
+use function fbird_create_database;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function fbird_query;
-use function is_resource;
 use function json_decode;
 use function preg_match;
 use function sprintf;
 use function str_contains;
+use function str_replace;
 use function strtolower;
 use function strtoupper;
 use function trim;
 
 use const CASE_LOWER;
 use const CASE_UPPER;
-use const FBIRD_CREATE;
 
 /**
  * Firebird Schema Manager.
@@ -89,39 +89,70 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $params           = $this->connection->getParams();
         $params['dbname'] = $database;
 
-        $dbname =  (string) FirebirdConnectString::fromConnectionParameters($params);
+        $dbname = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        // Suppress warning since we handle the error explicitly below
-        try {
-            $connection = @fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
-        } catch (Throwable $e) {
-            throw Exception::fromThrowable($e);
+        $currentDbname    = (string) FirebirdConnectString::fromConnectionParameters($this->_conn->getParams());
+        $nativeConnection = null;
+        $openedFresh      = false;
+
+        if ($currentDbname === $dbname) {
+            // Reuse the existing native connection for the same database.
+            try {
+                $driverConn = $this->_conn->getNativeConnection();
+                if ($driverConn instanceof Connection && $driverConn->isConnectionValid()) {
+                    $nativeConnection = $driverConn->getNativeConnection();
+                }
+            } catch (Throwable) {
+                // Fall through to fbird_connect below
+            }
         }
 
-        if (! is_resource($connection)) {
-            $code = (int) fbird_errcode();
-            $msg  = (string) fbird_errmsg();
-            if ($code === -902) {
-                throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
+        if ($nativeConnection === null) {
+            // Open a fresh connection for a different target database.
+            try {
+                $nativeConnection = fbird_connect($dbname, $params['user'] ?? '', $params['password'] ?? '');
+            } catch (Throwable $e) {
+                throw Exception::fromThrowable($e);
             }
 
-            throw new Exception($msg, null, $code);
+            if ($nativeConnection === false) {
+                $code = (int) fbird_errcode();
+                $msg  = (string) fbird_errmsg();
+                if ($code === -902) {
+                    throw new DatabaseDoesNotExist(new Exception($msg, null, $code), null);
+                }
+
+                throw new Exception($msg, null, $code);
+            }
+
+            $openedFresh = true;
         }
 
-        $this->connection->close();
+        // Close the DBAL wrapper AFTER capturing the native resource so the
+        // resource pointer stays valid for fbird_drop_db. For fresh connections,
+        // no DBAL close is needed.
+        if (! $openedFresh) {
+            try {
+                $this->_conn->close();
+            } catch (Throwable) {
+                // Already closed — safe to ignore
+            }
+        }
+
         try {
-            $result = fbird_drop_db(
-                $connection,
-            );
+            $result = fbird_drop_db($nativeConnection);
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
         if (! $result) {
-            throw new Exception((string) fbird_errmsg(), null, (int) fbird_errcode());
+            $code = (int) fbird_errcode();
+            $msg  = (string) fbird_errmsg();
+
+            throw new Exception($msg, null, $code);
         }
 
-        fbird_close($connection);
+        // fbird_drop_db frees the connection internally; no fbird_close needed.
     }
 
     #[Override]
@@ -147,24 +178,19 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        /** @psalm-suppress InvalidArgument */
         try {
-            $result = fbird_query(
-                FBIRD_CREATE, // @phpstan-ignore-line argument.type
-                sprintf(
-                    "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
-                    $dbname,
-                    (int) $pageSize,
-                    $user,
-                    $password,
-                    $charset,
-                ),
+            $result = fbird_create_database(
+                $dbname,
+                $user,
+                $password,
+                $charset,
+                (int) $pageSize,
             );
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
-        if (! is_resource($result)) {
+        if ($result === false) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
 
@@ -181,12 +207,10 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
     }
 
     /**
-     * Returns table details including columns, indexes, and foreign keys.
-     *
-     * @deprecated This method is not part of the DBAL 4 AbstractSchemaManager interface.
-     *             Use listTableColumns(), listTableIndexes(), and listTableForeignKeys() separately.
+     * {@inheritDoc}
      */
-    public function listTableDetails(string $name): Table
+    #[Override]
+    public function listTableDetails($name)
     {
         $database       = $this->connection->getDatabase() ?? '';
         $normalizedName = $this->normalizeName($name);
@@ -206,25 +230,26 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         return $table;
     }
 
-    /** @psalm-suppress PossiblyUnusedMethod */
-    public function tryMethod(string $method, mixed ...$arguments): mixed
+    /**
+     * Get the current value of a Firebird generator/sequence.
+     *
+     * This is a Firebird-specific extension beyond the DBAL Sequence API,
+     * which does not support reading the current value. Uses GEN_ID(name, 0)
+     * to read the current value without incrementing it.
+     *
+     * @param string $name The generator/sequence name
+     *
+     * @return int The current generator value
+     *
+     * @throws Exception
+     */
+    public function getCurrentSequenceValue(string $name): int
     {
-        try {
-            /** @phpstan-ignore method.dynamicName */
-            return $this->$method(...$arguments);
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /** @psalm-suppress PossiblyUnusedMethod */
-    public function extractDoctrineTypeFromComment(string $comment, string $currentType): string
-    {
-        if (preg_match('/\(DC2Type:([^)]+)\)/', $comment, $match) === 1) {
-            return $match[1];
-        }
-
-        return $currentType;
+        // Inline quoting (not getQuotedIdentifierName) because GEN_ID requires
+        // double-quoted identifiers regardless of case sensitivity.
+        return (int) $this->_conn->fetchOne(
+            sprintf('SELECT GEN_ID("%s", 0) FROM RDB$DATABASE', str_replace('"', '""', $name)),
+        );
     }
 
     /** @return array<int, string> */
@@ -470,7 +495,10 @@ SQL;
     /**
      * {@inheritDoc}
      *
-     * @todo Read current generator value
+     * Note: The DBAL Sequence class only supports allocationSize, initialValue,
+     * and cache — it does not have a "current value" property. This matches
+     * the behavior of Oracle and PostgreSQL schema managers, which also don't
+     * read the current value. Use getCurrentSequenceValue() for that.
      */
     #[Override]
     protected function _getPortableSequenceDefinition($sequence): Sequence
@@ -652,6 +680,9 @@ SQL;
      * {@inheritDoc}
      *
      * @param array<mixed> $tableIndexes
+     * @param string|null  $tableName
+     *
+     * @psalm-suppress LessSpecificImplementedReturnType
      */
     #[Override]
     protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array

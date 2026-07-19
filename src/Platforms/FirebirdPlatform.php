@@ -25,8 +25,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
-use Override;
-use RuntimeException;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
@@ -60,6 +59,8 @@ use const PHP_INT_MAX;
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
  * of the oldest supported version.
+ *
+ * @psalm-suppress InternalProperty
  */
 class FirebirdPlatform extends AbstractPlatform
 {

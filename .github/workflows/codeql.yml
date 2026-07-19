@@ -3,14 +3,12 @@ name: "CodeQL"
 on:
   push:
     branches:
-      - 'main'
-      - '3.0.*'
-      - '3.10-dev'
+      - '3.10.x'
+      - '4.4.x'
   pull_request:
     branches:
-      - 'main'
-      - '3.0.*'
-      - '3.10-dev'
+      - '3.10.x'
+      - '4.4.x'
   schedule:
     - cron: '0 3 * * 1'  # Weekly Monday 3 AM UTC
 
@@ -33,15 +31,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@5c8a8a642e79153f5d047b10ec1cba1d1cc65699
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@5c8a8a642e79153f5d047b10ec1cba1d1cc65699
         with:
           category: "/language:${{ matrix.language }}"

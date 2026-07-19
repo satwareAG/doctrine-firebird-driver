@@ -64,13 +64,12 @@
     },
     "require": {
         "php": "^8.2",
-        "ext-firebird": "*",
+        "ext-firebird": "^13.0",
         "ext-mbstring": "*",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^4.4",
         "symfony/polyfill-intl-grapheme": "^1.33",
         "symfony/polyfill-intl-normalizer": "^1.33",
-        "symfony/polyfill-php82": "^1.33",
         "symfony/polyfill-php83": "^1.33",
         "symfony/polyfill-php84": "^1.33",
         "symfony/polyfill-php85": "^1.33"
@@ -92,7 +91,7 @@
         "phpunit/phpunit": "^11.5",
         "psalm/plugin-phpunit": "^0.19.5",
         "react/child-process": "^0.6.7",
-        "satwareag/php-firebird-stubs": "^7.3|^10.0",
+        "satwareag/php-firebird-stubs": "^13.0.0",
         "slevomat/coding-standard": "^8.28",
         "squizlabs/php_codesniffer": "^4.0.1",
         "symfony/cache": "^6.4|^7.0",

@@ -6,7 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\DBAL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 
@@ -32,6 +32,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
  *         ],
  *     ]);
  */
+/** @psalm-suppress UnusedClass — used as wrapperClass by downstream consumers (amicron-entity-bundle, amicron-platform) */
 final class FirebirdConnection extends Connection
 {
     private bool $platformConfigured = false;

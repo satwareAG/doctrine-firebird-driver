@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
-use Override;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception\HostDbnameRequired;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -20,16 +20,16 @@ use function fbird_pconnect;
 use function fbird_server_info;
 use function fbird_service_attach;
 use function fbird_service_detach;
-use function function_exists;
-use function is_resource;
 use function stristr;
 
+use const FBIRD_CONNECT_FORCE_NEW;
 use const FBIRD_SVC_SERVER_VERSION;
 
 /**
  * A Doctrine DBAL driver for the FirebirdSQL/php-firebird.
  *
  * @psalm-suppress UnusedClass
+ * @psalm-suppress DeprecatedInterface
  */
 final class Driver extends FirebirdDriver
 {
@@ -57,41 +57,42 @@ final class Driver extends FirebirdDriver
         $charset    = $params['charset'] ?? 'UTF8';
         $buffers    = $params['buffers'] ?? 0;
         $dialect    = $params['dialect'] ?? 3;
+        $role       = $params['role'] ?? '';
         $persistent = ! empty($params['persistent']);
+        $forceNew   = ! empty($params['forceNewConnection']);
 
         $connectString = $this->buildConnectString($params);
 
-        if (function_exists('fbird_service_attach')) {
-            try {
-                $firebirdService = @fbird_service_attach($host, $username, $password);
-            } catch (Throwable $e) {
-                throw Exception::fromThrowable($e);
-            }
-
-            if (! is_resource($firebirdService)) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
-            if ($serverVersion === false) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            if (! fbird_service_detach($firebirdService)) {
-                throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
-            }
-
-            unset($firebirdService);
-        } else {
-            // Fallback for environments where service API is not available
-            $serverVersion = '3.0'; // Minimal supported version
+        try {
+            $firebirdService = fbird_service_attach($host, $username, $password);
+        } catch (Throwable $e) {
+            throw Exception::fromThrowable($e);
         }
+
+        if ($firebirdService === false) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        $serverVersion = fbird_server_info($firebirdService, FBIRD_SVC_SERVER_VERSION);
+        if ($serverVersion === false) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        if (! fbird_service_detach($firebirdService)) {
+            throw Exception::fromErrorInfo((string) fbird_errmsg(), (int) fbird_errcode());
+        }
+
+        unset($firebirdService);
 
         try {
             if ($persistent) {
-                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
+            } elseif ($forceNew) {
+                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
             } else {
-                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect);
+                // Handle "I/O error ... no such file or directory" warning below as a valid case
+                // (database doesn't exist yet, will be created by schema tool).
+                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
             }
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
