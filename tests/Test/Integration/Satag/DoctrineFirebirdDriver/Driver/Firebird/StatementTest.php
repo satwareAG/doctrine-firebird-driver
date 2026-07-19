@@ -34,11 +34,9 @@ class StatementTest extends AbstractIntegrationTestCase
         $row    = $result->fetchNumeric();
         // Album SELECT * column order: id(0), timeCreated(1), name(2), artist_id(3)
         self::assertSame(1, $row[0]);
-        // Actual physical DB column order (confirmed by CI): id(0), artist_id(1), timeCreated(2), name(3)
-        // Doctrine DBAL schema adds: id, timeCreated, name, artist_id — but Firebird may reorder columns
-        self::assertSame(2, $row[1]); // artist_id = 2 (Britney Spears)
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) $row[2]); // timeCreated
-        self::assertSame('...Baby One More Time', $row[3]); // name
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) $row[1]); // timeCreated
+        self::assertSame('...Baby One More Time', $row[2]); // name
+        self::assertSame(2, $row[3]); // artist_id = 2 (Britney Spears)
     }
 
     public function testFetchAllWorks(): void
@@ -65,15 +63,15 @@ class StatementTest extends AbstractIntegrationTestCase
         self::assertCount(2, $rows);
         self::assertIsArray($rows[0]);
         self::assertIsArray($rows[1]);
-        // Actual physical DB column order (confirmed by CI): id(0), artist_id(1), timeCreated(2), name(3)
+        // Column order: id(0), timeCreated(1), name(2), artist_id(3)
         self::assertSame(1, $rows[0][0] ?? false);
-        self::assertSame(2, $rows[0][1] ?? false); // artist_id = 2 (Britney Spears)
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0][2] ?? '')); // timeCreated
-        self::assertSame('...Baby One More Time', $rows[0][3] ?? false); // name
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[0][1] ?? '')); // timeCreated
+        self::assertSame('...Baby One More Time', $rows[0][2] ?? false); // name
+        self::assertSame(2, $rows[0][3] ?? false); // artist_id = 2 (Britney Spears)
         self::assertSame(2, $rows[1][0] ?? false);
-        self::assertSame(3, $rows[1][1] ?? false); // artist_id = 3 (Nickelback)
-        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1][2] ?? '')); // timeCreated
-        self::assertSame('Dark Horse', $rows[1][3] ?? false); // name
+        self::assertStringStartsWith('2017-01-01 15:00:00', (string) ($rows[1][1] ?? '')); // timeCreated
+        self::assertSame('Dark Horse', $rows[1][2] ?? false); // name
+        self::assertSame(3, $rows[1][3] ?? false); // artist_id = 3 (Nickelback)
     }
 
     /**
@@ -126,7 +124,7 @@ class StatementTest extends AbstractIntegrationTestCase
         try {
             $statement = $this->connection->prepare('SELECT ?');
             $statement->bindValue(1, $variable);
-            $statement->execute();
+            $statement->executeQuery();
         } catch (Throwable $t) {
             self::assertSame(SyntaxErrorException::class, $t::class);
             self::assertSame(-104, $t->getCode());
