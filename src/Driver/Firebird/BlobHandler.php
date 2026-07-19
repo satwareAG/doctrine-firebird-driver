@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Doctrine\DBAL\ParameterType;
+
 /**
  * Handles Firebird BLOB (LARGE_OBJECT) data conversion.
  *
@@ -18,14 +20,14 @@ final class BlobHandler
      * parameters in fbird_execute(). This allows large BLOBs to be sent to the
      * server without loading the entire content into PHP memory.
      *
-     * @param mixed $value The parameter value
-     * @param int   $type  The DBAL ParameterType (unused - extension handles type natively)
+     * @param mixed          $value The parameter value
+     * @param ParameterType  $type  The DBAL ParameterType (unused - extension handles type natively)
      *
      * @return mixed The converted value (stays a resource for LARGE_OBJECT)
      *
      * @psalm-suppress UnusedParam
      */
-    public function toInternalValue(mixed $value, int $type): mixed
+    public function toInternalValue(mixed $value, ParameterType $type): mixed
     {
         // Extension v9+ natively supports stream resources for BLOBs
         return $value;

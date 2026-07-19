@@ -79,7 +79,7 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
      * Returns the affected-row count from the inner driver unchanged.
      */
     #[Override]
-    public function exec(string $sql): int
+    public function exec(string $sql): int|string
     {
         return parent::exec($this->encodeSql($sql));
     }
@@ -104,9 +104,9 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
     #[Override]
     public function quote(string $value): string
     {
-        $value = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
+        $encoded = mb_convert_encoding($value, $this->databaseEncoding, $this->phpEncoding);
 
-        return parent::quote($value);
+        return parent::quote($encoded === false ? $value : $encoded);
     }
 
     /**

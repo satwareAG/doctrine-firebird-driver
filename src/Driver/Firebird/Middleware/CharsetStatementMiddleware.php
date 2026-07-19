@@ -61,23 +61,6 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
     #[Override]
     public function execute(): ResultInterface
     {
-        // If inline params are passed (deprecated path), encode them first
-        if ($params !== null) {
-            foreach ($params as $key => $value) {
-        // Note: This checks for PHP stream resources (BLOB content passed as
-        // php_stream for LARGE_OBJECT params), NOT Firebird handle objects.
-                if (is_resource($value)) {
-                    $value = stream_get_contents($value);
-                }
-
-                if (! is_string($value)) {
-                    continue;
-                }
-
-                $params[$key] = $this->encodeString($value);
-            }
-        }
-
         return new CharsetResultMiddleware(
             parent::execute(),
             $this->databaseEncoding,

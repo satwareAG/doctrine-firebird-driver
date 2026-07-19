@@ -25,7 +25,8 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
-use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Override;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
@@ -59,8 +60,6 @@ use const PHP_INT_MAX;
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
  * of the oldest supported version.
- *
- * @psalm-suppress InternalProperty
  */
 class FirebirdPlatform extends AbstractPlatform
 {
@@ -84,6 +83,7 @@ class FirebirdPlatform extends AbstractPlatform
 
     public function __construct()
     {
+        parent::__construct();
         Type::overrideType('boolean', FirebirdBooleanType::class);
         $this->configuration = new FirebirdPlatformConfiguration([]);
     }
@@ -200,13 +200,13 @@ class FirebirdPlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getLocateExpression($str, $substr, $startPos = false): string
+    public function getLocateExpression(string $string, string $substring, ?string $start = null): string
     {
-        if ($startPos === false) {
-            return 'POSITION (' . $substr . ' in ' . $str . ')';
+        if ($start === null) {
+            return 'POSITION (' . $substring . ' in ' . $string . ')';
         }
 
-        return 'POSITION (' . $substr . ', ' . $str . ', ' . $startPos . ')';
+        return 'POSITION (' . $substring . ', ' . $string . ', ' . $start . ')';
     }
 
     /**
@@ -651,12 +651,11 @@ class FirebirdPlatform extends AbstractPlatform
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
-        foreach ($diff->getModifiedColumns() as $columnDiff) {
-            $oldColumn = $columnDiff->getOldColumn() ?? $columnDiff->fromColumn;
+        foreach ($diff->getChangedColumns() as $columnDiff) {
+            $oldColumn = $columnDiff->getOldColumn();
             $newColumn = $columnDiff->getNewColumn();
 
-            // fromColumn may be null for legacy ColumnDiff instances; fall back to oldColumnName string
-            $oldColumnName = $oldColumn?->getQuotedName($this) ?? $columnDiff->getOldColumnName()->getQuotedName($this);
+            $oldColumnName = $oldColumn->getQuotedName($this);
 
             if (
                 $columnDiff->hasTypeChanged()
@@ -878,7 +877,7 @@ class FirebirdPlatform extends AbstractPlatform
      * {@inheritDoc}
      */
     #[Override]
-    public function getCreateTableSQL(Table $table, $createFlags = self::CREATE_INDEXES): array
+    public function getCreateTableSQL(Table $table): array
     {
         if (! $this->hasNativeBooleanType) {
             foreach ($table->getColumns() as $column) {
@@ -897,7 +896,7 @@ class FirebirdPlatform extends AbstractPlatform
             }
         }
 
-        return parent::getCreateTableSQL($table, $createFlags);
+        return parent::getCreateTableSQL($table);
     }
 
     /** @return string[] */
@@ -1637,12 +1636,13 @@ SQL
     /**
      * {@inheritDoc}
      */
+    /** @param array<string, mixed> $options */
     #[Override]
     protected function _getCreateTableSQL($name, array $columns, array $options = []): array
     {
         $this->checkIdentifierLength($name, $this->getMaxIdentifierLength());
 
-        $isTemporary = ! empty($options['temporary']);
+        $isTemporary = isset($options['temporary']) && $options['temporary'] === true;
 
         $indexes            = $options['indexes'] ?? [];
         $options['indexes'] = [];
@@ -1665,20 +1665,6 @@ SQL
 
         $query .= ' (' . $columnListSql;
 
-        // Extract column-level CHECK constraints (DBAL4's getCheckDeclarationSQL() handles min/max only)
-        $checkConstraints = [];
-        foreach ($columns as $column) {
-            if (empty($column['check'])) {
-                continue;
-            }
-
-            $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
-        }
-
-        if (! empty($checkConstraints)) {
-            $query .= ', ' . implode(', ', $checkConstraints);
-        }
-
         $query .= ')';
 
         if ($isTemporary) {
@@ -1689,17 +1675,13 @@ SQL
         $sql[] = $query;
 
         // Create sequences and a trigger for autoinc-fields if necessary
-
         foreach ($columns as $column) {
             $columnName = $column['name'];
             if (isset($column['sequence'])) {
                 $sql[] = $this->getCreateSequenceSQL($column['sequence']);
             }
 
-            if (
-                ! (isset($column['autoincrement']) && $column['autoincrement'] ||
-                    (isset($column['autoinc']) && $column['autoinc']))
-            ) {
+            if (! (isset($column['autoincrement']) && $column['autoincrement'])) {
                 continue;
             }
 
@@ -1716,7 +1698,7 @@ SQL
             $sql[] = $this->getCreateIndexSQL($index, $name);
         }
 
-        return $sql;
+        return array_values($sql);
     }
 
     protected function unquotedIdentifierName(string|AbstractAsset $name): string
@@ -1762,13 +1744,7 @@ SQL
 
     protected function getOldColumnComment(ColumnDiff $columnDiff): string|null
     {
-        $oldColumn = $columnDiff->getOldColumn();
-
-        if ($oldColumn !== null) {
-            return $oldColumn->getComment();
-        }
-
-        return null;
+        return $columnDiff->getOldColumn()->getComment();
     }
 
     protected function getVarcharMaxCastLength(): int

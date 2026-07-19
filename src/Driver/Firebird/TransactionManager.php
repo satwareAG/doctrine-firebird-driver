@@ -44,7 +44,7 @@ final class TransactionManager
 
     private int $level = 0;
 
-    private int $isolationLevel = TransactionIsolationLevel::READ_COMMITTED;
+    private TransactionIsolationLevel $isolationLevel = TransactionIsolationLevel::READ_COMMITTED;
 
     /** Number of seconds to wait. */
     private int $waitTimeout = 5;
@@ -67,12 +67,22 @@ final class TransactionManager
         return $this->activeTransaction;
     }
 
-    public function setIsolationLevel(int $level): void
+    public function setIsolationLevel(TransactionIsolationLevel|int $level): void
     {
-        $this->isolationLevel = $level;
+        if ($level instanceof TransactionIsolationLevel) {
+            $this->isolationLevel = $level;
+        } else {
+            $this->isolationLevel = match ($level) {
+                1 => TransactionIsolationLevel::READ_UNCOMMITTED,
+                2 => TransactionIsolationLevel::READ_COMMITTED,
+                3 => TransactionIsolationLevel::REPEATABLE_READ,
+                4 => TransactionIsolationLevel::SERIALIZABLE,
+                default => TransactionIsolationLevel::READ_COMMITTED,
+            };
+        }
     }
 
-    public function getIsolationLevel(): int
+    public function getIsolationLevel(): TransactionIsolationLevel
     {
         return $this->isolationLevel;
     }

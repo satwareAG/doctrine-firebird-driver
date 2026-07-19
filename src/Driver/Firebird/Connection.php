@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Driver\Exception;
+use Doctrine\DBAL\Driver\Exception\NoIdentityValue;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as DriverStatement;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Firebird\Connection as FirebirdConnection;
 use Firebird\Database;
 use Firebird\DbInfo;
@@ -17,6 +19,7 @@ use Firebird\Transaction as FirebirdTransaction;
 use Firebird\TransactionManager as FirebirdTransactionManager;
 use InvalidArgumentException;
 use PDO;
+use RuntimeException;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\ConvertParameters;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
@@ -293,15 +296,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     #[Override]
     public function quote(string $value): string
     {
-        if (is_int($value) || is_float($value)) {
-            return $value;
-        }
-
-        if (! is_scalar($value)) {
-            throw new InvalidArgumentException('Given value is not scalar.');
-        }
-
-        return "'" . fbird_escape_string((string) $value) . "'";
+        return "'" . fbird_escape_string($value) . "'";
     }
 
     #[Override]
@@ -319,37 +314,81 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     #[Override]
     public function lastInsertId(): int|string
     {
-        /** @psalm-suppress DocblockTypeContradiction */
-        if ($name !== null && ! is_string($name)) {
-            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
+        if (! $this->isConnectionValid()) {
+            // Return cached value if connection is null/invalid (Unit Test path)
+            return $this->connectionInsertId ?? 0;
         }
 
-        if ($name !== null && ! str_contains($name, '.')) {
-            $maxGeneratorLength = 31;
-            $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
-            if (preg_match($regex, $name) !== 1) {
-                throw new UnexpectedValueException(sprintf(
-                    "Expects argument \$name to match regular expression '%s'. Found: %s",
-                    $regex,
-                    ValueFormatter::found($name),
-                ));
+        // Firebird 5.0+: fbird_last_insert_id() works without a generator name.
+        try {
+            /** @phpstan-ignore argument.type */
+            $id = @fbird_last_insert_id($this->connection);
+            if ($id !== false && $id > 0) {
+                return $id;
+            }
+        } catch (Throwable) {
+            // Not supported on this FB version — fall through to table-based lookup.
+        }
+
+        // Firebird 3.0/4.0: look up the IDENTITY generator for the last INSERT table.
+        // Statement::execute() caches the table name via setLastInsertTable() after every INSERT.
+        if ($this->lastInsertTable !== null) {
+            $genName = $this->resolveIdentityGenerator($this->lastInsertTable);
+            if ($genName !== null) {
+                try {
+                    /** @phpstan-ignore argument.type */
+                    $lastVal = fbird_gen_id($genName, 0, $this->connection);
+                    if ($lastVal !== false && $lastVal > 0) {
+                        $this->lastResolvedIdentityId = $lastVal;
+
+                        return $lastVal;
+                    }
+                } catch (Throwable) {
+                }
             }
         }
 
+        // Fall back to the cached value from a prior dotted-name lookup.
+        if ($this->lastResolvedIdentityId !== null) {
+            return $this->lastResolvedIdentityId;
+        }
+
+        if ($this->connectionInsertId !== null) {
+            return $this->connectionInsertId;
+        }
+
+        throw NoIdentityValue::new();
+    }
+
+    /**
+     * Returns the last insert ID for a specific Firebird generator/sequence.
+     *
+     * This is a Firebird-specific extension that looks up the current value
+     * of a named generator or identity column. Use this instead of lastInsertId()
+     * when working with explicit Firebird sequences or when a dotted "table.column"
+     * name from getIdentitySequenceName() is available.
+     *
+     * @param string $name Generator name (e.g. "MY_GENERATOR") or dotted table.column
+     *                     (e.g. '"ALBUM"."id"') from DBAL3's getIdentitySequenceName().
+     *
+     * @return int|string|false The last insert ID, or false if not resolvable.
+     *
+     * @throws InvalidArgumentException
+     * @throws UnexpectedValueException
+     */
+    public function lastInsertIdBySequence(string $name): int|string|false
+    {
         if (! $this->isConnectionValid()) {
-            // Return cached value if connection is null/invalid (Unit Test path)
             return $this->connectionInsertId ?? false;
         }
 
-        if ($name !== null && str_contains($name, '.')) {
-            // Dotted names (e.g. '"ALBUM"."id"') come from getIdentitySequenceName() for native identity columns.
-
+        // Dotted names (e.g. '"ALBUM"."id"') come from getIdentitySequenceName() for native identity columns.
+        if (str_contains($name, '.')) {
             $parts      = explode('.', str_replace('"', '', $name), 2);
             $tableName  = strtoupper($parts[0]);
             $columnName = strtoupper($parts[1] ?? '');
 
             // Step 1: Look up the internal identity generator name from RDB$RELATION_FIELDS.
-            //         Use $this->query() (standard DBAL path) — matches Doctrine best practice.
             $genName = null;
             if ($columnName !== '') {
                 try {
@@ -386,7 +425,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
                 }
 
                 // Step 2b: SQL GEN_ID via autonomous transaction — bypasses active transaction context.
-                //          php-firebird v10+ returns Firebird\Result objects; v7 returns resources.
                 try {
                     $autoResult = $this->executeAuto(sprintf(
                         'SELECT GEN_ID("%s", 0) FROM RDB$DATABASE',
@@ -435,7 +473,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
                     return $id;
                 }
             } catch (Throwable) {
-                // On FB 3.0/4.0 this throws; transaction may be aborted — restart if needed.
                 if (! $this->isTransactionValid()) {
                     try {
                         $this->transactionManager->beginTransaction();
@@ -447,45 +484,17 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             return $this->connectionInsertId ?? false;
         }
 
-        if ($name === null) {
-            // Firebird 5.0+: fbird_last_insert_id() works without a generator name.
-            try {
-                /** @phpstan-ignore argument.type */
-                $id = @fbird_last_insert_id($this->connection);
-                if ($id !== false && $id > 0) {
-                    return $id;
-                }
-            } catch (Throwable) {
-                // Not supported on this FB version — fall through to table-based lookup.
-            }
-
-            // Firebird 3.0/4.0: look up the IDENTITY generator for the last INSERT table.
-            // Statement::execute() caches the table name via setLastInsertTable() after every INSERT.
-            if ($this->lastInsertTable !== null) {
-                $genName = $this->resolveIdentityGenerator($this->lastInsertTable);
-                if ($genName !== null) {
-                    try {
-                        /** @phpstan-ignore argument.type */
-                        $lastVal = fbird_gen_id($genName, 0, $this->connection);
-                        if ($lastVal !== false && $lastVal > 0) {
-                            $this->lastResolvedIdentityId = $lastVal;
-
-                            return $lastVal;
-                        }
-                    } catch (Throwable) {
-                    }
-                }
-            }
-
-            // Fall back to the cached value from a prior dotted-name lookup.
-            if ($this->lastResolvedIdentityId !== null) {
-                return $this->lastResolvedIdentityId;
-            }
-
-            return $this->connectionInsertId ?? false;
+        // Named generator: validate and delegate to fbird_gen_id().
+        $maxGeneratorLength = 31;
+        $regex              = '/^\w{1,' . $maxGeneratorLength . '}$/';
+        if (preg_match($regex, $name) !== 1) {
+            throw new UnexpectedValueException(sprintf(
+                "Expects argument \$name to match regular expression '%s'. Found: %s",
+                $regex,
+                ValueFormatter::found($name),
+            ));
         }
 
-        // Delegate to fbird_gen_id() for named sequences/generators
         try {
             /** @phpstan-ignore argument.type */
             $lastVal = fbird_gen_id($name, 0, $this->connection);
@@ -608,15 +617,16 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         throw DriverException::fromErrorInfo($lastError['message'], $lastError['code']);
     }
 
-    public function getNativeConnection(): FirebirdConnection|null
+    /** @return object|resource */
+    public function getNativeConnection(): mixed
     {
         // fbird_connect()/fbird_pconnect() return \Firebird\Connection objects
         // since php-firebird v11.0.0 (M3 opaque-object migration).
-        if ($this->connection !== null) {
-            return $this->connection;
+        if ($this->connection === null) {
+            throw new RuntimeException('Native connection is not available.');
         }
 
-        return null;
+        return $this->connection;
     }
 
     /**

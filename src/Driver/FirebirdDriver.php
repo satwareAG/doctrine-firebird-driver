@@ -10,7 +10,8 @@ use Doctrine\DBAL\Driver\API\ExceptionConverter;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\ServerVersionProvider;
 use Doctrine\Deprecations\Deprecation;
-use Satag\DoctrineFirebirdDriver\Compat\Override;
+use InvalidArgumentException;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird5Platform;
@@ -25,11 +26,6 @@ use function version_compare;
 
 /**
  * Abstract base implementation of the {@see Driver} interface for Firebird based drivers.
- *
- * This driver is version-aware and provides platform instances appropriate
- * for the connected Firebird server version.
- *
- * @psalm-suppress DeprecatedInterface
  */
 abstract class FirebirdDriver implements Driver
 {
@@ -59,7 +55,7 @@ abstract class FirebirdDriver implements Driver
      *
      * @param mixed $version The platform/server version string to evaluate.
      *
-     * @throws Exception If the given version string could not be evaluated.
+     * @throws InvalidArgumentException If the given version string could not be evaluated.
      */
     public function createDatabasePlatformForVersion(mixed $version): AbstractPlatform
     {

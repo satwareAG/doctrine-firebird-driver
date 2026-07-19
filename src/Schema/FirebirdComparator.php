@@ -9,7 +9,7 @@ use Doctrine\DBAL\Schema\Comparator as BaseComparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\PhpIntegerMappingType;
-use Satag\DoctrineFirebirdDriver\Compat\Override;
+use Override;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;
@@ -109,16 +109,14 @@ final class FirebirdComparator extends BaseComparator
         }
 
         if (is_bool($default)) {
-            // Integer types handle PHP bool natively; skip normalisation to avoid
-            // broken SQL (DBAL emits 'DEFAULT ' . false = 'DEFAULT ' for int types).
-            // For string/char columns, PHP's getDefaultValueDeclarationSQL passes the
-            // default through quoteStringLiteral(), which coerces false → '' (empty string)
-            // and true → '1'. We normalise to those same string equivalents here so that:
-            //  a) hasDefaultChanged() uses strict comparison without false-positive misses
-            //     ('' == false is true in PHP loose mode, but '' !== false strictly).
-            //  b) The ColumnDiff carries the correct string value that ALTER TABLE will emit.
+            // Integer types handle PHP bool natively (DBAL concatenates false → empty string,
+            // yielding 'DEFAULT '). Converting false→'0' here would propagate into the
+            // TableDiff and cause SQL to emit 'DEFAULT 0' instead of the expected 'DEFAULT '.
+            // Boolean/string columns DO need normalisation: PHP's loose comparison
+            // '' == false, so without '0'/'1' normalisation, hasDefaultChanged() would miss
+            // a real change from empty-string to false.
             if (! ($column->getType() instanceof PhpIntegerMappingType)) {
-                $column->setDefault($default ? '1' : '');
+                $column->setDefault($default ? '1' : '0');
             }
 
             return;

@@ -48,20 +48,17 @@ final class ConnectionWrapper extends Connection
     #[Override]
     public function lastInsertId(): int|string
     {
-        if ($name !== null && ! is_string($name)) {
-            throw new InvalidArgumentException(sprintf('Argument $name in %s must be null or a string. Found: %s', __FUNCTION__, ValueFormatter::found($name)));
-        }
-
         // Delegating to connection for native last_insert_id() / gen_id()
         $connection = $this->getNativeConnection();
         if ($connection instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
-            return $connection->lastInsertId($name);
+            return $connection->lastInsertId();
         }
 
         return parent::lastInsertId();
     }
 
     #[Override]
+    /** @return non-empty-string|null */
     public function getDatabase(): string|null
     {
         // Bypass parent::getDatabase() which has an assert(is_string($database) || $database === null)
@@ -75,7 +72,7 @@ final class ConnectionWrapper extends Connection
             return $this->resolveDatabaseFromParams();
         }
 
-        if ($database === false) {
+        if ($database === false || $database === '') {
             return $this->resolveDatabaseFromParams();
         }
 
@@ -88,7 +85,8 @@ final class ConnectionWrapper extends Connection
      * For Firebird, 'dbname' is a file path (e.g. /var/lib/firebird/data/test.fdb).
      * Return it as-is - the schema manager only requires a non-null string.
      */
-    private function resolveDatabaseFromParams(): string|null
+     /** @return non-empty-string|null */
+     private function resolveDatabaseFromParams(): string|null
     {
         $params = $this->getParams();
         $dbname = $params['dbname'] ?? $params['database'] ?? null;
