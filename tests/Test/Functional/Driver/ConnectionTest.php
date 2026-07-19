@@ -31,6 +31,9 @@ class ConnectionTest extends FunctionalTestCase
         $platform = $this->connection->getDatabasePlatform();
         $sequence = $platform->getIdentitySequenceName($table->getName(), 'id');
 
-        self::assertSame(1, $this->connection->lastInsertId($sequence));
+        // DBAL4: lastInsertId() takes no $name; use driver extension
+        $fbConn = $this->getFirebirdConnection();
+        self::assertNotNull($fbConn);
+        self::assertSame(1, $fbConn->lastInsertIdBySequence($sequence));
     }
 }

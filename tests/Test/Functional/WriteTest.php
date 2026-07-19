@@ -370,7 +370,12 @@ class WriteTest extends FunctionalTestCase
     private function lastInsertId(string|null $name = null): string|int|false
     {
         try {
-            return $this->connection->lastInsertId($name);
+            if ($name !== null) {
+                // DBAL4: lastInsertId() takes no $name; use driver extension
+                return $this->getFirebirdConnection()?->lastInsertIdBySequence($name) ?? false;
+            }
+
+            return $this->connection->lastInsertId();
         } catch (Exception $e) {
             if ($e->getSQLState() === 'IM001') {
                 self::markTestSkipped($e->getMessage());
