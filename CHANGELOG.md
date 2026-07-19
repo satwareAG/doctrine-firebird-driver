@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-07-19 - ext-firebird v13 constraint widening
+
+### Changed
+- **`ext-firebird` constraint widened** from `^12.0` to `^12.0 || ^13.0` to
+  allow consumers to install alongside the upcoming `php-firebird` v13 native
+  extension. No code changes; pure `composer.json` constraint widening.
+- **`satwareag/php-firebird-stubs` constraint widened** from `^12.0.0` to
+  `^12.0.0 || ^13.0.0` to match the runtime extension constraint and let
+  PHPStan/Psalm resolve v13 stubs in CI and downstream consumers.
+
+### Compatibility
+- No runtime behavior change.
+- No DBAL version constraint change (`doctrine/dbal: ^3.10` unchanged).
+- Branch `3.10.x` (production). Branch `4.4.x` already uses `ext-firebird: *`
+  and does not require a release for this widening.
+
+### Verified
+- `composer.json` valid JSON.
+- Test suite not re-run: v13 native extension is not yet available; widening
+  is purely permissive on a constraint that previously blocked installation.
+  Will be validated end-to-end when `php-firebird` v13 is published.
+
 ## [3.17.0] - 2026-07-14 - Binary BLOB corruption fix
 
 ### Fixed
