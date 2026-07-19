@@ -46,6 +46,7 @@ use function fbird_get_limbo_transactions;
 use function fbird_kill_attachment;
 use function fbird_last_insert_id;
 use function fbird_list_table_blockers;
+use function fbird_ping;
 use function fbird_prepare_ex;
 use function fbird_query_params_tx;
 use function fbird_reconnect_transaction;
@@ -649,6 +650,23 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         }
 
         return $this->connection instanceof FirebirdConnection && $this->connection->isConnected();
+    }
+
+    /**
+     * Lightweight network roundtrip to verify the connection is alive.
+     *
+     * Uses fbird_ping() (v13.0.0) which calls IAttachment::ping() —
+     * a single lightweight roundtrip that doesn't require SQL parsing.
+     *
+     * @return bool True if the server responded to the ping
+     */
+    public function ping(): bool
+    {
+        if (! $this->isConnectionValid()) {
+            return false;
+        }
+
+        return @fbird_ping($this->connection);
     }
 
     /**
