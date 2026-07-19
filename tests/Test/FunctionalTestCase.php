@@ -66,19 +66,11 @@ abstract class FunctionalTestCase extends TestCase
             $existenceUnknown = true;
         }
 
-        // Optimization: Try to force drop using driver native function to kill blocking attachments
-        // We only try this once - if it fails, we fall back to standard drop
-        if ($fbirdConnection !== null) {
-            try {
-                if ($fbirdConnection->dropTableForce($name)) {
-                    $fbirdConnection->commit();
-
-                    return;
-                }
-            } catch (Throwable) {
-                // Ignore force drop errors and fall back to standard drop with retry
-            }
-        }
+        // NOTE: We intentionally do NOT call dropTableForce() here.
+        // That C-extension function can invalidate the OO API connection
+        // pointers on the shared connection, causing "OO API connection/
+        // transaction pointers are NULL" on subsequent queries.
+        // Instead we rely on the standard schema manager drop with retry.
 
         // Try up to 3 times with delay to handle "object is in use" errors
         $success = false;
@@ -140,6 +132,66 @@ abstract class FunctionalTestCase extends TestCase
     }
 
     /**
+     * Drops the sequence with the specified name, if it exists.
+     *
+     * Firebird does not support DROP SEQUENCE IF EXISTS, so we attempt the drop
+     * and suppress "does not exist"/"is not defined" errors. Uses the schema
+     * manager for proper identifier quoting. Retries on "in use"/"deadlock"
+     * errors (matching dropTableIfExists behavior).
+     *
+     * @throws Exception If a non-"does not exist"/"in use"/"deadlock" error occurs after retries.
+     */
+    public function dropSequenceIfExists(string $name): void
+    {
+        $fbirdConnection = $this->getFirebirdConnection();
+        if ($fbirdConnection !== null && ! $fbirdConnection->isConnectionValid()) {
+            return;
+        }
+
+        $schemaManager = $this->connection->createSchemaManager();
+
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                try {
+                    $fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+
+                if ($i > 0) {
+                    usleep(50000); // 50ms wait
+                }
+
+                $schemaManager->dropSequence($name);
+                $fbirdConnection?->commit();
+
+                return;
+            } catch (Throwable $e) {
+                try {
+                    $fbirdConnection?->rollBack();
+                } catch (Throwable) {
+                }
+
+                $msg = $e->getMessage();
+
+                // Suppress "does not exist" / "is not defined" errors - sequence already gone
+                if (
+                    str_contains($msg, 'does not exist') || str_contains($msg, 'DOES NOT EXIST')
+                    || str_contains($msg, 'is not defined') || str_contains($msg, 'IS NOT DEFINED')
+                ) {
+                    return;
+                }
+
+                // Retry on lock/deadlock, otherwise re-throw
+                if (! str_contains($msg, 'in use') && ! str_contains($msg, 'deadlock')) {
+                    throw $e;
+                }
+            }
+        }
+
+        // Lock/deadlock errors after all retries are non-fatal in cleanup context
+    }
+
+    /**
      * Drops and creates a new table.
      *
      * @throws Exception
@@ -151,10 +203,62 @@ abstract class FunctionalTestCase extends TestCase
         $tableName     = $table->getQuotedName($platform);
 
         $this->dropTableIfExists($tableName);
-        $schemaManager->createTable($table);
+
+        // Firebird requires DDL changes to be committed before subsequent DDL
+        // can see them. Without this commit, CREATE TABLE may fail with
+        // "Table already exists" because the DROP hasn't been finalized yet.
+        $fbirdConn = $this->getFirebirdConnection();
+        if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+            try {
+                $fbirdConn->commit();
+            } catch (Throwable) {
+                // Ignore commit errors - auto-commit may have already committed
+            }
+        }
+
+        // Retry logic: dropTableIfExists() may silently fail when the table is
+        // locked by a lingering connection (it swallows "in use" errors after
+        // retries). If createTable() hits "already exists", roll back, run GC,
+        // and retry drop+create after a delay.
+        try {
+            $schemaManager->createTable($table);
+        } catch (Throwable $e) {
+            if (
+                ! str_contains($e->getMessage(), 'already exists')
+                && ! str_contains($e->getMessage(), 'ALREADY EXISTS')
+            ) {
+                throw $e;
+            }
+
+            // Release Firebird metadata locks by committing/rolling back and
+            // running GC to free any PHP objects holding cursor references.
+            // Do NOT call $this->connection->close() here — it invalidates
+            // the shared connection's native Firebird pointers and causes
+            // "OO API connection/transaction pointers are NULL" on the next
+            // query through DBAL middleware.
+            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+                try {
+                    $fbirdConn->rollBack();
+                } catch (Throwable) {
+                }
+            }
+
+            gc_collect_cycles();
+            usleep(500_000); // 500ms — let Firebird server release locks
+
+            $this->dropTableIfExists($tableName);
+
+            if ($fbirdConn !== null && $fbirdConn->isConnectionValid()) {
+                try {
+                    $fbirdConn->commit();
+                } catch (Throwable) {
+                }
+            }
+
+            $schemaManager->createTable($table);
+        }
+
         $this->createdTables[] = $tableName;
-        // Explicit commit removed to avoid hangs with Firebird auto-commit behavior
-        // $this->getFirebirdConnection()?->commit();
     }
 
     /**
@@ -173,6 +277,13 @@ abstract class FunctionalTestCase extends TestCase
 
     public function getFirebirdConnection(): FirebirdConnection|null
     {
+        // Traverse DBAL middleware layers to find the underlying FirebirdConnection object.
+        // In DBAL 3.x, we must walk the getWrappedConnection() chain to reach the
+        // driver-level object that provides isConnectionValid(), dropTableForce(), etc.
+        if (! isset($this->connection)) {
+            return null;
+        }
+
         $connection = $this->connection;
 
         // DBAL4: ConnectionWrapper exposes the driver connection directly
@@ -206,15 +317,31 @@ abstract class FunctionalTestCase extends TestCase
                 : null;
 
             if ($fbirdConn !== null && ! $fbirdConn->isConnectionValid()) {
-                // Connection resource is invalid - need to reconnect
+                // Connection resource is invalid - need to reconnect.
+                // Use graceful null assignment instead of close() to avoid
+                // triggering __destruct() which calls fbird_close() on the
+                // shared native resource, invalidating it for other objects.
+                self::$sharedConnection = null;
+                TestUtil::resetSharedConnection();
+                $needNewConnection = true;
+            }
+        }
+
+        // Verify the connection can actually execute queries. The Firebird
+        // extension's OO API pointers may become NULL after rollBack() sequences
+        // even though isConnectionValid() still returns true.
+        if (! $needNewConnection && self::$sharedConnection instanceof Connection) {
+            try {
+                self::$sharedConnection->executeQuery('SELECT 1 FROM RDB$DATABASE');
+            } catch (Throwable) {
                 try {
-                    self::$sharedConnection?->close();
+                    self::$sharedConnection->close();
                 } catch (Throwable) {
-                    // Ignore close errors on invalid connection
                 }
 
                 self::$sharedConnection = null;
-                $needNewConnection      = true;
+                TestUtil::resetSharedConnection();
+                $needNewConnection = true;
             }
         }
 
@@ -229,9 +356,6 @@ abstract class FunctionalTestCase extends TestCase
     #[After]
     final protected function disconnect(): void
     {
-        // Attempt to free any lingering statement resources via GC
-        gc_collect_cycles();
-
         // Get Firebird connection early to check validity
         $fbirdConnection = $this->getFirebirdConnection();
         $connectionValid = $fbirdConnection === null || $fbirdConnection->isConnectionValid();
@@ -260,6 +384,12 @@ abstract class FunctionalTestCase extends TestCase
             } catch (Throwable) {
                 // Ignore rollback errors during cleanup
             }
+
+            // Free PHP cursor/result objects before attempting DDL.
+            // Firebird holds metadata locks until all PHP objects referencing
+            // the table's result sets are destroyed. Without this, DROP TABLE
+            // fails with "object is in use" because cursor references survive.
+            gc_collect_cycles();
 
             foreach ($this->createdTables as $tableName) {
                 try {
