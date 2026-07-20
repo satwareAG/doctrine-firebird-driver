@@ -107,9 +107,14 @@ critical bugs are found.
 
 ### Deferred for future releases
 
-- R1 (BLOB sub_type via fbird_field_info) - needs middleware refactor
-- R5-R7 (statement timeout, schema introspection, DecFloat) - medium effort
-- R10-R12 (error_field, blob_export, per-stmt timeout) - low ROI
+- ~~R1 (BLOB sub_type via fbird_field_info)~~ - **DONE** in commit `25455f4` (v4.5.1+)
+- R2 (per-connection error context) - marginal benefit
+- R5/R12 (statement timeout) - `fbird_set_statement_timeout()` available, but DBAL has no per-query timeout concept
+- R6 (schema introspection via fbird_list_tables) - breaks DBAL's SQL-string abstraction
+- R7 (DecFloat native type) - `fbird_decfloat()` not yet available in ext-firebird
+- R8 (fbird_fetch_all) - incompatible with per-row BLOB/charset processing
+- R10 (fbird_error_field) - available, no current demand
+- R11 (fbird_blob_export) - available, no downstream demand
 - Merge 4.4.x -> main - separate decision
 - Firebird 6.0 features - deferred to v14
 
