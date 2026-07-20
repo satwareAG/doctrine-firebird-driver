@@ -18,10 +18,10 @@ use function stream_get_contents;
  * Tests for issue #91: binary BLOB data integrity through CharsetResultMiddleware.
  *
  * After #127/#129, the columnTypes parameter was removed. Binary detection
- * relies solely on the NULL-byte heuristic. This test documents both the
- * working case (binary data with NULL bytes) and the known limitation
- * (binary data without NULL bytes is transcoded — to be fixed when
- * php-firebird exposes BLOB sub_type via fbird_field_info(), see #130).
+ * now uses fbird_field_info() sub_type lookup when a native Firebird Result
+ * is available (R1 optimization). These tests use a mock Result, so they
+ * exercise the NULL-byte heuristic fallback path only. The definitive
+ * sub_type-based detection is tested in BlobBinaryCharsetTest.
  */
 class Issue91ReproductionTest extends TestCase
 {
@@ -49,14 +49,14 @@ class Issue91ReproductionTest extends TestCase
     }
 
     /**
-     * Binary BLOB data without NULL bytes (pure ASCII range) is transcoded.
+     * Binary BLOB data without NULL bytes is transcoded (fallback path only).
      *
-     * This is a KNOWN LIMITATION of the NULL-byte heuristic (see #130).
-     * Pure ASCII data survives transcoding unchanged (ASCII is a subset of
-     * both ISO-8859-1 and UTF-8), so this is safe in practice — the bytes
-     * are identical before and after mb_convert_encoding.
+     * When the inner Result is not a native Firebird Result (e.g., a mock),
+     * the NULL-byte heuristic is used. This test documents the fallback behavior.
+     * The definitive sub_type-based detection is tested in BlobBinaryCharsetTest.
      *
-     * jane: replace heuristic with fbird_field_info()['sub_type'] when available
+     * This is a known limitation of the fallback heuristic (see #130), fixed
+     * only on the native Result path via fbird_field_info() sub_type lookup.
      */
     public function testBinaryBlobWithoutNullBytesIsTranscodedButUnchanged(): void
     {

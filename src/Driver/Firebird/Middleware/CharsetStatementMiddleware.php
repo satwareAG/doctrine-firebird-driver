@@ -77,8 +77,9 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
      *
      * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/117
      *
-     * jane: NULL-byte heuristic. Replace with fbird_field_info()['sub_type']
-     * when php-firebird exposes it, matching CharsetResultMiddleware.
+     * NULL-byte heuristic for write path. No result resource is available at
+     * bind time, so fbird_field_info() cannot be used. Binary data containing
+     * NULL bytes is passed through without transcoding.
      */
     private function encodeString(string $value): string
     {

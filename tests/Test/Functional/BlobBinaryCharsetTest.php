@@ -202,6 +202,93 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
         self::assertSame($utf8Text, $fetched, 'High-byte text without NULL must be transcoded');
     }
 
+    /**
+     * Binary BLOB without NULL bytes must pass through unchanged (R1 sub_type detection).
+     *
+     * With the old NULL-byte heuristic, pure-ASCII binary data was incorrectly
+     * transcoded because no NULL byte was present to trigger the binary path.
+     * With fbird_field_info() sub_type detection, sub_type 0 (BINARY) is
+     * detected definitively and passed through regardless of byte content.
+     */
+    public function testBinaryBlobWithoutNullBytesNotTranscodedWithSubType(): void
+    {
+        // Pure ASCII-range binary data — no NULL bytes, no high bytes
+        // With the heuristic this would be transcoded (no-op for ASCII, but wrong).
+        // With sub_type detection it is correctly passed through.
+        $binaryData = str_repeat('X', 1024);
+
+        $stream = fopen('php://temp', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, $binaryData);
+        rewind($stream);
+
+        $this->isoConn->insert(
+            self::TABLE_NAME,
+            ['id' => 700, 'binary_blob' => $stream, 'text_blob' => 'placeholder'],
+            [
+                'id' => ParameterType::INTEGER,
+                'binary_blob' => ParameterType::LARGE_OBJECT,
+                'text_blob' => ParameterType::STRING,
+            ],
+        );
+
+        $fetched = $this->isoConn->fetchOne(
+            'SELECT binary_blob FROM ' . self::TABLE_NAME . ' WHERE id = 700',
+        );
+
+        self::assertIsString($fetched, 'BLOB content should be a string (FBIRD_FETCH_BLOBS)');
+        self::assertSame(
+            $binaryData,
+            $fetched,
+            'Binary BLOB without NULL bytes must not be transcoded (sub_type 0 detected via fbird_field_info)',
+        );
+    }
+
+    /**
+     * Text BLOB is correctly transcoded on read even when binary BLOB is in the
+     * same result set (R1 sub_type detection per-column).
+     *
+     * Verifies that having a binary BLOB (sub_type 0) and a text BLOB (sub_type 1)
+     * in the same SELECT does not confuse the per-column sub_type lookup.
+     * The binary BLOB is passed through, the text BLOB is transcoded.
+     */
+    public function testMixedBinaryAndTextBlobInSameResultSet(): void
+    {
+        // Binary data with NULL bytes (would be detected by heuristic too)
+        $binaryData = "\x00\xFF\xD8\xFF\xE0\x00";
+
+        // UTF-8 text with high bytes (would be detected by heuristic too)
+        $utf8Text = 'Müller café';
+
+        $this->isoConn->insert(
+            self::TABLE_NAME,
+            ['id' => 800, 'binary_blob' => $binaryData, 'text_blob' => $utf8Text],
+            [
+                'id' => ParameterType::INTEGER,
+                'binary_blob' => ParameterType::LARGE_OBJECT,
+                'text_blob' => ParameterType::STRING,
+            ],
+        );
+
+        $row = $this->isoConn->fetchAssociative(
+            'SELECT binary_blob, text_blob FROM ' . self::TABLE_NAME . ' WHERE id = 800',
+        );
+
+        self::assertIsArray($row);
+        self::assertArrayHasKey('BINARY_BLOB', $row);
+        self::assertArrayHasKey('TEXT_BLOB', $row);
+        self::assertSame(
+            $binaryData,
+            $row['BINARY_BLOB'],
+            'Binary BLOB (sub_type 0) must pass through unchanged',
+        );
+        self::assertSame(
+            $utf8Text,
+            $row['TEXT_BLOB'],
+            'Text BLOB (sub_type 1) must be transcoded ISO-8859-1 -> UTF-8',
+        );
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
