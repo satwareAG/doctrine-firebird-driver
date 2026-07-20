@@ -32,19 +32,13 @@ use function fbird_connect;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function fbird_query;
 use function is_resource;
-use function json_decode;
-use function preg_match;
-use function sprintf;
 use function str_contains;
 use function strtolower;
-use function strtoupper;
 use function trim;
 
 use const CASE_LOWER;
 use const CASE_UPPER;
-use const FBIRD_CREATE;
 
 /**
  * Firebird Schema Manager.
@@ -147,24 +141,23 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $pageSize         = $params['driverOptions']['page_size'] ?? '16384';
         $dbname           = (string) FirebirdConnectString::fromConnectionParameters($params);
 
-        /** @psalm-suppress InvalidArgument */
         try {
-            $result = fbird_query(
-                FBIRD_CREATE, // @phpstan-ignore-line argument.type
-                sprintf(
-                    "CREATE DATABASE '%s' PAGE_SIZE = %s USER '%s' PASSWORD '%s' DEFAULT CHARACTER SET %s",
-                    $dbname,
-                    (int) $pageSize,
-                    $user,
-                    $password,
-                    $charset,
-                ),
+            // Use fbird_create_database() (php-firebird 9.0+) instead of the
+            // deprecated fbird_query(FBIRD_CREATE, ...) form. The new API
+            // escapes single quotes in user-supplied strings and validates
+            // the charset against an allowlist (C1 fix, issue #155).
+            $result = fbird_create_database(
+                $dbname,
+                $user !== '' ? $user : null,
+                $password !== '' ? $password : null,
+                $charset,
+                (int) $pageSize > 0 ? (int) $pageSize : null,
             );
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
 
-        if (! is_resource($result)) {
+        if ($result === false) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
 

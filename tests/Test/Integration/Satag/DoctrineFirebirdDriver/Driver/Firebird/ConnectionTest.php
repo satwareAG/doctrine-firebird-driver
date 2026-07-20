@@ -24,7 +24,6 @@ class ConnectionTest extends ModifyingIntegrationTestCase
         // DBAL4: $_conn stores the driver Connection directly; no getWrappedConnection() needed.
         $reflConn = new ReflectionObject($this->connection);
         $prop = $reflConn->getProperty('_conn');
-        $prop->setAccessible(true);
         $connection = $prop->getValue($this->connection);
 
         self::assertIsObject($connection);
@@ -81,7 +80,6 @@ class ConnectionTest extends ModifyingIntegrationTestCase
         // DBAL4: $_conn stores the driver Connection directly; no getWrappedConnection() needed.
         $reflConn = new ReflectionObject($this->connection);
         $prop = $reflConn->getProperty('_conn');
-        $prop->setAccessible(true);
         $connection = $prop->getValue($this->connection);
 
         // Access TransactionManager via Reflection, then use its public API
