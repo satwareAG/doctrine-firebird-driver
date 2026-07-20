@@ -37,6 +37,7 @@ use function str_repeat;
 abstract class PlatformTestCase extends TestCase
 {
     use VerifyDeprecations;
+
     /** @var T */
     protected AbstractPlatform $platform;
 
@@ -1169,18 +1170,14 @@ abstract class PlatformTestCase extends TestCase
         $this->markTestSkipped('DBAL4: columnsEqual() type comment behavior differs; columns with same SQL type are always equal.');
     }
 
-    /**
-     * @param array<string, mixed> $column
-     */
+    /** @param array<string, mixed> $column */
     #[DataProvider('getGeneratesSmallFloatDeclarationSQL')]
     public function testGeneratesSmallFloatDeclarationSQL(array $column, string $expectedSql): void
     {
         self::assertSame($expectedSql, $this->platform->getSmallFloatDeclarationSQL($column));
     }
 
-    /**
-     * @return list<array{array<string, mixed>, string}>
-     */
+    /** @return list<array{array<string, mixed>, string}> */
     public static function getGeneratesSmallFloatDeclarationSQL(): iterable
     {
         return [
@@ -1193,18 +1190,14 @@ abstract class PlatformTestCase extends TestCase
         ];
     }
 
-    /**
-     * @param array<string> $values
-     */
+    /** @param array<string> $values */
     #[DataProvider('getEnumDeclarationSQLProvider')]
     public function testGetEnumDeclarationSQL(array $values, string $expectedSQL): void
     {
         self::assertSame($expectedSQL, $this->platform->getEnumDeclarationSQL(['values' => $values]));
     }
 
-    /**
-     * @return array<string, array{array<string>, string}>
-     */
+    /** @return array<string, array{array<string>, string}> */
     public static function getEnumDeclarationSQLProvider(): array
     {
         return [
@@ -1213,9 +1206,7 @@ abstract class PlatformTestCase extends TestCase
         ];
     }
 
-    /**
-     * @param array<string> $values
-     */
+    /** @param array<string> $values */
     #[DataProvider('getEnumDeclarationWithLengthSQLProvider')]
     public function testGetEnumDeclarationWithLengthSQL(array $values, int $length, string $expectedSQL): void
     {
@@ -1227,9 +1218,7 @@ abstract class PlatformTestCase extends TestCase
         self::assertSame($expectedSQL, $result);
     }
 
-    /**
-     * @param array<string> $values
-     */
+    /** @param array<string> $values */
     #[DataProvider('getEnumDeclarationExceptionWithLengthSQLProvider')]
     public function testGetEnumDeclarationExceptionWithLengthSQL(array $values, int $length): void
     {
@@ -1241,9 +1230,7 @@ abstract class PlatformTestCase extends TestCase
         ]);
     }
 
-    /**
-     * @return array<string, array{array<string>, int, string}>
-     */
+    /** @return array<string, array{array<string>, int, string}> */
     public static function getEnumDeclarationWithLengthSQLProvider(): array
     {
         return [
@@ -1252,9 +1239,7 @@ abstract class PlatformTestCase extends TestCase
         ];
     }
 
-    /**
-     * @return array<string, array{array<string>, int}>
-     */
+    /** @return array<string, array{array<string>, int}> */
     public static function getEnumDeclarationExceptionWithLengthSQLProvider(): array
     {
         return [
@@ -1263,9 +1248,7 @@ abstract class PlatformTestCase extends TestCase
         ];
     }
 
-    /**
-     * @param array<string, mixed> $column
-     */
+    /** @param array<string, mixed> $column */
     #[DataProvider('getEnumDeclarationSQLWithInvalidValuesProvider')]
     public function testGetEnumDeclarationSQLWithInvalidValues(array $column): void
     {
@@ -1273,9 +1256,7 @@ abstract class PlatformTestCase extends TestCase
         $this->platform->getEnumDeclarationSQL($column);
     }
 
-    /**
-     * @return array<string, array{array<string, mixed>}>
-     */
+    /** @return array<string, array{array<string, mixed>}> */
     public static function getEnumDeclarationSQLWithInvalidValuesProvider(): array
     {
         return [

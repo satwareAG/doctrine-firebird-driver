@@ -56,8 +56,6 @@ use function strlen;
 use function strtoupper;
 use function substr_replace;
 
-use const PHP_INT_MAX;
-
 /**
  * Provides the behaviour, features and SQL dialect of the Firebird SQL server database platform
  * of the oldest supported version.
@@ -85,6 +83,7 @@ class FirebirdPlatform extends AbstractPlatform
     public function __construct()
     {
         parent::__construct();
+
         Type::overrideType('boolean', FirebirdBooleanType::class);
         $this->configuration = new FirebirdPlatformConfiguration([]);
     }
@@ -198,10 +197,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'SIMILAR TO';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getLocateExpression(string $string, string $substring, ?string $start = null): string
+    public function getLocateExpression(string $string, string $substring, string|null $start = null): string
     {
         if ($start === null) {
             return 'POSITION (' . $substring . ' in ' . $string . ')';
@@ -1359,11 +1355,8 @@ SQL
         return $this->generateIdentifier('tmp', $columnName, $this->getMaxIdentifierLength())->getQuotedName($this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    protected function doModifyLimitQuery(string $query, ?int $limit, int $offset): string
+    protected function doModifyLimitQuery(string $query, int|null $limit, int $offset): string
     {
         if ($limit === null && $offset <= 0) {
             return $query;
@@ -1655,6 +1648,7 @@ SQL
     /**
      * {@inheritDoc}
      */
+
     /** @param array<string, mixed> $options */
     #[Override]
     protected function _getCreateTableSQL($name, array $columns, array $options = []): array
@@ -1688,9 +1682,11 @@ SQL
         // handles table-level only; column-level checks need manual extraction).
         $checkConstraints = [];
         foreach ($columns as $column) {
-            if (isset($column['check']) && is_string($column['check']) && $column['check'] !== '') {
-                $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
+            if (! isset($column['check']) || ! is_string($column['check']) || $column['check'] === '') {
+                continue;
             }
+
+            $checkConstraints[] = 'CHECK (' . $column['check'] . ')';
         }
 
         if (! empty($checkConstraints)) {

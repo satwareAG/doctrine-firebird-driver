@@ -17,9 +17,7 @@ use Doctrine\DBAL\Schema\TableDiff;
  */
 final class RenameColumnTestHelper
 {
-    /**
-     * @return array<string, Column>
-     */
+    /** @return array<string, Column> */
     public static function getRenamedColumns(TableDiff $tableDiff): array
     {
         $renamed = [];

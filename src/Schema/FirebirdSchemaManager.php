@@ -29,6 +29,7 @@ use function array_merge;
 use function dirname;
 use function fbird_close;
 use function fbird_connect;
+use function fbird_create_database;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
@@ -186,7 +187,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $database       = $this->connection->getDatabase();
         $normalizedName = $this->normalizeName($name);
         /** @phpstan-ignore argument.type */
-        $tableOptions   = $this->fetchTableOptionsByTable($database, $normalizedName);
+        $tableOptions = $this->fetchTableOptionsByTable($database, $normalizedName);
 
         $columns     = $this->listTableColumns($name);
         $foreignKeys = $this->listTableForeignKeys($name);
@@ -441,8 +442,9 @@ SQL;
     /**
      * {@inheritDoc}
      */
-    #[Override]
+
     /** @return non-empty-string */
+    #[Override]
     protected function _getPortableTableDefinition(array $table): string
     {
         $table = array_change_key_case($table, CASE_LOWER);
@@ -685,6 +687,8 @@ SQL;
 
     /**
      * {@inheritDoc}
+     *
+     * @return array<non-empty-string, array<string, mixed>>
      */
     #[Override]
     protected function fetchTableOptionsByTable(string|null $databaseName, string|null $tableName = null): array
@@ -710,17 +714,19 @@ ___query___;
             $data  = array_change_key_case($data, CASE_LOWER);
             $table = strtoupper(trim((string) $data['table_name']));
 
+            if ($table === '') {
+                continue;
+            }
+
             $tableOptions[$table] = [
                 'comment' => $data['comment'],
             ];
         }
 
-        /** @var array<non-empty-string, array<string, mixed>> $tableOptions */
         return $tableOptions;
     }
 
     #[Override]
-    /** @param non-empty-string $name @return non-empty-string */
     protected function normalizeName(string $name): string
     {
         $identifier = new Identifier($name);

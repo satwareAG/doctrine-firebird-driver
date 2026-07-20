@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
-use Doctrine\DBAL\Driver\PgSQL\Driver as PgsqlDriver;
-use Doctrine\DBAL\Driver\SQLite3\Driver as Sqlite3Driver;
 use Doctrine\DBAL\Driver\PDO\MySQL\Driver as PdoMysqlDriver;
 use Doctrine\DBAL\Driver\PDO\SQLite\Driver as PdoSqliteDriver;
+use Doctrine\DBAL\Driver\PgSQL\Driver as PgsqlDriver;
+use Doctrine\DBAL\Driver\SQLite3\Driver as Sqlite3Driver;
 use Doctrine\DBAL\Exception\InvalidColumnIndex;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Column;
@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\TestWith;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 
@@ -24,28 +25,6 @@ use const PHP_VERSION_ID;
 
 class ResultMetadataTest extends FunctionalTestCase
 {
-    protected function setUp(): void
-    {
-        $table = Table::editor()
-            ->setUnquotedName('result_metadata_table')
-            ->setColumns(
-                Column::editor()
-                    ->setUnquotedName('test_int')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            )
-            ->setPrimaryKeyConstraint(
-                PrimaryKeyConstraint::editor()
-                    ->setUnquotedColumnNames('test_int')
-                    ->create(),
-            )
-            ->create();
-
-        $this->dropAndCreateTable($table);
-
-        $this->connection->insert('result_metadata_table', ['test_int' => 1]);
-    }
-
     public function testColumnNameWithResults(): void
     {
         // Firebird's Result class does not implement the optional getColumnName()
@@ -116,25 +95,13 @@ class ResultMetadataTest extends FunctionalTestCase
         // Whether a freed result reports zero columns is driver-specific.
         // Firebird's Result::free() nulls the result resource, after which
         // columnCount() returns 0 (matches the behaviour of sqlite3 and pgsql).
-        if (! TestUtil::isDriverClassOneOf(Sqlite3Driver::class, PgsqlDriver::class, \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class)) {
+        if (! TestUtil::isDriverClassOneOf(Sqlite3Driver::class, PgsqlDriver::class, Driver::class)) {
             self::markTestSkipped('This driver does not report zero columns for a freed result.');
         }
 
         $result = $this->getFreedResult();
 
         self::assertSame(0, $result->columnCount());
-    }
-
-    private function getFreedResult(): Result
-    {
-        $result = $this->connection->executeQuery(
-            $this->connection->getDatabasePlatform()
-                ->getDummySelectSQL(),
-        );
-
-        $result->free();
-
-        return $result;
     }
 
     public function testColumnNameWithoutResults(): void
@@ -152,5 +119,39 @@ class ResultMetadataTest extends FunctionalTestCase
         self::assertEquals(2, $result->columnCount());
         self::assertEquals('test_int', strtolower($result->getColumnName(0)));
         self::assertEquals('alternate_name', strtolower($result->getColumnName(1)));
+    }
+
+    protected function setUp(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('result_metadata_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('test_int')
+                    ->create(),
+            )
+            ->create();
+
+        $this->dropAndCreateTable($table);
+
+        $this->connection->insert('result_metadata_table', ['test_int' => 1]);
+    }
+
+    private function getFreedResult(): Result
+    {
+        $result = $this->connection->executeQuery(
+            $this->connection->getDatabasePlatform()
+                ->getDummySelectSQL(),
+        );
+
+        $result->free();
+
+        return $result;
     }
 }

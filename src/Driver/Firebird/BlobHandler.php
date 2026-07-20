@@ -20,8 +20,8 @@ final class BlobHandler
      * parameters in fbird_execute(). This allows large BLOBs to be sent to the
      * server without loading the entire content into PHP memory.
      *
-     * @param mixed          $value The parameter value
-     * @param ParameterType  $type  The DBAL ParameterType (unused - extension handles type natively)
+     * @param mixed         $value The parameter value
+     * @param ParameterType $type  The DBAL ParameterType (unused - extension handles type natively)
      *
      * @return mixed The converted value (stays a resource for LARGE_OBJECT)
      *

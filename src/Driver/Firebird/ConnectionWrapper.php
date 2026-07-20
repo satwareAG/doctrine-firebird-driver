@@ -6,16 +6,14 @@ namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
-use InvalidArgumentException;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetConnectionMiddleware;
-use Satag\DoctrineFirebirdDriver\ValueFormatter;
 
 use function is_string;
-use function sprintf;
 
 /** @psalm-suppress UnusedClass */
 final class ConnectionWrapper extends Connection
@@ -44,16 +42,17 @@ final class ConnectionWrapper extends Connection
 
         // Traverse middleware chain via getWrappedDriverConnection()
         $conn = $this->_conn;
-        while ($conn instanceof \Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware) {
-            if ($conn instanceof CharsetConnectionMiddleware) {
-                $inner = $conn->getWrappedDriverConnection();
-                if ($inner instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
-                    return $inner;
-                }
-                $conn = $inner;
-            } else {
+        while ($conn instanceof AbstractConnectionMiddleware) {
+            if (! ($conn instanceof CharsetConnectionMiddleware)) {
                 break;
             }
+
+            $inner = $conn->getWrappedDriverConnection();
+            if ($inner instanceof \Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection) {
+                return $inner;
+            }
+
+            $conn = $inner;
         }
 
         return null;
@@ -98,8 +97,8 @@ final class ConnectionWrapper extends Connection
         return parent::lastInsertId();
     }
 
-    #[Override]
     /** @return non-empty-string|null */
+    #[Override]
     public function getDatabase(): string|null
     {
         // Bypass parent::getDatabase() which has an assert(is_string($database) || $database === null)
@@ -126,8 +125,9 @@ final class ConnectionWrapper extends Connection
      * For Firebird, 'dbname' is a file path (e.g. /var/lib/firebird/data/test.fdb).
      * Return it as-is - the schema manager only requires a non-null string.
      */
+
      /** @return non-empty-string|null */
-     private function resolveDatabaseFromParams(): string|null
+    private function resolveDatabaseFromParams(): string|null
     {
         $params = $this->getParams();
         $dbname = $params['dbname'] ?? $params['database'] ?? null;

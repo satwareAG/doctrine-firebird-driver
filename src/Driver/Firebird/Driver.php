@@ -18,7 +18,10 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_pconnect;
 use function fbird_server_version;
+use function ord;
 use function stristr;
+use function strlen;
+use function substr;
 
 use const FBIRD_CONNECT_FORCE_NEW;
 

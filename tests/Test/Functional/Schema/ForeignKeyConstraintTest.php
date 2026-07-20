@@ -278,156 +278,6 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
     }
 
     /**
-     * @param callable(ForeignKeyConstraintEditor, ReferentialAction): void $setter
-     * @param callable(ForeignKeyConstraint): ReferentialAction             $getter
-     *
-     * @throws Exception
-     */
-    private function testReferentialActionIntrospection(
-        callable $setter,
-        ReferentialAction $action,
-        callable $getter,
-    ): void {
-        $this->dropTableIfExists('users');
-        $this->dropTableIfExists('roles');
-
-        $roles = Table::editor()
-            ->setUnquotedName('roles')
-            ->setColumns(
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            )
-            ->setPrimaryKeyConstraint(
-                PrimaryKeyConstraint::editor()
-                    ->setUnquotedColumnNames('id')
-                    ->create(),
-            )
-            ->create();
-
-        $editor = ForeignKeyConstraint::editor()
-            ->setUnquotedReferencingColumnNames('role_id')
-            ->setUnquotedReferencedTableName('roles')
-            ->setUnquotedReferencedColumnNames('id');
-        $setter($editor, $action);
-
-        $users = Table::editor()
-            ->setUnquotedName('users')
-            ->setColumns(
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-                Column::editor()
-                    ->setUnquotedName('role_id')
-                    ->setTypeName(Types::INTEGER)
-                    ->setNotNull(false)
-                    ->create(),
-            )
-            ->setPrimaryKeyConstraint(
-                PrimaryKeyConstraint::editor()
-                    ->setUnquotedColumnNames('id')
-                    ->create(),
-            )
-            ->setForeignKeyConstraints(
-                $editor->create(),
-            )
-            ->create();
-
-        $sm = $this->connection->createSchemaManager();
-
-        $sm->createTable($roles);
-        $sm->createTable($users);
-
-        $constraints = $sm->listTableForeignKeys('users');
-
-        self::assertCount(1, $constraints);
-
-        $constraint = $constraints[0];
-
-        self::assertSame($action, $getter($constraint));
-    }
-
-    /** @return iterable<array{ReferentialAction}> */
-    public static function referentialActionProvider(): iterable
-    {
-        foreach (ReferentialAction::cases() as $referentialAction) {
-            yield $referentialAction->value => [$referentialAction];
-        }
-    }
-
-    private function platformSupportsOnDeleteAction(AbstractPlatform $platform, ReferentialAction $action): bool
-    {
-        return $this->platformSupportsReferentialAction($platform, $action);
-    }
-
-    private function platformSupportsOnUpdateAction(AbstractPlatform $platform, ReferentialAction $action): bool
-    {
-        if ($platform instanceof OraclePlatform) {
-            return false;
-        }
-
-        if ($platform instanceof DB2Platform) {
-            return match ($action) {
-                ReferentialAction::CASCADE,
-                ReferentialAction::SET_DEFAULT,
-                ReferentialAction::SET_NULL => false,
-                default => true,
-            };
-        }
-
-        return $this->platformSupportsReferentialAction($platform, $action);
-    }
-
-    private function platformSupportsReferentialAction(AbstractPlatform $platform, ReferentialAction $action): bool
-    {
-        if (
-            $action === ReferentialAction::RESTRICT
-            && ($platform instanceof AbstractMySQLPlatform || $platform instanceof SQLitePlatform)
-        ) {
-            self::markTestIncomplete(sprintf(
-                'Introspection of referential action %s on %s is currently unsupported',
-                $action->value,
-                $platform::class,
-            ));
-        }
-
-        if ($platform instanceof SQLServerPlatform) {
-            if ($action === ReferentialAction::RESTRICT) {
-                return false;
-            }
-        } elseif ($platform instanceof OraclePlatform) {
-            if ($action === ReferentialAction::SET_DEFAULT || $action === ReferentialAction::RESTRICT) {
-                return false;
-            }
-        } elseif ($platform instanceof DB2Platform) {
-            if ($action === ReferentialAction::SET_DEFAULT) {
-                return false;
-            }
-        } elseif (
-            $platform instanceof AbstractMySQLPlatform
-                && ! $platform instanceof MySQL80Platform
-        ) {
-            if (
-                $action === ReferentialAction::SET_DEFAULT || $action === ReferentialAction::SET_NULL
-                    || $action === ReferentialAction::CASCADE
-            ) {
-                return false;
-            }
-        } elseif ($platform instanceof FirebirdPlatform) {
-            // The Firebird driver normalises RESTRICT to NO ACTION during
-            // introspection (both are stored as RESTRICT in RDB$REF_CONSTRAINTS),
-            // therefore the RESTRICT referential action cannot be round-tripped.
-            if ($action === ReferentialAction::RESTRICT) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * @param array<string,bool> $options
      * @param array<string,bool> $expectedOptions
      *
@@ -508,6 +358,14 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         self::assertEquals($expectedOptions, $actualOptions);
     }
 
+    /** @return iterable<array{ReferentialAction}> */
+    public static function referentialActionProvider(): iterable
+    {
+        foreach (ReferentialAction::cases() as $referentialAction) {
+            yield $referentialAction->value => [$referentialAction];
+        }
+    }
+
     /** @return iterable<array{array<string,bool>,array<string,bool>}> */
     public static function deferrabilityOptionsProvider(): iterable
     {
@@ -530,19 +388,22 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
             [
                 'deferrable' => false,
                 'deferred' => false,
-            ], $notDeferrable,
+            ],
+            $notDeferrable,
         ];
 
         // DEFERRABLE implies INITIALLY IMMEDIATE
         yield 'DEFERRABLE' => [
-            ['deferrable' => true], $deferrable,
+            ['deferrable' => true],
+            $deferrable,
         ];
 
         yield 'DEFERRABLE INITIALLY IMMEDIATE' => [
             [
                 'deferrable' => true,
                 'deferred' => false,
-            ], $deferrable,
+            ],
+            $deferrable,
         ];
 
         yield 'DEFERRABLE INITIALLY DEFERRED' => [
@@ -552,6 +413,148 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
             ],
             $deferred,
         ];
+    }
+
+    /**
+     * @param callable(ForeignKeyConstraintEditor, ReferentialAction): void $setter
+     * @param callable(ForeignKeyConstraint): ReferentialAction             $getter
+     *
+     * @throws Exception
+     */
+    private function testReferentialActionIntrospection(
+        callable $setter,
+        ReferentialAction $action,
+        callable $getter,
+    ): void {
+        $this->dropTableIfExists('users');
+        $this->dropTableIfExists('roles');
+
+        $roles = Table::editor()
+            ->setUnquotedName('roles')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $editor = ForeignKeyConstraint::editor()
+            ->setUnquotedReferencingColumnNames('role_id')
+            ->setUnquotedReferencedTableName('roles')
+            ->setUnquotedReferencedColumnNames('id');
+        $setter($editor, $action);
+
+        $users = Table::editor()
+            ->setUnquotedName('users')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('role_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                $editor->create(),
+            )
+            ->create();
+
+        $sm = $this->connection->createSchemaManager();
+
+        $sm->createTable($roles);
+        $sm->createTable($users);
+
+        $constraints = $sm->listTableForeignKeys('users');
+
+        self::assertCount(1, $constraints);
+
+        $constraint = $constraints[0];
+
+        self::assertSame($action, $getter($constraint));
+    }
+
+    private function platformSupportsOnDeleteAction(AbstractPlatform $platform, ReferentialAction $action): bool
+    {
+        return $this->platformSupportsReferentialAction($platform, $action);
+    }
+
+    private function platformSupportsOnUpdateAction(AbstractPlatform $platform, ReferentialAction $action): bool
+    {
+        if ($platform instanceof OraclePlatform) {
+            return false;
+        }
+
+        if ($platform instanceof DB2Platform) {
+            return match ($action) {
+                ReferentialAction::CASCADE,
+                ReferentialAction::SET_DEFAULT,
+                ReferentialAction::SET_NULL => false,
+                default => true,
+            };
+        }
+
+        return $this->platformSupportsReferentialAction($platform, $action);
+    }
+
+    private function platformSupportsReferentialAction(AbstractPlatform $platform, ReferentialAction $action): bool
+    {
+        if (
+            $action === ReferentialAction::RESTRICT
+            && ($platform instanceof AbstractMySQLPlatform || $platform instanceof SQLitePlatform)
+        ) {
+            self::markTestIncomplete(sprintf(
+                'Introspection of referential action %s on %s is currently unsupported',
+                $action->value,
+                $platform::class,
+            ));
+        }
+
+        if ($platform instanceof SQLServerPlatform) {
+            if ($action === ReferentialAction::RESTRICT) {
+                return false;
+            }
+        } elseif ($platform instanceof OraclePlatform) {
+            if ($action === ReferentialAction::SET_DEFAULT || $action === ReferentialAction::RESTRICT) {
+                return false;
+            }
+        } elseif ($platform instanceof DB2Platform) {
+            if ($action === ReferentialAction::SET_DEFAULT) {
+                return false;
+            }
+        } elseif (
+            $platform instanceof AbstractMySQLPlatform
+                && ! $platform instanceof MySQL80Platform
+        ) {
+            if (
+                $action === ReferentialAction::SET_DEFAULT || $action === ReferentialAction::SET_NULL
+                    || $action === ReferentialAction::CASCADE
+            ) {
+                return false;
+            }
+        } elseif ($platform instanceof FirebirdPlatform) {
+            // The Firebird driver normalises RESTRICT to NO ACTION during
+            // introspection (both are stored as RESTRICT in RDB$REF_CONSTRAINTS),
+            // therefore the RESTRICT referential action cannot be round-tripped.
+            if ($action === ReferentialAction::RESTRICT) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

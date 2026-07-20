@@ -38,9 +38,6 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
         parent::__construct($statement);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function bindValue(string|int $param, mixed $value, ParameterType $type): void
     {
@@ -55,9 +52,6 @@ final class CharsetStatementMiddleware extends AbstractStatementMiddleware
         parent::bindValue($param, $value, $type);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function execute(): ResultInterface
     {

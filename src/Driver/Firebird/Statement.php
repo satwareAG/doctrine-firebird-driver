@@ -23,7 +23,6 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_execute;
 use function fbird_free_query;
-use function func_num_args;
 use function is_int;
 use function ksort;
 use function preg_match;
@@ -136,9 +135,6 @@ final class Statement implements StatementInterface
         $this->bindValueInternal($param, $variable, $type);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
     public function execute(): ResultInterface
     {

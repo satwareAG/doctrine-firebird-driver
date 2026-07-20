@@ -9,6 +9,23 @@ use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
 class SequenceTest extends FunctionalTestCase
 {
+    public function testNextValue(): void
+    {
+        $this->connection->createSchemaManager()->createSequence(
+            Sequence::editor()
+                ->setUnquotedName('next_value_test_seq')
+                ->create(),
+        );
+
+        $sql = $this->connection->getDatabasePlatform()
+            ->getSequenceNextValSQL('next_value_test_seq');
+
+        $first  = (int) $this->connection->fetchOne($sql);
+        $second = (int) $this->connection->fetchOne($sql);
+
+        self::assertGreaterThan($first, $second);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -25,22 +42,5 @@ class SequenceTest extends FunctionalTestCase
         }
 
         self::markTestSkipped('The platform does not support sequences.');
-    }
-
-    public function testNextValue(): void
-    {
-        $this->connection->createSchemaManager()->createSequence(
-            Sequence::editor()
-                ->setUnquotedName('next_value_test_seq')
-                ->create(),
-        );
-
-        $sql = $this->connection->getDatabasePlatform()
-            ->getSequenceNextValSQL('next_value_test_seq');
-
-        $first  = (int) $this->connection->fetchOne($sql);
-        $second = (int) $this->connection->fetchOne($sql);
-
-        self::assertGreaterThan($first, $second);
     }
 }

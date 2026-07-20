@@ -409,7 +409,7 @@ class AlterTableTest extends FunctionalTestCase
     }
 
     /** @param callable(TableEditor): void $migration */
-    private function testMigration(Table $oldTable, callable $migration, ?ComparatorConfig $config = null): void
+    private function testMigration(Table $oldTable, callable $migration, ComparatorConfig|null $config = null): void
     {
         $this->dropAndCreateTable($oldTable);
 

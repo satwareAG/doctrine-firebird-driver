@@ -8,7 +8,6 @@ use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
-use Doctrine\DBAL\ParameterType;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\Exception\CharsetConversionException;
 
@@ -26,6 +25,7 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
         private readonly string $phpEncoding,
     ) {
         parent::__construct($connection);
+
         $this->driverConnection = $connection;
     }
 

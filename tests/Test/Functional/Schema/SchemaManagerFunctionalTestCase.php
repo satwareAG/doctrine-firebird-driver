@@ -50,6 +50,7 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
+use function defined;
 use function gc_collect_cycles;
 use function in_array;
 use function sprintf;

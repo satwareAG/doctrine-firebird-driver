@@ -7,7 +7,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver\Firebird;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\TestCase;
-use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection as FirebirdConnection;
 use Satag\DoctrineFirebirdDriver\Test\TestUtil;
 use Throwable;
 

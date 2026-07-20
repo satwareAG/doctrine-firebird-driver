@@ -60,19 +60,6 @@ class BigIntTypeTest extends FunctionalTestCase
         );
     }
 
-    /** @return Generator<string, array{string, int|string|null}> */
-    public static function provideBigIntLiterals(): Generator
-    {
-        yield 'zero' => ['0', 0];
-        yield 'null' => ['null', null];
-        yield 'positive number' => ['42', 42];
-        yield 'negative number' => ['-42', -42];
-        yield 'large positive number' => [PHP_INT_SIZE === 4 ? '2147483646' : '9223372036854775806', PHP_INT_MAX - 1];
-        yield 'large negative number' => [PHP_INT_SIZE === 4 ? '-2147483647' : '-9223372036854775807', PHP_INT_MIN + 1];
-        yield 'largest positive number' => [PHP_INT_SIZE === 4 ? '2147483647' : '9223372036854775807', PHP_INT_MAX];
-        yield 'largest negative number' => [PHP_INT_SIZE === 4 ? '-2147483648' : '-9223372036854775808', PHP_INT_MIN];
-    }
-
     public function testUnsignedBigIntOnMySQL(): void
     {
         // Adapted for the Firebird driver: the original DBAL check uses
@@ -120,5 +107,18 @@ class BigIntTypeTest extends FunctionalTestCase
                 Types::BIGINT,
             ),
         );
+    }
+
+    /** @return Generator<string, array{string, int|string|null}> */
+    public static function provideBigIntLiterals(): Generator
+    {
+        yield 'zero' => ['0', 0];
+        yield 'null' => ['null', null];
+        yield 'positive number' => ['42', 42];
+        yield 'negative number' => ['-42', -42];
+        yield 'large positive number' => [PHP_INT_SIZE === 4 ? '2147483646' : '9223372036854775806', PHP_INT_MAX - 1];
+        yield 'large negative number' => [PHP_INT_SIZE === 4 ? '-2147483647' : '-9223372036854775807', PHP_INT_MIN + 1];
+        yield 'largest positive number' => [PHP_INT_SIZE === 4 ? '2147483647' : '9223372036854775807', PHP_INT_MAX];
+        yield 'largest negative number' => [PHP_INT_SIZE === 4 ? '-2147483648' : '-9223372036854775808', PHP_INT_MIN];
     }
 }

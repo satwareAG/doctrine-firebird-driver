@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Schema;
 
+use Composer\InstalledVersions;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
@@ -28,20 +29,15 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function array_keys;
+use function assert;
 use function current;
+use function version_compare;
 
 abstract class AbstractComparatorTestCase extends TestCase
 {
     use VerifyDeprecations;
 
     private Comparator $comparator;
-
-    abstract protected function createComparator(ComparatorConfig $config): Comparator;
-
-    protected function setUp(): void
-    {
-        $this->comparator = $this->createComparator(new ComparatorConfig());
-    }
 
     public function testCompareSame1(): void
     {
@@ -874,7 +870,7 @@ abstract class AbstractComparatorTestCase extends TestCase
         // unset of the same removed index by a prior candidate. Fixed in DBAL
         // commit dfcc457cb (unreleased after 4.4.3; expected in 4.4.4).
         // Triggers "Undefined array key 0" then "Call to member function getName() on null".
-        $dbalVersion = \Composer\InstalledVersions::getVersion('doctrine/dbal') ?? '0.0.0.0';
+        $dbalVersion = InstalledVersions::getVersion('doctrine/dbal') ?? '0.0.0.0';
         if (version_compare($dbalVersion, '4.4.4', '<')) {
             self::markTestSkipped('DBAL < 4.4.4: detectRenamedIndexes() has undefined array key bug (dfcc457cb).');
         }
@@ -947,8 +943,8 @@ abstract class AbstractComparatorTestCase extends TestCase
 
         $modifiedColumns = $tableDiff->getChangedColumns();
         self::assertCount(1, $modifiedColumns);
-        /** @var ColumnDiff $modifiedColumn */
         $modifiedColumn = current($modifiedColumns);
+        assert($modifiedColumn instanceof ColumnDiff);
         self::assertEquals('id', $modifiedColumn->getOldColumn()->getObjectName()->toString());
     }
 
@@ -972,40 +968,6 @@ abstract class AbstractComparatorTestCase extends TestCase
         self::assertCount(1, $tableDiff->getDroppedIndexes());
         self::assertCount(1, $tableDiff->getAddedIndexes());
         self::assertCount(0, $tableDiff->getModifiedIndexes());
-    }
-
-    private function compareTablesWithModifiedIndex(bool $reportModifiedIndexes): TableDiff
-    {
-        $tableA = Table::editor()
-            ->setUnquotedName('foo')
-            ->setColumns(
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            )
-            ->setIndexes(
-                Index::editor()
-                    ->setUnquotedName('idx_id')
-                    ->setUnquotedColumnNames('id')
-                    ->create(),
-            )
-            ->create();
-
-        $tableB = $tableA->edit()
-            ->dropIndexByUnquotedName('idx_id')
-            ->addIndex(
-                Index::editor()
-                    ->setUnquotedName('idx_id')
-                    ->setType(IndexType::UNIQUE)
-                    ->setUnquotedColumnNames('id')
-                    ->create(),
-            )
-            ->create();
-
-        return $this->createComparator(
-            (new ComparatorConfig())->withReportModifiedIndexes($reportModifiedIndexes),
-        )->compareTables($tableA, $tableB);
     }
 
     public function testDiff(): void
@@ -1246,26 +1208,6 @@ abstract class AbstractComparatorTestCase extends TestCase
         self::assertSame(! $equals, $diff2->hasCommentChanged());
     }
 
-    /** @return list<array{string, string, bool}> */
-    public static function getCompareColumnComments(): iterable
-    {
-        return [
-            ['', '', true],
-            [' ', ' ', true],
-            ['0', '0', true],
-            ['foo', 'foo', true],
-
-            ['', ' ', false],
-            ['', '0', false],
-            ['', 'foo', false],
-
-            [' ', '0', false],
-            [' ', 'foo', false],
-
-            ['0', 'foo', false],
-        ];
-    }
-
     public function testForeignKeyRemovalWithRenamedLocalColumn(): void
     {
         $oldSchema = new Schema([
@@ -1377,6 +1319,31 @@ abstract class AbstractComparatorTestCase extends TestCase
         );
     }
 
+    /** @return list<array{string, string, bool}> */
+    public static function getCompareColumnComments(): iterable
+    {
+        return [
+            ['', '', true],
+            [' ', ' ', true],
+            ['0', '0', true],
+            ['foo', 'foo', true],
+
+            ['', ' ', false],
+            ['', '0', false],
+            ['', 'foo', false],
+
+            [' ', '0', false],
+            [' ', 'foo', false],
+
+            ['0', 'foo', false],
+        ];
+    }
+
+    protected function setUp(): void
+    {
+        $this->comparator = $this->createComparator(new ComparatorConfig());
+    }
+
     /**
      * @param array<NamedObject<UnqualifiedName>> $objects
      *
@@ -1393,6 +1360,40 @@ abstract class AbstractComparatorTestCase extends TestCase
         return $names;
     }
 
+    private function compareTablesWithModifiedIndex(bool $reportModifiedIndexes): TableDiff
+    {
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx_id')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $tableB = $tableA->edit()
+            ->dropIndexByUnquotedName('idx_id')
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_id')
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        return $this->createComparator(
+            (new ComparatorConfig())->withReportModifiedIndexes($reportModifiedIndexes),
+        )->compareTables($tableA, $tableB);
+    }
+
     /** @param non-empty-string $name */
     private function createTable(string $name): Table
     {
@@ -1406,4 +1407,6 @@ abstract class AbstractComparatorTestCase extends TestCase
             )
             ->create();
     }
+
+    abstract protected function createComparator(ComparatorConfig $config): Comparator;
 }
