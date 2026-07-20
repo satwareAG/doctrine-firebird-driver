@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.1] - 2026-07-20 - R1: fbird_field_info() BLOB sub_type detection
+
+### Added
+- **R1: Definitive BLOB sub_type detection** — replaced the NULL-byte heuristic
+  in `CharsetResultMiddleware` with `fbird_field_info()` sub_type lookup. Binary
+  BLOBs (sub_type 0) are passed through without transcoding; text BLOBs (sub_type 1)
+  are transcoded from database encoding to PHP encoding. Fixes issue #130 (binary
+  BLOBs without NULL bytes were incorrectly transcoded, causing data corruption
+  when charset middleware is used with non-UTF8 encoding like ISO8859_1).
+
+### Changed
+- `Firebird\Result` now exposes `getBlobSubTypes(): array<int, int>` — lazy-cached
+  map of column index to BLOB sub_type. Only called when charset middleware is
+  active (zero overhead when not registered).
+- `CharsetResultMiddleware::decodeValue()` takes `int|null $columnIndex` parameter;
+  all 6 fetch methods now pass the column index for per-column sub_type lookup.
+- Graceful degradation: if inner Result is not a native Firebird Result (wrapped
+  by other middleware), falls back to NULL-byte heuristic.
+- `Driver::connect()` — added `@` suppression on all 3 connect branches to silence
+  "I/O error ... No such file or directory" warning when DB doesn't exist yet.
+
+### Fixed
+- `PhpunitScriptTest` skipped when `phpunit.sh` is missing — fixed 3 pre-existing
+  PHP 8.5 errors.
+
 ## [3.19.0] - 2026-07-19 - php-firebird v13.0 required + CI fixes + charset docs
 
 ### Changed
@@ -898,7 +923,8 @@ This is near-zero probability for real binary formats. Replace with
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.5...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.19.1...HEAD
+[3.19.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.19.0...v3.19.1
 [3.12.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.4...v3.12.5
 [3.12.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.5...v3.12.4
 [3.10.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...v3.10.5

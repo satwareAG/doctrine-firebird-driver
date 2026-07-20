@@ -1,6 +1,6 @@
 {
   "name": "doctrine-firebird-driver",
-  "version": "3.19.0",
+  "version": "3.19.1",
   "sdd_source": "https://github.com/satwareAG/spec-kit",
   "forge": "github",
   "visibility": "public",
