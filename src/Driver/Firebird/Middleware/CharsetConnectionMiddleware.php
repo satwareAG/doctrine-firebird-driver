@@ -56,8 +56,8 @@ final class CharsetConnectionMiddleware extends AbstractConnectionMiddleware
      * around line 1106). Without this override the entire charset middleware
      * chain is bypassed for parameterless SELECTs (GH-116).
      *
-     * Binary BLOB detection uses a NULL-byte heuristic in CharsetResultMiddleware.
-     * jane: replace with fbird_field_info()['sub_type'] when php-firebird exposes it.
+     * Binary BLOB detection is handled by CharsetResultMiddleware via
+     * fbird_field_info() sub_type lookup (R1 optimization).
      */
     #[Override]
     public function query(string $sql): Result

@@ -15,6 +15,7 @@ use function array_values;
 use function fbird_affected_rows;
 use function fbird_fetch_assoc;
 use function fbird_fetch_row;
+use function fbird_field_info;
 use function fbird_free_result;
 use function fbird_num_fields;
 use function is_array;
@@ -29,6 +30,15 @@ final class Result implements ResultInterface
 {
     /** @var ResultSet|int|null */
     private mixed $firebirdResultResource = null;
+
+    /**
+     * Lazy-cached map of [column_index => BLOB sub_type] for BLOB columns.
+     * Non-BLOB columns are omitted. Null until first queried by getBlobSubTypes().
+     * When charset middleware is not registered, this is never computed.
+     *
+     * @var array<int, int>|null
+     */
+    private array|null $blobSubTypesCache = null;
 
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
@@ -182,6 +192,49 @@ final class Result implements ResultInterface
         }
 
         return 0;
+    }
+
+    /**
+     * Returns a map of column index to BLOB sub_type for BLOB columns.
+     *
+     * Non-BLOB columns are omitted from the map. Returns an empty array for
+     * non-SELECT results (INSERT/UPDATE/DELETE affected-row counts) or if
+     * metadata is unavailable.
+     *
+     * Used by CharsetResultMiddleware to replace the NULL-byte heuristic with
+     * definitive BLOB sub_type detection (R1 optimization). Sub_type values:
+     *   0 = BINARY (pass through without transcoding)
+     *   1 = TEXT   (transcode from database encoding to PHP encoding)
+     *
+     * Lazy-cached: the first call queries fbird_field_info() for all columns;
+     * subsequent calls return the cached array. If charset middleware is not
+     * registered, this method is never called - no overhead.
+     *
+     * @return array<int, int> Map of [column_index => sub_type]
+     */
+    public function getBlobSubTypes(): array
+    {
+        if ($this->blobSubTypesCache !== null) {
+            return $this->blobSubTypesCache;
+        }
+
+        $this->blobSubTypesCache = [];
+
+        if (! $this->isResultValid()) {
+            return $this->blobSubTypesCache;
+        }
+
+        for ($i = 0; $i < $this->columnCount(); $i++) {
+            /** @phpstan-ignore argument.type */
+            $info = fbird_field_info($this->firebirdResultResource, $i);
+            if (! is_array($info) || ($info['type'] ?? '') !== 'BLOB' || ! isset($info['sub_type'])) {
+                continue;
+            }
+
+            $this->blobSubTypesCache[$i] = (int) $info['sub_type'];
+        }
+
+        return $this->blobSubTypesCache;
     }
 
     // =========================================================================
