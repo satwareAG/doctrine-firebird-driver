@@ -69,9 +69,9 @@ final class Driver extends FirebirdDriver
 
         try {
             if ($persistent) {
-                $connection = fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
+                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
             } elseif ($forceNew) {
-                $connection = fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
+                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
             } else {
                 // Suppress "I/O error ... no such file or directory" warning when the
                 // database doesn't exist yet. The schema tool creates it after the

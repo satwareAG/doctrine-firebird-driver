@@ -32,9 +32,11 @@ use function fbird_connect;
 use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
-use function is_resource;
+use function json_decode;
+use function preg_match;
 use function str_contains;
 use function strtolower;
+use function strtoupper;
 use function trim;
 
 use const CASE_LOWER;
@@ -92,7 +94,7 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
             throw Exception::fromThrowable($e);
         }
 
-        if (! is_resource($connection)) {
+        if ($connection === false) {
             $code = (int) fbird_errcode();
             $msg  = (string) fbird_errmsg();
             if ($code === -902) {
