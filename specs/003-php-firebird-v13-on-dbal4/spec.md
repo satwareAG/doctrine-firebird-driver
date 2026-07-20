@@ -168,7 +168,7 @@ They will be addressed when DBAL 5.0 is released.
 | Functional FB5 | 575 tests, 0 errors, 0 failures, 55 skipped |
 | Integration-ReadOnly | 24 tests, 0 errors, 0 failures |
 | Integration-Write | 96 tests, 0 errors, 0 failures, 3 skipped |
-| CI (all jobs) | 15/15 green |
+| CI (all jobs) | 14/14 green |
 
 ### Post-implementation notes (v4.5.1)
 
