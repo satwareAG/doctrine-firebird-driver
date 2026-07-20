@@ -140,6 +140,8 @@ They will be addressed when DBAL 5.0 is released.
 
 ## Verification
 
+### v4.5.0 (initial release, 2026-07-19)
+
 | Check | Result |
 |-------|--------|
 | PHPStan level 8 (src/) | 0 errors (90 baselined deprecation warnings) |
@@ -152,3 +154,34 @@ They will be addressed when DBAL 5.0 is released.
 | ext-firebird | v13.0.0 loaded |
 | DBAL | 4.4.3 installed |
 | Stubs | v13.0.0 |
+
+### v4.5.1 (follow-up release, 2026-07-20)
+
+| Check | Result |
+|-------|--------|
+| PHPStan level 8 | 0 errors |
+| Psalm | 0 errors (112 baselined pre-existing) |
+| PHP_CodeSniffer | 0 errors |
+| Unit tests | 1620 tests, 0 errors, 0 failures, 49 skipped |
+| Functional FB3 | 575 tests, 0 errors, 0 failures, 59 skipped |
+| Functional FB4 | 575 tests, 0 errors, 0 failures, 55 skipped |
+| Functional FB5 | 575 tests, 0 errors, 0 failures, 55 skipped |
+| Integration-ReadOnly | 24 tests, 0 errors, 0 failures |
+| Integration-Write | 96 tests, 0 errors, 0 failures, 3 skipped |
+| CI (all jobs) | 15/15 green |
+
+### Post-implementation notes (v4.5.1)
+
+**Additional fixes beyond the original spec:**
+- `FirebirdComparator::__construct` now accepts `ComparatorConfig` (was silently dropped)
+- `FirebirdPlatform::columnsEqual()` override for autoincrement detection
+- `FirebirdSchemaManager::dropDatabase()` `is_resource()` -> `=== false` bug fix
+- `FirebirdSchemaManager::createDatabase()` uses `fbird_create_database()` (deprecation + security)
+- `Driver::connect()` `@` suppression on all 3 connect branches
+- `float`/`real` type mappings corrected to `SMALLFLOAT`
+- Windows CI updated to php-firebird v13.0.0 DLL
+
+**Test coverage expanded beyond spec:**
+- 17 platform tests from DBAL 4.x AbstractPlatformTestCase (104 instances)
+- 43 comparator tests from DBAL 4.x AbstractComparatorTestCase
+- Adapted functional test classes: ForeignKeyConstraintTest, AlterTableTest, BigIntTypeTest, SequenceTest, ResultMetadataTest

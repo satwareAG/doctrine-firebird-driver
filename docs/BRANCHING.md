@@ -2,12 +2,13 @@
 
 ## Overview
 
-This project uses a single active long-lived branch plus one dormant future-major branch.
+This project maintains two release lines, each tied to a DBAL major version.
 There is no separate `main`, `develop`, or `-dev` integration branch.
 
-Routine maintenance, bug fixes, dependency cleanup, and contributor PRs target `3.10.x`.
-The `4.4.x` branch exists for the future DBAL 4 line, but it is not an active day-to-day
-integration branch yet.
+The **`4.4.x`** branch is the active release line (DBAL 4, current: v4.5.1).
+Routine maintenance, bug fixes, dependency cleanup, and contributor PRs target `4.4.x`.
+The **`3.10.x`** branch is in maintenance mode (DBAL 3, last release: v3.19.0) and
+receives only critical bug fixes.
 
 ---
 
@@ -15,26 +16,26 @@ integration branch yet.
 
 | Branch | Role | Notes |
 |--------|------|-------|
-| `3.10.x` | Active default branch | Protected. Source of truth for DBAL 3.10-compatible development and releases. |
-| `4.4.x` | Future major branch | Protected. Holds early DBAL 4 compatibility work, but is currently dormant. |
-| `feat/DESCRIPTION` | Feature branch | Short-lived branch from `3.10.x`, opened back into `3.10.x`. |
-| `fix/DESCRIPTION` | Bugfix branch | Short-lived branch from `3.10.x`, opened back into `3.10.x`. |
-| `docs/DESCRIPTION` | Documentation branch | Short-lived branch from `3.10.x`, opened back into `3.10.x`. |
-| `chore/DESCRIPTION` | Maintenance branch | Short-lived branch from `3.10.x`, opened back into `3.10.x`. |
+| `4.4.x` | Active release branch | Protected. Source of truth for DBAL 4.4-compatible development and releases. Current: v4.5.1. |
+| `3.10.x` | Maintenance branch | Protected. DBAL 3.10-compatible line. Last release: v3.19.0. Critical fixes only. |
+| `feat/DESCRIPTION` | Feature branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
+| `fix/DESCRIPTION` | Bugfix branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
+| `docs/DESCRIPTION` | Documentation branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
+| `chore/DESCRIPTION` | Maintenance branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
 
 ---
 
 ## Branch Rules
 
-### `3.10.x`
+### `4.4.x`
 
 - **Default branch** - all routine PRs target this branch.
 - **Protected** - no direct pushes.
-- **Stable development trunk** - used for both ongoing maintenance and releases.
+- **Active release trunk** - used for both ongoing development and releases.
 - **Required checks** - CI and quality workflows must pass before merge.
 - **Preferred merge style** - squash merge with a conventional commit title.
 
-Recommended GitHub ruleset for `3.10.x`:
+Recommended GitHub ruleset for `4.4.x`:
 
 - require pull requests
 - require required status checks
@@ -45,13 +46,12 @@ Recommended GitHub ruleset for `3.10.x`:
 
 Merge queue is optional and should stay disabled until concurrent PR volume justifies it.
 
-### `4.4.x`
+### `3.10.x`
 
 - **Protected** - no direct pushes.
-- **Dormant by default** - do not mirror routine cleanup or dependency churn here while the
-  branch is inactive.
-- **Reactivation rule** - before active DBAL 4 work resumes, sync `4.4.x` from the latest
-  `3.10.x` first, then continue with DBAL 4-specific commits on top.
+- **Maintenance mode** - critical bug fixes only. No new features.
+- **Last release** - v3.19.0 (2026-07-19). No further releases planned unless critical bugs are found.
+- **Backport rule** - critical fixes from `4.4.x` may be cherry-picked to `3.10.x` if they apply to DBAL 3.x.
 
 ### Short-lived branches
 
@@ -64,22 +64,24 @@ Merge queue is optional and should stay disabled until concurrent PR volume just
 
 ## Release Tagging
 
-All DBAL 3 releases are tagged from `3.10.x`.
+All DBAL 4 releases are tagged from `4.4.x`. DBAL 3 releases are tagged from `3.10.x`.
 
 ```text
-v3.10.PATCH
+v4.5.PATCH    # DBAL 4.4 line (active)
+v3.19.PATCH   # DBAL 3.10 line (maintenance)
 ```
 
 | Component | Description |
 |-----------|-------------|
-| `3.10` | DBAL 3.10 compatibility line |
+| `4.5` | DBAL 4.4 compatibility line (active) |
+| `3.19` | DBAL 3.10 compatibility line (maintenance) |
 | `PATCH` | Bug fixes, CI improvements, documentation, and dependency maintenance |
 
 ### Tag Procedure
 
 ```bash
-git checkout 3.10.x
-git pull origin 3.10.x
+git checkout 4.4.x
+git pull origin 4.4.x
 # Update CHANGELOG.md and version references
 git tag -a vX.Y.Z -m "chore(release): vX.Y.Z"
 git push origin vX.Y.Z
@@ -121,43 +123,44 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## PR Workflow
 
-1. Branch from `3.10.x` with `feat/`, `fix/`, `docs/`, or `chore/`.
+1. Branch from `4.4.x` with `feat/`, `fix/`, `docs/`, or `chore/`.
 2. Keep the PR focused on one logical change.
-3. Open the PR against `3.10.x`.
+3. Open the PR against `4.4.x`.
 4. Wait for all required CI and quality checks to pass.
 5. Squash-merge with a clean conventional commit title.
 6. Auto-delete the branch after merge.
 
 ---
 
-## Forward-port Policy for `4.4.x`
+## Backport Policy for `3.10.x`
 
-While `4.4.x` is dormant, do not manually duplicate every cleanup change.
+While `3.10.x` is in maintenance mode, do not manually duplicate every change.
 
 Instead:
 
-1. Merge routine cleanup and maintenance into `3.10.x` only.
-2. If a change should later land on `4.4.x`, mark it in the PR description and, if available,
-   label it `forward-port:4.4.x`.
-3. When `4.4.x` becomes active again, sync it once from the latest `3.10.x`.
-4. Reapply only the DBAL 4-specific branch deltas that still matter.
+1. Merge routine cleanup and maintenance into `4.4.x` only.
+2. If a change should later land on `3.10.x` (critical bug fix), mark it in the PR
+   description and, if available, label it `backport:3.10.x`.
+3. Cherry-pick the fix to `3.10.x` if it applies to DBAL 3.x.
+4. Tag a new `v3.19.PATCH` release if the fix warrants a release.
 
-Prefer merge-forward or rebase-forward during branch reactivation. Use cherry-picks only for
-small isolated fixes when the branches have meaningfully diverged.
+Prefer cherry-picks for small isolated fixes. Do not attempt full merges between
+the two branches - they have meaningfully diverged (DBAL 3 vs DBAL 4 API).
 
 ---
 
-## DBAL 4.x Migration Path
+## DBAL 4.x Migration - COMPLETE
 
-The `4.4.x` branch already exists and contains initial DBAL 4 compatibility work. Before active
-development resumes there:
+The `4.4.x` branch has been fully migrated to DBAL 4.4.x. The migration is
+complete and the branch is the active release line (v4.5.1, 2026-07-20).
 
-1. Sync `4.4.x` from the latest `3.10.x`.
-2. Re-validate the documented blockers in `docs/learnings/2026-03-18-dbal4-initial-migration-blockers.md`.
-3. Re-run CI with DBAL 4 constraints.
-4. Resume DBAL 4-specific implementation on top of the synchronized branch.
+Key milestones:
+- v4.4.0 (2026-07-09): Initial DBAL 4 compatibility
+- v4.5.0 (2026-07-19): php-firebird v13.0 integration, full test suite passing
+- v4.5.1 (2026-07-20): Test coverage expansion, bug fixes, CI green
 
-This reduces manual forward-port churn and keeps contributor guidance focused on the active line.
+See `docs/learnings/2026-03-18-dbal4-initial-migration-blockers.md` for the
+historical migration record.
 
 ---
 

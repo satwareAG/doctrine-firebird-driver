@@ -9,11 +9,11 @@ Doctrine Firebird driver
 
 To utilize this library in your application code, the following is required:
 
-- **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported — 2.5 dropped in php-firebird v7.2.0)
-- **PHP**: **>= 8.2** (**8.4 recommended** — primary optimization target for Amicron ERP integration)
-- **php-firebird extension** v11.1+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening)
-- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch)
-- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch)
+- **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported - 2.5 dropped in php-firebird v7.2.0)
+- **PHP**: **>= 8.2** (**8.5 recommended** - primary optimization target for Amicron ERP integration)
+- **php-firebird extension** v13.0+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening, `fbird_escape_literal()`)
+- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch, current release: v4.5.1)
+- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch, maintenance only: v3.19.0)
 
 ## Version Compatibility Matrix
 
@@ -350,7 +350,7 @@ vendor/bin/phpunit tests/Test/Functional/
 ## Test Requirements
 
 - **Docker & Docker Compose** - For running test environment
-- **PHP 8.2+** with `ext-firebird` (php-firebird v11.1+)
+- **PHP 8.2+** with `ext-firebird` (php-firebird v13.0+)
 - **Composer dependencies** - `composer install`
 
 All tests run in Docker containers to ensure consistent environments across Firebird versions. See [TESTING.md](docs/TESTING.md) for detailed setup instructions.
