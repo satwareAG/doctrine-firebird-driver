@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-07-20 - Test coverage, bug fixes, and CI fixes
+
+### Fixed
+- **`FirebirdComparator::__construct` now accepts `ComparatorConfig`** — previously
+  the config parameter was silently dropped, causing `withDetectRenamedColumns(false)`
+  and similar config-driven behaviour to be ignored.
+- **`FirebirdPlatform::columnsEqual()` override** — Firebird's
+  `_getCommonIntegerTypeDeclarationSQL()` returns `''` (no inline autoincrement
+  keyword; identity is emulated via sequences). The parent `columnsEqual()` compares
+  SQL declarations, so both `INTEGER` and `INTEGER AUTO` produced identical SQL,
+  hiding autoincrement changes. Override adds explicit `getAutoincrement()` comparison
+  (same pattern as `SQLServerPlatform::columnsEqual()` for default values).
+- **`FirebirdSchemaManager::dropDatabase()` `is_resource()` bug** —
+  `is_resource($connection)` returned `false` for `\Firebird\Connection` objects
+  (ext-firebird 13.0 returns objects, not resources), so the error path was always
+  entered even on successful connections. Changed to `$connection === false`
+  (same pattern as `createDatabase`).
+- **`FirebirdSchemaManager::createDatabase()` deprecation** — replaced deprecated
+  `fbird_query(FBIRD_CREATE, ...)` with first-class `fbird_create_database()` API
+  (php-firebird 9.0+). The new API also provides built-in single-quote escaping
+  (C1 fix, issue #155) and charset allowlist validation that the old
+  `sprintf`-based SQL construction lacked.
+- **`Driver::connect()` warning suppression** — added `@` to all three connect
+  branches (`fbird_pconnect`, `fbird_connect` with `FBIRD_CONNECT_FORCE_NEW`, and
+  default `fbird_connect`) to suppress "I/O error ... No such file or directory"
+  warning when the database doesn't exist yet (normal first-run case). The
+  structured `-902` exception below still preserves the error info for callers.
+- **`float`/`real` type mappings corrected to `Types::SMALLFLOAT`** — was
+  silently widening columns to `DOUBLE PRECISION` when `FLOAT` was intended.
+- **`PhpunitScriptTest` skipped when `phpunit.sh` is missing** — fixed 3 pre-existing
+  PHP 8.5 errors.
+- **`ConnectionTest` removed `ReflectionProperty::setAccessible(true)`** —
+  deprecated in PHP 8.5 (no-op since PHP 8.1).
+
+### Added (Test Coverage)
+- **17 missing platform tests** from DBAL 4.x `AbstractPlatformTestCase` (104 test
+  instances across 4 platform variants): `testGeneratesSmallFloatDeclarationSQL`,
+  enum/decimal/string/binary declaration SQL tests, `testReturnsJsonbTypeDeclarationSQL`,
+  `testGetCommentOnColumnSQL`, with Firebird-specific expected-value hooks for
+  CHAR(255)/VARCHAR(255) null-length padding and CHAR/VARCHAR binary type mapping.
+- **43 comparator tests** from DBAL 4.x `AbstractComparatorTestCase` via new
+  `FirebirdComparatorTest`. Includes `RenameColumnTestHelper` (extracted from DBAL's
+  `RenameColumnTest` which depends on `FunctionalTestCase` not in vendor).
+- **Adapted functional test classes** from DBAL 4.x: `ForeignKeyConstraintTest` (20 tests),
+  `AlterTableTest` (8 tests), `BigIntTypeTest`, `SequenceTest`, `ResultMetadataTest`.
+- **Psalm baseline** regenerated (112 pre-existing errors captured for incremental
+  resolution).
+
+### Changed (CI)
+- **Code Quality gate now passing**: 80 phpcs errors fixed (79 auto-fixed via
+  `phpcbf`, 1 manual `ClassStructure` reorder, 1 manual heredoc tab replacement).
+- **Windows CI** updated to use php-firebird v13.0.0 DLL (was v12.0.0-rc.11;
+  `fbird_escape_literal()` used by `Connection::quote()` since v4.5.0 was
+  undefined in v12).
+- **Dependabot PRs** #133-#136 merged (GitHub Actions bumps: actions/checkout,
+  github/codeql-action/init, github/codeql-action/analyze, codecov/codecov-action).
+
+### Test Results
+| Suite | Tests | Errors | Failures | Deprecations | Warnings | Skipped |
+|-------|-------|--------|----------|--------------|----------|---------|
+| Unit | 1620 | 0 | 0 | 0 | 0 | 49 |
+| Functional FB3 | 575 | 0 | 0 | 0 | 0 | 59 |
+| Functional FB4 | 575 | 0 | 0 | 0 | 0 | 55 |
+| Functional FB5 | 575 | 0 | 0 | 0 | 0 | 55 |
+| Integration-ReadOnly | 24 | 0 | 0 | 0 | 0 | 0 |
+| Integration-Write | 96 | 0 | 0 | 0 | 0 | 3 |
+| PHPStan level 8 | - | 0 | - | - | - | - |
+| Psalm | - | 0 | - | - | - | - |
+| phpcs | - | 0 | - | - | - | - |
+
 ## [4.5.0] - 2026-07-19 - php-firebird v13.0 on DBAL 4.4.x
 
 ### Changed
@@ -976,7 +1046,8 @@ This is near-zero probability for real binary formats. Replace with
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.5...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.1...HEAD
+[4.5.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.0...v4.5.1
 [3.12.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.4...v3.12.5
 [3.12.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.5...v3.12.4
 [3.10.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.4...v3.10.5
