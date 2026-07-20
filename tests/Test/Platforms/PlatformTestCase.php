@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Platforms;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception\InvalidColumnDeclaration;
+use Doctrine\DBAL\Exception\InvalidColumnType\ColumnValuesRequired;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
@@ -19,6 +21,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use InvalidArgumentException;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,6 +36,7 @@ use function str_repeat;
 /** @template T of AbstractPlatform */
 abstract class PlatformTestCase extends TestCase
 {
+    use VerifyDeprecations;
     /** @var T */
     protected AbstractPlatform $platform;
 
@@ -1163,6 +1167,286 @@ abstract class PlatformTestCase extends TestCase
     public function testColumnComparison(): void
     {
         $this->markTestSkipped('DBAL4: columnsEqual() type comment behavior differs; columns with same SQL type are always equal.');
+    }
+
+    /**
+     * @param array<string, mixed> $column
+     */
+    #[DataProvider('getGeneratesSmallFloatDeclarationSQL')]
+    public function testGeneratesSmallFloatDeclarationSQL(array $column, string $expectedSql): void
+    {
+        self::assertSame($expectedSql, $this->platform->getSmallFloatDeclarationSQL($column));
+    }
+
+    /**
+     * @return list<array{array<string, mixed>, string}>
+     */
+    public static function getGeneratesSmallFloatDeclarationSQL(): iterable
+    {
+        return [
+            [[], 'REAL'],
+            [['unsigned' => true], 'REAL'],
+            [['unsigned' => false], 'REAL'],
+            [['precision' => 5], 'REAL'],
+            [['scale' => 5], 'REAL'],
+            [['precision' => 4, 'scale' => 2], 'REAL'],
+        ];
+    }
+
+    /**
+     * @param array<string> $values
+     */
+    #[DataProvider('getEnumDeclarationSQLProvider')]
+    public function testGetEnumDeclarationSQL(array $values, string $expectedSQL): void
+    {
+        self::assertSame($expectedSQL, $this->platform->getEnumDeclarationSQL(['values' => $values]));
+    }
+
+    /**
+     * @return array<string, array{array<string>, string}>
+     */
+    public static function getEnumDeclarationSQLProvider(): array
+    {
+        return [
+            'single value' => [['foo'], 'VARCHAR(3)'],
+            'multiple values' => [['foo', 'bar1'], 'VARCHAR(4)'],
+        ];
+    }
+
+    /**
+     * @param array<string> $values
+     */
+    #[DataProvider('getEnumDeclarationWithLengthSQLProvider')]
+    public function testGetEnumDeclarationWithLengthSQL(array $values, int $length, string $expectedSQL): void
+    {
+        $result = $this->platform->getEnumDeclarationSQL([
+            'values' => $values,
+            'length' => $length,
+        ]);
+
+        self::assertSame($expectedSQL, $result);
+    }
+
+    /**
+     * @param array<string> $values
+     */
+    #[DataProvider('getEnumDeclarationExceptionWithLengthSQLProvider')]
+    public function testGetEnumDeclarationExceptionWithLengthSQL(array $values, int $length): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->platform->getEnumDeclarationSQL([
+            'values' => $values,
+            'length' => $length,
+        ]);
+    }
+
+    /**
+     * @return array<string, array{array<string>, int, string}>
+     */
+    public static function getEnumDeclarationWithLengthSQLProvider(): array
+    {
+        return [
+            'single value and bigger length' => [['foo'], 42, 'VARCHAR(42)'],
+            'multiple values and bigger length' => [['foo', 'bar1'], 42, 'VARCHAR(42)'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{array<string>, int}>
+     */
+    public static function getEnumDeclarationExceptionWithLengthSQLProvider(): array
+    {
+        return [
+            'single value and lower length' => [['foo'], 1],
+            'multiple values and lower length' => [['foo', 'bar1'], 2],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $column
+     */
+    #[DataProvider('getEnumDeclarationSQLWithInvalidValuesProvider')]
+    public function testGetEnumDeclarationSQLWithInvalidValues(array $column): void
+    {
+        self::expectException(ColumnValuesRequired::class);
+        $this->platform->getEnumDeclarationSQL($column);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function getEnumDeclarationSQLWithInvalidValuesProvider(): array
+    {
+        return [
+            "field 'values' does not exist" => [[]],
+            "field 'values' is not an array" => [['values' => 'foo']],
+            "field 'values' is an empty array" => [['values' => []]],
+        ];
+    }
+
+    public function testGetDecimalTypeDeclarationSQLNoPrecision(): void
+    {
+        $this->expectException(InvalidColumnDeclaration::class);
+        $this->platform->getDecimalTypeDeclarationSQL(['name' => 'price', 'scale' => 2]);
+    }
+
+    public function testGetDecimalTypeDeclarationSQLNoScale(): void
+    {
+        $this->expectException(InvalidColumnDeclaration::class);
+        $this->platform->getDecimalTypeDeclarationSQL(['name' => 'price', 'precision' => 10]);
+    }
+
+    public function testReturnsJsonbTypeDeclarationSQL(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6939');
+
+        self::assertSame(
+            $this->platform->getJsonTypeDeclarationSQL(['jsonb' => true]),
+            $this->platform->getJsonbTypeDeclarationSQL([]),
+        );
+    }
+
+    public function testGetFixedLengthStringTypeDeclarationSQLNoLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedFixedLengthStringTypeDeclarationSQLNoLength(),
+            $this->platform->getStringTypeDeclarationSQL(['fixed' => true]),
+        );
+    }
+
+    protected function getExpectedFixedLengthStringTypeDeclarationSQLNoLength(): string
+    {
+        // jane: Firebird pads null-length CHAR to 255 (default) instead of bare 'CHAR'.
+        return 'CHAR(255)';
+    }
+
+    public function testGetFixedLengthStringTypeDeclarationSQLWithLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedFixedLengthStringTypeDeclarationSQLWithLength(),
+            $this->platform->getStringTypeDeclarationSQL([
+                'fixed' => true,
+                'length' => 16,
+            ]),
+        );
+    }
+
+    protected function getExpectedFixedLengthStringTypeDeclarationSQLWithLength(): string
+    {
+        return 'CHAR(16)';
+    }
+
+    public function testGetVariableLengthStringTypeDeclarationSQLNoLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedVariableLengthStringTypeDeclarationSQLNoLength(),
+            $this->platform->getStringTypeDeclarationSQL(['name' => 'email']),
+        );
+    }
+
+    protected function getExpectedVariableLengthStringTypeDeclarationSQLNoLength(): string
+    {
+        // jane: Firebird pads null-length VARCHAR to 255 (default) instead of bare 'VARCHAR'.
+        return 'VARCHAR(255)';
+    }
+
+    public function testGetVariableLengthStringTypeDeclarationSQLWithLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedVariableLengthStringTypeDeclarationSQLWithLength(),
+            $this->platform->getStringTypeDeclarationSQL(['length' => 16]),
+        );
+    }
+
+    protected function getExpectedVariableLengthStringTypeDeclarationSQLWithLength(): string
+    {
+        return 'VARCHAR(16)';
+    }
+
+    public function testGetFixedLengthBinaryTypeDeclarationSQLNoLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedFixedLengthBinaryTypeDeclarationSQLNoLength(),
+            $this->platform->getBinaryTypeDeclarationSQL(['name' => 'checksum', 'fixed' => true]),
+        );
+    }
+
+    public function getExpectedFixedLengthBinaryTypeDeclarationSQLNoLength(): string
+    {
+        // jane: Firebird maps fixed binary to CHAR(255) (no native BINARY type).
+        return 'CHAR(255)';
+    }
+
+    public function testGetFixedLengthBinaryTypeDeclarationSQLWithLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedFixedLengthBinaryTypeDeclarationSQLWithLength(),
+            $this->platform->getBinaryTypeDeclarationSQL([
+                'fixed' => true,
+                'length' => 16,
+            ]),
+        );
+    }
+
+    public function getExpectedFixedLengthBinaryTypeDeclarationSQLWithLength(): string
+    {
+        // jane: Firebird maps fixed binary to CHAR(n) (no native BINARY type).
+        return 'CHAR(16)';
+    }
+
+    public function testGetVariableLengthBinaryTypeDeclarationSQLNoLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedVariableLengthBinaryTypeDeclarationSQLNoLength(),
+            $this->platform->getBinaryTypeDeclarationSQL(['name' => 'attachment']),
+        );
+    }
+
+    public function getExpectedVariableLengthBinaryTypeDeclarationSQLNoLength(): string
+    {
+        // jane: Firebird maps variable binary to VARCHAR(255) (no native VARBINARY type).
+        return 'VARCHAR(255)';
+    }
+
+    public function testGetVariableLengthBinaryTypeDeclarationSQLWithLength(): void
+    {
+        self::assertSame(
+            $this->getExpectedVariableLengthBinaryTypeDeclarationSQLWithLength(),
+            $this->platform->getBinaryTypeDeclarationSQL(['length' => 16]),
+        );
+    }
+
+    public function getExpectedVariableLengthBinaryTypeDeclarationSQLWithLength(): string
+    {
+        // jane: Firebird maps variable binary to VARCHAR(n) (no native VARBINARY type).
+        return 'VARCHAR(16)';
+    }
+
+    /**
+     * @see testGetCommentOnColumnSQL
+     *
+     * @return string[]
+     */
+    protected function getCommentOnColumnSQL(): array
+    {
+        return [
+            'COMMENT ON COLUMN foo.bar IS \'comment\'',
+            'COMMENT ON COLUMN "Foo"."BAR" IS \'comment\'',
+            'COMMENT ON COLUMN "select"."from" IS \'comment\'',
+        ];
+    }
+
+    public function testGetCommentOnColumnSQL(): void
+    {
+        self::assertSame(
+            $this->getCommentOnColumnSQL(),
+            [
+                $this->platform->getCommentOnColumnSQL('foo', 'bar', 'comment'), // regular identifiers
+                $this->platform->getCommentOnColumnSQL('`Foo`', '`BAR`', 'comment'), // explicitly quoted identifiers
+                $this->platform->getCommentOnColumnSQL('select', 'from', 'comment'), // reserved keyword identifiers
+            ],
+        );
     }
 
     public function tearDown(): void
