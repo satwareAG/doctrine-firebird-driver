@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
@@ -312,6 +313,28 @@ class FirebirdPlatform extends AbstractPlatform
     public function supportsInlineColumnComments(): bool
     {
         return false;
+    }
+
+    /**
+     * Compares column definitions for equality in the Firebird context.
+     *
+     * Firebird's {@see _getCommonIntegerTypeDeclarationSQL()} returns '' (no
+     * inline autoincrement keyword) because Firebird emulates identity columns
+     * via sequences + triggers, not via an inline SQL clause. As a result, the
+     * parent {@see AbstractPlatform::columnsEqual()} cannot detect autoincrement
+     * changes by comparing SQL declarations - both produce 'INTEGER NOT NULL'.
+     *
+     * This override adds an explicit autoincrement comparison so that adding or
+     * removing identity-column behaviour produces a ColumnDiff.
+     */
+    #[Override]
+    public function columnsEqual(Column $column1, Column $column2): bool
+    {
+        if (! parent::columnsEqual($column1, $column2)) {
+            return false;
+        }
+
+        return $column1->getAutoincrement() === $column2->getAutoincrement();
     }
 
     #[Override]

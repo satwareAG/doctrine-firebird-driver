@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Schema;
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator as BaseComparator;
+use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\PhpIntegerMappingType;
@@ -43,9 +44,9 @@ use function trim;
 final class FirebirdComparator extends BaseComparator
 {
     /** @internal The comparator can be only instantiated by a schema manager. */
-    public function __construct(FirebirdPlatform $platform)
+    public function __construct(FirebirdPlatform $platform, ComparatorConfig $config = new ComparatorConfig())
     {
-        parent::__construct($platform);
+        parent::__construct($platform, $config);
     }
 
     #[Override]
