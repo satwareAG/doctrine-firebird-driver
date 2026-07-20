@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.2] - 2026-07-20 - R1: fbird_field_info() BLOB sub_type detection
+
+### Added
+- **R1: Definitive BLOB sub_type detection** — replaced the NULL-byte heuristic
+  in `CharsetResultMiddleware` with `fbird_field_info()` sub_type lookup. Binary
+  BLOBs (sub_type 0) are passed through without transcoding; text BLOBs (sub_type 1)
+  are transcoded from database encoding to PHP encoding. Fixes issue #130 (binary
+  BLOBs without NULL bytes were incorrectly transcoded, causing data corruption
+  when charset middleware is used with non-UTF8 encoding like ISO8859_1).
+
+### Changed
+- `Firebird\Result` now exposes `getBlobSubTypes(): array<int, int>` — lazy-cached
+  map of column index to BLOB sub_type. Only called when charset middleware is
+  active (zero overhead when not registered).
+- `CharsetResultMiddleware::decodeValue()` takes `int|null $columnIndex` parameter;
+  all 6 fetch methods now pass the column index for per-column sub_type lookup.
+- Graceful degradation: if inner Result is not a native Firebird Result (wrapped
+  by other middleware), falls back to NULL-byte heuristic.
+- Write path (`CharsetStatementMiddleware`) keeps NULL-byte heuristic (no result
+  resource available at bind time).
+
+### Test Results
+| Suite | Tests | Errors | Failures | Skipped |
+|-------|-------|--------|----------|---------|
+| Unit | 1620 | 0 | 0 | 49 |
+| Functional FB3 | 577 | 0 | 0 | 59 |
+| Functional FB4 | 577 | 0 | 0 | 55 |
+| Functional FB5 | 577 | 0 | 0 | 55 |
+| Integration-ReadOnly | 24 | 0 | 0 | 0 |
+| Integration-Write | 96 | 0 | 0 | 3 |
+| PHPStan 8 / Psalm / phpcs | - | 0 | 0 | - |
+
 ## [4.5.1] - 2026-07-20 - Test coverage, bug fixes, and CI fixes
 
 ### Fixed
@@ -1046,7 +1078,8 @@ This is near-zero probability for real binary formats. Replace with
   - `FirebirdPlatformIntegrationTest`: Platform method delegation
   - `FirebirdDriverConfigurationTest`: Driver initialization flow
 
-[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.1...HEAD
+[Unreleased]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.2...HEAD
+[4.5.2]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.1...v4.5.2
 [4.5.1]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.5.0...v4.5.1
 [3.12.5]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.12.4...v3.12.5
 [3.12.4]: https://github.com/satwareAG/doctrine-firebird-driver/compare/v3.10.5...v3.12.4
