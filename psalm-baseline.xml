@@ -59,6 +59,12 @@
       <code><![CDATA[$host]]></code>
     </UnusedVariable>
   </file>
+  <file src="src/Driver/Firebird/Exception.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[getFbirdErrCode]]></code>
+      <code><![CDATA[getFbirdErrMsg]]></code>
+    </PossiblyUnusedMethod>
+  </file>
   <file src="src/Driver/Firebird/Middleware/CharsetResultMiddleware.php">
     <RedundantFunctionCall>
       <code><![CDATA[array_values]]></code>

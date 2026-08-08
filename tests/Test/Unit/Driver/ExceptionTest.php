@@ -200,4 +200,38 @@ class ExceptionTest extends TestCase
             'lock conflict' => [335544345, 'Lock conflict on no wait transaction'],
         ];
     }
+
+    // ==========================================================================
+    // getFbirdErrCode() / getFbirdErrMsg() Accessor Tests (#147)
+    // ==========================================================================
+
+    public function testGetFbirdErrCodeReturnsSameAsGetCode(): void
+    {
+        $exception = Exception::fromErrorInfo('Lock conflict on no wait transaction', 335544345);
+
+        self::assertSame(335544345, $exception->getFbirdErrCode());
+        self::assertSame($exception->getCode(), $exception->getFbirdErrCode());
+    }
+
+    public function testGetFbirdErrMsgReturnsSameAsGetMessage(): void
+    {
+        $exception = Exception::fromErrorInfo('Lock conflict on no wait transaction', 335544345);
+
+        self::assertSame('Lock conflict on no wait transaction', $exception->getFbirdErrMsg());
+        self::assertSame($exception->getMessage(), $exception->getFbirdErrMsg());
+    }
+
+    public function testGetFbirdErrCodeReturnsZeroWhenNoCode(): void
+    {
+        $exception = new Exception('No error');
+
+        self::assertSame(0, $exception->getFbirdErrCode());
+    }
+
+    public function testGetFbirdErrMsgReturnsEmptyWhenNoMessage(): void
+    {
+        $exception = new Exception('');
+
+        self::assertSame('', $exception->getFbirdErrMsg());
+    }
 }
