@@ -34,6 +34,12 @@
       <code><![CDATA[getParams]]></code>
     </InternalMethod>
   </file>
+  <file src="src/Driver/Firebird/Exception.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[getFbirdErrCode]]></code>
+      <code><![CDATA[getFbirdErrMsg]]></code>
+    </PossiblyUnusedMethod>
+  </file>
   <file src="src/Driver/Firebird/ProceduralBatchResult.php">
     <PossiblyUnusedMethod>
       <code><![CDATA[hasErrors]]></code>

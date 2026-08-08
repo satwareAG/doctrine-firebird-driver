@@ -32,6 +32,11 @@ use function method_exists;
  * Class 40: Transaction Rollback
  * Class 42: Syntax Error or Access Violation
  *
+ * The raw Firebird SQLCODE (fbird_errcode) is available via getCode().
+ * The raw Firebird error message (fbird_errmsg) is available via getMessage().
+ * getFbirdErrCode() and getFbirdErrMsg() are named accessors for discoverability
+ * by downstream PSR-3 loggers (see issue #147).
+ *
  * @link https://en.wikipedia.org/wiki/SQLSTATE
  * @link https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-appx02-sqlstates
  *
@@ -131,6 +136,33 @@ class Exception extends BaseException implements DriverException
     public function getSQLState(): string|null
     {
         return $this->sqlState;
+    }
+
+    /**
+     * Get the raw Firebird error code (SQLCODE from fbird_errcode()).
+     *
+     * Same value as getCode(), exposed as a named accessor for discoverability.
+     * Downstream PSR-3 loggers can use this to log the Firebird-native error
+     * code (e.g., -902 for lock conflict, -901 for deadlock) alongside the
+     * Doctrine exception class.
+     *
+     * @return int The Firebird SQLCODE, or 0 if not available.
+     */
+    public function getFbirdErrCode(): int
+    {
+        return $this->getCode();
+    }
+
+    /**
+     * Get the raw Firebird error message (from fbird_errmsg()).
+     *
+     * Same value as getMessage(), exposed as a named accessor for discoverability.
+     *
+     * @return string The Firebird error message.
+     */
+    public function getFbirdErrMsg(): string
+    {
+        return $this->getMessage();
     }
 
     /**
