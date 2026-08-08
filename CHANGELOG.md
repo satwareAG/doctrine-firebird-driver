@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.2] - 2026-08-08 - PHPCS annotation group fix
+
+### Fixed
+- PHPCS `DocCommentSpacing.IncorrectAnnotationsGroup` in `BlobBinaryCharsetTest`
+  class docblock — `@psalm-suppress` and `@see` annotations reordered to satisfy
+  `SlevomatCodingStandard.Commenting.DocCommentSpacing` rules. No functional change.
+
 ## [4.6.1] - 2026-08-08 - Charset middleware type-based binary detection + column-index fix
 
 ### Fixed
