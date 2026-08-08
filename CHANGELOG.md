@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.2] - 2026-08-08 - Exception named accessors (#147 backport)
+
+### Added
+- **`Exception::getFbirdErrCode(): int`** and **`Exception::getFbirdErrMsg(): string`** —
+  named accessors for the raw Firebird SQLCODE (`fbird_errcode()`) and error message
+  (`fbird_errmsg()`). Same values as `getCode()` and `getMessage()`, exposed with
+  discoverable names for downstream PSR-3 loggers. When `ExceptionConverter` wraps
+  the driver `Exception` in a Doctrine exception (e.g.,
+  `ForeignKeyConstraintViolationException`), the raw Firebird error code is
+  accessible via `$previous->getFbirdErrCode()`. No new properties, no BC break.
+
 ## [3.19.1] - 2026-07-20 - R1: fbird_field_info() BLOB sub_type detection
 
 ### Added
