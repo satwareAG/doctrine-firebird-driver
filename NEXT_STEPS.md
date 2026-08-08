@@ -8,9 +8,9 @@
 
 ## Current State
 
-### v4.5.2 — R1 BLOB sub_type detection + dependency updates
+### v4.6.0 — Diagnostics & Observability
 
-**Status:** Released 2026-07-20. All CI green.
+**Status:** Released 2026-08-08. All CI green.
 
 The `4.4.x` branch is the active release line, shipping on DBAL 4.4.x with
 php-firebird v13.0.3 (ext-firebird ^13.0.1). The `3.10.x` branch is in
@@ -20,7 +20,7 @@ maintenance mode (DBAL 3.x).
 
 | Suite | Tests | Errors | Failures | Skipped |
 |-------|-------|--------|----------|---------|
-| Unit | 1620 | 0 | 0 | 49 |
+| Unit | 1624 | 0 | 0 | 48 |
 | Functional FB3 | 576 | 0 | 0 | 58 |
 | Functional FB4 | 576 | 0 | 0 | 54 |
 | Functional FB5 | 576 | 0 | 0 | 54 |
@@ -32,10 +32,10 @@ maintenance mode (DBAL 3.x).
 | Gate | Result |
 |------|--------|
 | PHPStan Level 8 | 0 errors (90 baselined DBAL 4.4->5.0 deprecation warnings) |
-| Psalm | 0 errors (112 baselined pre-existing issues) |
+| Psalm | 0 errors (114 baselined pre-existing issues) |
 | PHP_CodeSniffer | 0 errors |
 | ext-firebird | v13.0.2 loaded (constraint: ^13.0.1) |
-| DBAL | 4.4.3 installed |
+| DBAL | 4.4.4 installed |
 | Stubs | v13.0.3 |
 | CI (PHP x Firebird Matrix) | 14/14 jobs green |
 | Windows CI | green (v13.0.0 DLL) |
@@ -80,7 +80,7 @@ maintenance mode (DBAL 3.x).
    to DOUBLE PRECISION).
 8. **ReflectionProperty::setAccessible() removed** - deprecated in PHP 8.5.
 9. **80 phpcs errors fixed** - Code Quality gate now passing.
-10. **Psalm baseline regenerated** - 112 pre-existing errors captured.
+10. **Psalm baseline regenerated** - 112 pre-existing errors captured (114 as of v4.6.0: +2 `PossiblyUnusedMethod` for `getFbirdErrCode`/`getFbirdErrMsg`).
 11. **Windows CI updated** to php-firebird v13.0.0 DLL (was v12.0.0-rc.11).
 12. **4 Dependabot PRs merged** (actions/checkout, codeql-action, codecov).
 
@@ -106,13 +106,13 @@ maintenance mode (DBAL 3.x).
 4. **squizlabs/php_codesniffer bumped** `^4.0.1` -> `^4.0.2` (CVE-2026-67434,
    OS command injection, high severity; resolved to v4.0.4).
 
-### v4.6 — Diagnostics & Observability (in progress)
+### v4.6 — Diagnostics & Observability (released 2026-08-08)
 
 | Issue | Title | Status |
 |-------|-------|--------|
 | #145 | ATTR_TRACE_ENABLED connection diagnostics | **Won't-fix** - belongs in consumer middleware (see entity-bundle #168, #173, #174) |
 | #146 | ATTR_SLOW_QUERY_MS slow-query detection | **Won't-fix** - belongs in consumer middleware (see entity-bundle #175) |
-| #147 | Exception enrichment with raw fbird_errcode()/fbird_errmsg() | **Open** - implementing in driver |
+| #147 | Exception enrichment with raw fbird_errcode()/fbird_errmsg() | **Done** - `getFbirdErrCode()`/`getFbirdErrMsg()` named accessors (commit `c0ccf75`) |
 
 **#145/#146 rationale**: DBAL ships `Doctrine\DBAL\Logging\Middleware` (PSR-3)
 for SQL query logging. The driver's `ConnectionWrapper` docblock explicitly
@@ -122,9 +122,10 @@ created: entity-bundle #168, #173, #174, #175; amicron-platform #218, #219.
 
 ### DBAL 3 series (3.10.x branch) - MAINTENANCE
 
-The `3.10.x` branch is in maintenance mode. Last release: `v3.19.1` (2026-07-20)
-(R1 backport). All critical fixes are in v3.19.1. No further 3.10.x releases
-planned unless critical bugs are found.
+The `3.10.x` branch is in maintenance mode. Last release: `v3.19.2` (2026-08-08)
+(#147 backport: `getFbirdErrCode()`/`getFbirdErrMsg()` named accessors). All
+critical fixes are in v3.19.2. No further 3.10.x releases planned unless
+critical bugs are found.
 
 ### Known issues
 
@@ -137,17 +138,17 @@ planned unless critical bugs are found.
    deprecated methods (`getQuotedName`, `getName`, etc.). Forward-looking;
    will be addressed when DBAL 5.0 is released.
 
-3. **DBAL 4.4.4 unreleased** - contains `dfcc457cb` fix for
-   `detectRenamedIndexes()` undefined array key bug. Our test skip in
-   `AbstractComparatorTestCase.php` auto-lifts when 4.4.4 lands
-   (version_compare check).
+3. **~~DBAL 4.4.4 unreleased~~** - DBAL 4.4.4 released and installed. The
+   `detectRenamedIndexes()` test skip in `AbstractComparatorTestCase.php`
+   auto-lifted via `version_compare` check (unit tests: 1620 -> 1624, skipped:
+   49 -> 48).
 
 ### Deferred for future releases
 
 - ~~R1 (BLOB sub_type via fbird_field_info)~~ - **DONE** in commit `25455f4` (v4.5.2)
 - ~~#145 (ATTR_TRACE_ENABLED)~~ - **Won't-fix** - belongs in consumer middleware (entity-bundle #168, #173, #174)
 - ~~#146 (ATTR_SLOW_QUERY_MS)~~ - **Won't-fix** - belongs in consumer middleware (entity-bundle #175)
-- #147 (Exception enrichment) - **In progress** for v4.6.0
+- ~~#147 (Exception enrichment)~~ - **Done** in v4.6.0 (commit `c0ccf75`, backported to v3.19.2)
 - R2 (per-connection error context) - marginal benefit
 - R5/R12 (statement timeout) - `fbird_set_statement_timeout()` available, but DBAL has no per-query timeout concept
 - R6 (schema introspection via fbird_list_tables) - breaks DBAL's SQL-string abstraction

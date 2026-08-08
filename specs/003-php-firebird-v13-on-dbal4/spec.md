@@ -98,7 +98,7 @@ Replaced manual `"'" . fbird_escape_string($value) . "'"` with
 
 | R# | Optimization | Reason |
 |----|-------------|--------|
-| R1 | BLOB sub_type via `fbird_field_info()` | Needs middleware refactor for column-level metadata caching |
+| ~~R1~~ | ~~BLOB sub_type via `fbird_field_info()`~~ | **DONE** in v4.5.2 (commit `25455f4`). `Result::getBlobSubTypes()` + `CharsetResultMiddleware::decodeValue()` use `fbird_field_info()` sub_type lookup with NULL-byte heuristic fallback. |
 | R2 | Per-connection error context | Marginal benefit for single-connection usage |
 | R5 | Statement timeout option | Needs connection param wiring + FB4+ guards |
 | R6 | Schema introspection via `fbird_list_tables` | Breaks DBAL's SQL-string abstraction |
@@ -134,7 +134,7 @@ They will be addressed when DBAL 5.0 is released.
 ## Out of scope
 
 - DBAL 5.0 migration (future release)
-- R1-R8, R10-R12 optimizations (future release)
+- ~~R1~~ (done in v4.5.2), R2-R8, R10-R12 optimizations (future release)
 - Merge 4.4.x -> main (separate decision)
 - Firebird 6.0 features (deferred to v14)
 
@@ -185,3 +185,38 @@ They will be addressed when DBAL 5.0 is released.
 - 17 platform tests from DBAL 4.x AbstractPlatformTestCase (104 instances)
 - 43 comparator tests from DBAL 4.x AbstractComparatorTestCase
 - Adapted functional test classes: ForeignKeyConstraintTest, AlterTableTest, BigIntTypeTest, SequenceTest, ResultMetadataTest
+
+### v4.5.2 (R1 implementation, 2026-07-20)
+
+| Check | Result |
+|-------|--------|
+| PHPStan level 8 | 0 errors |
+| Psalm | 0 errors (112 baselined) |
+| PHP_CodeSniffer | 0 errors |
+| Unit tests | 1620 tests, 0 errors, 49 skipped |
+| Functional (per FB version) | 576 tests, 0 errors, 54-58 skipped |
+
+**R1 implementation:**
+- `Result::getBlobSubTypes()`: lazy-cached `fbird_field_info()` sub_type lookup
+- `CharsetResultMiddleware::decodeValue()`: uses sub_type 0 (binary) → passthrough, sub_type 1 (text) → transcode
+- Fallback: NULL-byte heuristic when inner Result is not native Firebird Result
+
+### v4.6.0 (Diagnostics & Observability, 2026-08-08)
+
+| Check | Result |
+|-------|--------|
+| PHPStan level 8 | 0 errors (90 baselined DBAL 4.4->5.0 deprecations) |
+| Psalm | 0 errors (114 baselined: +2 `PossiblyUnusedMethod` for accessors) |
+| PHP_CodeSniffer | 0 errors |
+| Unit tests | 1624 tests, 0 errors, 48 skipped (DBAL 4.4.4 auto-lifted `detectRenamedIndexes` skip) |
+| Functional (per FB version) | 576 tests, 0 errors, 54-58 skipped |
+| Integration | 24 + 96 tests, 0 errors, 3 skipped |
+| CI | 14/14 green (CodeQL, Windows, Matrix) |
+
+**Changes:**
+- `Exception::getFbirdErrCode(): int` and `Exception::getFbirdErrMsg(): string` named accessors (#147)
+- `ext-firebird` constraint bumped to `^13.0.1` (excludes v13.0.0 with 15 critical bugs)
+- `php-firebird-stubs` bumped to `^13.0.1` (v13.0.3)
+- `squizlabs/php_codesniffer` bumped to `^4.0.2` (CVE-2026-67434)
+- 3 Dependabot PRs merged (checkout 7.0, codeql-action 4.37.4)
+- #145/#146 closed as won't-fix (belongs in consumer middleware)

@@ -4,8 +4,8 @@
 
 **doctrine-firebird-driver** is the official Doctrine DBAL driver for Firebird. It bridges the modern `satware/php-firebird` native extension with the Doctrine ecosystem, supporting Firebird 3.0, 4.0, and 5.0 features.
 
-**Current release:** v4.5.1 (2026-07-20) on `4.4.x` branch.
-**Maintenance line:** v3.19.0 (2026-07-19) on `3.10.x` branch (DBAL 3.x, critical fixes only).
+**Current release:** v4.6.0 (2026-08-08) on `4.4.x` branch.
+**Maintenance line:** v3.19.2 (2026-08-08) on `3.10.x` branch (DBAL 3.x, critical fixes only).
 
 ---
 
