@@ -1,28 +1,29 @@
 # Next Steps - doctrine-firebird-driver
 
-**Last updated:** 2026-07-20
-**Branch:** `4.4.x` | **Release:** `v4.5.1` (2026-07-20) | **PHP:** 8.2-8.5 | **Firebird:** 3.0/4.0/5.0
-**Extension:** php-firebird v13.0.0 | **DBAL:** 4.4.3
+**Last updated:** 2026-08-08
+**Branch:** `4.4.x` | **Release:** `v4.5.2` (2026-07-20) | **PHP:** 8.2-8.5 | **Firebird:** 3.0/4.0/5.0
+**Extension:** php-firebird v13.0.3 | **DBAL:** 4.4.3
 
 ---
 
 ## Current State
 
-### v4.5.1 — Test coverage, bug fixes, and CI fixes
+### v4.5.2 — R1 BLOB sub_type detection + dependency updates
 
 **Status:** Released 2026-07-20. All CI green.
 
 The `4.4.x` branch is the active release line, shipping on DBAL 4.4.x with
-php-firebird v13.0.0. The `3.10.x` branch is in maintenance mode (DBAL 3.x).
+php-firebird v13.0.3 (ext-firebird ^13.0.1). The `3.10.x` branch is in
+maintenance mode (DBAL 3.x).
 
 ### Test Results
 
 | Suite | Tests | Errors | Failures | Skipped |
 |-------|-------|--------|----------|---------|
 | Unit | 1620 | 0 | 0 | 49 |
-| Functional FB3 | 575 | 0 | 0 | 59 |
-| Functional FB4 | 575 | 0 | 0 | 55 |
-| Functional FB5 | 575 | 0 | 0 | 55 |
+| Functional FB3 | 576 | 0 | 0 | 58 |
+| Functional FB4 | 576 | 0 | 0 | 54 |
+| Functional FB5 | 576 | 0 | 0 | 54 |
 | Integration-ReadOnly | 24 | 0 | 0 | 0 |
 | Integration-Write | 96 | 0 | 0 | 3 |
 
@@ -33,9 +34,9 @@ php-firebird v13.0.0. The `3.10.x` branch is in maintenance mode (DBAL 3.x).
 | PHPStan Level 8 | 0 errors (90 baselined DBAL 4.4->5.0 deprecation warnings) |
 | Psalm | 0 errors (112 baselined pre-existing issues) |
 | PHP_CodeSniffer | 0 errors |
-| ext-firebird | v13.0.0 loaded |
+| ext-firebird | v13.0.2 loaded (constraint: ^13.0.1) |
 | DBAL | 4.4.3 installed |
-| Stubs | v13.0.0 |
+| Stubs | v13.0.3 |
 | CI (PHP x Firebird Matrix) | 14/14 jobs green |
 | Windows CI | green (v13.0.0 DLL) |
 | CodeQL | green |
@@ -83,11 +84,47 @@ php-firebird v13.0.0. The `3.10.x` branch is in maintenance mode (DBAL 3.x).
 11. **Windows CI updated** to php-firebird v13.0.0 DLL (was v12.0.0-rc.11).
 12. **4 Dependabot PRs merged** (actions/checkout, codeql-action, codecov).
 
+### What was done (v4.5.2 - 2026-07-20)
+
+1. **R1: BLOB sub_type detection** - replaced NULL-byte heuristic in
+   `CharsetResultMiddleware` with `fbird_field_info()` sub_type lookup. Binary
+   BLOBs (sub_type 0) passed through without transcoding; text BLOBs (sub_type 1)
+   transcoded. Fixes issue #130 (binary BLOBs without NULL bytes corrupted).
+2. **`Firebird\Result::getBlobSubTypes()`** - lazy-cached column-index to
+   BLOB sub_type map. Graceful degradation to heuristic when inner Result is
+   not native Firebird Result.
+
+### What was done (2026-08-08 housekeeping)
+
+1. **3 Dependabot PRs merged** - actions/checkout 6.0->7.0 (#138),
+   codeql-action 4.37.1->4.37.4 (#143, #144). CodeQL Analyze (actions) now
+   passing (was failing since 2026-07-20).
+2. **ext-firebird constraint bumped** `^13.0` -> `^13.0.1` - excludes v13.0.0
+   with 15 critical bugs (BLOB ID truncation #516, IStatus memory leaks
+   #512-526, FB3 transaction failures #518, fetch_object ctor_args #522).
+3. **php-firebird-stubs bumped** `^13.0.0` -> `^13.0.1` (resolved to v13.0.3).
+4. **squizlabs/php_codesniffer bumped** `^4.0.1` -> `^4.0.2` (CVE-2026-67434,
+   OS command injection, high severity; resolved to v4.0.4).
+
+### v4.6 — Diagnostics & Observability (in progress)
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| #145 | ATTR_TRACE_ENABLED connection diagnostics | **Won't-fix** - belongs in consumer middleware (see entity-bundle #168, #173, #174) |
+| #146 | ATTR_SLOW_QUERY_MS slow-query detection | **Won't-fix** - belongs in consumer middleware (see entity-bundle #175) |
+| #147 | Exception enrichment with raw fbird_errcode()/fbird_errmsg() | **Open** - implementing in driver |
+
+**#145/#146 rationale**: DBAL ships `Doctrine\DBAL\Logging\Middleware` (PSR-3)
+for SQL query logging. The driver's `ConnectionWrapper` docblock explicitly
+anticipates logging middleware being added downstream. The entity-bundle already
+has a `doctrine.middleware` convention with 4 middlewares. Downstream issues
+created: entity-bundle #168, #173, #174, #175; amicron-platform #218, #219.
+
 ### DBAL 3 series (3.10.x branch) - MAINTENANCE
 
-The `3.10.x` branch is in maintenance mode. Last release: `v3.19.0` (2026-07-19).
-All critical fixes are in v3.19.0. No further 3.10.x releases planned unless
-critical bugs are found.
+The `3.10.x` branch is in maintenance mode. Last release: `v3.19.1` (2026-07-20)
+(R1 backport). All critical fixes are in v3.19.1. No further 3.10.x releases
+planned unless critical bugs are found.
 
 ### Known issues
 
@@ -107,7 +144,10 @@ critical bugs are found.
 
 ### Deferred for future releases
 
-- ~~R1 (BLOB sub_type via fbird_field_info)~~ - **DONE** in commit `25455f4` (v4.5.1+)
+- ~~R1 (BLOB sub_type via fbird_field_info)~~ - **DONE** in commit `25455f4` (v4.5.2)
+- ~~#145 (ATTR_TRACE_ENABLED)~~ - **Won't-fix** - belongs in consumer middleware (entity-bundle #168, #173, #174)
+- ~~#146 (ATTR_SLOW_QUERY_MS)~~ - **Won't-fix** - belongs in consumer middleware (entity-bundle #175)
+- #147 (Exception enrichment) - **In progress** for v4.6.0
 - R2 (per-connection error context) - marginal benefit
 - R5/R12 (statement timeout) - `fbird_set_statement_timeout()` available, but DBAL has no per-query timeout concept
 - R6 (schema introspection via fbird_list_tables) - breaks DBAL's SQL-string abstraction
