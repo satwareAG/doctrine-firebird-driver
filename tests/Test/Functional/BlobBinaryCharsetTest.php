@@ -38,9 +38,10 @@ use function strpos;
  * - Binary BLOB data (JPEG, PNG, etc.) must pass through untouched in both directions
  * - Text BLOB data must be transcoded from ISO-8859-1 <-> UTF-8
  *
- * @psalm-suppress PropertyNotSetInConstructor - properties initialized in setUp()
  * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/127
  * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/128
+ *
+ * @psalm-suppress PropertyNotSetInConstructor - properties initialized in setUp()
  */
 class BlobBinaryCharsetTest extends FunctionalTestCase
 {
