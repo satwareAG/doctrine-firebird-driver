@@ -379,7 +379,13 @@ final class Result implements ResultInterface
      * appends unique suffixes AFTER padding (e.g. "COLUMN   _01"). This method
      * converts them to clean names: "COLUMN", "COLUMN_01".
      *
+     * Columns whose key normalizes to empty (unnamed expression columns with
+     * all-space aliases) are kept with their original raw key. Dropping them
+     * would shift column indices and break CharsetResultMiddleware's sub_type
+     * lookup (#150).
+     *
      * @see https://github.com/satwareAG/php-firebird/issues/23
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/150
      *
      * @param array<string, mixed> $row Raw associative row from fbird_fetch_assoc()
      *
@@ -390,11 +396,9 @@ final class Result implements ResultInterface
         $normalized = [];
         foreach ($row as $key => $value) {
             $finalKey = self::normalizeKey($key);
-            if ($finalKey === '') {
-                continue;
-            }
-
-            $normalized[$finalKey] = $value;
+            // jane: keep original key when normalization yields empty (#150).
+            // Dropping would shift column indices and break blobSubTypes mapping.
+            $normalized[$finalKey !== '' ? $finalKey : $key] = $value;
         }
 
         return $normalized;

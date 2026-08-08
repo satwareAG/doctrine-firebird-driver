@@ -9,8 +9,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Middleware\CharsetMiddleware;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
@@ -30,12 +32,13 @@ use function strpos;
  * The default test suite uses UTF8 charset where mb_convert_encoding is a no-op,
  * giving false confidence. This test creates a separate connection with:
  *   - Firebird charset: ISO8859_1
- *   - CharsetMiddleware: ISO-8859-1 → UTF-8
+ *   - CharsetMiddleware: ISO-8859-1 -> UTF-8
  *
  * Tests both write path (bindValue encoding) and read path (result decoding):
  * - Binary BLOB data (JPEG, PNG, etc.) must pass through untouched in both directions
- * - Text BLOB data must be transcoded from ISO-8859-1 ↔ UTF-8
+ * - Text BLOB data must be transcoded from ISO-8859-1 <-> UTF-8
  *
+ * @psalm-suppress PropertyNotSetInConstructor - properties initialized in setUp()
  * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/127
  * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/128
  */
@@ -203,19 +206,25 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
     }
 
     /**
-     * Binary BLOB without NULL bytes must pass through unchanged (R1 sub_type detection).
+     * Binary BLOB with high bytes but no NULL bytes must pass through unchanged.
      *
-     * With the old NULL-byte heuristic, pure-ASCII binary data was incorrectly
-     * transcoded because no NULL byte was present to trigger the binary path.
-     * With fbird_field_info() sub_type detection, sub_type 0 (BINARY) is
-     * detected definitively and passed through regardless of byte content.
+     * Tests that sub_type detection correctly identifies sub_type 0 (BINARY)
+     * even when the data contains no NULL bytes. Uses high-byte data (\xFF\xFE...)
+     * that WOULD be corrupted by ISO-8859-1->UTF-8 transcoding, so the test
+     * can distinguish between correct (pass-through) and incorrect (transcode)
+     * behavior.
+     *
+     * With the old NULL-byte heuristic, high-byte data without NULLs was
+     * incorrectly transcoded (corrupting it). With fbird_field_info() sub_type
+     * detection (R1), sub_type 0 is detected definitively and passed through.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/148
      */
     public function testBinaryBlobWithoutNullBytesNotTranscodedWithSubType(): void
     {
-        // Pure ASCII-range binary data — no NULL bytes, no high bytes
-        // With the heuristic this would be transcoded (no-op for ASCII, but wrong).
-        // With sub_type detection it is correctly passed through.
-        $binaryData = str_repeat('X', 1024);
+        // High-byte binary data — no NULL bytes, but \xFF would be corrupted
+        // by ISO-8859-1->UTF-8 transcoding (becomes \xC3\xBF).
+        $binaryData = str_repeat("\xFF\xFE\xFD\xFC", 256); // 1024 bytes
 
         $stream = fopen('php://temp', 'r+');
         self::assertIsResource($stream);
@@ -289,11 +298,77 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
         );
     }
 
+    /**
+     * Text BLOB containing NULL bytes must be transcoded, not treated as binary.
+     *
+     * Regression test: with the old NULL-byte heuristic, a text BLOB containing
+     * a NULL byte was incorrectly detected as binary and passed through without
+     * transcoding. With R1 sub_type detection, sub_type 1 (TEXT) is detected
+     * definitively and transcoded regardless of byte content.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/149
+     */
+    public function testTextBlobWithNullBytesIsTranscoded(): void
+    {
+        // "Müller\x00café" in UTF-8 — contains a NULL byte inside text
+        $utf8Text = "Müller\x00café";
+
+        $this->isoConn->insert(
+            self::TABLE_NAME,
+            ['id' => 900, 'binary_blob' => "\x00\x01\x02", 'text_blob' => $utf8Text],
+            [
+                'id' => ParameterType::INTEGER,
+                'binary_blob' => ParameterType::LARGE_OBJECT,
+                'text_blob' => ParameterType::STRING,
+            ],
+        );
+
+        $fetched = $this->isoConn->fetchOne(
+            'SELECT text_blob FROM ' . self::TABLE_NAME . ' WHERE id = 900',
+        );
+
+        self::assertSame(
+            $utf8Text,
+            $fetched,
+            'Text BLOB (sub_type 1) with NULL bytes must be transcoded, not treated as binary',
+        );
+    }
+
+    /**
+     * Binary BLOB fetched via fetchFirstColumn must not be transcoded.
+     *
+     * Tests the fetchFirstColumn path in CharsetResultMiddleware, which
+     * passes column index 0 to decodeValue. Verifies sub_type detection
+     * works correctly for this fetch mode.
+     *
+     * @see https://github.com/satwareAG/doctrine-firebird-driver/issues/152
+     */
+    public function testBinaryBlobInFetchFirstColumn(): void
+    {
+        $binary = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00";
+
+        $this->insertBinaryBlob($binary, 1000);
+
+        $column = $this->isoConn->fetchFirstColumn(
+            'SELECT binary_blob FROM ' . self::TABLE_NAME . ' WHERE id = 1000',
+        );
+
+        self::assertCount(1, $column);
+        self::assertIsString($column[0]);
+        self::assertSame(
+            $binary,
+            $column[0],
+            'Binary BLOB via fetchFirstColumn must not be transcoded',
+        );
+    }
+
+    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
 
         // Create a separate connection with ISO8859_1 charset + CharsetMiddleware
+        /** @psalm-suppress InternalMethod - need params to clone connection config */
         $params            = $this->connection->getParams();
         $params['charset'] = 'ISO8859_1';
 
@@ -325,10 +400,15 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
         $table->addColumn('id', Types::INTEGER);
         $table->addColumn('binary_blob', Types::BLOB);
         $table->addColumn('text_blob', Types::TEXT);
-        $table->setPrimaryKey(['id']);
+        $table->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()
+                ->setUnquotedColumnNames('id')
+                ->create(),
+        );
         $this->isoConn->createSchemaManager()->createTable($table);
     }
 
+    #[Override]
     protected function tearDown(): void
     {
         $this->markConnectionNotReusable();
@@ -363,7 +443,7 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
     {
         self::assertNotFalse(
             strpos($binaryData, "\x00"),
-            'Test data must contain NULL byte for heuristic detection',
+            'Test data must contain NULL byte to exercise both detection paths',
         );
 
         // Write through the middleware chain

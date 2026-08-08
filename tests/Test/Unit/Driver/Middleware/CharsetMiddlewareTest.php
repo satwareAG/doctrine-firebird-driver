@@ -217,11 +217,11 @@ class CharsetMiddlewareTest extends TestCase
         $innerConnection = $this->createMock(DriverConnection::class);
         $innerConnection->expects(self::once())
             ->method('quote')
-            ->willReturnCallback(static fn ($value) => "'" . $value . "'");
+            ->willReturnCallback(static fn (string $value) => "'" . $value . "'");
 
         $conn   = new CharsetConnectionMiddleware($innerConnection, 'UTF-8', 'UTF-8');
         $result = $conn->quote('hello');
-        self::assertStringContainsString('hello', (string) $result);
+        self::assertStringContainsString('hello', $result);
     }
 
     // ---------------------------------------------------------------------------
@@ -288,20 +288,21 @@ class CharsetMiddlewareTest extends TestCase
         self::assertInstanceOf(DriverResult::class, $result);
     }
 
-    public function testCharsetStatementBindValueEncodesStreamAsLargeObject(): void
+    public function testCharsetStatementBindValuePassesThroughLargeObject(): void
     {
-        $utf8String   = 'Hällo World';
-        $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
+        $utf8String = 'Hällo World';
 
         $stream = fopen('php://temp', 'r+');
         self::assertIsResource($stream);
         fwrite($stream, $utf8String);
         rewind($stream);
 
+        // LARGE_OBJECT (binary BLOB) must NOT be transcoded (#148/#149).
+        // The ParameterType itself distinguishes binary from text.
         $inner = $this->createMock(DriverStatement::class);
         $inner->expects(self::once())
             ->method('bindValue')
-            ->with(1, $win1252Bytes, ParameterType::LARGE_OBJECT);
+            ->with(1, $utf8String, ParameterType::LARGE_OBJECT);
 
         $stmt = new CharsetStatementMiddleware($inner, 'Windows-1252', 'UTF-8');
         $stmt->bindValue(1, $stream, ParameterType::LARGE_OBJECT);
