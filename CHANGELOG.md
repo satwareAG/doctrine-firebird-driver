@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.1] - 2026-08-08 - Charset middleware type-based binary detection + column-index fix
+
+### Fixed
+- **Write-path binary BLOB corruption (#148)**: `CharsetStatementMiddleware` now uses
+  `ParameterType::LARGE_OBJECT` to distinguish binary BLOBs from text, replacing the
+  fragile NULL-byte heuristic. Binary data without NULL bytes (e.g., `\xFF\xFE\xFD\xFC`)
+  was silently corrupted (`?` substitution) by `mb_convert_encoding` because no NULL byte
+  triggered the binary skip path.
+- **Text BLOB with NULL bytes not transcoded (#149)**: `STRING`-typed parameters are now
+  always transcoded (the type means text). The old NULL-byte heuristic skipped transcoding
+  for any string containing `\x00`, causing text BLOBs with embedded NULL bytes to be
+  stored in the wrong encoding and double-transcoded on read.
+- **Column-index drift in `fetchAssociative`/`fetchAllAssociative` (#150)**:
+  `Result::normalizeRowKeys()` no longer drops columns whose key normalizes to empty.
+  Dropping shifted the positional counter in `CharsetResultMiddleware`, causing wrong
+  `blobSubTypes` lookups and silent BLOB data corruption when unnamed expression columns
+  were present in the result set.
+
+### Changed
+- `CharsetStatementMiddleware::encodeString()` — NULL-byte heuristic removed (dead code
+  after `LARGE_OBJECT` exclusion from the transcoding type list).
+- `CharsetStatementMiddleware::bindValue()` — `ParameterType::LARGE_OBJECT` removed from
+  the list of types that trigger `encodeString()`.
+- `BlobBinaryCharsetTest::testBinaryBlobWithoutNullBytesNotTranscodedWithSubType` — test
+  data changed from ASCII `'X'` (transcoding no-op, cannot detect corruption) to high-byte
+  `\xFF\xFE\xFD\xFC` (would be corrupted by transcoding). Fixes false-positive test (#148).
+
+### Added
+- `testTextBlobWithNullBytesIsTranscoded` — regression test for text BLOB with NULL bytes (#149).
+- `testBinaryBlobInFetchFirstColumn` — coverage for `fetchFirstColumn` BLOB sub_type path (#152).
+
+### Test Results
+| Suite | Tests | Errors | Failures | Skipped |
+|-------|-------|--------|----------|---------|
+| Unit | 849 | 0 | 0 | 3 |
+| Functional FB5 | 578 | 0 | 0 | 58 |
+| Integration | 89 | 0 | 0 | 2 |
+| PHPStan 8 / Psalm / phpcs | - | 0 | 0 | - |
+
 ## [4.6.0] - 2026-08-08 - Diagnostics & Observability
 
 ### Added
