@@ -1,8 +1,8 @@
 # Next Steps - doctrine-firebird-driver
 
 **Last updated:** 2026-08-08
-**Branch:** `4.4.x` | **Release:** `v4.5.2` (2026-07-20) | **PHP:** 8.2-8.5 | **Firebird:** 3.0/4.0/5.0
-**Extension:** php-firebird v13.0.3 | **DBAL:** 4.4.3
+**Branch:** `4.4.x` | **Release:** `v4.6.0` (2026-08-08) | **PHP:** 8.2-8.5 | **Firebird:** 3.0/4.0/5.0
+**Extension:** php-firebird v13.0.3 | **DBAL:** 4.4.4
 
 ---
 

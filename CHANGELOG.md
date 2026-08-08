@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-08-08 - Diagnostics & Observability
+
+### Added
+- **`Exception::getFbirdErrCode(): int`** and **`Exception::getFbirdErrMsg(): string`** —
+  named accessors for the raw Firebird SQLCODE (`fbird_errcode()`) and error message
+  (`fbird_errmsg()`). Same values as `getCode()` and `getMessage()`, exposed with
+  discoverable names for downstream PSR-3 loggers (#147). When `ExceptionConverter`
+  wraps the driver `Exception` in a Doctrine exception (e.g.,
+  `ForeignKeyConstraintViolationException`), the raw Firebird error code is
+  accessible via `$previous->getFbirdErrCode()`. No new properties, no BC break.
+
+### Changed
+- `ext-firebird` constraint bumped from `^13.0` to `^13.0.1` — excludes v13.0.0
+  with 15 critical bugs (BLOB ID truncation #516, IStatus memory leaks #512-526,
+  FB3 transaction failures #518, fetch_object ctor_args #522, SPB timeout #519).
+- `satwareag/php-firebird-stubs` bumped from `^13.0.0` to `^13.0.1` (resolved to v13.0.3).
+- `squizlabs/php_codesniffer` bumped from `^4.0.1` to `^4.0.2` (CVE-2026-67434,
+  OS command injection, high severity; resolved to v4.0.4).
+- 3 Dependabot PRs merged: actions/checkout 6.0→7.0 (#138),
+  codeql-action 4.37.1→4.37.4 (#143, #144). CodeQL Analyze (actions) now passing
+  (was failing since 2026-07-20).
+
+### Won't-fix (moved to downstream consumers)
+- **#145** (ATTR_TRACE_ENABLED) — closed as won't-fix. SQL query and connection
+  lifecycle logging belongs in consumer middleware via DBAL `Logging\Middleware`,
+  not in the driver. See entity-bundle #168, #173, #174; amicron-platform #218.
+- **#146** (ATTR_SLOW_QUERY_MS) — closed as won't-fix. Slow-query detection is a
+  consumer middleware concern. DBAL `Logging\Middleware` has no timing; custom
+  middleware is the only way (follows `ReconnectMiddleware` pattern). See
+  entity-bundle #175; amicron-platform #219.
+
+### Test Results
+| Suite | Tests | Errors | Failures | Skipped |
+|-------|-------|--------|----------|---------|
+| Unit | 1624 | 0 | 0 | 48 |
+| Functional FB3 | 576 | 0 | 0 | 58 |
+| Functional FB4 | 576 | 0 | 0 | 54 |
+| Functional FB5 | 576 | 0 | 0 | 54 |
+| Integration-ReadOnly | 24 | 0 | 0 | 0 |
+| Integration-Write | 96 | 0 | 0 | 3 |
+| PHPStan 8 / Psalm / phpcs | - | 0 | 0 | - |
+
+Note: Unit tests increased from 1620 to 1624 — DBAL 4.4.4 auto-lifted the
+`detectRenamedIndexes` test skip (version_compare check).
+
 ## [4.5.2] - 2026-07-20 - R1: fbird_field_info() BLOB sub_type detection
 
 ### Added
