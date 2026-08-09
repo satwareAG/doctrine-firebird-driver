@@ -109,6 +109,18 @@
       <code><![CDATA[getSchemaManager]]></code>
     </PossiblyUnusedMethod>
   </file>
+  <file src="src/Platforms/Firebird/FirebirdMetadataProvider.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$row[0]]]></code>
+    </PossiblyNullArgument>
+    <PossiblyUndefinedArrayOffset>
+      <code><![CDATA[$row[0]]]></code>
+      <code><![CDATA[$tableName]]></code>
+    </PossiblyUndefinedArrayOffset>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(int) $cacheSize]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
   <file src="src/Platforms/Firebird3Platform.php">
     <DeprecatedClass>
       <code><![CDATA[KeywordList]]></code>

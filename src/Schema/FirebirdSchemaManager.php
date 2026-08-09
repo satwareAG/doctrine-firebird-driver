@@ -10,11 +10,11 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint\ReferentialAction;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\View;
-use Doctrine\DBAL\Types\Type;
 use Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver\FirebirdConnectString;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
@@ -25,7 +25,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 use Throwable;
 
 use function array_change_key_case;
-use function array_merge;
+use function assert;
 use function dirname;
 use function fbird_close;
 use function fbird_connect;
@@ -34,6 +34,7 @@ use function fbird_drop_db;
 use function fbird_errcode;
 use function fbird_errmsg;
 use function json_decode;
+use function max;
 use function preg_match;
 use function str_contains;
 use function strtolower;
@@ -193,14 +194,19 @@ final class FirebirdSchemaManager extends AbstractSchemaManager
         $foreignKeys = $this->listTableForeignKeys($name);
         $indexes     = $this->listTableIndexes($name);
 
-        $table = new Table($name, $columns, $indexes, [], $foreignKeys);
+        assert($name !== '');
+
+        $tableEditor = Table::editor()
+            ->setUnquotedName($name)
+            ->setColumns(...$columns)
+            ->setIndexes(...$indexes)
+            ->setForeignKeyConstraints(...$foreignKeys);
 
         if (isset($tableOptions[$normalizedName]['comment'])) {
-            $table->addOption('comment', $tableOptions[$normalizedName]['comment']);
-            $table->setComment($tableOptions[$normalizedName]['comment']);
+            $tableEditor->setComment($tableOptions[$normalizedName]['comment']);
         }
 
-        return $table;
+        return $tableEditor->create();
     }
 
     /** @psalm-suppress PossiblyUnusedMethod */
@@ -462,10 +468,13 @@ SQL;
     {
         $view = array_change_key_case($view, CASE_LOWER);
 
-        return new View(
-            $this->getQuotedIdentifierName(trim((string) $view['rdb$relation_name'])),
-            $this->getQuotedIdentifierName(trim((string) $view['rdb$view_source'])),
-        );
+        $viewName = $this->getQuotedIdentifierName(trim((string) $view['rdb$relation_name']));
+        assert($viewName !== '');
+
+        return View::editor()
+            ->setQuotedName($viewName)
+            ->setSQL($this->getQuotedIdentifierName(trim((string) $view['rdb$view_source'])))
+            ->create();
     }
 
     /**
@@ -485,7 +494,20 @@ SQL;
         $initialValue   = $sequenceConfiguration['initialValue'] ?? 1;
         $cache          = $sequenceConfiguration['cache'] ?? null;
 
-        return new Sequence($this->getQuotedIdentifierName(trim(strtolower((string) $sequence['rdb$generator_name']))), $allocationSize, $initialValue, $cache);
+        $seqName = $this->getQuotedIdentifierName(trim(strtolower((string) $sequence['rdb$generator_name'])));
+        assert($seqName !== '');
+
+        $sequenceEditor = Sequence::editor()
+            ->setQuotedName($seqName)
+            ->setAllocationSize((int) $allocationSize)
+            ->setInitialValue((int) $initialValue);
+
+        if ($cache !== null) {
+            $cacheInt = max(0, (int) $cache);
+            $sequenceEditor->setCacheSize($cacheInt);
+        }
+
+        return $sequenceEditor->create();
     }
 
     /**
@@ -573,31 +595,41 @@ SQL;
             }
         }
 
-        $options['notnull'] = (bool) $tableColumn['FIELD_NOT_NULL_FLAG'];
-        // Only available for Firebird 3+
-        $options['autoincrement'] = ($tableColumn['IDENTITY_TYPE'] ?? null) !== null;
+        $columnName = $tableColumn['FIELD_NAME'];
+        assert($columnName !== '');
 
-        $options = array_merge(
-            $options,
-            [
-                'unsigned' => str_contains($dbType, 'unsigned'),
-                'fixed' => (bool) $fixed,
-            ],
-        );
+        $editor = Column::editor()
+            ->setQuotedName($columnName)
+            ->setTypeName($type)
+            ->setNotNull((bool) $tableColumn['FIELD_NOT_NULL_FLAG'])
+            ->setAutoincrement(($tableColumn['IDENTITY_TYPE'] ?? null) !== null)
+            ->setFixed((bool) $fixed);
+
+        if (isset($options['length'])) {
+            $editor->setLength((int) $options['length']);
+        }
+
+        if (isset($options['default'])) {
+            $editor->setDefaultValue($options['default']);
+        }
+
+        if (isset($options['comment'])) {
+            $editor->setComment($options['comment']);
+        }
 
         if ($scale !== null && $precision !== null && (int) $precision !== 0) {
-            $options['scale']     = $scale;
-            $options['precision'] = $precision;
+            $editor->setPrecision((int) $precision);
+            $editor->setScale((int) $scale);
         } elseif ($type === 'decimal') {
             // DBAL4's DecimalType requires non-null precision; default to 10 when Firebird
             // returns 0 for RDB$FIELD_PRECISION (e.g. for legacy or DEFAULT-only columns).
-            $options['precision'] = 10;
+            $editor->setPrecision(10);
             if ($scale !== null) {
-                $options['scale'] = $scale;
+                $editor->setScale((int) $scale);
             }
         }
 
-        return new Column($tableColumn['FIELD_NAME'], Type::getType($type), $options);
+        return $editor->create();
     }
 
     /**
@@ -634,16 +666,28 @@ SQL;
 
         $result = [];
         foreach ($list as $constraint) {
-            $result[] = new ForeignKeyConstraint(
-                $constraint['local'],
-                $constraint['foreignTable'],
-                $constraint['foreign'],
-                $constraint['name'],
-                [
-                    'onDelete' => $constraint['onDelete'],
-                    'onUpdate' => $constraint['onUpdate'],
-                ],
-            );
+            $localColumns   = $this->filterNonEmptyColumnNames($constraint['local']);
+            $foreignColumns = $this->filterNonEmptyColumnNames($constraint['foreign']);
+
+            if ($localColumns === [] || $foreignColumns === []) {
+                // jane: catalog corruption — FK constraint has no column segments.
+                // Skip rather than crash; the old constructor silently accepted empty arrays.
+                continue;
+            }
+
+            $constraintName = $constraint['name'];
+            $foreignTable   = $constraint['foreignTable'];
+            assert($constraintName !== '' && $foreignTable !== '');
+
+            $fkEditor = ForeignKeyConstraint::editor()
+                ->setUnquotedName($constraintName)
+                ->setUnquotedReferencingColumnNames(...$localColumns)
+                ->setUnquotedReferencedTableName($foreignTable)
+                ->setUnquotedReferencedColumnNames(...$foreignColumns)
+                ->setOnDeleteAction($this->resolveReferentialAction($constraint['onDelete']))
+                ->setOnUpdateAction($this->resolveReferentialAction($constraint['onUpdate']));
+
+            $result[] = $fkEditor->create();
         }
 
         return $result;
@@ -749,5 +793,42 @@ ___query___;
         }
 
         return $identifier;
+    }
+
+    /**
+     * Filters out empty strings from a list of column names.
+     *
+     * @param list<string> $columns
+     *
+     * @return list<non-empty-string>
+     */
+    private function filterNonEmptyColumnNames(array $columns): array
+    {
+        $result = [];
+
+        foreach ($columns as $column) {
+            if ($column === '') {
+                continue;
+            }
+
+            $result[] = $column;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Resolves a Firebird referential action string to the DBAL enum.
+     *
+     * Null (not set or converted from RESTRICT by _getPortableTableForeignKeysList)
+     * maps to NO_ACTION, the SQL default.
+     */
+    private function resolveReferentialAction(string|null $value): ReferentialAction
+    {
+        if ($value === null) {
+            return ReferentialAction::NO_ACTION;
+        }
+
+        return ReferentialAction::tryFrom($value) ?? ReferentialAction::NO_ACTION;
     }
 }

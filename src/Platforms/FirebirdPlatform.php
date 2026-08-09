@@ -30,6 +30,7 @@ use Override;
 use RuntimeException;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
+use Satag\DoctrineFirebirdDriver\Platforms\Firebird\FirebirdMetadataProvider;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\FirebirdKeywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 use Satag\DoctrineFirebirdDriver\Schema\FirebirdSchemaManager;
@@ -38,6 +39,7 @@ use Satag\DoctrineFirebirdDriver\ValueFormatter;
 use function array_merge;
 use function array_unique;
 use function array_values;
+use function assert;
 use function count;
 use function crc32;
 use function end;
@@ -483,7 +485,11 @@ class FirebirdPlatform extends AbstractPlatform
     #[Override]
     public function getDropSequenceSQL(string $sequence): string
     {
-        $sequenceObj  = new Sequence($sequence);
+        assert($sequence !== '');
+
+        $sequenceObj  = Sequence::editor()
+            ->setUnquotedName($sequence)
+            ->create();
         $sequenceName = $sequenceObj->getQuotedName($this);
         if (stripos($sequenceName, '_D2IS') !== false) {
             // Seems to be a autoinc-sequence. Try to drop trigger before
@@ -933,7 +939,12 @@ class FirebirdPlatform extends AbstractPlatform
 
         $sequenceName = $this->getIdentitySequenceName($tableName->getName(), $column->getName());
         $triggerName  = $this->getIdentitySequenceTriggerName($tableName);
-        $sequence     = new Sequence($sequenceName, 1, 1);
+        assert($sequenceName !== '');
+        $sequence = Sequence::editor()
+            ->setUnquotedName($sequenceName)
+            ->setAllocationSize(1)
+            ->setInitialValue(1)
+            ->create();
 
         $sql[] = $this->getCreateSequenceSQL($sequence);
 
@@ -1111,6 +1122,12 @@ ___query___;
     public function createSchemaManager(Connection $connection): AbstractSchemaManager
     {
         return new FirebirdSchemaManager($connection, $this);
+    }
+
+    #[Override]
+    public function createMetadataProvider(Connection $connection): FirebirdMetadataProvider
+    {
+        return new FirebirdMetadataProvider($connection, $this);
     }
 
     /**
