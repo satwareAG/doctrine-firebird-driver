@@ -17,15 +17,6 @@ parameters:
 
 		-
 			message: '''
-				#^Call to deprecated method getModifiedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff\:
-				Use \{@see getChangedColumns\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
 				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
 				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
 				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
@@ -117,24 +108,6 @@ parameters:
 
 		-
 			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:_getCreateTableSQL\(\) has parameter \$name with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$limit with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$offset with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
-
-		-
-			message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:doModifyLimitQuery\(\) has parameter \$query with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
 			path: src/Platforms/FirebirdPlatform.php

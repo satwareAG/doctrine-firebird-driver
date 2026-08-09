@@ -281,14 +281,15 @@ SQL;
             $charLength,
             $precision,
             $fieldScale,
-            $notNullFlag,
-            $defaultSource,
-            $description,
-            $characterSetName,
+            $fieldPosition,    // row[8] - FIELD_POSITION (consumed, not used by metadata)
+            $notNullFlag,      // row[9] - FIELD_NOT_NULL_FLAG
+            $defaultSource,    // row[10] - FIELD_DEFAULT_SOURCE
+            $description,      // row[11] - FIELD_DESCRIPTION
+            $characterSetName, // row[12] - CHARACTER_SET_NAME
         ] = $row;
 
         // Identity column only exists on Firebird 3.0+ (appended via $identitySelect)
-        $identityType = $row[12] ?? null;
+        $identityType = $row[13] ?? null;
 
         $dbType = strtolower((string) $fieldTypeName);
         $scale  = $fieldScale !== null ? $fieldScale * -1 : null;
@@ -602,8 +603,14 @@ SQL;
 
     private function createReferentialAction(string $value): ReferentialAction
     {
-        // Firebird stores: CASCADE, NO ACTION, SET DEFAULT, SET NULL, RESTRICT.
-        // Fallback to NO_ACTION for unexpected/empty values (e.g. from LEFT JOIN misses).
+        // Firebird stores NO ACTION as RESTRICT in RDB$REF_CONSTRAINTS.
+        // Normalize back to NO_ACTION for consistency with the old SchemaManager
+        // (FirebirdSchemaManager::resolveReferentialAction does the same).
+        // RESTRICT cannot be round-tripped on Firebird.
+        if ($value === 'RESTRICT') {
+            return ReferentialAction::NO_ACTION;
+        }
+
         return ReferentialAction::tryFrom($value) ?? ReferentialAction::NO_ACTION;
     }
 
