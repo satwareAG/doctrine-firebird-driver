@@ -599,7 +599,7 @@ SQL;
         assert($columnName !== '');
 
         $editor = Column::editor()
-            ->setQuotedName($columnName)
+            ->setUnquotedName($columnName)
             ->setTypeName($type)
             ->setNotNull((bool) $tableColumn['FIELD_NOT_NULL_FLAG'])
             ->setAutoincrement(($tableColumn['IDENTITY_TYPE'] ?? null) !== null)

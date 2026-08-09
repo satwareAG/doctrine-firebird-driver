@@ -325,7 +325,7 @@ SQL;
         assert($columnName !== '' && $tableName !== '');
 
         $editor = Column::editor()
-            ->setQuotedName($columnName)
+            ->setUnquotedName($columnName)
             ->setTypeName($type);
 
         if ($charLength !== null) {
