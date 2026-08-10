@@ -15,6 +15,10 @@ use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -177,10 +181,28 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesTableCreationSql(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true, 'autoincrement' => true]);
-        $table->addColumn('test', Types::STRING, ['notnull' => false, 'length' => 255]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(true)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::STRING)
+                    ->setNotNull(false)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateTableSql(), $sql[0]);
@@ -190,9 +212,23 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGenerateTableWithMultiColumnUniqueIndex(): void
     {
-        $table = new Table('test');
-        $table->addColumn('foo', Types::STRING, ['notnull' => false, 'length' => 255]);
-        $table->addColumn('bar', Types::STRING, ['notnull' => false, 'length' => 255]);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::STRING)
+                    ->setNotNull(false)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setNotNull(false)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->create();
         $table->addUniqueIndex(['foo', 'bar']);
 
         $sql      = $this->platform->getCreateTableSQL($table);
@@ -209,7 +245,10 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesIndexCreationSql(): void
     {
-        $indexDef = new Index('my_idx', ['user_name', 'last_login']);
+        $indexDef = Index::editor()
+            ->setUnquotedName('my_idx')
+            ->setUnquotedColumnNames('user_name', 'last_login')
+            ->create();
 
         self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateIndexSql(), $this->platform->getCreateIndexSQL($indexDef, 'mytable'));
     }
@@ -218,7 +257,11 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesUniqueIndexCreationSql(): void
     {
-        $indexDef = new Index('index_name', ['test', 'test2'], true);
+        $indexDef = Index::editor()
+            ->setUnquotedName('index_name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->setType(IndexType::UNIQUE)
+            ->create();
 
         $sql = $this->platform->getCreateIndexSQL($indexDef, 'test');
         self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateUniqueIndexSql(), $sql);
@@ -229,8 +272,15 @@ abstract class PlatformTestCase extends TestCase
     public function testGeneratesPartialIndexesSqlOnlyWhenSupportingPartialIndexes(): void
     {
         $where            = 'test IS NULL AND test2 IS NOT NULL';
-        $indexDef         = new Index('name', ['test', 'test2'], false, false, [], ['where' => $where]);
-        $uniqueConstraint = new UniqueConstraint('name', ['test', 'test2'], [], []);
+        $indexDef         = Index::editor()
+            ->setUnquotedName('name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->setPredicate($where)
+            ->create();
+        $uniqueConstraint = UniqueConstraint::editor()
+            ->setUnquotedName('name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->create();
 
         $expected = ' WHERE ' . $where;
 
@@ -256,7 +306,11 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesForeignKeyCreationSql(): void
     {
-        $fk = new ForeignKeyConstraint(['fk_name_id'], 'other_table', ['id'], '');
+        $fk = ForeignKeyConstraint::editor()
+            ->setUnquotedReferencingColumnNames('fk_name_id')
+            ->setUnquotedReferencedTableName('other_table')
+            ->setUnquotedReferencedColumnNames('id')
+            ->create();
 
         $sql = $this->platform->getCreateForeignKeySQL($fk, 'test');
         self::assertStringEqualsStringIgnoringLineEndings($this->getGenerateForeignKeySql(), $sql);
@@ -318,24 +372,56 @@ abstract class PlatformTestCase extends TestCase
 
     public function testCreateTableColumnComments(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER, ['comment' => 'This is a comment']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('This is a comment')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertEquals($this->getCreateTableColumnCommentsSQL(), $this->platform->getCreateTableSQL($table));
     }
 
     public function testAlterTableColumnComments(): void
     {
-        $oldTable = new Table('mytable');
-        $oldTable->addColumn('foo', Types::INTEGER);
-        $oldTable->addColumn('bar', Types::INTEGER);
+        $oldTable  = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('bar')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $oldTable,
-            addedColumns: [new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment'])],
+            addedColumns: [
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->create(),
+            ],
             changedColumns: [
-                new ColumnDiff(new Column('foo', Type::getType(Types::INTEGER)), new Column('foo', Type::getType(Types::STRING))),
-                new ColumnDiff(new Column('bar', Type::getType(Types::INTEGER)), new Column('baz', Type::getType(Types::STRING), ['comment' => 'B comment'])),
+                new ColumnDiff(
+                    Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('foo')->setTypeName(Types::STRING)->create(),
+                ),
+                new ColumnDiff(
+                    Column::editor()->setUnquotedName('bar')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()
+                        ->setUnquotedName('baz')
+                        ->setTypeName(Types::STRING)
+                        ->setComment('B comment')
+                        ->create(),
+                ),
             ],
         );
 
@@ -417,9 +503,15 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotedColumnInPrimaryKeyPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', Types::STRING);
-        $table->setPrimaryKey(['create']);
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('create')->create(),
+            )
+            ->create();
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertEquals($this->getQuotedColumnInPrimaryKeySQL(), $sql);
@@ -439,8 +531,12 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotedColumnInIndexPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', Types::STRING);
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
         $table->addIndex(['create']);
 
         $sql = $this->platform->getCreateTableSQL($table);
@@ -449,8 +545,12 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotedNameInIndexSQL(): void
     {
-        $table = new Table('test');
-        $table->addColumn('column1', Types::STRING);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()->setUnquotedName('column1')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
         $table->addIndex(['column1'], '`key`');
 
         $sql = $this->platform->getCreateTableSQL($table);
@@ -459,16 +559,22 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotedColumnInForeignKeyPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', Types::STRING);
-        $table->addColumn('foo', Types::STRING);
-        $table->addColumn('`bar`', Types::STRING);
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
 
         // Foreign table with reserved keyword as name (needs quotation).
-        $foreignTable = new Table('foreign');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foreign')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
 
         // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('bar', Types::STRING);
@@ -485,10 +591,12 @@ abstract class PlatformTestCase extends TestCase
         );
 
         // Foreign table with non-reserved keyword as name (does not need quotation).
-        $foreignTable = new Table('foo');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
 
         // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('bar', Types::STRING);
@@ -505,10 +613,12 @@ abstract class PlatformTestCase extends TestCase
         );
 
         // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable = new Table('`foo-bar`');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
+        $foreignTable = Table::editor()
+            ->setQuotedName('foo-bar')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
 
         // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('bar', Types::STRING);
@@ -533,7 +643,10 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): void
     {
-        $constraint = new UniqueConstraint('select', ['foo'], [], []);
+        $constraint = UniqueConstraint::editor()
+            ->setUnquotedName('select')
+            ->setUnquotedColumnNames('foo')
+            ->create();
 
         self::assertSame($this->getQuotesReservedKeywordInUniqueConstraintDeclarationSQL(), $this->platform->getUniqueConstraintDeclarationSQL($constraint));
     }
@@ -549,7 +662,10 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesReservedKeywordInIndexDeclarationSQL(): void
     {
-        $index = new Index('select', ['foo']);
+        $index = Index::editor()
+            ->setUnquotedName('select')
+            ->setUnquotedColumnNames('foo')
+            ->create();
 
         if (! $this->supportsInlineIndexDeclaration()) {
             $this->expectException(Exception::class);
@@ -584,13 +700,20 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableChangeQuotedColumn(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('select', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff(
             $table,
             changedColumns: [
-                new ColumnDiff(new Column('select', Type::getType(Types::INTEGER)), new Column('select', Type::getType(Types::STRING))),
+                new ColumnDiff(
+                    Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('select')->setTypeName(Types::STRING)->create(),
+                ),
             ],
         );
 
@@ -665,12 +788,23 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableRenameIndex(): void
     {
-        $fromTable = new Table('mytable');
-        $fromTable->addColumn('id', Types::INTEGER);
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
 
         self::assertSame($this->getAlterTableRenameIndexSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -687,12 +821,27 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableRenameIndex(): void
     {
-        $fromTable = new Table('table');
-        $fromTable->addColumn('id', Types::INTEGER);
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+            renamedIndexes: [
+                'create' => Index::editor()
+                    ->setUnquotedName('select')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+                '`foo`' => Index::editor()
+                    ->setQuotedName('bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
 
         self::assertSame($this->getQuotedAlterTableRenameIndexSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -711,48 +860,44 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableRenameColumn(): void
     {
-        $fromTable = new Table('mytable');
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('unquoted1')->setTypeName(Types::INTEGER)->setComment('Unquoted 1')->create(),
+                Column::editor()->setUnquotedName('unquoted2')->setTypeName(Types::INTEGER)->setComment('Unquoted 2')->create(),
+                Column::editor()->setUnquotedName('unquoted3')->setTypeName(Types::INTEGER)->setComment('Unquoted 3')->create(),
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 1')->create(),
+                Column::editor()->setUnquotedName('table')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 2')->create(),
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 3')->create(),
+                Column::editor()->setQuotedName('quoted1')->setTypeName(Types::INTEGER)->setComment('Quoted 1')->create(),
+                Column::editor()->setQuotedName('quoted2')->setTypeName(Types::INTEGER)->setComment('Quoted 2')->create(),
+                Column::editor()->setQuotedName('quoted3')->setTypeName(Types::INTEGER)->setComment('Quoted 3')->create(),
+            )
+            ->create();
 
-        $fromTable->addColumn('unquoted1', Types::INTEGER, ['comment' => 'Unquoted 1']);
-        $fromTable->addColumn('unquoted2', Types::INTEGER, ['comment' => 'Unquoted 2']);
-        $fromTable->addColumn('unquoted3', Types::INTEGER, ['comment' => 'Unquoted 3']);
-
-        $fromTable->addColumn('create', Types::INTEGER, ['comment' => 'Reserved keyword 1']);
-        $fromTable->addColumn('table', Types::INTEGER, ['comment' => 'Reserved keyword 2']);
-        $fromTable->addColumn('select', Types::INTEGER, ['comment' => 'Reserved keyword 3']);
-
-        $fromTable->addColumn('`quoted1`', Types::INTEGER, ['comment' => 'Quoted 1']);
-        $fromTable->addColumn('`quoted2`', Types::INTEGER, ['comment' => 'Quoted 2']);
-        $fromTable->addColumn('`quoted3`', Types::INTEGER, ['comment' => 'Quoted 3']);
-
-        $toTable = new Table('mytable');
-
-        // unquoted -> unquoted
-        $toTable->addColumn('unquoted', Types::INTEGER, ['comment' => 'Unquoted 1']);
-
-        // unquoted -> reserved keyword
-        $toTable->addColumn('where', Types::INTEGER, ['comment' => 'Unquoted 2']);
-
-        // unquoted -> quoted
-        $toTable->addColumn('`foo`', Types::INTEGER, ['comment' => 'Unquoted 3']);
-
-        // reserved keyword -> unquoted
-        $toTable->addColumn('reserved_keyword', Types::INTEGER, ['comment' => 'Reserved keyword 1']);
-
-        // reserved keyword -> reserved keyword
-        $toTable->addColumn('from', Types::INTEGER, ['comment' => 'Reserved keyword 2']);
-
-        // reserved keyword -> quoted
-        $toTable->addColumn('`bar`', Types::INTEGER, ['comment' => 'Reserved keyword 3']);
-
-        // quoted -> unquoted
-        $toTable->addColumn('quoted', Types::INTEGER, ['comment' => 'Quoted 1']);
-
-        // quoted -> reserved keyword
-        $toTable->addColumn('and', Types::INTEGER, ['comment' => 'Quoted 2']);
-
-        // quoted -> quoted
-        $toTable->addColumn('`baz`', Types::INTEGER, ['comment' => 'Quoted 3']);
+        $toTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                // unquoted -> unquoted
+                Column::editor()->setUnquotedName('unquoted')->setTypeName(Types::INTEGER)->setComment('Unquoted 1')->create(),
+                // unquoted -> reserved keyword
+                Column::editor()->setUnquotedName('where')->setTypeName(Types::INTEGER)->setComment('Unquoted 2')->create(),
+                // unquoted -> quoted
+                Column::editor()->setQuotedName('foo')->setTypeName(Types::INTEGER)->setComment('Unquoted 3')->create(),
+                // reserved keyword -> unquoted
+                Column::editor()->setUnquotedName('reserved_keyword')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 1')->create(),
+                // reserved keyword -> reserved keyword
+                Column::editor()->setUnquotedName('from')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 2')->create(),
+                // reserved keyword -> quoted
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 3')->create(),
+                // quoted -> unquoted
+                Column::editor()->setUnquotedName('quoted')->setTypeName(Types::INTEGER)->setComment('Quoted 1')->create(),
+                // quoted -> reserved keyword
+                Column::editor()->setUnquotedName('and')->setTypeName(Types::INTEGER)->setComment('Quoted 2')->create(),
+                // quoted -> quoted
+                Column::editor()->setQuotedName('baz')->setTypeName(Types::INTEGER)->setComment('Quoted 3')->create(),
+            )
+            ->create();
 
         // DBAL4: diffTable() → compareTables() which always returns TableDiff
         $diff = (new Comparator($this->platform))->compareTables($fromTable, $toTable);
@@ -769,25 +914,29 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableChangeColumnLength(): void
     {
-        $fromTable = new Table('mytable');
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('unquoted1')->setTypeName(Types::STRING)->setComment('Unquoted 1')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('unquoted2')->setTypeName(Types::STRING)->setComment('Unquoted 2')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('unquoted3')->setTypeName(Types::STRING)->setComment('Unquoted 3')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->setComment('Reserved keyword 1')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('table')->setTypeName(Types::STRING)->setComment('Reserved keyword 2')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::STRING)->setComment('Reserved keyword 3')->setLength(10)->create(),
+            )
+            ->create();
 
-        $fromTable->addColumn('unquoted1', Types::STRING, ['comment' => 'Unquoted 1', 'length' => 10]);
-        $fromTable->addColumn('unquoted2', Types::STRING, ['comment' => 'Unquoted 2', 'length' => 10]);
-        $fromTable->addColumn('unquoted3', Types::STRING, ['comment' => 'Unquoted 3', 'length' => 10]);
-
-        $fromTable->addColumn('create', Types::STRING, ['comment' => 'Reserved keyword 1', 'length' => 10]);
-        $fromTable->addColumn('table', Types::STRING, ['comment' => 'Reserved keyword 2', 'length' => 10]);
-        $fromTable->addColumn('select', Types::STRING, ['comment' => 'Reserved keyword 3', 'length' => 10]);
-
-        $toTable = new Table('mytable');
-
-        $toTable->addColumn('unquoted1', Types::STRING, ['comment' => 'Unquoted 1', 'length' => 255]);
-        $toTable->addColumn('unquoted2', Types::STRING, ['comment' => 'Unquoted 2', 'length' => 255]);
-        $toTable->addColumn('unquoted3', Types::STRING, ['comment' => 'Unquoted 3', 'length' => 255]);
-
-        $toTable->addColumn('create', Types::STRING, ['comment' => 'Reserved keyword 1', 'length' => 255]);
-        $toTable->addColumn('table', Types::STRING, ['comment' => 'Reserved keyword 2', 'length' => 255]);
-        $toTable->addColumn('select', Types::STRING, ['comment' => 'Reserved keyword 3', 'length' => 255]);
+        $toTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('unquoted1')->setTypeName(Types::STRING)->setComment('Unquoted 1')->setLength(255)->create(),
+                Column::editor()->setUnquotedName('unquoted2')->setTypeName(Types::STRING)->setComment('Unquoted 2')->setLength(255)->create(),
+                Column::editor()->setUnquotedName('unquoted3')->setTypeName(Types::STRING)->setComment('Unquoted 3')->setLength(255)->create(),
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->setComment('Reserved keyword 1')->setLength(255)->create(),
+                Column::editor()->setUnquotedName('table')->setTypeName(Types::STRING)->setComment('Reserved keyword 2')->setLength(255)->create(),
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::STRING)->setComment('Reserved keyword 3')->setLength(255)->create(),
+            )
+            ->create();
 
         // DBAL4: diffTable() → compareTables() which always returns TableDiff
         $diff = (new Comparator($this->platform))->compareTables($fromTable, $toTable);
@@ -804,12 +953,23 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterTableRenameIndexInSchema(): void
     {
-        $fromTable = new Table('myschema.mytable');
-        $fromTable->addColumn('id', Types::INTEGER);
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable', 'myschema')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
 
         self::assertSame($this->getAlterTableRenameIndexInSchemaSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -826,12 +986,30 @@ abstract class PlatformTestCase extends TestCase
 
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
-        $fromTable = new Table('`schema`.table');
-        $fromTable->addColumn('id', Types::INTEGER);
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setName(new OptionallyQualifiedName(
+                Identifier::unquoted('table'),
+                Identifier::quoted('schema'),
+            ))
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+            renamedIndexes: [
+                'create' => Index::editor()
+                    ->setUnquotedName('select')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+                '`foo`' => Index::editor()
+                    ->setQuotedName('bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
 
         self::assertSame($this->getQuotedAlterTableRenameIndexInSchemaSQL(), $this->platform->getAlterTableSQL($tableDiff));
@@ -983,19 +1161,37 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesAlterTableRenameColumnSQL(): void
     {
-        $table = new Table('foo');
-        $table->addColumn(
-            'bar',
-            Types::INTEGER,
-            ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
-        );
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(true)
+                    ->setDefaultValue(666)
+                    ->setComment('rename test')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff(
             $table,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('bar', Type::getType(Types::INTEGER), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
-                    new Column('baz', Type::getType(Types::INTEGER), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                    Column::editor()
+                        ->setUnquotedName('bar')
+                        ->setTypeName(Types::INTEGER)
+                        ->setNotNull(true)
+                        ->setDefaultValue(666)
+                        ->setComment('rename test')
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('baz')
+                        ->setTypeName(Types::INTEGER)
+                        ->setNotNull(true)
+                        ->setDefaultValue(666)
+                        ->setComment('rename test')
+                        ->create(),
                 ),
             ],
         );
@@ -1008,15 +1204,32 @@ abstract class PlatformTestCase extends TestCase
 
     public function testAlterStringToFixedString(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('name', Types::STRING, ['length' => 2]);
+        $table = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(2)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff(
             $table,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('name', Type::getType(Types::STRING), ['length' => 2]),
-                    new Column('name', Type::getType(Types::STRING), ['fixed' => true, 'length' => 2]),
+                    Column::editor()
+                        ->setUnquotedName('name')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(2)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('name')
+                        ->setTypeName(Types::STRING)
+                        ->setFixed(true)
+                        ->setLength(2)
+                        ->create(),
                 ),
             ],
         );
@@ -1036,14 +1249,24 @@ abstract class PlatformTestCase extends TestCase
 
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): void
     {
-        $foreignTable = new Table('foreign_table');
-        $foreignTable->addColumn('id', Types::INTEGER);
-        $foreignTable->setPrimaryKey(['id']);
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foreign_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $primaryTable = new Table('mytable');
-        $primaryTable->addColumn('foo', Types::INTEGER);
-        $primaryTable->addColumn('bar', Types::INTEGER);
-        $primaryTable->addColumn('baz', Types::INTEGER);
+        $primaryTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('bar')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('baz')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $primaryTable->addIndex(['foo'], 'idx_foo');
         $primaryTable->addIndex(['bar'], 'idx_bar');
         $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id'], [], 'fk_foo');
@@ -1051,7 +1274,12 @@ abstract class PlatformTestCase extends TestCase
 
         $tableDiff = new TableDiff(
             $primaryTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_foo_renamed', ['foo'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_foo_renamed')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            ],
         );
 
         $sql      = $this->platform->getAlterTableSQL($tableDiff);

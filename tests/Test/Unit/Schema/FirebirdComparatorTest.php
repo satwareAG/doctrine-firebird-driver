@@ -6,7 +6,6 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Schema;
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -31,19 +30,30 @@ class FirebirdComparatorTest extends TestCase
 
     public function testCompareTablesIgnoresCharsetDifference(): void
     {
-        $type = Type::getType(Types::STRING);
-
         // fromTable has charset platform option (as Firebird introspection adds)
-        $fromCol = new Column('name', $type, ['length' => 100]);
-        $fromCol->setPlatformOptions(['charset' => 'UTF8']);
-        $fromTable = new Table('users');
-        $fromTable->addColumn('name', Types::STRING, ['length' => 100]);
-        // Add charset option to the column
-        $fromTable->getColumn('name')->setPlatformOptions(['charset' => 'UTF8']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('users')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setCharset('UTF8')
+                    ->create(),
+            )
+            ->create();
 
         // toTable has no charset option (user-defined table)
-        $toTable = new Table('users');
-        $toTable->addColumn('name', Types::STRING, ['length' => 100]);
+        $toTable = Table::editor()
+            ->setUnquotedName('users')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->comparator->compareTables($fromTable, $toTable);
 
@@ -53,12 +63,28 @@ class FirebirdComparatorTest extends TestCase
 
     public function testCompareTablesIgnoresCollationDifference(): void
     {
-        $fromTable = new Table('products');
-        $fromTable->addColumn('title', Types::STRING, ['length' => 255]);
-        $fromTable->getColumn('title')->setPlatformOptions(['collation' => 'UNICODE_FSS']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('products')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('title')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setCollation('UNICODE_FSS')
+                    ->create(),
+            )
+            ->create();
 
-        $toTable = new Table('products');
-        $toTable->addColumn('title', Types::STRING, ['length' => 255]);
+        $toTable = Table::editor()
+            ->setUnquotedName('products')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('title')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->comparator->compareTables($fromTable, $toTable);
 
@@ -68,15 +94,29 @@ class FirebirdComparatorTest extends TestCase
 
     public function testCompareTablesIgnoresCharsetAndCollationTogether(): void
     {
-        $fromTable = new Table('items');
-        $fromTable->addColumn('description', Types::STRING, ['length' => 500]);
-        $fromTable->getColumn('description')->setPlatformOptions([
-            'charset'   => 'NONE',
-            'Collation' => 'UNICODE_FSS',
-        ]);
+        $fromTable = Table::editor()
+            ->setUnquotedName('items')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('description')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(500)
+                    ->setCharset('NONE')
+                    ->setCollation('UNICODE_FSS')
+                    ->create(),
+            )
+            ->create();
 
-        $toTable = new Table('items');
-        $toTable->addColumn('description', Types::STRING, ['length' => 500]);
+        $toTable = Table::editor()
+            ->setUnquotedName('items')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('description')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(500)
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->comparator->compareTables($fromTable, $toTable);
 
@@ -86,12 +126,31 @@ class FirebirdComparatorTest extends TestCase
     public function testCompareTablesNormalizesNullDefault(): void
     {
         // fromTable column has string 'NULL' as default (Firebird introspection artifact)
-        $fromTable = new Table('orders');
-        $fromTable->addColumn('notes', Types::STRING, ['length' => 255, 'default' => 'NULL', 'notnull' => false]);
+        $fromTable = Table::editor()
+            ->setUnquotedName('orders')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('notes')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setDefaultValue('NULL')
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->create();
 
         // toTable column has actual null default (user-defined)
-        $toTable = new Table('orders');
-        $toTable->addColumn('notes', Types::STRING, ['length' => 255, 'notnull' => false]);
+        $toTable = Table::editor()
+            ->setUnquotedName('orders')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('notes')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->comparator->compareTables($fromTable, $toTable);
 
@@ -102,12 +161,30 @@ class FirebirdComparatorTest extends TestCase
     public function testCompareTablesNormalizesWhitespacePaddedDefault(): void
     {
         // fromTable column has whitespace-padded default (Firebird stores with spaces)
-        $fromTable = new Table('config');
-        $fromTable->addColumn('status', Types::STRING, ['length' => 50, 'default' => '  active  ']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('config')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('status')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('  active  ')
+                    ->create(),
+            )
+            ->create();
 
         // toTable column has same default without whitespace
-        $toTable = new Table('config');
-        $toTable->addColumn('status', Types::STRING, ['length' => 50, 'default' => 'active']);
+        $toTable = Table::editor()
+            ->setUnquotedName('config')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('status')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('active')
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->comparator->compareTables($fromTable, $toTable);
 
