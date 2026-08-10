@@ -64,7 +64,7 @@
     },
     "require": {
         "php": "^8.2",
-        "ext-firebird": "^13.0.1",
+        "ext-firebird": "^13.2.0",
         "ext-mbstring": "*",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^4.4",
@@ -91,7 +91,7 @@
         "phpunit/phpunit": "^11.5",
         "psalm/plugin-phpunit": "^0.19.5",
         "react/child-process": "^0.6.7",
-        "satwareag/php-firebird-stubs": "^13.0.1",
+        "satwareag/php-firebird-stubs": "^13.2.0",
         "slevomat/coding-standard": "^8.28",
         "squizlabs/php_codesniffer": "^4.0.2",
         "symfony/cache": "^6.4|^7.0",

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `ext-firebird` constraint bumped from `^13.0.1` to `^13.2.0` — requires the
+  cursor counter fix (php-firebird #566) that makes the transparent DDL
+  commit+restart (introduced in v13.1.0 #540) fire only when open cursors
+  actually hold metadata locks, not on every DDL statement. Without this fix,
+  v13.1.0 broke transactional DDL semantics (TemporaryTableTest regression).
+  The v13.2.0 fix restores correct behavior: DDL after DML (no open cursors)
+  stays atomic within the transaction; DDL with open cursors triggers
+  transparent commit+restart, enabling removal of `gc_collect_cycles()`
+  workarounds in the test suite (#153, follow-up).
+- `satwareag/php-firebird-stubs` bumped from `^13.0.1` to `^13.2.0` (dev-only,
+  tracks the extension version).
+
 ## [4.6.2] - 2026-08-08 - PHPCS annotation group fix
 
 ### Fixed
