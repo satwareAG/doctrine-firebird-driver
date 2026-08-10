@@ -54,7 +54,6 @@ use function array_values;
 use function count;
 use function current;
 use function defined;
-use function gc_collect_cycles;
 use function in_array;
 use function sprintf;
 use function str_starts_with;
@@ -2214,12 +2213,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
      */
     private function cleanupSchemaTestTables(): void
     {
-        // Free Firebird cursor objects left over from the test method itself.
-        // Test methods like testListTablesWithFilter call listTableNames()/listTables()
-        // which create cursors holding metadata locks. These must be released
-        // before we can DROP tables in cleanup.
-        gc_collect_cycles();
-
         // First ensure any active transaction is rolled back to release locks
         $fbirdConnection = $this->getFirebirdConnection();
         if ($fbirdConnection !== null && $fbirdConnection->isConnectionValid()) {
@@ -2259,10 +2252,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $existingTables = [];
             $existingViews  = [];
         }
-
-        // Free Firebird cursor objects from listTableNames/listViews above.
-        // Without this, the cursors hold metadata locks that prevent DROP TABLE.
-        gc_collect_cycles();
 
         // Drop tables in dependency order (foreign key constraints)
         // Tables with foreign keys should be dropped first
