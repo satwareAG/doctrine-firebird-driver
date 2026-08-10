@@ -121,8 +121,8 @@ abstract class FunctionalTestCase extends TestCase
 
         if (! $success && isset($e)) {
             // "in use" / deadlock errors are non-fatal in tearDown context - the table will be
-            // dropped in the next test's setUp() after disconnect() @after has run gc_collect_cycles()
-            // and released all cursor locks held by this connection's PHP objects.
+            // dropped in the next test's setUp() after disconnect() @after has released
+            // all cursor locks held by this connection's PHP objects.
             if (str_contains($e->getMessage(), 'in use') || str_contains($e->getMessage(), 'deadlock')) {
                 return;
             }
@@ -230,8 +230,8 @@ abstract class FunctionalTestCase extends TestCase
                 throw $e;
             }
 
-            // Release Firebird metadata locks by committing/rolling back and
-            // running GC to free any PHP objects holding cursor references.
+            // Release Firebird metadata locks by rolling back and running GC
+            // to free any PHP objects holding cursor references.
             // Do NOT call $this->connection->close() here — it invalidates
             // the shared connection's native Firebird pointers and causes
             // "OO API connection/transaction pointers are NULL" on the next
@@ -243,6 +243,10 @@ abstract class FunctionalTestCase extends TestCase
                 }
             }
 
+            // jane: gc_collect_cycles still needed here despite php-firebird v13.2.0.
+            // The transparent commit+restart only fires on DDL with open cursors,
+            // but this error recovery path needs PHP-side cursor objects freed so
+            // the connection can be reused for dropTableIfExists + createTable.
             gc_collect_cycles();
             usleep(500_000); // 500ms — let Firebird server release locks
 
@@ -385,10 +389,10 @@ abstract class FunctionalTestCase extends TestCase
                 // Ignore rollback errors during cleanup
             }
 
-            // Free PHP cursor/result objects before attempting DDL.
-            // Firebird holds metadata locks until all PHP objects referencing
-            // the table's result sets are destroyed. Without this, DROP TABLE
-            // fails with "object is in use" because cursor references survive.
+            // jane: gc_collect_cycles still needed here despite php-firebird v13.2.0.
+            // The transparent commit+restart only fires on DDL with open cursors,
+            // but tearDown needs PHP-side cursor objects freed before DROP TABLE
+            // so the connection can execute DDL without "object is in use" errors.
             gc_collect_cycles();
 
             foreach ($this->createdTables as $tableName) {
