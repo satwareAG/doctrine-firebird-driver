@@ -1673,11 +1673,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $this->expectExceptionMessageMatches('/.*not supported.*/');
             $actualSequences = [];
             foreach ($this->schemaManager->listSequences() as $sequence) {
-                $actualSequences[$sequence->getName()] = $sequence;
+                $actualSequences[strtolower($sequence->getName())] = $sequence;
             }
 
             $actualSequence1 = $actualSequences[$sequence1Name];
-            self::assertSame($sequence1Name, $actualSequence1->getName());
+            self::assertSame($sequence1Name, strtolower($actualSequence1->getName()));
             $this->schemaManager->createSequence($sequence2);
 
             return;
@@ -1688,17 +1688,17 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         /** @var Sequence[] $actualSequences */
         $actualSequences = [];
         foreach ($this->schemaManager->listSequences() as $sequence) {
-            $actualSequences[$sequence->getName()] = $sequence;
+            $actualSequences[strtolower($sequence->getName())] = $sequence;
         }
 
         $actualSequence1 = $actualSequences[$sequence1Name];
         $actualSequence2 = $actualSequences[$sequence2Name];
 
-        self::assertSame($sequence1Name, $actualSequence1->getName());
+        self::assertSame($sequence1Name, strtolower($actualSequence1->getName()));
         self::assertSame($sequence1AllocationSize, $actualSequence1->getAllocationSize());
         self::assertSame($sequence1InitialValue, $actualSequence1->getInitialValue());
 
-        self::assertSame($sequence2Name, $actualSequence2->getName());
+        self::assertSame($sequence2Name, strtolower($actualSequence2->getName()));
         self::assertSame($sequence2AllocationSize, $actualSequence2->getAllocationSize());
         self::assertSame($sequence2InitialValue, $actualSequence2->getInitialValue());
     }

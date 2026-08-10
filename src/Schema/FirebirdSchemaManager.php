@@ -468,12 +468,12 @@ SQL;
     {
         $view = array_change_key_case($view, CASE_LOWER);
 
-        $viewName = $this->getQuotedIdentifierName(trim((string) $view['rdb$relation_name']));
+        $viewName = trim((string) $view['rdb$relation_name']);
         assert($viewName !== '');
 
         return View::editor()
-            ->setQuotedName($viewName)
-            ->setSQL($this->getQuotedIdentifierName(trim((string) $view['rdb$view_source'])))
+            ->setUnquotedName($viewName)
+            ->setSQL(trim((string) $view['rdb$view_source']))
             ->create();
     }
 
@@ -494,11 +494,11 @@ SQL;
         $initialValue   = $sequenceConfiguration['initialValue'] ?? 1;
         $cache          = $sequenceConfiguration['cache'] ?? null;
 
-        $seqName = $this->getQuotedIdentifierName(trim(strtolower((string) $sequence['rdb$generator_name'])));
+        $seqName = trim((string) $sequence['rdb$generator_name']);
         assert($seqName !== '');
 
         $sequenceEditor = Sequence::editor()
-            ->setQuotedName($seqName)
+            ->setUnquotedName($seqName)
             ->setAllocationSize((int) $allocationSize)
             ->setInitialValue((int) $initialValue);
 
