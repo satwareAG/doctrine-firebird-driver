@@ -12,6 +12,10 @@ use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
@@ -194,6 +198,8 @@ class FirebirdPlatformSQLTest extends TestCase
     #[DataProvider('dataProvider_testGeneratesAdvancedForeignKeyOptionsSQL')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL($expected, array $options): void
     {
+        // Kept as-is: getAdvancedForeignKeyOptionsSQL() reads from the deprecated hasOption()/getOption() API
+        // which the editor doesn't populate, so the editor API cannot be used here.
         $foreignKey = new ForeignKeyConstraint(
             ['foo'],
             'foreign_table',
@@ -249,9 +255,16 @@ class FirebirdPlatformSQLTest extends TestCase
     {
         $columnName = strtoupper('id' . uniqid());
         $tableName  = strtoupper('table' . uniqid());
-        $table      = new Table($tableName);
-        $column     = $table->addColumn($columnName, 'integer');
-        $column->setAutoincrement(true);
+        $table      = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName($columnName)
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
         $statements = $this->_platform->getCreateTableSQL($table);
         //strip all the whitespace from the statements
         array_walk($statements, static function (&$value): void {
@@ -279,9 +292,23 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGenerateTableWithMultiColumnUniqueIndex(): void
     {
-        $table = new Table('test');
-        $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
-        $table->addColumn('bar', 'string', ['notnull' => false, 'length' => 255]);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::STRING)
+                    ->setNotNull(false)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setNotNull(false)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->create();
         $table->addUniqueIndex(['foo', 'bar']);
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
@@ -293,7 +320,10 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesIndexCreationSql(): void
     {
-        $indexDef = new Index('my_idx', ['user_name', 'last_login']);
+        $indexDef = Index::editor()
+            ->setUnquotedName('my_idx')
+            ->setUnquotedColumnNames('user_name', 'last_login')
+            ->create();
         $found    = $this->_platform->getCreateIndexSQL($indexDef, 'mytable');
         $expected = 'CREATE INDEX my_idx ON mytable (user_name, last_login)';
         self::assertSame($expected, $found);
@@ -301,7 +331,11 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesUniqueIndexCreationSql(): void
     {
-        $indexDef = new Index('index_name', ['test', 'test2'], true);
+        $indexDef = Index::editor()
+            ->setUnquotedName('index_name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->setType(IndexType::UNIQUE)
+            ->create();
         $found    = $this->_platform->getCreateIndexSQL($indexDef, 'test');
         $expected = 'CREATE UNIQUE INDEX index_name ON test (test, test2)';
         self::assertSame($expected, $found);
@@ -311,8 +345,17 @@ class FirebirdPlatformSQLTest extends TestCase
 #[Group('DBAL-1001')]
     public function testAlterTableNotNULL(): void
     {
-        $fromTable = new Table('mytable');
-        $fromTable->addColumn('foo', Types::TEXT, ['length' => 255, 'notnull' => false]);
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::TEXT)
+                    ->setLength(255)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->create();
         $fromTable->addColumn('bar', Types::STRING, ['length' => 10, 'notnull' => false]);
         $fromTable->addColumn('metar', 'string', ['notnull' => true]);
 
@@ -397,25 +440,25 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1004')]
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers(): void
     {
-        $table1     = new Table(
-            '"foo"',
-            [
-                new Column(
-                    '"bar"',
-                    Type::getType('integer'),
-                ),
-            ],
-        );
-        $table2     = new Table(
-            '"foo"',
-            [
-                new Column(
-                    '"bar"',
-                    Type::getType('integer'),
-                    ['comment' => 'baz'],
-                ),
-            ],
-        );
+        $table1     = Table::editor()
+            ->setQuotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+        $table2     = Table::editor()
+            ->setQuotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('baz')
+                    ->create(),
+            )
+            ->create();
         $comparator = new Comparator($this->_platform);
         $tableDiff  = $comparator->compareTables($table1, $table2);
         self::assertSame(['COMMENT ON COLUMN "foo"."bar" IS \'baz\''], $this->_platform->getAlterTableSQL($tableDiff));
@@ -423,8 +466,16 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testQuotedTableNames(): void
     {
-        $table = new Table('"test"');
-        $table->addColumn('"id"', 'integer', ['autoincrement' => true]);
+        $table = Table::editor()
+            ->setQuotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
         self::assertTrue($table->isQuoted());
         self::assertSame('test', $table->getName());
         self::assertSame('"test"', $table->getQuotedName($this->_platform));
@@ -459,9 +510,16 @@ class FirebirdPlatformSQLTest extends TestCase
     public function testGeneratesPartialIndexesSqlOnlyWhenSupportingPartialIndexes(): void
     {
         $where    = 'test IS NULL AND test2 IS NOT NULL';
-        $indexDef = new Index('name', ['test', 'test2'], false, false, [], ['where' => $where]);
+        $indexDef = Index::editor()
+            ->setUnquotedName('name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->setPredicate($where)
+            ->create();
         // $uniqueIndex = new Index('name', ['test', 'test2'], true, false, [], ['where' => $where]);
-        $uniqueIndex = new UniqueConstraint('name', ['test', 'test2']);
+        $uniqueIndex = UniqueConstraint::editor()
+            ->setUnquotedName('name')
+            ->setUnquotedColumnNames('test', 'test2')
+            ->create();
 
         $expected  = ' WHERE ' . $where;
         $actuals   = [];
@@ -479,7 +537,11 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testGeneratesForeignKeyCreationSql(): void
     {
-        $fk       = new ForeignKeyConstraint(['fk_name_id'], 'other_table', ['id'], '');
+        $fk       = ForeignKeyConstraint::editor()
+            ->setUnquotedReferencingColumnNames('fk_name_id')
+            ->setUnquotedReferencedTableName('other_table')
+            ->setUnquotedReferencedColumnNames('id')
+            ->create();
         $found    = $this->_platform->getCreateForeignKeySQL($fk, 'test');
         $expected = 'ALTER TABLE test ADD FOREIGN KEY (fk_name_id) REFERENCES other_table (id)';
         self::assertSame($expected, $found);
@@ -488,17 +550,29 @@ class FirebirdPlatformSQLTest extends TestCase
     public function testGeneratesConstraintCreationSql(): void
     {
         // DBAL4: getCreateConstraintSQL() removed; use type-specific methods
-        $idx   = new Index('constraint_name', ['test'], true, false);
+        $idx   = Index::editor()
+            ->setUnquotedName('constraint_name')
+            ->setUnquotedColumnNames('test')
+            ->setType(IndexType::UNIQUE)
+            ->create();
         $found = $this->_platform->getCreateIndexSQL($idx, 'test');
         self::assertStringContainsString('UNIQUE', $found);
         self::assertStringContainsString('constraint_name', $found);
 
-        $pk    = new Index('constraint_name', ['test'], true, true);
+        $pk    = Index::editor()
+            ->setUnquotedName('constraint_name')
+            ->setUnquotedColumnNames('test')
+            ->create();
         $found = $this->_platform->getCreatePrimaryKeySQL($pk, 'test');
         self::assertStringContainsString('PRIMARY KEY', $found);
         self::assertStringContainsString('PRIMARY KEY', $found);
 
-        $fk                 = new ForeignKeyConstraint(['fk_name'], 'foreign', ['id'], 'constraint_fk');
+        $fk                 = ForeignKeyConstraint::editor()
+            ->setUnquotedName('constraint_fk')
+            ->setUnquotedReferencingColumnNames('fk_name')
+            ->setUnquotedReferencedTableName('foreign')
+            ->setUnquotedReferencedColumnNames('id')
+            ->create();
         $found              = $this->_platform->getCreateForeignKeySQL($fk, 'test');
         $quotedForeignTable = $fk->getQuotedForeignTableName($this->_platform);
         self::assertStringContainsString('FOREIGN KEY', $found);
@@ -525,9 +599,19 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-42')]
     public function testCreateTableColumnComments(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', 'integer', ['comment' => 'This is a comment']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('This is a comment')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $found = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $found);
         self::assertArrayHasKey(0, $found);
@@ -539,20 +623,48 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-42')]
     public function testAlterTableColumnComments(): void
     {
-        $oldTable = new Table('mytable');
-        $oldTable->addColumn('foo', 'integer', ['comment' => 'old foo comment']);
+        $oldTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('old foo comment')
+                    ->create(),
+            )
+            ->create();
         $oldTable->addColumn('bar', 'integer');
         $tableDiff = new TableDiff(
             $oldTable,
-            addedColumns: [new Column('quota', Type::getType('integer'), ['comment' => 'A comment'])],
+            addedColumns: [
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->create(),
+            ],
             changedColumns: [
                 new ColumnDiff(
-                    new Column('foo', Type::getType('integer'), ['comment' => 'old foo comment']),
-                    new Column('foo', Type::getType('integer')),
+                    Column::editor()
+                        ->setUnquotedName('foo')
+                        ->setTypeName(Types::INTEGER)
+                        ->setComment('old foo comment')
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('foo')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
                 ),
                 new ColumnDiff(
-                    new Column('bar', Type::getType('integer')),
-                    new Column('bar', Type::getType('integer'), ['comment' => 'B comment']),
+                    Column::editor()
+                        ->setUnquotedName('bar')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('bar')
+                        ->setTypeName(Types::INTEGER)
+                        ->setComment('B comment')
+                        ->create(),
                 ),
             ],
         );
@@ -572,10 +684,22 @@ class FirebirdPlatformSQLTest extends TestCase
     {
         // DBAL4: json type no longer requires SQL comment hints (requiresSQLCommentHint() returns false).
         // The platform still maps json to BLOB SUB_TYPE TEXT; only the COMMENT ON is no longer generated.
-        $table = new Table('test');
-        $table->addColumn('id', 'integer');
-        $table->addColumn('data', 'json');
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('data')
+                    ->setTypeName(Types::JSON)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $found = $this->_platform->getCreateTableSQL($table);
         self::assertCount(1, $found);
         self::assertArrayHasKey(0, $found);
@@ -618,9 +742,18 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-374')]
     public function testQuotedColumnInPrimaryKeyPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', 'string');
-        $table->setPrimaryKey(['create']);
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('create')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('create')->create(),
+            )
+            ->create();
         $found = $this->_platform->getCreateTableSQL($table);
         self::assertIsArray($found);
         self::assertCount(1, $found);
@@ -632,8 +765,15 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-374')]
     public function testQuotedColumnInIndexPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', 'string');
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('create')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+            )
+            ->create();
         $table->addIndex(['create']);
         $found = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $found);
@@ -645,8 +785,15 @@ class FirebirdPlatformSQLTest extends TestCase
 
     public function testQuotedNameInIndexSQL(): void
     {
-        $table = new Table('test');
-        $table->addColumn('column1', 'string');
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('column1')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+            )
+            ->create();
         $table->addIndex(['column1'], '`key`');
         $found    = $this->_platform->getCreateTableSQL($table);
         $expected = [
@@ -659,13 +806,22 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-374')]
     public function testQuotedColumnInForeignKeyPropagation(): void
     {
-        $table = new Table('`quoted`');
-        $table->addColumn('create', 'string');
-        $table->addColumn('foo', 'string');
-        $table->addColumn('`bar`', 'string');
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
+
         // Foreign table with reserved keyword as name (needs quotation).
-        $foreignTable = new Table('foreign');
-        $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foreign')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
@@ -676,8 +832,12 @@ class FirebirdPlatformSQLTest extends TestCase
             'FK_WITH_RESERVED_KEYWORD',
         );
         // Foreign table with non-reserved keyword as name (does not need quotation).
-        $foreignTable = new Table('foo');
-        $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
@@ -688,8 +848,12 @@ class FirebirdPlatformSQLTest extends TestCase
             'FK_WITH_NON_RESERVED_KEYWORD',
         );
         // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable = new Table('`foo-bar`');
-        $foreignTable->addColumn('create', 'string');    // Foreign column with reserved keyword as name (needs quotation).
+        $foreignTable = Table::editor()
+            ->setQuotedName('foo-bar')
+            ->setColumns(
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
         $foreignTable->addColumn('bar', 'string');       // Foreign column with non-reserved keyword as name (does not need quotation).
         $foreignTable->addColumn('`foo-bar`', 'string'); // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
         $table->addForeignKeyConstraint(
@@ -718,7 +882,10 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1051')]
     public function testQuotesReservedKeywordInUniqueConstraintDeclarationSQL(): void
     {
-        $index = new UniqueConstraint('select', ['foo']);
+        $index = UniqueConstraint::editor()
+            ->setUnquotedName('select')
+            ->setUnquotedColumnNames('foo')
+            ->create();
         $found = $this->_platform->getUniqueConstraintDeclarationSQL($index);
         self::assertSame('CONSTRAINT "select" UNIQUE (foo)', $found);
     }
@@ -726,7 +893,10 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1051')]
     public function testQuotesReservedKeywordInIndexDeclarationSQL(): void
     {
-        $index = new Index('select', ['foo']);
+        $index = Index::editor()
+            ->setUnquotedName('select')
+            ->setUnquotedColumnNames('foo')
+            ->create();
         $found = $this->_platform->getIndexDeclarationSQL($index);
         self::assertSame('INDEX "select" (foo)', $found);
     }
@@ -734,12 +904,19 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-585')]
     public function testAlterTableChangeQuotedColumn(): void
     {
-        $fromTable = new Table('mytable');
-        $fromTable->addColumn('select', 'integer');
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
             changedColumns: [
-                new ColumnDiff(new Column('select', Type::getType('integer')), new Column('select', Type::getType('string'))),
+                new ColumnDiff(
+                    Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('select')->setTypeName(Types::STRING)->create(),
+                ),
             ],
         );
         self::assertStringContainsString($this->_platform->quoteIdentifier('select'), implode(';', $this->_platform->getAlterTableSQL($tableDiff)));
@@ -748,12 +925,23 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-234')]
     public function testAlterTableRenameIndex(): void
     {
-        $fromTable = new Table('mytable');
-        $fromTable->addColumn('id', 'integer');
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
         $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
@@ -767,12 +955,27 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-234')]
     public function testQuotesAlterTableRenameIndex(): void
     {
-        $fromTable = new Table('table');
-        $fromTable->addColumn('id', 'integer');
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+            renamedIndexes: [
+                'create' => Index::editor()
+                    ->setUnquotedName('select')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+                '`foo`' => Index::editor()
+                    ->setQuotedName('bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
         $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
@@ -790,26 +993,35 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-835')]
     public function testQuotesAlterTableRenameColumn(): void
     {
-        $fromTable = new Table('mytable');
-        $fromTable->addColumn('unquoted1', 'integer', ['comment' => 'Unquoted 1']);
-        $fromTable->addColumn('unquoted2', 'integer', ['comment' => 'Unquoted 2']);
-        $fromTable->addColumn('unquoted3', 'integer', ['comment' => 'Unquoted 3']);
-        $fromTable->addColumn('create', 'integer', ['comment' => 'Reserved keyword 1']);
-        $fromTable->addColumn('table', 'integer', ['comment' => 'Reserved keyword 2']);
-        $fromTable->addColumn('select', 'integer', ['comment' => 'Reserved keyword 3']);
-        $fromTable->addColumn('`quoted1`', 'integer', ['comment' => 'Quoted 1']);
-        $fromTable->addColumn('`quoted2`', 'integer', ['comment' => 'Quoted 2']);
-        $fromTable->addColumn('`quoted3`', 'integer', ['comment' => 'Quoted 3']);
-        $toTable = new Table('mytable');
-        $toTable->addColumn('unquoted', 'integer', ['comment' => 'Unquoted 1']); // unquoted -> unquoted
-        $toTable->addColumn('where', 'integer', ['comment' => 'Unquoted 2']); // unquoted -> reserved keyword
-        $toTable->addColumn('`foo`', 'integer', ['comment' => 'Unquoted 3']); // unquoted -> quoted
-        $toTable->addColumn('reserved_keyword', 'integer', ['comment' => 'Reserved keyword 1']); // reserved keyword -> unquoted
-        $toTable->addColumn('from', 'integer', ['comment' => 'Reserved keyword 2']); // reserved keyword -> reserved keyword
-        $toTable->addColumn('`bar`', 'integer', ['comment' => 'Reserved keyword 3']); // reserved keyword -> quoted
-        $toTable->addColumn('quoted', 'integer', ['comment' => 'Quoted 1']); // quoted -> unquoted
-        $toTable->addColumn('and', 'integer', ['comment' => 'Quoted 2']); // quoted -> reserved keyword
-        $toTable->addColumn('`baz`', 'integer', ['comment' => 'Quoted 3']); // quoted -> quoted
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('unquoted1')->setTypeName(Types::INTEGER)->setComment('Unquoted 1')->create(),
+                Column::editor()->setUnquotedName('unquoted2')->setTypeName(Types::INTEGER)->setComment('Unquoted 2')->create(),
+                Column::editor()->setUnquotedName('unquoted3')->setTypeName(Types::INTEGER)->setComment('Unquoted 3')->create(),
+                Column::editor()->setUnquotedName('create')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 1')->create(),
+                Column::editor()->setUnquotedName('table')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 2')->create(),
+                Column::editor()->setUnquotedName('select')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 3')->create(),
+                Column::editor()->setQuotedName('quoted1')->setTypeName(Types::INTEGER)->setComment('Quoted 1')->create(),
+                Column::editor()->setQuotedName('quoted2')->setTypeName(Types::INTEGER)->setComment('Quoted 2')->create(),
+                Column::editor()->setQuotedName('quoted3')->setTypeName(Types::INTEGER)->setComment('Quoted 3')->create(),
+            )
+            ->create();
+
+        $toTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('unquoted')->setTypeName(Types::INTEGER)->setComment('Unquoted 1')->create(), // unquoted -> unquoted
+                Column::editor()->setUnquotedName('where')->setTypeName(Types::INTEGER)->setComment('Unquoted 2')->create(), // unquoted -> reserved keyword
+                Column::editor()->setQuotedName('foo')->setTypeName(Types::INTEGER)->setComment('Unquoted 3')->create(), // unquoted -> quoted
+                Column::editor()->setUnquotedName('reserved_keyword')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 1')->create(), // reserved keyword -> unquoted
+                Column::editor()->setUnquotedName('from')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 2')->create(), // reserved keyword -> reserved keyword
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::INTEGER)->setComment('Reserved keyword 3')->create(), // reserved keyword -> quoted
+                Column::editor()->setUnquotedName('quoted')->setTypeName(Types::INTEGER)->setComment('Quoted 1')->create(), // quoted -> unquoted
+                Column::editor()->setUnquotedName('and')->setTypeName(Types::INTEGER)->setComment('Quoted 2')->create(), // quoted -> reserved keyword
+                Column::editor()->setQuotedName('baz')->setTypeName(Types::INTEGER)->setComment('Quoted 3')->create(), // quoted -> quoted
+            )
+            ->create();
         $comparator = new Comparator($this->_platform);
         $found      = $this->_platform->getAlterTableSQL($comparator->compareTables($fromTable, $toTable));
         self::assertIsArray($found);
@@ -837,12 +1049,23 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-807')]
     public function testAlterTableRenameIndexInSchema(): void
     {
-        $fromTable = new Table('myschema.mytable');
-        $fromTable->addColumn('id', 'integer');
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setUnquotedName('mytable', 'myschema')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_bar', ['id'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
         $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
@@ -856,12 +1079,30 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-807')]
     public function testQuotesAlterTableRenameIndexInSchema(): void
     {
-        $fromTable = new Table('`schema`.table');
-        $fromTable->addColumn('id', 'integer');
-        $fromTable->setPrimaryKey(['id']);
+        $fromTable = Table::editor()
+            ->setName(new OptionallyQualifiedName(
+                Identifier::unquoted('table'),
+                Identifier::quoted('schema'),
+            ))
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $fromTable,
-            renamedIndexes: ['create' => new Index('select', ['id']), '`foo`' => new Index('`bar`', ['id'])],
+            renamedIndexes: [
+                'create' => Index::editor()
+                    ->setUnquotedName('select')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+                '`foo`' => Index::editor()
+                    ->setQuotedName('bar')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            ],
         );
         $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
@@ -912,18 +1153,36 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1010')]
     public function testGeneratesAlterTableRenameColumnSQL(): void
     {
-        $table = new Table('foo');
-        $table->addColumn(
-            'bar',
-            'integer',
-            ['notnull' => true, 'default' => 666, 'comment' => 'rename test'],
-        );
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(true)
+                    ->setDefaultValue(666)
+                    ->setComment('rename test')
+                    ->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $table,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('bar', Type::getType('integer'), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
-                    new Column('baz', Type::getType('integer'), ['notnull' => true, 'default' => 666, 'comment' => 'rename test']),
+                    Column::editor()
+                        ->setUnquotedName('bar')
+                        ->setTypeName(Types::INTEGER)
+                        ->setNotNull(true)
+                        ->setDefaultValue(666)
+                        ->setComment('rename test')
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('baz')
+                        ->setTypeName(Types::INTEGER)
+                        ->setNotNull(true)
+                        ->setDefaultValue(666)
+                        ->setComment('rename test')
+                        ->create(),
                 ),
             ],
         );
@@ -937,13 +1196,17 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1016')]
     public function testQuotesTableIdentifiersInAlterTableSQL(): void
     {
-        $table = new Table('"foo"');
-        $table->addColumn('id', 'integer');
-        $table->addColumn('fk', 'integer');
-        $table->addColumn('fk2', 'integer');
-        $table->addColumn('fk3', 'integer');
-        $table->addColumn('bar', 'integer');
-        $table->addColumn('baz', 'integer');
+        $table = Table::editor()
+            ->setQuotedName('foo')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('fk')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('fk2')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('fk3')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('bar')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('baz')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $table->addForeignKeyConstraint('fk_table', ['fk'], ['id'], [], 'fk1');
         $table->addForeignKeyConstraint('fk_table', ['fk2'], ['id'], [], 'fk2');
 
@@ -995,14 +1258,31 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1090')]
     public function testAlterStringToFixedString(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('name', 'string', ['length' => 2]);
+        $table = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(2)
+                    ->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $table,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('name', Type::getType('string'), ['length' => 2]),
-                    new Column('name', Type::getType('string'), ['fixed' => true, 'length' => 2]),
+                    Column::editor()
+                        ->setUnquotedName('name')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(2)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('name')
+                        ->setTypeName(Types::STRING)
+                        ->setFixed(true)
+                        ->setLength(2)
+                        ->create(),
                 ),
             ],
         );
@@ -1016,20 +1296,35 @@ class FirebirdPlatformSQLTest extends TestCase
     #[Group('DBAL-1062')]
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): void
     {
-        $foreignTable = new Table('foreign_table');
-        $foreignTable->addColumn('id', 'integer');
-        $foreignTable->setPrimaryKey(['id']);
-        $primaryTable = new Table('mytable');
-        $primaryTable->addColumn('foo', 'integer');
-        $primaryTable->addColumn('bar', 'integer');
-        $primaryTable->addColumn('baz', 'integer');
+        $foreignTable = Table::editor()
+            ->setUnquotedName('foreign_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
+        $primaryTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('bar')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('baz')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $primaryTable->addIndex(['foo'], 'idx_foo');
         $primaryTable->addIndex(['bar'], 'idx_bar');
         $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id'], [], 'fk_foo');
         $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['bar'], ['id'], [], 'fk_bar');
         $tableDiff = new TableDiff(
             $primaryTable,
-            renamedIndexes: ['idx_foo' => new Index('idx_foo_renamed', ['foo'])],
+            renamedIndexes: [
+                'idx_foo' => Index::editor()
+                    ->setUnquotedName('idx_foo_renamed')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            ],
         );
         $found     = $this->_platform->getAlterTableSQL($tableDiff);
         self::assertIsArray($found);
