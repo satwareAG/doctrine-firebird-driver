@@ -12,7 +12,6 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 use Iterator;
@@ -146,6 +145,8 @@ END
     #[DataProvider('getGeneratesAdvancedForeignKeyOptionsSQLData')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL(array $options, string $expectedSql): void
     {
+        // Kept as-is: the editor does not preserve NO_ACTION options that this test relies on.
+        // @phpstan-ignore method.deprecated
         $foreignKey = new ForeignKeyConstraint(['foo'], 'foreign_table', ['bar'], '', $options);
 
         self::assertSame($expectedSql, $this->platform->getAdvancedForeignKeyOptionsSQL($foreignKey));
@@ -193,9 +194,16 @@ END
     {
         $columnName = strtoupper('id' . uniqid());
         $tableName  = strtoupper('table' . uniqid());
-        $table      = new Table($tableName);
-        $column     = $table->addColumn($columnName, Types::INTEGER);
-        $column->setAutoincrement(true);
+        $table      = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName($columnName)
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
 
         $this->platform->getCreateTableSQL($table);
         self::assertSame([
@@ -265,25 +273,68 @@ SQL
     public function testAlterTableNotNULL(): void
     {
         // DBAL4: TableDiff requires Table $oldTable; ColumnDiff takes (old Column, new Column)
-        $oldTable = new Table('mytable');
-        $oldTable->addColumn('foo', Types::INTEGER);
-        $oldTable->addColumn('bar', Types::STRING, ['default' => 'bla', 'notnull' => false]);
-        $oldTable->addColumn('metar', Types::STRING, ['length' => 2000, 'notnull' => true]);
+        $oldTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setDefaultValue('bla')
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('metar')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(2000)
+                    ->setNotNull(true)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff(
             $oldTable,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('foo', Type::getType(Types::INTEGER), ['notnull' => true]),
-                    new Column('foo', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => true]),
+                    Column::editor()
+                        ->setUnquotedName('foo')
+                        ->setTypeName(Types::INTEGER)
+                        ->setNotNull(true)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('foo')
+                        ->setTypeName(Types::STRING)
+                        ->setDefaultValue('bla')
+                        ->setNotNull(true)
+                        ->create(),
                 ),
                 new ColumnDiff(
-                    new Column('bar', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => false]),
-                    new Column('baz', Type::getType(Types::STRING), ['default' => 'bla', 'notnull' => true]),
+                    Column::editor()
+                        ->setUnquotedName('bar')
+                        ->setTypeName(Types::STRING)
+                        ->setDefaultValue('bla')
+                        ->setNotNull(false)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('baz')
+                        ->setTypeName(Types::STRING)
+                        ->setDefaultValue('bla')
+                        ->setNotNull(true)
+                        ->create(),
                 ),
                 new ColumnDiff(
-                    new Column('metar', Type::getType(Types::STRING), ['length' => 2000, 'notnull' => true]),
-                    new Column('metar', Type::getType(Types::STRING), ['length' => 2000, 'notnull' => false]),
+                    Column::editor()
+                        ->setUnquotedName('metar')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(2000)
+                        ->setNotNull(true)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('metar')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(2000)
+                        ->setNotNull(false)
+                        ->create(),
                 ),
             ],
         );
@@ -333,7 +384,12 @@ SQL
             $this->markTestSkipped('Firebird below 3 does not support sequence cache.');
         }
 
-        $sequence = new Sequence('foo', 1, 1, $cacheSize);
+        $sequence = Sequence::editor()
+            ->setUnquotedName('foo')
+            ->setAllocationSize(1)
+            ->setInitialValue(1)
+            ->setCacheSize($cacheSize)
+            ->create();
         self::assertStringContainsString($expectedSql, $this->platform->getCreateSequenceSQL($sequence));
     }
 
@@ -360,8 +416,18 @@ SQL
 
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers(): void
     {
-        $table1 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER))]);
-        $table2 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER), ['comment' => 'baz'])]);
+        $table1 = Table::editor()
+            ->setQuotedName('foo')
+            ->setColumns(
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
+        $table2 = Table::editor()
+            ->setQuotedName('foo')
+            ->setColumns(
+                Column::editor()->setQuotedName('bar')->setTypeName(Types::INTEGER)->setComment('baz')->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
 
@@ -373,8 +439,16 @@ SQL
 
     public function testQuotedTableNames(): void
     {
-        $table = new Table('"test"');
-        $table->addColumn('"id"', Types::INTEGER, ['autoincrement' => true]);
+        $table = Table::editor()
+            ->setQuotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
 
         // assert tabel
         self::assertTrue($table->isQuoted());
@@ -463,7 +537,11 @@ EOD;
 
     public function testGetAlterSequenceSQL(): void
     {
-        $sequence = new Sequence('my_sequence', 1, 100);
+        $sequence = Sequence::editor()
+            ->setUnquotedName('my_sequence')
+            ->setAllocationSize(1)
+            ->setInitialValue(100)
+            ->create();
         self::assertStringContainsString(
             'ALTER SEQUENCE',
             $this->platform->getAlterSequenceSQL($sequence),

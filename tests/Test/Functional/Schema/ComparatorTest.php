@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -203,10 +205,16 @@ class ComparatorTest extends FunctionalTestCase
      */
     public function testNoFalsePositiveDiffWithIndex(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('name', Types::STRING, ['length' => 100]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('name')->setTypeName(Types::STRING)->setLength(100)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addIndex(['name'], 'idx_name');
 
         $schemaManager = $this->connection->createSchemaManager();
@@ -219,10 +227,16 @@ class ComparatorTest extends FunctionalTestCase
 
     public function testDetectsAddedIndex(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('name', Types::STRING, ['length' => 100]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('name')->setTypeName(Types::STRING)->setLength(100)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -239,14 +253,26 @@ class ComparatorTest extends FunctionalTestCase
      */
     public function testNoFalsePositiveDiffWithForeignKey(): void
     {
-        $refTable = new Table(self::TABLE_REF);
-        $refTable->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $refTable->setPrimaryKey(['id']);
+        $refTable = Table::editor()
+            ->setUnquotedName(self::TABLE_REF)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('ref_id', Types::INTEGER, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('ref_id')->setTypeName(Types::INTEGER)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addForeignKeyConstraint(self::TABLE_REF, ['ref_id'], ['id']);
 
         $schemaManager = $this->connection->createSchemaManager();
@@ -263,10 +289,16 @@ class ComparatorTest extends FunctionalTestCase
      */
     public function testNoFalsePositiveDiffWithUniqueIndex(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('email', Types::STRING, ['length' => 200]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('email')->setTypeName(Types::STRING)->setLength(200)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addUniqueIndex(['email'], 'uniq_email');
 
         $schemaManager = $this->connection->createSchemaManager();
@@ -282,16 +314,33 @@ class ComparatorTest extends FunctionalTestCase
      */
     public function testNoFalsePositiveDiffMultipleColumnTypes(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('big_col', Types::BIGINT, ['notnull' => false]);
-        $table->addColumn('str_col', Types::STRING, ['length' => 255, 'notnull' => false]);
-        $table->addColumn('text_col', Types::TEXT, ['notnull' => false]);
-        $table->addColumn('dec_col', Types::DECIMAL, ['precision' => 10, 'scale' => 2, 'notnull' => false]);
-        $table->addColumn('float_col', Types::FLOAT, ['notnull' => false]);
-        $table->addColumn('dt_col', Types::DATETIME_MUTABLE, ['notnull' => false]);
-        $table->addColumn('date_col', Types::DATE_MUTABLE, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('big_col')->setTypeName(Types::BIGINT)->setNotNull(false)->create(),
+                Column::editor()
+                    ->setUnquotedName('str_col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()->setUnquotedName('text_col')->setTypeName(Types::TEXT)->setNotNull(false)->create(),
+                Column::editor()
+                    ->setUnquotedName('dec_col')
+                    ->setTypeName(Types::DECIMAL)
+                    ->setPrecision(10)
+                    ->setScale(2)
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()->setUnquotedName('float_col')->setTypeName(Types::FLOAT)->setNotNull(false)->create(),
+                Column::editor()->setUnquotedName('dt_col')->setTypeName(Types::DATETIME_MUTABLE)->setNotNull(false)->create(),
+                Column::editor()->setUnquotedName('date_col')->setTypeName(Types::DATE_MUTABLE)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -325,13 +374,23 @@ class ComparatorTest extends FunctionalTestCase
      */
     private function buildTestTable(): Table
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('int_col', Types::INTEGER, ['default' => 0, 'notnull' => false]);
-        $table->addColumn('str_col', Types::STRING, ['length' => 100, 'default' => 'default_val', 'notnull' => false]);
-        $table->addColumn('nullable_col', Types::INTEGER, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
-
-        return $table;
+        return Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('int_col')->setTypeName(Types::INTEGER)->setDefaultValue(0)->setNotNull(false)->create(),
+                Column::editor()
+                    ->setUnquotedName('str_col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue('default_val')
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()->setUnquotedName('nullable_col')->setTypeName(Types::INTEGER)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
     }
 }

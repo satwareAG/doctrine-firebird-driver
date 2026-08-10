@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -36,10 +38,21 @@ class SchemaTest extends FunctionalTestCase
             self::markTestSkipped('DDL + introspect hangs on FB4+ due to implicit transaction commit');
         }
 
-        $table = new Table(self::TABLE_A);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('name', Types::STRING, ['length' => 100, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -54,9 +67,15 @@ class SchemaTest extends FunctionalTestCase
             self::markTestSkipped('DDL + introspect hangs on FB4+ due to implicit transaction commit');
         }
 
-        $table = new Table(self::TABLE_A);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -76,12 +95,16 @@ class SchemaTest extends FunctionalTestCase
         $tableA = $schema->createTable(self::TABLE_A);
         $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $tableA->addColumn('label', Types::STRING, ['length' => 100, 'notnull' => false]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
 
         $tableB = $schema->createTable(self::TABLE_B);
         $tableB->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $tableB->addColumn('a_id', Types::INTEGER, ['notnull' => false]);
-        $tableB->setPrimaryKey(['id']);
+        $tableB->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
         $tableB->addForeignKeyConstraint(self::TABLE_A, ['a_id'], ['id']);
 
         $schemaManager = $this->connection->createSchemaManager();
@@ -107,16 +130,24 @@ class SchemaTest extends FunctionalTestCase
         // Start with table A
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $schemaManager->createTable($tableA);
 
         // Migrate to add table B
         $schema = $schemaManager->introspectSchema();
         $tableB = $schema->createTable(self::TABLE_B);
         $tableB->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableB->setPrimaryKey(['id']);
+        $tableB->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
 
         $schemaManager->migrateSchema($schema);
 
@@ -132,13 +163,25 @@ class SchemaTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $tableB = new Table(self::TABLE_B);
-        $tableB->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableB->setPrimaryKey(['id']);
+        $tableB = Table::editor()
+            ->setUnquotedName(self::TABLE_B)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager->createTable($tableA);
         $schemaManager->createTable($tableB);
@@ -161,10 +204,21 @@ class SchemaTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->addColumn('old_col', Types::STRING, ['length' => 50, 'notnull' => false]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()
+                    ->setUnquotedName('old_col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $schemaManager->createTable($tableA);
 
         // Migrate: drop old_col, add new_col
@@ -191,9 +245,15 @@ class SchemaTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $schemaManager->createTable($tableA);
 
         $currentSchema = $schemaManager->introspectSchema();
@@ -202,7 +262,9 @@ class SchemaTest extends FunctionalTestCase
         $desiredSchema = clone $currentSchema;
         $tableB        = $desiredSchema->createTable(self::TABLE_B);
         $tableB->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableB->setPrimaryKey(['id']);
+        $tableB->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
 
         $diff = $schemaManager->createComparator()->compareSchemas($currentSchema, $desiredSchema);
 
@@ -219,13 +281,25 @@ class SchemaTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $tableB = new Table(self::TABLE_B);
-        $tableB->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableB->setPrimaryKey(['id']);
+        $tableB = Table::editor()
+            ->setUnquotedName(self::TABLE_B)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager->createTable($tableA);
         $schemaManager->createTable($tableB);
@@ -251,10 +325,21 @@ class SchemaTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableA->addColumn('name', Types::STRING, ['length' => 100, 'notnull' => false]);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $schemaManager->createTable($tableA);
 
         $schema1 = $schemaManager->introspectSchema();
@@ -277,19 +362,25 @@ class SchemaTest extends FunctionalTestCase
         $parent = $schema->createTable(self::TABLE_A);
         $parent->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $parent->addColumn('name', Types::STRING, ['length' => 100, 'notnull' => false]);
-        $parent->setPrimaryKey(['id']);
+        $parent->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
 
         $child = $schema->createTable(self::TABLE_B);
         $child->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $child->addColumn('parent_id', Types::INTEGER, ['notnull' => false]);
         $child->addColumn('data', Types::TEXT, ['notnull' => false]);
-        $child->setPrimaryKey(['id']);
+        $child->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
         $child->addForeignKeyConstraint(self::TABLE_A, ['parent_id'], ['id']);
 
         $grandchild = $schema->createTable(self::TABLE_C);
         $grandchild->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $grandchild->addColumn('child_id', Types::INTEGER, ['notnull' => false]);
-        $grandchild->setPrimaryKey(['id']);
+        $grandchild->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+        );
         $grandchild->addForeignKeyConstraint(self::TABLE_B, ['child_id'], ['id']);
 
         $schemaManager = $this->connection->createSchemaManager();

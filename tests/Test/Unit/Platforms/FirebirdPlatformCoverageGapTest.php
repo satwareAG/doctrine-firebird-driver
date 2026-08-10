@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -19,6 +20,8 @@ use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
+
+use function implode;
 
 /**
  * Targeted coverage tests for FirebirdPlatform uncovered code paths:
@@ -161,7 +164,7 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
     public function testGetCreateSequenceSQLDefaultInitialValue(): void
     {
-        $seq = new Sequence('my_seq');
+        $seq = Sequence::editor()->setUnquotedName('my_seq')->create();
         // Default initialValue=1 → simple CREATE SEQUENCE (name not uppercased by getQuotedName)
         $sql = $this->platform->getCreateSequenceSQL($seq);
         self::assertSame('CREATE SEQUENCE my_seq', $sql);
@@ -169,7 +172,11 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
     public function testGetCreateSequenceSQLWithCustomInitialValue(): void
     {
-        $seq = new Sequence('MY_SEQ', 1, 100); // allocationSize=1, initialValue=100
+        $seq = Sequence::editor()
+            ->setUnquotedName('MY_SEQ')
+            ->setAllocationSize(1)
+            ->setInitialValue(100)
+            ->create();
         $sql = $this->platform->getCreateSequenceSQL($seq);
 
         // Should use EXECUTE BLOCK + CREATE SEQUENCE + SET GENERATOR
@@ -180,7 +187,11 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
     public function testGetCreateSequenceSQLThrowsOnAllocationSizeGreaterThanOne(): void
     {
-        $seq = new Sequence('MY_SEQ', 5, 100); // allocationSize=5 → unsupported
+        $seq = Sequence::editor()
+            ->setUnquotedName('MY_SEQ')
+            ->setAllocationSize(5)
+            ->setInitialValue(100)
+            ->create();
 
         $this->expectException(NotSupported::class);
 
@@ -190,7 +201,12 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     public function testGetCreateSequenceSQLThrowsOnCacheNotNull(): void
     {
         // Create sequence with allocationSize=1, initialValue=5, cache=10
-        $seq = new Sequence('MY_SEQ', 1, 5, 10);
+        $seq = Sequence::editor()
+            ->setUnquotedName('MY_SEQ')
+            ->setAllocationSize(1)
+            ->setInitialValue(5)
+            ->setCacheSize(10)
+            ->create();
 
         $this->expectException(NotSupported::class);
 
@@ -204,10 +220,16 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     public function testGetCreateTableSQLWithBooleanColumnSmallInt(): void
     {
         // Base platform: bool column stored as SMALLINT
-        $table = new Table('test_bool_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('active', Types::BOOLEAN);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test_bool_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('active')->setTypeName(Types::BOOLEAN)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $sql = $this->platform->getCreateTableSQL($table);
 
@@ -220,8 +242,12 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     public function testGetCreateTableSQLWithBooleanColumnCharMode(): void
     {
         // Char-mode platform: bool column stored as CHAR(1)
-        $table = new Table('test_bool_char');
-        $table->addColumn('flag', Types::BOOLEAN);
+        $table = Table::editor()
+            ->setUnquotedName('test_bool_char')
+            ->setColumns(
+                Column::editor()->setUnquotedName('flag')->setTypeName(Types::BOOLEAN)->create(),
+            )
+            ->create();
 
         $sql = $this->charPlatform->getCreateTableSQL($table);
 
@@ -296,11 +322,29 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         // Old: VARCHAR(50) DEFAULT 'old_val' → New: VARCHAR(50) DEFAULT 'new_val'
         // Drives hasDefaultChanged() = true → SET DEFAULT branch (lines 691-695)
-        $old = new Table('alter_tbl');
-        $old->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'old_val']);
+        $old = Table::editor()
+            ->setUnquotedName('alter_tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('old_val')
+                    ->create(),
+            )
+            ->create();
 
-        $new = new Table('alter_tbl');
-        $new->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'new_val']);
+        $new = Table::editor()
+            ->setUnquotedName('alter_tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('new_val')
+                    ->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
         $diff       = $comparator->compareTables($old, $new);
@@ -315,11 +359,28 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         // Old: VARCHAR(50) DEFAULT 'old_val' → New: VARCHAR(50) no default
         // Drives hasDefaultChanged() = true → DROP DEFAULT branch (line 692)
-        $old = new Table('alter_tbl2');
-        $old->addColumn('col1', Types::STRING, ['length' => 50, 'default' => 'old_val']);
+        $old = Table::editor()
+            ->setUnquotedName('alter_tbl2')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('old_val')
+                    ->create(),
+            )
+            ->create();
 
-        $new = new Table('alter_tbl2');
-        $new->addColumn('col1', Types::STRING, ['length' => 50]);
+        $new = Table::editor()
+            ->setUnquotedName('alter_tbl2')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
         $diff       = $comparator->compareTables($old, $new);
@@ -340,19 +401,27 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // Drives hasAutoIncrementChanged() = true, newColumn->getAutoincrement() = true
         // Covers lines 709, 712, 714-717
         // The Comparator does not detect autoincrement changes, so we build the diff manually.
-        $intType = Type::getType(Types::INTEGER);
-
-        $oldCol = new Column('id', $intType);
+        $oldCol = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->create();
         // autoincrement defaults to false
 
-        $newCol = new Column('id', $intType);
-        $newCol->setAutoincrement(true);
+        $newCol = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->setAutoincrement(true)
+            ->create();
 
         // ColumnDiff(Column $oldColumn, Column $newColumn) in DBAL4
         $colDiff = new ColumnDiff($oldCol, $newCol);
 
-        $fromTable = new Table('autoinc_tbl');
-        $fromTable->addColumn('id', Types::INTEGER);
+        $fromTable = Table::editor()
+            ->setUnquotedName('autoinc_tbl')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $diff = new TableDiff($fromTable, [], [$colDiff]);
         $sql  = $this->platform->getAlterTableSQL($diff);
@@ -368,19 +437,31 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         // Drives hasAutoIncrementChanged() = true, newColumn->getAutoincrement() = false
         // Covers lines 720-721 (DROP DEFAULT path)
         // The Comparator does not detect autoincrement changes, so we build the diff manually.
-        $intType = Type::getType(Types::INTEGER);
+        $oldCol = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->setAutoincrement(true)
+            ->create();
 
-        $oldCol = new Column('id', $intType);
-        $oldCol->setAutoincrement(true);
-
-        $newCol = new Column('id', $intType);
+        $newCol = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->create();
         // autoincrement defaults to false → DROP DEFAULT path
 
         // ColumnDiff(Column $oldColumn, Column $newColumn) in DBAL4
         $colDiff = new ColumnDiff($oldCol, $newCol);
 
-        $fromTable = new Table('autoinc_drop_tbl');
-        $fromTable->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+        $fromTable = Table::editor()
+            ->setUnquotedName('autoinc_drop_tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
 
         $diff = new TableDiff($fromTable, [], [$colDiff]);
         $sql  = $this->platform->getAlterTableSQL($diff);
@@ -397,11 +478,27 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
     {
         // Old: VARCHAR(50) → New: VARCHAR(200)
         // Drives hasLengthChanged() = true → covers the ALTER TYPE block at 742-744
-        $old = new Table('len_tbl');
-        $old->addColumn('col1', Types::STRING, ['length' => 50]);
+        $old = Table::editor()
+            ->setUnquotedName('len_tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->create(),
+            )
+            ->create();
 
-        $new = new Table('len_tbl');
-        $new->addColumn('col1', Types::STRING, ['length' => 200]);
+        $new = Table::editor()
+            ->setUnquotedName('len_tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(200)
+                    ->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
         $diff       = $comparator->compareTables($old, $new);
@@ -507,7 +604,7 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
         //   $sql[] = $this->getCreateSequenceSQL($column['sequence']);
         $method = new ReflectionMethod(FirebirdPlatform::class, '_getCreateTableSQL');
 
-        $seq        = new Sequence('MY_SEQ');
+        $seq        = Sequence::editor()->setUnquotedName('MY_SEQ')->create();
         $columnData = [
             'name'             => 'id',
             'type'             => Type::getType(Types::INTEGER),
@@ -556,5 +653,4 @@ final class FirebirdPlatformCoverageGapTest extends TestCase
 
         self::assertInstanceOf(Identifier::class, $result);
     }
-
 }

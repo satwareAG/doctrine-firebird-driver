@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -27,10 +29,16 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testIntegerDefaultZero(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => 0]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('col')->setTypeName(Types::INTEGER)->setDefaultValue(0)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -42,10 +50,16 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testIntegerDefaultPositive(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => 42]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('col')->setTypeName(Types::INTEGER)->setDefaultValue(42)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -56,10 +70,16 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testIntegerDefaultNegative(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => -1]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('col')->setTypeName(Types::INTEGER)->setDefaultValue(-1)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -73,10 +93,21 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testStringDefaultValue(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::STRING, ['length' => 100, 'default' => 'hello']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue('hello')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -87,10 +118,21 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testStringDefaultEmpty(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::STRING, ['length' => 100, 'default' => '']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue('')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -101,10 +143,21 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testStringDefaultWithSpaces(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::STRING, ['length' => 100, 'default' => 'expected default']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue('expected default')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -118,10 +171,22 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testNullDefaultIsNull(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::STRING, ['length' => 100, 'default' => null, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue(null)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -132,10 +197,16 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testNoDefaultIsNull(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('col')->setTypeName(Types::INTEGER)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -149,10 +220,22 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testDecimalDefault(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::DECIMAL, ['precision' => 10, 'scale' => 2, 'default' => '10.50']);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::DECIMAL)
+                    ->setPrecision(10)
+                    ->setScale(2)
+                    ->setDefaultValue('10.50')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -168,12 +251,29 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testDefaultValueRoundtripNoFalsePositiveDiff(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('int_col', Types::INTEGER, ['default' => 0]);
-        $table->addColumn('str_col', Types::STRING, ['length' => 255, 'default' => 'foo', 'notnull' => false]);
-        $table->addColumn('nullable_col', Types::INTEGER, ['default' => null, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('int_col')->setTypeName(Types::INTEGER)->setDefaultValue(0)->create(),
+                Column::editor()
+                    ->setUnquotedName('str_col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setDefaultValue('foo')
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('nullable_col')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(null)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -187,11 +287,23 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testDefaultValueRoundtripGenericComparator(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('int_col', Types::INTEGER, ['default' => 42]);
-        $table->addColumn('str_col', Types::STRING, ['length' => 100, 'default' => 'bar', 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+                Column::editor()->setUnquotedName('int_col')->setTypeName(Types::INTEGER)->setDefaultValue(42)->create(),
+                Column::editor()
+                    ->setUnquotedName('str_col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(100)
+                    ->setDefaultValue('bar')
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -208,10 +320,21 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testAlterColumnDefaultFromValueToNull(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => 99, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(99)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -234,10 +357,21 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testAlterColumnDefaultFromNullToValue(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => null, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(null)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -260,10 +394,22 @@ class DefaultValueTest extends FunctionalTestCase
 
     public function testAlterColumnDefaultFromValueToAnotherValue(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::STRING, ['length' => 50, 'default' => 'old_default', 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->setDefaultValue('old_default')
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
@@ -284,10 +430,21 @@ class DefaultValueTest extends FunctionalTestCase
      */
     public function testDefaultValueAppliedOnInsert(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('col', Types::INTEGER, ['default' => 55, 'notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()
+                    ->setUnquotedName('col')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(55)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createTable($table);
