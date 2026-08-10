@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Query;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -86,16 +88,28 @@ final class ForUpdateWithLockPositionTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table1 = new Table('test_table');
-        $table1->addColumn('id', Types::INTEGER);
-        $table1->setPrimaryKey(['id']);
+        $table1 = Table::editor()
+            ->setUnquotedName('test_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table1);
 
-        $table2 = new Table('messenger_messages');
-        $table2->addColumn('id', Types::INTEGER);
-        $table2->addColumn('available_at', Types::DATETIME_MUTABLE);
-        $table2->setPrimaryKey(['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('messenger_messages')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('available_at')->setTypeName(Types::DATETIME_MUTABLE)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table2);
 

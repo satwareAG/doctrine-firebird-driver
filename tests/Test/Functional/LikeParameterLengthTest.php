@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 
@@ -168,11 +170,17 @@ final class LikeParameterLengthTest extends FunctionalTestCase
         $this->table = 'likeparam_' . uniqid();
 
         // Create test table with small VARCHAR field
-        $table = new Table($this->table);
-        $table->addColumn('id', 'integer');
-        $table->addColumn('auftragnr', 'string', ['length' => 10]); // Small field
-        $table->addColumn('name', 'string', ['length' => 50]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName($this->table)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName('integer')->create(),
+                Column::editor()->setUnquotedName('auftragnr')->setTypeName('string')->setLength(10)->create(),
+                Column::editor()->setUnquotedName('name')->setTypeName('string')->setLength(50)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

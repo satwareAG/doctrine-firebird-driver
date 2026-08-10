@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -21,8 +22,12 @@ class BooleanTest extends FunctionalTestCase
             $this->connection->getDatabasePlatform()->setCharFalse($charFalse);
         }
 
-        $table = new Table('boolean_table');
-        $table->addColumn('bool', Types::BOOLEAN);
+        $table = Table::editor()
+            ->setUnquotedName('boolean_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('bool')->setTypeName(Types::BOOLEAN)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         $result = $this->connection->insert('boolean_table', ['bool' => $boolValue], [Types::BOOLEAN]);

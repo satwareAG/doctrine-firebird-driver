@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform\LockMode;
 
 use Doctrine\DBAL\LockMode;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -63,10 +65,16 @@ class NoneTest extends FunctionalTestCase
     {
         parent::setUp();
 
-        $table = new Table('lock_none_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::STRING, ['length' => 50]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('lock_none_test')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::STRING)->setLength(50)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         $this->connection->insert('lock_none_test', ['id' => 1, 'val' => 'test']);

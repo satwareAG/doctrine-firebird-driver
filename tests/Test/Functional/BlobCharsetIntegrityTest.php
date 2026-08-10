@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -123,10 +125,16 @@ class BlobCharsetIntegrityTest extends FunctionalTestCase
         }
 
         if (! $tableReady) {
-            $table = new Table('blob_charset_test');
-            $table->addColumn('id', Types::INTEGER);
-            $table->addColumn('data', Types::BLOB);
-            $table->setPrimaryKey(['id']);
+            $table = Table::editor()
+                ->setUnquotedName('blob_charset_test')
+                ->setColumns(
+                    Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('data')->setTypeName(Types::BLOB)->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+                )
+                ->create();
             $this->dropAndCreateTable($table);
         }
 

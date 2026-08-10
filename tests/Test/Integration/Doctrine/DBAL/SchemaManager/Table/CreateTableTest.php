@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\SchemaManager\Table;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\StringType;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
@@ -25,8 +26,12 @@ class CreateTableTest extends AbstractIntegrationTestCase
         $sm         = $connection->createSchemaManager();
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName('string')->setNotNull(false)->setLength(255)->create(),
+            )
+            ->create();
         $sm->createTable($table);
         self::assertTrue($sm->tablesExist([$tableName]));
         $foundColumns = $sm->listTableColumns($tableName);

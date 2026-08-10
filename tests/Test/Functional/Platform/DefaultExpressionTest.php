@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -50,9 +51,13 @@ class DefaultExpressionTest extends FunctionalTestCase
         $platform   = $this->connection->getDatabasePlatform();
         $defaultSql = $expression($platform, $this);
 
-        $table = new Table($this->table);
-        $table->addColumn('actual_value', $type);
-        $table->addColumn('default_value', $type, ['default' => $defaultSql]);
+        $table = Table::editor()
+            ->setUnquotedName($this->table)
+            ->setColumns(
+                Column::editor()->setUnquotedName('actual_value')->setTypeName($type)->create(),
+                Column::editor()->setUnquotedName('default_value')->setTypeName($type)->setDefaultValue($defaultSql)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         $this->connection->executeStatement(

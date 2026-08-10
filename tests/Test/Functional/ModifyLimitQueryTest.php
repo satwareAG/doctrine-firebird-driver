@@ -7,6 +7,8 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -186,14 +188,26 @@ SQL;
         $this->table  = 'modify_limit_' . uniqid();
         $this->table2 = 'modify_limit2_' . uniqid();
 
-        $table = new Table($this->table);
-        $table->addColumn('test_int', Types::INTEGER);
-        $table->setPrimaryKey(['test_int']);
+        $table = Table::editor()
+            ->setUnquotedName($this->table)
+            ->setColumns(
+                Column::editor()->setUnquotedName('test_int')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('test_int')->create(),
+            )
+            ->create();
 
-        $table2 = new Table($this->table2);
-        $table2->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table2->addColumn('test_int', Types::INTEGER);
-        $table2->setPrimaryKey(['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName($this->table2)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+                Column::editor()->setUnquotedName('test_int')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
         $this->dropAndCreateTable($table2);

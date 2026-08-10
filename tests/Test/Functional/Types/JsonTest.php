@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -50,11 +52,16 @@ class JsonTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('json_test_table');
-        $table->addColumn('id', Types::INTEGER);
-
-        $table->addColumn('val', Types::JSON);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('json_test_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::JSON)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
     }

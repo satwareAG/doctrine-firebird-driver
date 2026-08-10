@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -89,14 +91,26 @@ class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
         $setupConn     = TestUtil::getConnection();
         $schemaManager = $setupConn->createSchemaManager();
 
-        $parent = new Table($this->tableParent);
-        $parent->addColumn('id', Types::INTEGER);
-        $parent->setPrimaryKey(['id']);
+        $parent = Table::editor()
+            ->setUnquotedName($this->tableParent)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $child = new Table($this->tableChild);
-        $child->addColumn('id', Types::INTEGER);
-        $child->addColumn('parent_id', Types::INTEGER);
-        $child->setPrimaryKey(['id']);
+        $child = Table::editor()
+            ->setUnquotedName($this->tableChild)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('parent_id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $child->addForeignKeyConstraint($parent->getName(), ['parent_id'], ['id']);
 
         $schemaManager->createTable($parent);

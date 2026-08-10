@@ -6,6 +6,8 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -173,11 +175,17 @@ class NamedParametersTest extends FunctionalTestCase
         }
 
         try {
-            $table = new Table('ddc1372_foobar');
-            $table->addColumn('id', Types::INTEGER);
-            $table->addColumn('foo', Types::STRING);
-            $table->addColumn('bar', Types::STRING);
-            $table->setPrimaryKey(['id']);
+            $table = Table::editor()
+                ->setUnquotedName('ddc1372_foobar')
+                ->setColumns(
+                    Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('foo')->setTypeName(Types::STRING)->create(),
+                    Column::editor()->setUnquotedName('bar')->setTypeName(Types::STRING)->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+                )
+                ->create();
 
             $sm = $this->connection->createSchemaManager();
             $sm->createTable($table);

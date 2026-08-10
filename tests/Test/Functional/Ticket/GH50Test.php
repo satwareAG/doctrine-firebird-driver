@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Ticket;
 
 use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
@@ -43,9 +45,15 @@ class GH50Test extends FunctionalTestCase
         }
 
         // Create first table and insert data
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($tableA);
         $this->connection->insert(self::TABLE_A, ['id' => 1]);
@@ -55,9 +63,15 @@ class GH50Test extends FunctionalTestCase
         self::assertSame('1', (string) $count);
 
         // CREATE TABLE B must not deadlock even though table A lock is held
-        $tableB = new Table(self::TABLE_B);
-        $tableB->addColumn('id', Types::INTEGER);
-        $tableB->setPrimaryKey(['id']);
+        $tableB = Table::editor()
+            ->setUnquotedName(self::TABLE_B)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         try {
             $schemaManager = $this->connection->createSchemaManager();
@@ -87,13 +101,25 @@ class GH50Test extends FunctionalTestCase
         }
 
         // Create both tables
-        $tableA = new Table(self::TABLE_A);
-        $tableA->addColumn('id', Types::INTEGER);
-        $tableA->setPrimaryKey(['id']);
+        $tableA = Table::editor()
+            ->setUnquotedName(self::TABLE_A)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
-        $tableB = new Table(self::TABLE_B);
-        $tableB->addColumn('id', Types::INTEGER);
-        $tableB->setPrimaryKey(['id']);
+        $tableB = Table::editor()
+            ->setUnquotedName(self::TABLE_B)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($tableA);
         $this->dropAndCreateTable($tableB);
@@ -136,9 +162,15 @@ class GH50Test extends FunctionalTestCase
 
         // Create, insert, select, drop — repeated to verify no lock accumulation
         for ($i = 1; $i <= 3; $i++) {
-            $table = new Table(self::TABLE_A);
-            $table->addColumn('id', Types::INTEGER);
-            $table->setPrimaryKey(['id']);
+            $table = Table::editor()
+                ->setUnquotedName(self::TABLE_A)
+                ->setColumns(
+                    Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+                )
+                ->create();
 
             try {
                 $this->dropAndCreateTable($table);

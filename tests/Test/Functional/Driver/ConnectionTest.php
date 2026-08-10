@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
@@ -20,9 +21,13 @@ class ConnectionTest extends FunctionalTestCase
      */
     public function testLastInsertIdAcceptsFqn(): void
     {
-        $table = new Table('DBAL2595');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('foo', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName('DBAL2595')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

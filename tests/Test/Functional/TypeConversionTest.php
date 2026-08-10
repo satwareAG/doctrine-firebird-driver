@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use DateTime;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -119,8 +121,15 @@ class TypeConversionTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('type_conversion');
-        $table->addColumn('id', Types::INTEGER, ['notnull' => false]);
+        $table = Table::editor()
+            ->setUnquotedName('type_conversion')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addColumn('test_string', Types::STRING, ['notnull' => false]);
         $table->addColumn('test_boolean', Types::BOOLEAN, ['notnull' => false]);
         $table->addColumn('test_bigint', Types::BIGINT, ['notnull' => false]);
@@ -133,7 +142,6 @@ class TypeConversionTest extends FunctionalTestCase
         $table->addColumn('test_json', Types::JSON, ['notnull' => false]);
         $table->addColumn('test_float', Types::FLOAT, ['notnull' => false]);
         $table->addColumn('test_decimal', Types::DECIMAL, ['notnull' => false, 'scale' => 2, 'precision' => 10]);
-        $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
     }

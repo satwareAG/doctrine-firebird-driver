@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -27,9 +29,15 @@ class PlatformRestrictionsTest extends FunctionalTestCase
     {
         $platform   = $this->connection->getDatabasePlatform();
         $columnName = str_repeat('y', $platform->getMaxIdentifierLength());
-        $table      = new Table($this->table);
-        $table->addColumn($columnName, Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey([$columnName]);
+        $table      = Table::editor()
+            ->setUnquotedName($this->table)
+            ->setColumns(
+                Column::editor()->setUnquotedName($columnName)->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames($columnName)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
         $createdTable = $this->connection->createSchemaManager()->introspectTable($this->table);
 

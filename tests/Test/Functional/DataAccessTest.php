@@ -8,6 +8,8 @@ use DateTime;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\TrimMode;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
@@ -383,10 +385,16 @@ class DataAccessTest extends FunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        $table = new Table('fetch_table_date_math');
-        $table->addColumn('test_date', Types::DATE_MUTABLE);
-        $table->addColumn('test_days', Types::INTEGER);
-        $table->setPrimaryKey(['test_date']);
+        $table = Table::editor()
+            ->setUnquotedName('fetch_table_date_math')
+            ->setColumns(
+                Column::editor()->setUnquotedName('test_date')->setTypeName(Types::DATE_MUTABLE)->create(),
+                Column::editor()->setUnquotedName('test_days')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('test_date')->create(),
+            )
+            ->create();
 
         $sm = $this->connection->createSchemaManager();
         $this->dropTableIfExists('fetch_table_date_math');
@@ -459,11 +467,17 @@ class DataAccessTest extends FunctionalTestCase
             // Ignore if not exists
         }
 
-        $table = new Table('fetch_table_shared');
-        $table->addColumn('test_int', Types::INTEGER);
-        $table->addColumn('test_string', Types::STRING);
-        $table->addColumn('test_datetime', Types::DATETIME_MUTABLE, ['notnull' => false]);
-        $table->setPrimaryKey(['test_int']);
+        $table = Table::editor()
+            ->setUnquotedName('fetch_table_shared')
+            ->setColumns(
+                Column::editor()->setUnquotedName('test_int')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('test_string')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setUnquotedName('test_datetime')->setTypeName(Types::DATETIME_MUTABLE)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('test_int')->create(),
+            )
+            ->create();
 
         $sm->createTable($table);
         $conn->close();

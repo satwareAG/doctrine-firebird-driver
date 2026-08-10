@@ -8,6 +8,7 @@ use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
@@ -397,10 +398,14 @@ class BlobBinaryCharsetTest extends FunctionalTestCase
             return;
         }
 
-        $table = new Table(self::TABLE_NAME);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('binary_blob', Types::BLOB);
-        $table->addColumn('text_blob', Types::TEXT);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE_NAME)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('binary_blob')->setTypeName(Types::BLOB)->create(),
+                Column::editor()->setUnquotedName('text_blob')->setTypeName(Types::TEXT)->create(),
+            )
+            ->create();
         $table->addPrimaryKeyConstraint(
             PrimaryKeyConstraint::editor()
                 ->setUnquotedColumnNames('id')

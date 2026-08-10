@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Ticket;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -34,10 +36,16 @@ class GH23Test extends FunctionalTestCase
      */
     public function testFetchAssociativeReturnsUnpaddedKeys(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('name', Types::STRING, ['length' => 50]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('name')->setTypeName(Types::STRING)->setLength(50)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
         $this->connection->insert(self::TABLE, ['id' => 1, 'name' => 'test']);
@@ -87,10 +95,16 @@ class GH23Test extends FunctionalTestCase
      */
     public function testFetchAllAssociativeReturnsUnpaddedKeys(): void
     {
-        $table = new Table(self::TABLE);
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::STRING, ['length' => 20]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName(self::TABLE)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::STRING)->setLength(20)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
         $this->connection->insert(self::TABLE, ['id' => 1, 'val' => 'a']);

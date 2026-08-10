@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BooleanType;
 use Doctrine\DBAL\Types\Types;
@@ -57,9 +59,15 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
         $this->schemaManager->dropTable('table_to_drop');
 
         // Create new table
-        $tableToCreate = new Table('table_to_create');
-        $tableToCreate->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $tableToCreate->setPrimaryKey(['id']);
+        $tableToCreate = Table::editor()
+            ->setUnquotedName('table_to_create')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setNotNull(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $this->dropTableIfExists('table_to_create');
         $this->schemaManager->createTable($tableToCreate);
 
@@ -79,9 +87,13 @@ class Firebird3SchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testGetBooleanColumn(): void
     {
-        $table = new Table('boolean_column_test');
-        $table->addColumn('bool', Types::BOOLEAN);
-        $table->addColumn('bool_commented', Types::BOOLEAN, ['comment' => "That's a comment"]);
+        $table = Table::editor()
+            ->setUnquotedName('boolean_column_test')
+            ->setColumns(
+                Column::editor()->setUnquotedName('bool')->setTypeName(Types::BOOLEAN)->create(),
+                Column::editor()->setUnquotedName('bool_commented')->setTypeName(Types::BOOLEAN)->setComment("That's a comment")->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

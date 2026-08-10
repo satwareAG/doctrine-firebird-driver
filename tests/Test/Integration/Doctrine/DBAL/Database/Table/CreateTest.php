@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Integration\Doctrine\DBAL\Database\Table;
 
 use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Test\Integration\AbstractIntegrationTestCase;
@@ -27,8 +29,12 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('foo', 'string', ['notnull' => false, 'length' => 255]);
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName('string')->setNotNull(false)->setLength(255)->create(),
+            )
+            ->create();
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(1, $statements);
         foreach ($statements as $statement) {
@@ -46,9 +52,15 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('id', 'integer', ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName('integer')->setAutoincrement(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $statements = $this->_platform->getCreateTableSQL($table);
         if ($this->_platform instanceof Firebird3Platform) {
             self::assertCount(1, $statements);
@@ -78,9 +90,15 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('id', 'integer', ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName('integer')->setAutoincrement(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $statements = $this->_platform->getCreateTableSQL($table);
         if ($this->_platform instanceof Firebird3Platform) {
             self::assertCount(1, $statements);
@@ -132,8 +150,12 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('foo', 'integer');
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName('integer')->create(),
+            )
+            ->create();
         $table->addIndex(['foo']);
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
@@ -191,8 +213,12 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
-        $table->addColumn('foo', 'integer');
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName('integer')->create(),
+            )
+            ->create();
         $table->addUniqueIndex(['foo']);
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
@@ -224,9 +250,13 @@ class CreateTest extends AbstractIntegrationTestCase
         $connection = $this->connection;
         $tableName  = strtoupper('TABLE_' . substr(md5(self::class . ':' . __FUNCTION__), 0, 12));
         $this->dropTableIfExists($tableName);
-        $table      = new Table($tableName);
         $comment    = 'Lorem ipsum';
-        $table->addColumn('foo', 'integer', ['comment' => $comment]);
+        $table = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName('integer')->setComment($comment)->create(),
+            )
+            ->create();
         $statements = $this->_platform->getCreateTableSQL($table);
         self::assertCount(2, $statements);
         foreach ($statements as $statement) {

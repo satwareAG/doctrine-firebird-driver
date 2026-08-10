@@ -35,14 +35,18 @@ class AlterTest extends AbstractIntegrationTestCase
         $sql        = "CREATE TABLE {$tableName} (foo INTEGER DEFAULT 0 NOT NULL)";
         $connection->executeStatement($sql);
 
-        $oldTable = new Table($tableName);
-        $oldTable->addColumn('foo', Types::INTEGER, ['default' => 0, 'notnull' => true]);
+        $oldTable = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->setDefaultValue(0)->setNotNull(true)->create(),
+            )
+            ->create();
         $tableDiff = new TableDiff(
             $oldTable,
             changedColumns: [
                 new ColumnDiff(
-                    new Column('foo', Type::getType(Types::INTEGER), ['default' => 0, 'notnull' => true]),
-                    new Column('foo', Type::getType('string')),
+                    Column::editor()->setUnquotedName('foo')->setTypeName(Types::INTEGER)->setDefaultValue(0)->setNotNull(true)->create(),
+                    Column::editor()->setUnquotedName('foo')->setTypeName('string')->create(),
                 ),
             ],
         );

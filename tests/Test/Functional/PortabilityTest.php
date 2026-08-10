@@ -8,6 +8,8 @@ use Doctrine\DBAL\ColumnCase;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Portability\Connection;
 use Doctrine\DBAL\Portability\Middleware;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -179,11 +181,17 @@ class PortabilityTest extends FunctionalTestCase
 
     private function createTable(): void
     {
-        $table = new Table('portability_table');
-        $table->addColumn('Test_Int', Types::INTEGER);
-        $table->addColumn('Test_String', Types::STRING, ['fixed' => true, 'length' => 32]);
-        $table->addColumn('Test_Null', Types::STRING, ['notnull' => false]);
-        $table->setPrimaryKey(['Test_Int']);
+        $table = Table::editor()
+            ->setUnquotedName('portability_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('Test_Int')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('Test_String')->setTypeName(Types::STRING)->setFixed(true)->setLength(32)->create(),
+                Column::editor()->setUnquotedName('Test_Null')->setTypeName(Types::STRING)->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('Test_Int')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

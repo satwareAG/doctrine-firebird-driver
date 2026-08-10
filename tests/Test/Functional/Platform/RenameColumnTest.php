@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -20,9 +21,13 @@ class RenameColumnTest extends FunctionalTestCase
     #[DataProvider('columnNameProvider')]
     public function testColumnPositionRetainedAfterRenaming(string $columnName, string $newColumnName): void
     {
-        $table = new Table($this->table);
-        $table->addColumn($columnName, Types::STRING);
-        $table->addColumn('c2', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName($this->table)
+            ->setColumns(
+                Column::editor()->setUnquotedName($columnName)->setTypeName(Types::STRING)->create(),
+                Column::editor()->setUnquotedName('c2')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

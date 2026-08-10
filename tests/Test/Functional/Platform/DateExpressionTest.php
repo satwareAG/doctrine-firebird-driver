@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Iterator;
@@ -24,9 +25,13 @@ class DateExpressionTest extends FunctionalTestCase
     public function testDifference(string $date1, string $date2, int $expected): void
     {
         $tableName = 'date_expr_test' . uniqid();
-        $table     = new Table($tableName);
-        $table->addColumn('date1', Types::DATETIME_MUTABLE);
-        $table->addColumn('date2', Types::DATETIME_MUTABLE);
+        $table     = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('date1')->setTypeName(Types::DATETIME_MUTABLE)->create(),
+                Column::editor()->setUnquotedName('date2')->setTypeName(Types::DATETIME_MUTABLE)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
         $this->connection->insert($tableName, [
             'date1' => $date1,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\Schema\Comparator;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -35,13 +36,20 @@ final class Firebird3PlatformCoverageGapTest extends TestCase
      */
     public function testGetAlterTableSQLWithDroppedColumn(): void
     {
-        $old = new Table('drop_col_tbl');
-        $old->addColumn('id', Types::INTEGER);
-        $old->addColumn('col_to_drop', Types::STRING, ['length' => 50]);
+        $old = Table::editor()
+            ->setUnquotedName('drop_col_tbl')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('col_to_drop')->setTypeName(Types::STRING)->setLength(50)->create(),
+            )
+            ->create();
 
-        $new = new Table('drop_col_tbl');
-        $new->addColumn('id', Types::INTEGER);
-        // col_to_drop is absent in the new table → triggers dropped-column path
+        $new = Table::editor()
+            ->setUnquotedName('drop_col_tbl')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
         $diff       = $comparator->compareTables($old, $new);
@@ -62,11 +70,19 @@ final class Firebird3PlatformCoverageGapTest extends TestCase
      */
     public function testGetAlterTableSQLWithModifiedColumn(): void
     {
-        $old = new Table('mod_col_tbl');
-        $old->addColumn('col1', Types::STRING, ['length' => 50]);
+        $old = Table::editor()
+            ->setUnquotedName('mod_col_tbl')
+            ->setColumns(
+                Column::editor()->setUnquotedName('col1')->setTypeName(Types::STRING)->setLength(50)->create(),
+            )
+            ->create();
 
-        $new = new Table('mod_col_tbl');
-        $new->addColumn('col1', Types::STRING, ['length' => 100]);
+        $new = Table::editor()
+            ->setUnquotedName('mod_col_tbl')
+            ->setColumns(
+                Column::editor()->setUnquotedName('col1')->setTypeName(Types::STRING)->setLength(100)->create(),
+            )
+            ->create();
 
         $comparator = new Comparator($this->platform);
         $diff       = $comparator->compareTables($old, $new);

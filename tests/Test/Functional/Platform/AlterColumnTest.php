@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -16,9 +17,13 @@ class AlterColumnTest extends FunctionalTestCase
 {
     public function testColumnPositionRetainedAfterAltering(): void
     {
-        $table = new Table('test_alter');
-        $table->addColumn('c1', Types::INTEGER);
-        $table->addColumn('c2', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName('test_alter')
+            ->setColumns(
+                Column::editor()->setUnquotedName('c1')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('c2')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

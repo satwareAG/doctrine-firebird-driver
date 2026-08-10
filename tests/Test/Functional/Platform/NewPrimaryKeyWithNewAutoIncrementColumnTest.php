@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -57,10 +59,16 @@ class NewPrimaryKeyWithNewAutoIncrementColumnTest extends FunctionalTestCase
     public function testSequenceCreatedForAutoIncrementColumn(): void
     {
         // Create table with autoincrement PK from the start
-        $table = new Table('npk_seq_table');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('val', Types::STRING, ['length' => 20]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('npk_seq_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::STRING)->setLength(20)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         // Insert rows — autoincrement should work

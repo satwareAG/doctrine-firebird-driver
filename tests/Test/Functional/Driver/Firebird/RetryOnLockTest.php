@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Driver\Firebird;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
@@ -99,8 +100,12 @@ class RetryOnLockTest extends FunctionalTestCase
             // Ignore
         }
 
-        $table = new Table($this->tableName);
-        $table->addColumn('id', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName($this->tableName)
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->create();
         $schemaManager->createTable($table);
         $this->connection->insert($this->tableName, ['id' => 1]);
     }

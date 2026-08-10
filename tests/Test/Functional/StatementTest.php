@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -38,9 +39,13 @@ class StatementTest extends FunctionalTestCase
 
     public function testReuseStatementWithLongerResults(): void
     {
-        $table = new Table('stmt_longer_results');
-        $table->addColumn('param', Types::STRING);
-        $table->addColumn('val', Types::TEXT);
+        $table = Table::editor()
+            ->setUnquotedName('stmt_longer_results')
+            ->setColumns(
+                Column::editor()->setUnquotedName('param')->setTypeName(Types::STRING)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::TEXT)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         $row1 = [
@@ -75,8 +80,12 @@ class StatementTest extends FunctionalTestCase
         $oldLimit = ini_set('memory_limit', '4G');
 
         try {
-            $table = new Table('stmt_long_blob');
-            $table->addColumn('contents', Types::BLOB, ['length' => 0xFFFFFFFF]);
+            $table = Table::editor()
+                ->setUnquotedName('stmt_long_blob')
+                ->setColumns(
+                    Column::editor()->setUnquotedName('contents')->setTypeName(Types::BLOB)->setLength(0xFFFFFFFF)->create(),
+                )
+                ->create();
             $this->dropAndCreateTable($table);
 
             $contents = base64_decode(<<<'EOF'
@@ -301,9 +310,13 @@ EOF
 
     protected function setUp(): void
     {
-        $table = new Table('stmt_test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('name', Types::TEXT, ['notnull' => false]);
+        $table = Table::editor()
+            ->setUnquotedName('stmt_test')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('name')->setTypeName(Types::TEXT)->setNotNull(false)->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
     }
 

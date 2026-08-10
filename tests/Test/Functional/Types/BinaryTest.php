@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -39,13 +41,16 @@ class BinaryTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('binary_table');
-        $table->addColumn('id', Types::BINARY, [
-            'length' => 16,
-            'fixed' => true,
-        ]);
-        $table->addColumn('val', Types::BINARY, ['length' => 64]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('binary_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::BINARY)->setLength(16)->setFixed(true)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::BINARY)->setLength(64)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
     }

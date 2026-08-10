@@ -53,11 +53,27 @@ class AlterColumnsTest extends AbstractIntegrationTestCase
         self::assertCount(1, $columns);
         self::assertTrue($oldTable->hasColumn('foo'), 'Column foo not found in table');
         $previousColumn  = $oldTable->getColumn('foo');
-        $replacingColumn = new Column(
-            'foo',
-            Type::getType($columnTypeName),
-            $options,
-        );
+        $columnEditor    = Column::editor()
+            ->setUnquotedName('foo')
+            ->setTypeName($columnTypeName);
+
+        if (isset($options['notnull'])) {
+            $columnEditor = $columnEditor->setNotNull($options['notnull']);
+        }
+
+        if (isset($options['length'])) {
+            $columnEditor = $columnEditor->setLength($options['length']);
+        }
+
+        if (array_key_exists('default', $options)) {
+            $columnEditor = $columnEditor->setDefaultValue($options['default']);
+        }
+
+        if (isset($options['fixed'])) {
+            $columnEditor = $columnEditor->setFixed($options['fixed']);
+        }
+
+        $replacingColumn = $columnEditor->create();
 
         $tableDiff  = new TableDiff(
             $oldTable,

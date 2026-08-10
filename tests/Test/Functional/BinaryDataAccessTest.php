@@ -6,6 +6,8 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -347,10 +349,16 @@ class BinaryDataAccessTest extends FunctionalTestCase
         }
 
         if (! $tableReady) {
-            $table = new Table('binary_fetch_table');
-            $table->addColumn('test_int', 'integer');
+            $table = Table::editor()
+                ->setUnquotedName('binary_fetch_table')
+                ->setColumns(
+                    Column::editor()->setUnquotedName('test_int')->setTypeName('integer')->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()->setUnquotedColumnNames('test_int')->create(),
+                )
+                ->create();
             $table->addColumn('test_binary', 'binary', ['notnull' => false, 'length' => 4]);
-            $table->setPrimaryKey(['test_int']);
 
             $this->dropAndCreateTable($table);
         }

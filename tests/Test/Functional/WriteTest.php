@@ -7,6 +7,8 @@ namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 use DateTime;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
@@ -155,7 +157,7 @@ class WriteTest extends FunctionalTestCase
             self::markTestSkipped('Test only works on platforms with sequences.');
         }
 
-        $sequence = new Sequence('write_table_id_seq');
+        $sequence = Sequence::editor()->setUnquotedName('write_table_id_seq')->create();
         try {
             $this->connection->createSchemaManager()->createSequence($sequence);
         } catch (Throwable) {
@@ -277,9 +279,15 @@ class WriteTest extends FunctionalTestCase
             );
         }
 
-        $table = new Table('test_empty_identity');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test_empty_identity')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         try {
             $this->connection->createSchemaManager()->dropTable($table->getQuotedName($platform));
@@ -350,11 +358,17 @@ class WriteTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('write_table');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+        $table = Table::editor()
+            ->setUnquotedName('write_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->setAutoincrement(true)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addColumn('test_int', Types::INTEGER);
         $table->addColumn('test_string', Types::STRING, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
 

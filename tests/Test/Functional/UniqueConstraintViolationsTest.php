@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -26,9 +28,15 @@ class UniqueConstraintViolationsTest extends FunctionalTestCase
 
     public function testInsertDuplicatePrimaryKey(): void
     {
-        $table = new Table('ucv_pk_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('ucv_pk_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $this->dropAndCreateTable($table);
 
         $this->connection->insert('ucv_pk_table', ['id' => 1]);
@@ -39,10 +47,16 @@ class UniqueConstraintViolationsTest extends FunctionalTestCase
 
     public function testInsertDuplicateUniqueIndex(): void
     {
-        $table = new Table('ucv_uidx_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('val', Types::INTEGER);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('ucv_uidx_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::INTEGER)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addUniqueIndex(['val']);
         $this->dropAndCreateTable($table);
 
@@ -54,10 +68,16 @@ class UniqueConstraintViolationsTest extends FunctionalTestCase
 
     public function testInsertDuplicateUniqueConstraint(): void
     {
-        $table = new Table('ucv_ucon_table');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('email', Types::STRING, ['length' => 100]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('ucv_ucon_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                Column::editor()->setUnquotedName('email')->setTypeName(Types::STRING)->setLength(100)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
         $table->addUniqueConstraint(['email'], 'uq_ucv_email');
         $this->dropAndCreateTable($table);
 

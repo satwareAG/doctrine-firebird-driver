@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -27,8 +28,12 @@ class GuidTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        $table = new Table('guid_table');
-        $table->addColumn('guid', Types::GUID);
+        $table = Table::editor()
+            ->setUnquotedName('guid_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('guid')->setTypeName(Types::GUID)->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
     }

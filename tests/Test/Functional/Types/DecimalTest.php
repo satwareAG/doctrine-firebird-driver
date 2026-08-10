@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Types;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -18,8 +19,12 @@ final class DecimalTest extends FunctionalTestCase
     #[DataProvider('dataValuesProvider')]
     public function testInsertAndRetrieveDecimal(string $expected): void
     {
-        $table = new Table('decimal_table');
-        $table->addColumn('val', Types::DECIMAL, ['precision' => 4, 'scale' => 2]);
+        $table = Table::editor()
+            ->setUnquotedName('decimal_table')
+            ->setColumns(
+                Column::editor()->setUnquotedName('val')->setTypeName(Types::DECIMAL)->setPrecision(4)->setScale(2)->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

@@ -338,6 +338,7 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
                     ->create(),
             )
             ->setForeignKeyConstraints(
+                // @phpstan-ignore method.deprecated
                 new ForeignKeyConstraint(['role_id'], 'roles', ['id'], '', $options),
             )
             ->create();

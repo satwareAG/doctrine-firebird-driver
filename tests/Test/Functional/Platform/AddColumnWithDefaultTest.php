@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional\Platform;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
@@ -14,9 +15,13 @@ class AddColumnWithDefaultTest extends FunctionalTestCase
     {
         $schemaManager = $this->connection->createSchemaManager();
 
-        $table = new Table('add_default_test');
+        $table = Table::editor()
+            ->setUnquotedName('add_default_test')
+            ->setColumns(
+                Column::editor()->setUnquotedName('original_field')->setTypeName(Types::STRING)->create(),
+            )
+            ->create();
 
-        $table->addColumn('original_field', Types::STRING);
         $this->dropAndCreateTable($table);
 
         $this->connection->executeStatement("INSERT INTO add_default_test (original_field) VALUES ('one')");

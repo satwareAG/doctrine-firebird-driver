@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -152,11 +154,17 @@ class BlobTest extends FunctionalTestCase
     {
         // Use a separate table name to avoid DDL on the shared blob_table,
         // which would trigger dropTableForce() and corrupt OO API pointers.
-        $table = new Table('blob_table_multi');
-        $table->addColumn('id', 'integer');
-        $table->addColumn('blobcolumn1', 'blob', ['notnull' => false]);
-        $table->addColumn('blobcolumn2', 'blob', ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('blob_table_multi')
+            ->setColumns(
+                Column::editor()->setUnquotedName('id')->setTypeName('integer')->create(),
+                Column::editor()->setUnquotedName('blobcolumn1')->setTypeName('blob')->setNotNull(false)->create(),
+                Column::editor()->setUnquotedName('blobcolumn2')->setTypeName('blob')->setNotNull(false)->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+            )
+            ->create();
 
         $tableReady = false;
         try {
@@ -203,11 +211,17 @@ class BlobTest extends FunctionalTestCase
         }
 
         if (! $tableReady) {
-            $table = new Table('blob_table');
-            $table->addColumn('id', Types::INTEGER);
-            $table->addColumn('clobcolumn', Types::TEXT, ['notnull' => false]);
-            $table->addColumn('blobcolumn', Types::BLOB, ['notnull' => false]);
-            $table->setPrimaryKey(['id']);
+            $table = Table::editor()
+                ->setUnquotedName('blob_table')
+                ->setColumns(
+                    Column::editor()->setUnquotedName('id')->setTypeName(Types::INTEGER)->create(),
+                    Column::editor()->setUnquotedName('clobcolumn')->setTypeName(Types::TEXT)->setNotNull(false)->create(),
+                    Column::editor()->setUnquotedName('blobcolumn')->setTypeName(Types::BLOB)->setNotNull(false)->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()->setUnquotedColumnNames('id')->create(),
+                )
+                ->create();
 
             $this->dropAndCreateTable($table);
         }

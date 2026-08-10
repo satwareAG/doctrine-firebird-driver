@@ -6,6 +6,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -123,6 +124,7 @@ class FirebirdPlatformTest extends AbstractFirebirdPlatformTestCase
 
     public function testCreateWithNoColumnsThrowsException(): void
     {
+        // @phpstan-ignore method.deprecated
         $table = new Table('test');
         $this->expectException(Exception::class);
         $this->_platform->getCreateTableSQL($table);
@@ -556,6 +558,7 @@ END
 
     public function testGetAlterTableSQLWorksWithNoChanges(): void
     {
+        // @phpstan-ignore method.deprecated
         $table = new Table('foo');
         $diff  = new TableDiff($table);
         $found = $this->_platform->getAlterTableSQL($diff);
@@ -565,6 +568,7 @@ END
 
     public function testGetAlterTableSQLWorksWithAddedColumn(): void
     {
+        // @phpstan-ignore method.deprecated
         $table  = new Table("'foo'");
         $table2 = clone $table;
         $table2->dropColumn("'bar'");
@@ -580,6 +584,7 @@ END
 
     public function testGetAlterTableSQLWorksWithRemovedColumn(): void
     {
+        // @phpstan-ignore method.deprecated
         $table = new Table("'foo'");
         $table->addColumn("'bar'", 'bigint');
 
@@ -599,8 +604,12 @@ END
 
     public function testGetAlterTableSQLWorksWithChangedColumn(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('bar', 'string', ['notnull' => true, 'length' => 255, 'default' => 'myDefault']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()->setUnquotedName('bar')->setTypeName('string')->setNotNull(true)->setLength(255)->setDefaultValue('myDefault')->create(),
+            )
+            ->create();
 
         $table2 = clone $table;
 
@@ -642,6 +651,7 @@ END
     {
         $sm = $this->connection->createSchemaManager();
 
+        // @phpstan-ignore method.deprecated
         $table = new Table("'foo'");
         $table->addColumn('0', 'bigint');
 
