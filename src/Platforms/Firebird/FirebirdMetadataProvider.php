@@ -281,7 +281,7 @@ SQL;
             $charLength,
             $precision,
             $fieldScale,
-            $_,               // row[8] - FIELD_POSITION (position consumed but not used by metadata)
+            $fieldPosition,    // row[8] - FIELD_POSITION (consumed to maintain destructuring alignment)
             $notNullFlag,      // row[9] - FIELD_NOT_NULL_FLAG
             $defaultSource,    // row[10] - FIELD_DEFAULT_SOURCE
             $description,      // row[11] - FIELD_DESCRIPTION

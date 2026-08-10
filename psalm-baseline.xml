@@ -120,6 +120,9 @@
     <RedundantCastGivenDocblockType>
       <code><![CDATA[(int) $cacheSize]]></code>
     </RedundantCastGivenDocblockType>
+    <UnusedVariable>
+      <code><![CDATA[$fieldPosition]]></code>
+    </UnusedVariable>
   </file>
   <file src="src/Platforms/Firebird3Platform.php">
     <DeprecatedClass>
