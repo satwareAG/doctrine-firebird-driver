@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-08-10 - MetadataProvider, View/Sequence introspection fix, php-firebird v13.2.0
+
+### Added
+- **FirebirdMetadataProvider** (#154): implements `createMetadataProvider()` for
+  DBAL 4 `Logging\Middleware` support. 624 lines covering 12 interface methods
+  (column metadata, table names, views, sequences, FK actions, FK references,
+  identity columns, table introspection). 8 functional tests passing on
+  FB3/FB4/FB5.
+- **MetadataProvider functional tests** (#154): `FirebirdMetadataProviderTest`
+  with 8 tests (column parity, table names, views, sequences, FK actions,
+  FK references, identity columns, table introspection). All pass on FB3/FB4/FB5.
+
+### Fixed
+- **Column destructuring off-by-one** (#154): `$fieldPosition` (row[8]) was
+  missing from the destructuring in `FirebirdMetadataProvider`, shifting all
+  subsequent variables and causing `TypeError` on every column introspection
+  call.
+- **RESTRICT not normalized to NO_ACTION** (#154): `createReferentialAction`
+  in `FirebirdMetadataProvider` returned `RESTRICT` instead of `NO_ACTION`.
+  Firebird stores `NO ACTION` as `RESTRICT` in `RDB$REF_CONSTRAINTS`. Added
+  normalization guard.
+- **View/Sequence introspection triple-quoting** (`f9dfef6`): `setQuotedName`
+  + `getQuotedIdentifierName` + `strtolower` produced corrupted identifier
+  values in `FirebirdSchemaManager`. View SQL source was also incorrectly
+  passed through `getQuotedIdentifierName` (SQL text is not an identifier).
+  Fixed by using `setUnquotedName` with raw names, matching the Column fix
+  pattern from `7e12938`.
+- **Psalm UnusedVariable** (`1d85f22`): `$fieldPosition` in column
+  destructuring added to `psalm-baseline.xml` (PHPCS rejects `$_` as invalid
+  camel caps).
+
 ### Changed
 - `ext-firebird` constraint bumped from `^13.0.1` to `^13.2.0` — requires the
   cursor counter fix (php-firebird #566) that makes the transparent DDL
@@ -16,9 +47,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The v13.2.0 fix restores correct behavior: DDL after DML (no open cursors)
   stays atomic within the transaction; DDL with open cursors triggers
   transparent commit+restart, enabling removal of `gc_collect_cycles()`
-  workarounds in the test suite (#153, follow-up).
+  workarounds in the test suite (#153).
 - `satwareag/php-firebird-stubs` bumped from `^13.0.1` to `^13.2.0` (dev-only,
   tracks the extension version).
+
+### Removed
+- `gc_collect_cycles()` workarounds in `SchemaManagerFunctionalTestCase` (#153):
+  both calls in `cleanupSchemaTestTables()` removed. The v13.2.0 cursor counter
+  fix makes the transparent DDL commit+restart handle metadata lock release
+  automatically when open cursors exist. The remaining `gc_collect_cycles()`
+  calls in `FunctionalTestCase`, `PortabilityTest`, and `TransactionNestingTest`
+  are retained (PHP object lifecycle management, not metadata-lock-deadlock
+  prevention) and documented with `jane:` intent comments.
+
+### Refactored
+- **Test modernization**: 418 deprecated `new Table/Column/Index/FK/Sequence`
+  constructor calls migrated to `::editor()` API (4 waves, 66 files → 6 files
+  with 15 intentional edge cases remaining).
 
 ## [4.6.2] - 2026-08-08 - PHPCS annotation group fix
 
