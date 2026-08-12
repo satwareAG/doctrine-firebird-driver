@@ -30,3 +30,6 @@ implementation_plan.md
 coverage-xml/
 tests/var/coverage-full.xml
 tests/var/coverage/
+
+# EOD session notes
+docs/eod/

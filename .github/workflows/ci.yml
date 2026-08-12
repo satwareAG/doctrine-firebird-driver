@@ -79,7 +79,7 @@ jobs:
         php-version: ['8.2', '8.3', '8.4', '8.5']
         # Firebird configs: [display-version, docker-tag, phpunit-config]
         # All three Firebird versions (3.0/4.0/5.0) are fully supported
-        # with php-firebird v13.2.0 (cursor counter fix, FB4+/FB5+ feature coverage complete).
+        # with php-firebird v13.2.7 (#294 autocommit DDL fix, FB3 segfault fix, cursor counter fix).
         firebird:
           - version: '3.0'
             docker-tag: '3'
@@ -174,14 +174,14 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v13.2.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v13.2.7-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v13.2.0 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v13.2.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v13.2.7 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v13.2.7 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
@@ -400,15 +400,15 @@ jobs:
         with:
           path: /tmp/php-firebird-bin
           # Build with FB_API_VER=40 so PHPStan sees ALL functions including fbird_batch_*
-          # v11: bust cache for php-firebird v13.2.0 release
-          key: php-firebird-v13.2.0-php8.4-v40-quality-v11
+          # v12: bust cache for php-firebird v13.2.7 release
+          key: php-firebird-v13.2.7-php8.4-v40-quality-v12
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v13.2.0 for PHP 8.4 (quality-checks, FB_API_VER=40)"
-          git clone --depth 1 --branch v13.2.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v13.2.7 for PHP 8.4 (quality-checks, FB_API_VER=40)"
+          git clone --depth 1 --branch v13.2.7 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           # Enable FB_API_VER=40 so all functions (including fbird_batch_*) are compiled.
