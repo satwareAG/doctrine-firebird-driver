@@ -188,10 +188,10 @@ jobs:
           php -r "echo 'PHP '.PHP_VERSION.PHP_EOL;"
           composer show phpunit/phpunit 2>$null | Select-String '^name|^versions'
           Write-Host '=== STRICT RUN (failOnDeprecation=true, failOnNotice=true) ==='
-          vendor/bin/phpunit --configuration phpunit.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --display-phpunit-notices --no-progress --no-coverage
+          vendor/bin/phpunit --configuration phpunit.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --no-progress --no-coverage
           Write-Host "strict-exit=$LASTEXITCODE"
           Write-Host '=== RELAXED RUN (failOnDeprecation=false, failOnNotice=false) ==='
-          vendor/bin/phpunit --configuration phpunit.win-relaxed.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --display-phpunit-notices --no-progress --no-coverage
+          vendor/bin/phpunit --configuration phpunit.win-relaxed.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --no-progress --no-coverage
           Write-Host "relaxed-exit=$LASTEXITCODE"
           # Preserve both exit codes in the log; final exit keeps the advisory
           # job's original semantics (strict config result).
