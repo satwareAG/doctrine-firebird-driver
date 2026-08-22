@@ -2,11 +2,11 @@
 # on pull_request_target with contents:write; checking out untrusted refs would
 # let fork authors execute code with write access by editing their own PR title
 # or labels (both trigger this workflow). The tool works via API only.
-name: releaser-pleaser
+name: releaser-pleaser-maintenance
 
 on:
   push:
-    branches: [4.4.x]
+    branches: [3.10.x]
   pull_request_target:
     types:
       - edited
@@ -14,16 +14,16 @@ on:
       - unlabeled
 
 concurrency:
+  # Shared with releaser-pleaser.yml on purpose: serializes release runs across
+  # both branch lines so they never edit CHANGELOG.md simultaneously (#170,
+  # strategy A: single changelog, rare maintenance releases, trivial conflicts).
   group: releaser-pleaser
   cancel-in-progress: true
 
 jobs:
   releaser-pleaser:
     runs-on: ubuntu-latest
-    # Guard: only react to release PRs belonging to this branch line, so the
-    # 3.10.x maintenance workflow (#170) never triggers this job via
-    # pull_request_target on its own release PRs.
-    if: github.event_name == 'push' || startsWith(github.event.pull_request.head.ref, 'releaser-pleaser--branches--4.4.x')
+    if: github.event_name == 'push' || startsWith(github.event.pull_request.head.ref, 'releaser-pleaser--branches--3.10.x')
     permissions:
       contents: write
       pull-requests: write
@@ -31,6 +31,4 @@ jobs:
       - name: releaser-pleaser
         uses: apricote/releaser-pleaser@93a3e2c401320206dcd9a9b7a5bbc0850072b3c6 # v0.9.0
         with:
-          branch: 4.4.x
-          extra-files: |
-            AGENTS.md
+          branch: 3.10.x
