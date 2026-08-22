@@ -118,7 +118,10 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          $patterns = @("php_firebird-v13\.2\.0-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.0-${phpVer}-nts-.*-$arch\.zip", "php_firebird-v13\..*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\..*-${phpVer}-nts-.*-$arch\.zip", "php_firebird-.*-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-.*-${phpVer}-nts-.*-$arch\.zip")
+          # Pinned to v13.2.7 to match ci.yml (#294 autocommit DDL fix, FB3
+          # segfault fix, cursor counter fix). Floating fallback patterns made
+          # this job silently switch DLL builds between runs (#167).
+          $patterns = @("php_firebird-v13\.2\.7-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.7-${phpVer}-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
