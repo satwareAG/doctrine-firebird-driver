@@ -1,0 +1,26 @@
+name: releaser-pleaser
+
+on:
+  push:
+    branches: [4.4.x]
+  pull_request_target:
+    types:
+      - edited
+      - labeled
+      - unlabeled
+
+concurrency:
+  group: releaser-pleaser
+  cancel-in-progress: true
+
+jobs:
+  releaser-pleaser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: releaser-pleaser
+        uses: apricote/releaser-pleaser@93a3e2c401320206dcd9a9b7a5bbc0850072b3c6 # v0.9.0
+        with:
+          branch: 4.4.x
