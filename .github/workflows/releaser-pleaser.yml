@@ -1,3 +1,7 @@
+# SECURITY: never add actions/checkout of the PR head to this workflow. It runs
+# on pull_request_target with contents:write; checking out untrusted refs would
+# let fork authors execute code with write access by editing their own PR title
+# or labels (both trigger this workflow). The tool works via API only.
 name: releaser-pleaser
 
 on:
