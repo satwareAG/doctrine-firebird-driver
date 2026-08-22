@@ -10,7 +10,6 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
-use Throwable;
 use stdClass;
 
 use function microtime;

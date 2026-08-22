@@ -156,7 +156,7 @@ final class Driver extends FirebirdDriver
      * @return mixed \Firebird\Connection on success, false when the extension
      *                reports failure in non-throwing mode
      *
-     * @throws Throwable In exception mode (php-firebird v8.0.0+)
+     * @throws Throwable In exception mode (php-firebird v8.0.0+).
      */
     private function establishNativeLink(
         string $connectString,
