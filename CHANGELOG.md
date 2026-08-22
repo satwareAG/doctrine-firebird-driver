@@ -1,5 +1,13 @@
 # Changelog
 
+## [v4.7.1](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.1)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.0...v4.7.1)
+
+### Bug Fixes
+
+- **driver**: dead-link recovery, quoted identifier introspection, lock-conflict retry (#165) ([b5df8ad](https://github.com/satwareAG/doctrine-firebird-driver/commit/b5df8ad78c2898462c27f0299362bef8869fc9e0))
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
