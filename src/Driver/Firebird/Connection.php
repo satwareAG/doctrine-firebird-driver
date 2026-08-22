@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Closure;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\Driver\Exception\NoIdentityValue;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
@@ -108,6 +109,9 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
     /**
      * @param array<string, mixed> $params
+     * @param Closure|null         $reconnectFactory Re-establishes the native link with the original connect
+     *                                               parameters (#162). Null disables transparent recovery
+     *                                               (e.g. reflection-constructed test instances).
      *
      * @throws Exception
      */
@@ -117,6 +121,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         protected bool $isPersistent,
         private readonly Exception|null $databaseNotFoundException,
         array $params,
+        private readonly Closure|null $reconnectFactory = null,
     ) {
         self::loadOoApi();
 
@@ -244,8 +249,8 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             throw $this->databaseNotFoundException;
         }
 
-        // Defensive check: validate connection and transaction are still valid
-        if (! $this->isConnectionValid()) {
+        // Defensive check: validate connection; attempt bounded self-heal first (#162)
+        if (! $this->isConnectionValid() && ! $this->recoverDeadLink()) {
             throw new DriverException('Connection is not valid or has been closed.');
         }
 
@@ -526,6 +531,13 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
     #[Override]
     public function beginTransaction(): void
     {
+        // DBAL reaches beginTransaction() before prepare() on the next query
+        // (implicit transaction handling), so the self-heal gate must sit here
+        // too - not only in prepare(). (#162)
+        if (! $this->isConnectionValid() && ! $this->recoverDeadLink()) {
+            throw new DriverException('Connection is not valid or has been closed.');
+        }
+
         $this->transactionManager->beginTransaction();
     }
 
@@ -956,6 +968,48 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             return fbird_reconnect_transaction($this->connection, $transactionId);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
+        }
+    }
+
+    /**
+     * Attempt bounded transparent re-establishment of a dead native link (#162).
+     *
+     * Safety rules:
+     *   - never while an explicit transaction is open (nesting level > 0):
+     *     silently retrying under transaction semantics risks data loss;
+     *   - exactly one attempt; failure surfaces as the usual exception;
+     *   - restores the autocommit idle cycle exactly like a fresh connection.
+     */
+    private function recoverDeadLink(): bool
+    {
+        // isset(): also covers uninitialized promoted property when instances
+        // are created via newInstanceWithoutConstructor() (unit-test path).
+        if (! isset($this->reconnectFactory)) {
+            return false;
+        }
+
+        if ($this->transactionManager->getLevel() > 0) {
+            return false;
+        }
+
+        try {
+            /** @var mixed $fresh */
+            $fresh = ($this->reconnectFactory)();
+            if (! $fresh instanceof FirebirdConnection) {
+                return false;
+            }
+
+            $this->connection = $fresh;
+
+            // Mirror the constructor bootstrap so the healed link starts in
+            // the standard autocommit idle state.
+            $this->transactionManager->reset();
+            $this->transactionManager->beginTransaction();
+            $this->transactionManager->commit();
+
+            return $this->isConnectionValid();
+        } catch (Throwable) {
+            return false;
         }
     }
 

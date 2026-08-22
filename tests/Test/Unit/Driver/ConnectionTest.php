@@ -659,10 +659,22 @@ class ConnectionTest extends TestCase
         $transactionManager = $this->getPrivateProperty($connection, 'transactionManager');
         $this->setPrivateProperty($transactionManager, 'level', 1);
 
+        // Issue #162: beginTransaction() fails cleanly at the self-heal gate
+        // when no native link exists (reflection-built instance) - BEFORE
+        // reaching TransactionManager's savepoint delegation.
         $this->expectException(DriverException::class);
-        $this->expectExceptionMessage('No valid transaction resource');
+        $this->expectExceptionMessage('Connection is not valid');
 
-        // beginTransaction() at level 1 should attempt to create a savepoint
+        $connection->beginTransaction();
+    }
+
+    public function testBeginTransactionFailsCleanlyOnAbsentNativeLink(): void
+    {
+        $connection = $this->createConnectionThroughReflection();
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('Connection is not valid or has been closed.');
+
         $connection->beginTransaction();
     }
 
