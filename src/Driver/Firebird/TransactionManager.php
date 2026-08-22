@@ -21,6 +21,7 @@ use function fbird_savepoint;
 use function fbird_trans_start;
 use function sprintf;
 use function str_contains;
+use function usleep;
 
 use const FBIRD_COMMITTED;
 use const FBIRD_CONCURRENCY;
@@ -41,6 +42,27 @@ final class TransactionManager
      * Firebird error code for "invalid transaction handle".
      */
     private const ER_INVALID_TRANSACTION_HANDLE = 335544332;
+
+    /**
+     * Firebird SQLCODE for "lock conflict on no wait transaction" (#163).
+     */
+    private const ER_LOCK_CONFLICT = -913;
+
+    /**
+     * Max attempts (including the first) for the implicit auto-commit
+     * transaction restart when it hits a no-wait lock conflict (#163).
+     *
+     * Only the implicit restart path retries. Explicit beginTransaction()
+     * and user statements keep strict no-wait semantics so real contention
+     * surfaces immediately.
+     */
+    private const AUTO_TX_LOCK_RETRY_MAX_ATTEMPTS = 3;
+
+    /**
+     * Base backoff between auto-commit restart retries, in microseconds.
+     * Doubles per attempt: 50ms, 100ms (total worst-case wait 150ms).
+     */
+    private const AUTO_TX_LOCK_RETRY_BACKOFF_US = 50000;
 
     private int $level = 0;
 
@@ -169,7 +191,7 @@ final class TransactionManager
                 }
             }
 
-            $this->activeTransaction = $this->createTransaction();
+            $this->activeTransaction = $this->withAutoCommitRestartRetry($this->createTransaction(...));
             $this->executionMode     = ExecutionMode::AUTO_COMMIT;
         } else {
             // Nested transaction: release savepoint
@@ -190,7 +212,7 @@ final class TransactionManager
             if (! $this->isTransactionValid()) {
                 if ($this->connection->isConnectionValid()) {
                     try {
-                        $this->activeTransaction = $this->createTransaction();
+                        $this->activeTransaction = $this->withAutoCommitRestartRetry($this->createTransaction(...));
                     } catch (DriverException) {
                         $this->activeTransaction = null;
                     }
@@ -215,7 +237,7 @@ final class TransactionManager
             // Always attempt to restore valid state for next operation
             if ($this->connection->isConnectionValid()) {
                 try {
-                    $this->activeTransaction = $this->createTransaction();
+                    $this->activeTransaction = $this->withAutoCommitRestartRetry($this->createTransaction(...));
                 } catch (DriverException) {
                     $this->activeTransaction = null;
                 }
@@ -367,6 +389,52 @@ final class TransactionManager
     {
         $this->activeTransaction = null;
         $this->level             = 0;
+    }
+
+    /**
+     * Run a transaction-creating operation with bounded lock-conflict retry (#163).
+     *
+     * The implicit auto-commit restart after commit()/rollBack() can hit
+     * "lock conflict on no wait transaction" when other attachments still
+     * hold lingering metadata locks (php-firebird #572). Retry briefly so
+     * transient contention resolves; everything else surfaces unchanged.
+     *
+     * @param callable(): T $operation
+     *
+     * @return T
+     *
+     * @throws DriverException Non-lock-conflict errors immediately; lock
+     *                         conflicts after exhausting the retry budget.
+     *
+     * @template T of mixed
+     */
+    private function withAutoCommitRestartRetry(callable $operation): mixed
+    {
+        $attempt = 0;
+
+        while (true) {
+            try {
+                return $operation();
+            } catch (DriverException $e) {
+                if (! $this->isLockConflict($e)) {
+                    throw $e;
+                }
+
+                $attempt++;
+
+                if ($attempt >= self::AUTO_TX_LOCK_RETRY_MAX_ATTEMPTS) {
+                    throw $e;
+                }
+
+                usleep(self::AUTO_TX_LOCK_RETRY_BACKOFF_US * 2 ** ($attempt - 1));
+            }
+        }
+    }
+
+    private function isLockConflict(DriverException $e): bool
+    {
+        return $e->getCode() === self::ER_LOCK_CONFLICT
+            || str_contains($e->getMessage(), 'lock conflict');
     }
 
     private function isInvalidTransactionHandle(int $code, string $message): bool

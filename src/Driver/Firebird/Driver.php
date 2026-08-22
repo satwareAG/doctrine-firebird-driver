@@ -71,19 +71,36 @@ final class Driver extends FirebirdDriver
         $serverVersion = '3.0'; // Default minimum; overwritten after successful connect.
 
         try {
-            if ($persistent) {
-                $connection = @fbird_pconnect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
-            } elseif ($forceNew) {
-                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
-            } else {
-                // Suppress "I/O error ... no such file or directory" warning when the
-                // database doesn't exist yet. The schema tool creates it after the
-                // initial connect fails; we throw a structured exception below.
-                $connection = @fbird_connect($connectString, $username, $password, $charset, (int) $buffers, (int) $dialect, $role);
-            }
+            $connection = $this->establishNativeLink(
+                $connectString,
+                $username,
+                $password,
+                $charset,
+                (int) $buffers,
+                (int) $dialect,
+                $role,
+                $persistent,
+                $forceNew,
+            );
         } catch (Throwable $e) {
             throw Exception::fromThrowable($e);
         }
+
+        // Issue #162: give the connection a factory that can re-establish the
+        // native link with identical parameters when the underlying attachment
+        // dies underneath it. Credentials are captured in the closure only -
+        // same lifetime as the connection object itself.
+        $reconnectFactory = fn (): mixed => $this->establishNativeLink(
+            $connectString,
+            $username,
+            $password,
+            $charset,
+            (int) $buffers,
+            (int) $dialect,
+            $role,
+            $persistent,
+            $forceNew,
+        );
 
         $notFoundException = null;
 
@@ -111,7 +128,7 @@ final class Driver extends FirebirdDriver
             }
         }
 
-        return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params);
+        return new Connection($connection, $serverVersion, $persistent, $notFoundException, $params, $reconnectFactory);
     }
 
     #[Override]
@@ -130,5 +147,41 @@ final class Driver extends FirebirdDriver
     private function buildConnectString(array $params): string
     {
         return (string) FirebirdConnectString::fromConnectionParameters($params);
+    }
+
+    /**
+     * Open the native fbird link. Single source of truth for the initial
+     * connect AND dead-link re-establishment (#162).
+     *
+     * @return mixed \Firebird\Connection on success, false when the extension
+     *                reports failure in non-throwing mode
+     *
+     * @throws Throwable In exception mode (php-firebird v8.0.0+).
+     */
+    private function establishNativeLink(
+        string $connectString,
+        #[SensitiveParameter]
+        string $username,
+        #[SensitiveParameter]
+        string $password,
+        string $charset,
+        int $buffers,
+        int $dialect,
+        string $role,
+        bool $persistent,
+        bool $forceNew,
+    ): mixed {
+        if ($persistent) {
+            return @fbird_pconnect($connectString, $username, $password, $charset, $buffers, $dialect, $role);
+        }
+
+        if ($forceNew) {
+            return @fbird_connect($connectString, $username, $password, $charset, $buffers, $dialect, $role, FBIRD_CONNECT_FORCE_NEW);
+        }
+
+        // Suppress "I/O error ... no such file or directory" warning when the
+        // database doesn't exist yet. The schema tool creates it after the
+        // initial connect fails; connect() throws a structured exception then.
+        return @fbird_connect($connectString, $username, $password, $charset, $buffers, $dialect, $role);
     }
 }

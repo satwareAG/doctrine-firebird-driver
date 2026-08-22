@@ -471,8 +471,20 @@ SQL;
         $viewName = trim((string) $view['rdb$relation_name']);
         assert($viewName !== '');
 
-        return View::editor()
-            ->setUnquotedName($viewName)
+        // Issue #155: Firebird stores quoted identifiers with their exact case.
+        // A name containing lowercase characters was necessarily created
+        // quoted - mark it as such so downstream rendering does not let the
+        // server fold it to a different object. Same heuristic as tables
+        // (see getQuotedIdentifierName()).
+        $viewEditor = View::editor();
+
+        if (preg_match('/[a-z]/', $viewName) === 1) {
+            $viewEditor->setQuotedName($viewName);
+        } else {
+            $viewEditor->setUnquotedName($viewName);
+        }
+
+        return $viewEditor
             ->setSQL(trim((string) $view['rdb$view_source']))
             ->create();
     }
@@ -497,8 +509,17 @@ SQL;
         $seqName = trim((string) $sequence['rdb$generator_name']);
         assert($seqName !== '');
 
-        $sequenceEditor = Sequence::editor()
-            ->setUnquotedName($seqName)
+        // Issue #155: same quoted-identifier heuristic as views above - a
+        // lowercase-containing generator name was created quoted.
+        $sequenceEditor = Sequence::editor();
+
+        if (preg_match('/[a-z]/', $seqName) === 1) {
+            $sequenceEditor->setQuotedName($seqName);
+        } else {
+            $sequenceEditor->setUnquotedName($seqName);
+        }
+
+        $sequenceEditor
             ->setAllocationSize((int) $allocationSize)
             ->setInitialValue((int) $initialValue);
 
