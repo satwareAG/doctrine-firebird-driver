@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Test\Functional;
 
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\TransactionIsolationLevel;
-use RuntimeException;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\ConnectionWrapper;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Test\FunctionalTestCase;
 use Throwable;
 
+use function gc_collect_cycles;
 use function sprintf;
 
 /**
@@ -30,6 +33,97 @@ class ResultLockReleaseTest extends FunctionalTestCase
 {
     private const PROBE_TABLE = 'result_lock_release_probe';
 
+    /**
+     * Cross-attachment RED test for #176 (post-#588 transient retention).
+     *
+     * Attachment A: three fetchOne() one-shots abandon their Results inside the
+     * Statement<->Result cycle, then DDL autocommit fires commit_ret with
+     * open cursors - retaining system-catalog SW locks (incl.
+     * RDB$RELATION_FIELDS) for as long as the zombies live. Verified via
+     * fb_lock_print on 2026-08-24: 6 S2@SW locks owned by attachment A
+     * (rel ids 1,2,5,6,9,18) during exactly this sequence.
+     *
+     * Attachment B: independent connection compiling a SERIALIZABLE NOWAIT
+     * INSERT against RDB$RELATION_FIELDS must NOT hit the retained locks -
+     * with eager result-freeing (#176 direction 1) the cursor count is 0 at
+     * autocommit and #588's hard-commit path releases everything.
+     */
+    public function testFetchOneZombiesDoNotBlockSecondAttachmentSerializable(): void
+    {
+        // 1. Zombie creator: fetchOne consumes ONE row per call; the abandoned
+        //    remainder keeps each cursor open until cycle-GC (#176).
+        for ($i = 0; $i < 3; $i++) {
+            $relationName = $this->connection->fetchOne('SELECT RDB$RELATION_NAME FROM RDB$RELATIONS');
+            self::assertNotFalse($relationName);
+        }
+
+        // 2. DDL via autocommit while zombies are alive: with open cursors the
+        //    ext retains SW catalog locks; with cursor count 0 the #588
+        //    hard-commit path drops everything immediately.
+        $this->connection->executeStatement(
+            sprintf('CREATE TABLE %s_zddl (id INTEGER)', self::PROBE_TABLE),
+        );
+        $this->createdTables[] = self::PROBE_TABLE . '_zddl';
+
+        // 3. Victim: second attachment, SERIALIZABLE + NOWAIT (mirrors
+        //    TransactionTest::testSetIsolationLevelSerializable, the flake site).
+        $victimConnection = DriverManager::getConnection($this->connection->getParams());
+        self::assertInstanceOf(ConnectionWrapper::class, $victimConnection);
+
+        $victimDriverConnection = $victimConnection->getFirebirdDriverConnection();
+        self::assertNotNull($victimDriverConnection);
+
+        $exception = null;
+
+        try {
+            $victimDriverConnection->setAttribute(
+                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
+                TransactionIsolationLevel::SERIALIZABLE,
+            );
+            $victimDriverConnection->setAttribute(
+                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_WAIT,
+                0, // NOWAIT - conflict must surface instantly, not block
+            );
+
+            $victimDriverConnection->beginTransaction();
+
+            $insert = $victimDriverConnection->prepare(
+                sprintf('INSERT INTO %s (id) VALUES (?)', self::PROBE_TABLE),
+            );
+            $insert->bindValue(1, 777, ParameterType::INTEGER);
+            $insert->execute();
+            $victimDriverConnection->commit();
+        } catch (Throwable $exception) {
+            try {
+                $victimDriverConnection->rollBack();
+            } catch (Throwable) {
+                // already aborted by the lock conflict
+            }
+        } finally {
+            unset($insert, $victimDriverConnection, $victimConnection);
+            gc_collect_cycles();
+        }
+
+        self::assertNull(
+            $exception,
+            'Abandoned fetchOne() results kept their cursors open: the DDL autocommit '
+            . 'retained system-catalog SW locks and the SERIALIZABLE NOWAIT insert on the '
+            . 'second attachment conflicted (#176 / php-firebird#586). '
+            . ($exception?->getMessage() ?? ''),
+        );
+    }
+
+    public function testConnectionIsUsableAfterwards(): void
+    {
+        // Sanity companion: shared connection must survive the lock-release
+        // probe test above (guards against the probe leaving the attachment
+        // in a broken state).
+        $count = $this->connection->fetchOne(
+            sprintf('SELECT COUNT(*) FROM %s', self::PROBE_TABLE),
+        );
+        self::assertSame(0, (int) $count);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -43,91 +137,15 @@ class ResultLockReleaseTest extends FunctionalTestCase
             // table does not exist yet (first run)
         }
 
+        try {
+            $this->connection->executeStatement(sprintf('DROP TABLE %s_zddl', self::PROBE_TABLE));
+        } catch (Throwable) {
+            // leftover guard: a prior RED run may have leaked the DDL probe table
+        }
+
         $this->connection->executeStatement(
             sprintf('CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY, val VARCHAR(100))', self::PROBE_TABLE),
         );
         $this->createdTables[] = self::PROBE_TABLE;
-    }
-
-    /**
-     * A result consumed via fetchOne() (first row fetched, remainder abandoned
-     * by DBAL contract) must not keep its cursor open: the following DDL
-     * autocommit must not retain system-catalog locks, so a subsequent
-     * SERIALIZABLE (SNAPSHOT TABLE STABILITY, no-wait) insert compiling
-     * against RDB$RELATION_FIELDS succeeds instead of deadlocking on the
-     * connection's own retained locks.
-     */
-    public function testFetchOneAbandonmentDoesNotRetainSystemCatalogLocks(): void
-    {
-        $fbirdConn = $this->getFirebirdConnection();
-        if ($fbirdConn === null) {
-            self::markTestSkipped('Firebird driver connection not available.');
-        }
-
-        // 1. Zombie creator: multi-row catalog SELECT consumed via fetchOne().
-        //    The DBAL wrapper is discarded afterwards; with the driver holding
-        //    Statement::$currentResult the cursor stays open (#176).
-        $relationName = $this->connection->fetchOne('SELECT RDB$RELATION_NAME FROM RDB$RELATIONS');
-        self::assertNotFalse($relationName);
-
-        // 2. DDL via autocommit while the abandoned cursor is (not) alive.
-        //    With an open cursor the ext must use commit_ret, which retains
-        //    SW locks on RDB$RELATION_FIELDS; with the cursor released the
-        //    lazy release path (#588) drops them at once.
-        $this->connection->executeStatement(
-            sprintf('CREATE TABLE %s_ddl (id INTEGER)', self::PROBE_TABLE),
-        );
-        $this->createdTables[] = self::PROBE_TABLE . '_ddl';
-
-        // 3. Conflict probe: mirror testSetIsolationLevelSerializable. The new
-        //    auto-commit transaction after commit() runs SERIALIZABLE and
-        //    compiles the INSERT against RDB$RELATION_FIELDS under
-        //    SNAPSHOT TABLE STABILITY no-wait locks.
-        $exception = null;
-
-        try {
-            $fbirdConn->setAttribute(
-                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
-                TransactionIsolationLevel::SERIALIZABLE,
-            );
-
-            $this->connection->beginTransaction();
-            $this->connection->insert(self::PROBE_TABLE, ['id' => 1, 'val' => 'probe']);
-            $this->connection->commit();
-        } catch (Throwable $exception) {
-            // rollback the still-open serializable transaction so tearDown
-            // runs against a clean transaction state
-            try {
-                $this->connection->rollBack();
-            } catch (Throwable) {
-                // already closed by the failure
-            }
-        } finally {
-            $fbirdConn->setAttribute(
-                FirebirdDriver::ATTR_DOCTRINE_DEFAULT_TRANS_ISOLATION_LEVEL,
-                TransactionIsolationLevel::READ_COMMITTED,
-            );
-            $this->markConnectionNotReusable();
-        }
-
-        self::assertNull(
-            $exception,
-            'Abandoned fetchOne() result kept its cursor open: the DDL autocommit retained '
-            . 'system-catalog locks and the SERIALIZABLE no-wait insert conflicted. '
-            . ($exception !== null ? $exception->getMessage() : ''),
-        );
-
-        unset($relationName);
-    }
-
-    public function testConnectionIsUsableAfterwards(): void
-    {
-        // Sanity companion: shared connection must survive the lock-release
-        // probe test above (guards against the probe leaving the attachment
-        // in a broken state).
-        $count = $this->connection->fetchOne(
-            sprintf('SELECT COUNT(*) FROM %s', self::PROBE_TABLE),
-        );
-        self::assertSame(0, (int) $count);
     }
 }

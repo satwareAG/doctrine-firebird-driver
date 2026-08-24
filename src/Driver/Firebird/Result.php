@@ -144,7 +144,20 @@ final class Result implements ResultInterface
     #[Override]
     public function fetchOne(): mixed
     {
-        return FetchUtils::fetchOne($this);
+        $value = FetchUtils::fetchOne($this);
+
+        // #176: fetchOne() consumes ONE row by contract; the remaining rows are
+        // abandoned. Free the result eagerly so the cursor closes NOW instead of
+        // living on inside Statement::$currentResult until cycle-GC. An open
+        // cursor at the next TM::autoCommit() makes fbird_commit_ret retain
+        // system-catalog SW locks until disconnect-adjacent idle moments
+        // (php-firebird#586/#588 serializable suite flake). Empty result sets
+        // were already freed by the exhaustion path in fetchNumeric().
+        if ($value !== false) {
+            $this->free();
+        }
+
+        return $value;
     }
 
     /** @inheritDoc */
