@@ -174,7 +174,7 @@ jobs:
           }
 
       - name: Install dependencies
-        run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
+        run: bash scripts/ci/composer-retry.sh update --prefer-stable --prefer-dist --no-interaction --no-progress --ignore-platform-req=ext-firebird
 
       - name: Run Tests (Unit)
         run: |
