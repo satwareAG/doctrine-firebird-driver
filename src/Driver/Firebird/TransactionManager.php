@@ -274,8 +274,56 @@ final class TransactionManager
         try {
             fbird_commit_ret($this->activeTransaction);
         } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
+            $err = DriverException::fromThrowable($e);
+
+            if (! $this->healDeadTransaction($err)) {
+                throw $err;
+            }
+
+            // The native handle died behind our back (ext-side transparent
+            // commit+restart, #187): a fresh autocommit transaction is active
+            // again and there is nothing left to commit-retain.
         }
+    }
+
+    /**
+     * Detect a dead native transaction handle and rebuild the active transaction (#187).
+     *
+     * The extension commits/restarts transactions transparently in several
+     * paths (idle-lock release #586, DDL commit+restart #540/#566, rollback
+     * restart #589). When such a restart fails, the PHP-level Transaction
+     * object survives with its native handle cleared while this manager still
+     * considers it active - every subsequent operation on the connection then
+     * fails with -999 ("invalid transaction handle" / "OO API
+     * connection/transaction pointers are NULL") and never recovers.
+     *
+     * Call after a Firebird operation failed: if the failure matches the
+     * dead-handle signature, a fresh transaction replaces the dead one and
+     * true is returned so the caller can retry (or continue) against the
+     * rebuilt state. Any other error, or a failed rebuild, returns false and
+     * leaves the caller free to surface the original failure.
+     */
+    public function healDeadTransaction(DriverException $e): bool
+    {
+        if (! $this->isTransactionValid()) {
+            return false;
+        }
+
+        if (! $this->isInvalidTransactionHandle($e->getCode(), $e->getMessage())) {
+            return false;
+        }
+
+        try {
+            $this->activeTransaction = $this->withAutoCommitRestartRetry($this->createTransaction(...));
+        } catch (DriverException) {
+            // Connection unusable as well - drop the dead handle so state
+            // checks (isTransactionValid()) report the truth.
+            $this->activeTransaction = null;
+
+            return false;
+        }
+
+        return true;
     }
 
     public function createSavepoint(string $savepoint): void
