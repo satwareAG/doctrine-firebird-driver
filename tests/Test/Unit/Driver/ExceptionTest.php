@@ -266,15 +266,3 @@ class ExceptionTest extends TestCase
         self::assertSame('', $exception->getFbirdErrMsg());
     }
 }
-
-/**
- * Simulates extension builds whose fbird_sqlstate() throws when called
- * outside an active error context (#186).
- */
-final class SqlStateProbeException extends Exception
-{
-    protected static function fetchSqlState(): string|null
-    {
-        throw new \RuntimeException('no active error context');
-    }
-}

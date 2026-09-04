@@ -183,16 +183,6 @@ class Exception extends BaseException implements DriverException
      * Fetch the current SQLSTATE from the Firebird extension.
      *
      * Protected so tests can simulate extension builds whose fbird_sqlstate()
-     * throws outside an active error context (#186). The call is guarded:
-     * SQLSTATE is optional metadata and a probe failure must never mask the
-     * error being converted.
-     *
-     * @return string|null The 5-character SQLSTATE code or null
-     */
-    /**
-     * Fetch the current SQLSTATE from the Firebird extension.
-     *
-     * Protected so tests can simulate extension builds whose fbird_sqlstate()
      * throws outside an active error context (#186). Callers guard this
      * probe: SQLSTATE is optional metadata and a probe failure must never
      * mask the error being converted.
