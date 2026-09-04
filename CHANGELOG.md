@@ -1,5 +1,15 @@
 # Changelog
 
+## [v4.7.2](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.2)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.1...v4.7.2)
+
+### Bug Fixes
+
+- **tx**: heal dead native transaction handle instead of failing forever (#187) (#188) ([17ce03c](https://github.com/satwareAG/doctrine-firebird-driver/commit/17ce03c8c1d0cb78ac9176c9d6a9677ac2fb71e4))
+- **exception**: fail-safe SQLSTATE probe - connect errors no longer masked (#186) (#189) ([b76e196](https://github.com/satwareAG/doctrine-firebird-driver/commit/b76e196e76c3df0ed120fb4a0cd3d8d2f9b15ea1))
+- **result**: cut Statement->Result retention cycle so consumed cursors free deterministically (#176) (#193) ([844a0bb](https://github.com/satwareAG/doctrine-firebird-driver/commit/844a0bb96590e3235f7edf77c3108e080a1a64f9))
+
 ## [v4.7.1](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.1)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.0...v4.7.1)
