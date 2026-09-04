@@ -239,8 +239,7 @@ jobs:
         run: |
           set -eu
           php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
-          composer update --prefer-stable --prefer-dist --no-progress \
-            --ignore-platform-req=ext-firebird
+          bash "$GITHUB_WORKSPACE/scripts/ci/composer-retry.sh" update --prefer-stable --prefer-dist --no-progress --ignore-platform-req=ext-firebird
 
       - name: Verify PHPUnit configuration for CI
         env:
@@ -450,8 +449,7 @@ jobs:
 
       - name: Install Composer dependencies
         run: |
-          composer update --prefer-stable --prefer-dist --no-progress --no-interaction \
-            --ignore-platform-req=ext-firebird
+          bash "$GITHUB_WORKSPACE/scripts/ci/composer-retry.sh" update --prefer-stable --prefer-dist --no-progress --no-interaction --ignore-platform-req=ext-firebird
 
       - name: Run PHP_CodeSniffer
         run: vendor/bin/phpcs -q --report=checkstyle | cs2pr
