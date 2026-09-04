@@ -273,7 +273,22 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             /** @phpstan-ignore arguments.count */
             $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
         } catch (Throwable $e) {
-            throw DriverException::fromThrowable($e);
+            $error = DriverException::fromThrowable($e);
+
+            // Dead native transaction handle (#187): the extension commits/
+            // restarts transactions transparently; on restart failure the
+            // manager is left holding a dead handle. Rebuild it once and
+            // retry against the fresh handle.
+            if (! $this->transactionManager->healDeadTransaction($error)) {
+                throw $error;
+            }
+
+            try {
+                /** @phpstan-ignore arguments.count */
+                $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
+            } catch (Throwable $retry) {
+                throw DriverException::fromThrowable($retry);
+            }
         }
 
         return new Statement(
