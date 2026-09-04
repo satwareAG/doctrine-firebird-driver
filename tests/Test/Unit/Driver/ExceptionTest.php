@@ -112,6 +112,37 @@ class ExceptionTest extends TestCase
     }
 
     // ==========================================================================
+    // #186: exception construction must never be masked by fbird_sqlstate()
+    // ==========================================================================
+
+    public function testFromErrorInfoToleratesThrowingSqlStateProbe(): void
+    {
+        $exception = SqlStateProbeException::fromErrorInfo(
+            'I/O error during "open O_CREAT" operation for file "/firebird/data/test.fdb" '
+            . 'Error while trying to create file No such file or directory',
+            -902,
+        );
+
+        // The native -902 message and code must survive intact; SQLSTATE is
+        // optional metadata and becomes null when the probe fails.
+        self::assertStringContainsString('No such file or directory', $exception->getMessage());
+        self::assertSame(-902, $exception->getCode());
+        self::assertNull($exception->getSQLState());
+    }
+
+    public function testFromThrowableToleratesThrowingSqlStateProbe(): void
+    {
+        $native = new \RuntimeException('Unable to complete network request to host', -902);
+
+        $exception = SqlStateProbeException::fromThrowable($native);
+
+        self::assertSame('Unable to complete network request to host', $exception->getMessage());
+        self::assertSame(-902, $exception->getCode());
+        self::assertSame($native, $exception->getPrevious());
+        self::assertNull($exception->getSQLState());
+    }
+
+    // ==========================================================================
     // SQLSTATE Format Tests
     // ==========================================================================
 
