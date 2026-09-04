@@ -279,15 +279,15 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             // restarts transactions transparently; on restart failure the
             // manager is left holding a dead handle. Rebuild it once and
             // retry against the fresh handle.
-            if ($this->transactionManager->healDeadTransaction($error)) {
-                try {
-                    /** @phpstan-ignore arguments.count */
-                    $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
-                } catch (Throwable $retry) {
-                    throw DriverException::fromThrowable($retry);
-                }
-            } else {
+            if (! $this->transactionManager->healDeadTransaction($error)) {
                 throw $error;
+            }
+
+            try {
+                /** @phpstan-ignore arguments.count */
+                $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
+            } catch (Throwable $retry) {
+                throw DriverException::fromThrowable($retry);
             }
         }
 
