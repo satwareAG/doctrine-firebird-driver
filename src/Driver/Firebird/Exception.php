@@ -81,7 +81,15 @@ class Exception extends BaseException implements DriverException
      */
     public static function fromErrorInfo(string $message, int $code): Exception
     {
-        $sqlState = self::fetchSqlState();
+        // Guarded at the call site: fbird_sqlstate() can throw on extension
+        // builds when called outside an active error context. SQLSTATE is
+        // optional metadata - a probe failure must never mask the real
+        // error (or recurse through conversion factories, #186).
+        try {
+            $sqlState = static::fetchSqlState();
+        } catch (Throwable) {
+            $sqlState = null;
+        }
 
         return new self($message, $sqlState, $code);
     }
@@ -113,7 +121,13 @@ class Exception extends BaseException implements DriverException
         }
 
         if ($sqlState === null) {
-            $sqlState = self::fetchSqlState();
+            // Same guard rationale as fromErrorInfo(): the probe is
+            // fail-safe so error conversion cannot recurse (#186).
+            try {
+                $sqlState = static::fetchSqlState();
+            } catch (Throwable) {
+                $sqlState = null;
+            }
         }
 
         return new self(
@@ -168,9 +182,24 @@ class Exception extends BaseException implements DriverException
     /**
      * Fetch the current SQLSTATE from the Firebird extension.
      *
+     * Protected so tests can simulate extension builds whose fbird_sqlstate()
+     * throws outside an active error context (#186). The call is guarded:
+     * SQLSTATE is optional metadata and a probe failure must never mask the
+     * error being converted.
+     *
      * @return string|null The 5-character SQLSTATE code or null
      */
-    private static function fetchSqlState(): string|null
+    /**
+     * Fetch the current SQLSTATE from the Firebird extension.
+     *
+     * Protected so tests can simulate extension builds whose fbird_sqlstate()
+     * throws outside an active error context (#186). Callers guard this
+     * probe: SQLSTATE is optional metadata and a probe failure must never
+     * mask the error being converted.
+     *
+     * @return string|null The 5-character SQLSTATE code or null
+     */
+    protected static function fetchSqlState(): string|null
     {
         $state = fbird_sqlstate();
 
