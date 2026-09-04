@@ -331,6 +331,15 @@ final class Result implements ResultInterface
     #[Override]
     public function free(): void
     {
+        // Cut the Statement -> Result -> Statement retention cycle (#176):
+        // while the statement holds the result, refcounting can never free a
+        // consumed cursor and the underlying ResultSet survives until rare
+        // cycle-GC, keeping transaction locks retained. Notifying the
+        // statement makes every free() deterministic.
+        if ($this->statement !== null) {
+            $this->statement->clearCurrentResult($this);
+        }
+
         if (! $this->isResultValid()) {
             $this->firebirdResultResource = null;
 

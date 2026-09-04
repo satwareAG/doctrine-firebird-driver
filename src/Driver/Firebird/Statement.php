@@ -272,6 +272,24 @@ final class Statement implements StatementInterface
     }
 
     /**
+     * Drop the retained reference to $result (called by Result::free(), #176).
+     *
+     * Statement and Result reference each other; without this notification a
+     * consumed Result stays alive (cursor open, transaction locks retained)
+     * until cycle-GC, defeating the extension's idle-lock release.
+     *
+     * @internal Only ever called by {@see Result::free()}
+     */
+    public function clearCurrentResult(Result $result): void
+    {
+        if ($this->currentResult !== $result) {
+            return;
+        }
+
+        $this->currentResult = null;
+    }
+
+    /**
      * Check if the statement handle is valid.
      *
      * php-firebird v11.1.0+: fbird_prepare()/fbird_prepare_ex() return
