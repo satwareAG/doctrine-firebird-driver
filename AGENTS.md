@@ -43,6 +43,10 @@ This project follows **L3 IPADP conformance**.
 | Integration | `tests/Test/Integration/` | ORM-level integration |
 | Schema | `tests/Test/Schema/` | Adapted DBAL 4.x comparator tests |
 
+### Pitfalls
+
+- **Branch switching (3.10.x / 3.18.x <-> 4.4.x)**: `composer.lock` is gitignored (library discipline, #195). A local lock from the previous branch survives the switch and poisons resolution. After every branch switch run `composer update --ignore-platform-req=ext-firebird`, never `composer install`. CI always runs `composer update`.
+
 ### Quality Gates
 
 | Gate | Command | Status |
