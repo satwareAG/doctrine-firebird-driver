@@ -14,6 +14,7 @@ use ReflectionMethod;
 use ReflectionProperty;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Connection;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
+use Satag\DoctrineFirebirdDriver\Driver\Firebird\Result;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
 
@@ -424,6 +425,28 @@ class StatementTest extends TestCase
         $this->assertTrue($statement->bindValue(':name', 'John', ParameterType::STRING));
         $this->assertTrue($statement->bindValue(':value', 100, ParameterType::INTEGER));
         $this->assertTrue($statement->bindValue(':active', true, ParameterType::BOOLEAN));
+    }
+
+    // ====================================
+    // #176: Result retention cycle
+    // ====================================
+
+    #[Test]
+    public function resultFreeCutsStatementRetentionCycle(): void
+    {
+        $statement = new Statement($this->connection, fopen('php://memory', 'r+'), [], 'SELECT 1');
+
+        $result = new Result(null, $this->connection, $statement);
+        $this->setPrivateProperty($statement, 'currentResult', $result);
+
+        // Statement -> Result -> Statement is a reference cycle: refcounting
+        // can never free a consumed cursor while the statement holds it (#176).
+        // free() must notify the statement so the retention chain is cut and
+        // the underlying ResultSet dies deterministically.
+        $result->free();
+
+        $currentResult = (new ReflectionProperty(Statement::class, 'currentResult'))->getValue($statement);
+        self::assertNull($currentResult, 'free() must drop the statement reference to the result');
     }
 
     // ====================================
