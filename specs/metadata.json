@@ -23,7 +23,7 @@
       "forge": "github",
       "local_path": "~/external/php-firebird",
       "role": "native-driver-provider",
-      "version": "13.2.7"
+      "version": "13.2.8"
     }
   },
   "downstream": {
