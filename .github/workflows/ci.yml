@@ -92,11 +92,13 @@ jobs:
             experimental: false
           - version: '4.0'
             docker-tag: '4'
-            config: 'phpunit-firebird4.xml'
+            # Same config as FB3/4.4.x: DB_* env vars override per-version params
+            # (#207 - phpunit-firebird4/5.xml never existed, legs never ran)
+            config: 'phpunit.xml'
             experimental: true
           - version: '5.0'
             docker-tag: '5'
-            config: 'phpunit-firebird5.xml'
+            config: 'phpunit.xml'
             experimental: true
 
     env:
