@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - '3.10.x'
+      - '3.18.x'
       - '4.4.x'
   pull_request:
     branches:
       - '3.10.x'
+      - '3.18.x'
       - '4.4.x'
   schedule:
     - cron: '0 2 * * 1'  # Weekly Monday 2 AM UTC
