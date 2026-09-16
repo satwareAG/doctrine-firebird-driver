@@ -180,14 +180,14 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: /tmp/php-firebird-bin
-          key: php-firebird-v12.0.0-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
+          key: php-firebird-v13.2.8-php${{ matrix.php-version }}-${{ (matrix.firebird.version == '4.0' || matrix.firebird.version == '5.0') && 'v40' || 'default' }}
 
       - name: Build php-firebird extension from source
         if: steps.cache-php-firebird.outputs.cache-hit != 'true'
         run: |
           set -eu
-          echo "Building php-firebird v12.0.0 for PHP ${{ matrix.php-version }}"
-          git clone --depth 1 --branch v12.0.0 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
+          echo "Building php-firebird v13.2.8 for PHP ${{ matrix.php-version }}"
+          git clone --depth 1 --branch v13.2.8 https://github.com/satwareAG/php-firebird.git /tmp/php-firebird
           cd /tmp/php-firebird
           phpize
           if [ "${{ matrix.firebird.version }}" = "4.0" ] || [ "${{ matrix.firebird.version }}" = "5.0" ]; then
