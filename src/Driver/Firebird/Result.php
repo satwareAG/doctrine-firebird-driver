@@ -134,20 +134,13 @@ final class Result implements ResultInterface
     #[Override]
     public function fetchOne(): mixed
     {
-        $value = FetchUtils::fetchOne($this);
-
-        // #176: fetchOne() consumes ONE row by contract; the remaining rows are
-        // abandoned. Free the result eagerly so the cursor closes NOW instead of
-        // living on inside Statement::$currentResult until cycle-GC. An open
-        // cursor at the next TM::autoCommit() makes fbird_commit_ret retain
-        // system-catalog SW locks until disconnect-adjacent idle moments
-        // (php-firebird#586/#588 serializable suite flake). Empty result sets
-        // were already freed by the exhaustion path in fetchNumeric().
-        if ($value !== false) {
-            $this->free();
-        }
-
-        return $value;
+        // No eager free() here: DBAL's own FetchUtils::fetchFirstColumn() iterates
+        // fetchOne() in a loop and API Result::fetchOne() is legal to call
+        // repeatedly - freeing after the first row truncates every multi-row
+        // result (9 CI failures, reverted 9d1463e). Abandoned-result cursors
+        // close via the cycle-cut (clearCurrentResult) and the ext v13.2.8
+        // pairing (#624 sibling-result guard + #622 self-heal).
+        return FetchUtils::fetchOne($this);
     }
 
     /** @inheritDoc */
