@@ -33,10 +33,11 @@ final class Result implements ResultInterface
     /**
      * @internal The result can only be instantiated by its driver connection or statement.
      *
-     * The $statement parameter is intentionally held but never read directly.
-     * It prevents premature garbage collection of the Statement object while
-     * the Result is being iterated. Without this reference, PHP may GC the
-     * Statement, invalidating the underlying Firebird result resource.
+     * The $statement parameter prevents premature garbage collection of the
+     * Statement object while the Result is being iterated. Without this
+     * reference, PHP may GC the Statement, invalidating the underlying
+     * Firebird result resource. free() reads it to notify the statement
+     * via clearCurrentResult() (#176 retention-cycle cut).
      *
      * @throws Exception
      */
@@ -46,7 +47,6 @@ final class Result implements ResultInterface
     public function __construct(
         $firebirdResultResource,
         private readonly Connection $connection,
-        /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly Statement|null $statement = null,
     ) {
         $this->firebirdResultResource = $firebirdResultResource;
@@ -134,6 +134,12 @@ final class Result implements ResultInterface
     #[Override]
     public function fetchOne(): mixed
     {
+        // No eager free() here: DBAL's own FetchUtils::fetchFirstColumn() iterates
+        // fetchOne() in a loop and API Result::fetchOne() is legal to call
+        // repeatedly - freeing after the first row truncates every multi-row
+        // result (9 CI failures, reverted 9d1463e). Abandoned-result cursors
+        // close via the cycle-cut (clearCurrentResult) and the ext v13.2.8
+        // pairing (#624 sibling-result guard + #622 self-heal).
         return FetchUtils::fetchOne($this);
     }
 
@@ -278,6 +284,15 @@ final class Result implements ResultInterface
     #[Override]
     public function free(): void
     {
+        // Cut the Statement -> Result -> Statement retention cycle (#176):
+        // while the statement holds the result, refcounting can never free a
+        // consumed cursor and the underlying ResultSet survives until rare
+        // cycle-GC, keeping transaction locks retained. Notifying the
+        // statement makes every free() deterministic.
+        if ($this->statement !== null) {
+            $this->statement->clearCurrentResult($this);
+        }
+
         if (! $this->isResultValid()) {
             $this->firebirdResultResource = null;
 
