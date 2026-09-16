@@ -8,6 +8,7 @@ namespace Satag\DoctrineFirebirdDriver\SQL\Parser;
  * SQL parser visitor
  *
  * Copied from Doctrine\DBAL\SQL\Parser\Visitor to avoid Symfony DebugClassLoader
+ *
  * @internal deprecation notices triggered by cross-vendor implementation.
  */
 interface Visitor
