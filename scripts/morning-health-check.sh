@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # morning-health-check.sh — IPADP L3 Ecosystem Health Check
 #
-# Standards: https://git.satware.ai/satware.ai/wiki/specs/rfc-interproject-agentic-development.md
+# Standards: IPADP RFC, satware.ai/wiki (specs/rfc-interproject-agentic-development.md)
 # Part of Spec 006: Morning Start Protocol
 set -euo pipefail
 
@@ -26,7 +26,7 @@ section() { echo -e "\n${BLUE}=== $* ===${NC}"; }
 
 # --- Base Directory Enforcement ---
 ensure_base_dirs() {
-  for dir in "$HOME/external" "$HOME/internal"; do
+  home_dir="$HOME"; for dir in "$home_dir/external" "$home_dir/internal"; do
     if [[ ! -d "$dir" ]]; then
       info "Creating directory: $dir"
       mkdir -p "$dir"
@@ -117,9 +117,9 @@ fi
 
 # --- 4. Privacy Check (Phase 2) ---
 section "Privacy Validation"
-PRIVACY_SCRIPT="${REPO_ROOT}/scripts/check-privacy-leaks.sh"
+PRIVACY_SCRIPT="${REPO_ROOT}/scripts/test_privacy_rules.py"
 if [[ -f "$PRIVACY_SCRIPT" ]]; then
-  if bash "$PRIVACY_SCRIPT" "${REPO_ROOT}"; then
+  if python3 "$PRIVACY_SCRIPT"; then
     info "✅ Privacy validation passed"
   else
     warn "❌ Privacy violations detected!"
