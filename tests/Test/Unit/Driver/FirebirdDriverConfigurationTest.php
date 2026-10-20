@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Satag\DoctrineFirebirdDriver\Test\Unit\Driver;
 
 use PHPUnit\Framework\TestCase;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Satag\DoctrineFirebirdDriver\Driver\FirebirdDriver;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird3Platform;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird4Platform;
@@ -73,6 +74,28 @@ final class FirebirdDriverConfigurationTest extends TestCase
 
         self::assertInstanceOf(FirebirdPlatform::class, $platform);
         self::assertSame(255, $platform->getLikeCastLength());
+    }
+
+    public function testFoldingOptionIsForwardedToParentPlatform(): void
+    {
+        $this->driver->setFirebirdOptions([
+            'unquoted_identifier_folding' => UnquotedIdentifierFolding::NONE,
+        ]);
+
+        $platform = $this->driver->createDatabasePlatformForVersion('LI-V4.0.5.3116');
+
+        self::assertSame(UnquotedIdentifierFolding::NONE, $platform->getUnquotedIdentifierFolding());
+        self::assertSame(
+            UnquotedIdentifierFolding::NONE,
+            $platform->getConfiguration()->getUnquotedIdentifierFolding(),
+        );
+    }
+
+    public function testDefaultFoldingIsUpperOnDriverCreatedPlatforms(): void
+    {
+        $platform = $this->driver->createDatabasePlatformForVersion('LI-V3.0.10.33601');
+
+        self::assertSame(UnquotedIdentifierFolding::UPPER, $platform->getUnquotedIdentifierFolding());
     }
 
     public function testGetDatabasePlatformWithCustomConfiguration(): void

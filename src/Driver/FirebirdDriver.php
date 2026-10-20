@@ -99,17 +99,15 @@ abstract class FirebirdDriver implements Driver
 
         $version = $majorVersion . '.' . $minorVersion . '.' . $patchVersion . '.' . $buildVersion;
 
-        $platform = match (true) {
-            version_compare($version, '6.0', '>=') => new Firebird5Platform(),
-            version_compare($version, '5.0', '>=') => new Firebird5Platform(),
-            version_compare($version, '4.0', '>=') => new Firebird4Platform(),
-            version_compare($version, '3.0', '>=') => new Firebird3Platform(),
-            default => new FirebirdPlatform(),
+        $configuration = new FirebirdPlatformConfiguration($this->firebirdOptions);
+
+        return match (true) {
+            version_compare($version, '6.0', '>=') => new Firebird5Platform($configuration),
+            version_compare($version, '5.0', '>=') => new Firebird5Platform($configuration),
+            version_compare($version, '4.0', '>=') => new Firebird4Platform($configuration),
+            version_compare($version, '3.0', '>=') => new Firebird3Platform($configuration),
+            default => new FirebirdPlatform($configuration),
         };
-
-        $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
-
-        return $platform;
     }
 
     #[Override]
@@ -118,10 +116,7 @@ abstract class FirebirdDriver implements Driver
         try {
             return $this->createDatabasePlatformForVersion($versionProvider->getServerVersion());
         } catch (InvalidArgumentException) {
-            $platform = new FirebirdPlatform();
-            $platform->setConfiguration(new FirebirdPlatformConfiguration($this->firebirdOptions));
-
-            return $platform;
+            return new FirebirdPlatform(new FirebirdPlatformConfiguration($this->firebirdOptions));
         }
     }
 

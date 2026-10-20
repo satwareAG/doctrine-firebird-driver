@@ -83,12 +83,13 @@ class FirebirdPlatform extends AbstractPlatform
      */
     private FirebirdPlatformConfiguration $configuration;
 
-    public function __construct()
+    public function __construct(FirebirdPlatformConfiguration|null $configuration = null)
     {
-        parent::__construct();
+        $this->configuration = $configuration ?? new FirebirdPlatformConfiguration();
+
+        parent::__construct($this->configuration->getUnquotedIdentifierFolding());
 
         Type::overrideType('boolean', FirebirdBooleanType::class);
-        $this->configuration = new FirebirdPlatformConfiguration([]);
     }
 
     public function setCharTrue(string $char): FirebirdPlatform

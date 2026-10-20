@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Platforms;
 
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Satag\DoctrineFirebirdDriver\Platforms\Exception\InvalidConfigurationException;
 
 use function array_key_exists;
@@ -39,9 +40,21 @@ final class FirebirdPlatformConfiguration
     private const MAX_LIKE_CAST_LENGTH = 8191;
 
     /**
+     * Default folding of unquoted identifiers.
+     *
+     * Firebird stores and compares unquoted identifiers in upper-case.
+     */
+    private const DEFAULT_UNQUOTED_IDENTIFIER_FOLDING = UnquotedIdentifierFolding::UPPER;
+
+    /**
      * Configured LIKE CAST length.
      */
     private int $likeCastLength;
+
+    /**
+     * Configured folding of unquoted identifiers.
+     */
+    private UnquotedIdentifierFolding $unquotedIdentifierFolding;
 
     /**
      * Creates a new platform configuration.
@@ -58,6 +71,12 @@ final class FirebirdPlatformConfiguration
             : self::DEFAULT_LIKE_CAST_LENGTH;
 
         $this->likeCastLength = $this->validateLikeCastLength($value);
+
+        $folding = array_key_exists('unquoted_identifier_folding', $options)
+            ? $options['unquoted_identifier_folding']
+            : self::DEFAULT_UNQUOTED_IDENTIFIER_FOLDING;
+
+        $this->unquotedIdentifierFolding = $this->validateUnquotedIdentifierFolding($folding);
     }
 
     /**
@@ -71,6 +90,18 @@ final class FirebirdPlatformConfiguration
     public function getLikeCastLength(): int
     {
         return $this->likeCastLength;
+    }
+
+    /**
+     * Returns the configured folding of unquoted identifiers.
+     *
+     * Forwarded to the AbstractPlatform constructor so DBAL does not flag
+     * instantiation as deprecated (dbal#6823). Firebird folds unquoted
+     * identifiers to upper-case, hence the default.
+     */
+    public function getUnquotedIdentifierFolding(): UnquotedIdentifierFolding
+    {
+        return $this->unquotedIdentifierFolding;
     }
 
     /**
@@ -98,6 +129,26 @@ final class FirebirdPlatformConfiguration
                 self::MIN_LIKE_CAST_LENGTH,
                 self::MAX_LIKE_CAST_LENGTH,
                 $value,
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Validates the unquoted identifier folding parameter.
+     *
+     * @param mixed $value Value to validate
+     *
+     * @throws InvalidConfigurationException If value is invalid.
+     */
+    private function validateUnquotedIdentifierFolding(mixed $value): UnquotedIdentifierFolding
+    {
+        if (! $value instanceof UnquotedIdentifierFolding) {
+            throw InvalidConfigurationException::typeMismatch(
+                'unquoted_identifier_folding',
+                UnquotedIdentifierFolding::class,
+                get_debug_type($value),
             );
         }
 

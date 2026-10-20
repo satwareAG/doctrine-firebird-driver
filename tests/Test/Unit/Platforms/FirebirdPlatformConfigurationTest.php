@@ -7,6 +7,7 @@ namespace Satag\DoctrineFirebirdDriver\Test\Unit\Platforms;
 use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Satag\DoctrineFirebirdDriver\Platforms\Exception\InvalidConfigurationException;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
 
@@ -137,5 +138,32 @@ final class FirebirdPlatformConfigurationTest extends TestCase
         $config = new FirebirdPlatformConfiguration(['like_cast_length' => 8191]);
 
         self::assertSame(8191, $config->getLikeCastLength());
+    }
+
+    public function testDefaultUnquotedIdentifierFoldingIsUpper(): void
+    {
+        $config = new FirebirdPlatformConfiguration();
+
+        self::assertSame(UnquotedIdentifierFolding::UPPER, $config->getUnquotedIdentifierFolding());
+    }
+
+    public function testConstructorAcceptsUnquotedIdentifierFolding(): void
+    {
+        $config = new FirebirdPlatformConfiguration([
+            'unquoted_identifier_folding' => UnquotedIdentifierFolding::NONE,
+        ]);
+
+        self::assertSame(UnquotedIdentifierFolding::NONE, $config->getUnquotedIdentifierFolding());
+    }
+
+    public function testConstructorThrowsExceptionForInvalidFoldingType(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage(
+            'Configuration parameter "unquoted_identifier_folding" must be of type '
+            . UnquotedIdentifierFolding::class . ', string given.',
+        );
+
+        new FirebirdPlatformConfiguration(['unquoted_identifier_folding' => 'UPPER']);
     }
 }
