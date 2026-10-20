@@ -268,12 +268,23 @@ run_single_combo() {
         print_fail "$combo (timeout after ${TEST_TIMEOUT}s)"
         echo "FAIL|${combo} (timeout)" >> /tmp/matrix-results.tmp
         return 1
-    else
-        local summary
-        summary=$(echo "$output" | grep -E '^Tests: ' | head -1)
+    fi
+
+    # Non-zero exit: classify by PHPUnit verdict markers (#199). Runner warnings
+    # (e.g. "No code coverage driver available") exit non-zero with zero
+    # failures/errors - that is a green suite with degraded reporting, not a
+    # failure. Real failures keep FAIL.
+    local summary
+    summary=$(echo "$output" | grep -E '^Tests: ' | head -1)
+    if echo "$output" | grep -qE '^FAILURES!|^ERRORS!' \
+        || echo "$summary" | grep -qE 'Failures: [1-9]|Errors: [1-9]'; then
         print_fail "$combo  ${summary}"
         echo "FAIL|${combo}  ${summary}" >> /tmp/matrix-results.tmp
         return 1
+    else
+        print_ok "$combo (pass-with-notes) ${summary}"
+        echo "PASS-WITH-NOTES|${combo} ${summary}" >> /tmp/matrix-results.tmp
+        return 0
     fi
 }
 
@@ -558,10 +569,13 @@ main() {
         fi
     done
 
-    # Count from results file (accurate for parallel mode)
+    # Count from results file (accurate for parallel mode). grep -c prints "0"
+    # itself on no match; the fallbacks only cover a missing results file.
     local pass_count fail_count
-    pass_count=$(grep -c '^PASS' /tmp/matrix-results.tmp 2>/dev/null || echo 0)
-    fail_count=$(grep -c '^FAIL' /tmp/matrix-results.tmp 2>/dev/null || echo 0)
+    pass_count=$(grep -c '^PASS' /tmp/matrix-results.tmp 2>/dev/null || true)
+    fail_count=$(grep -c '^FAIL' /tmp/matrix-results.tmp 2>/dev/null || true)
+    : "${pass_count:=0}"
+    : "${fail_count:=0}"
 
     # Summary
     local total_end
@@ -573,7 +587,7 @@ main() {
 
     if [ -f /tmp/matrix-results.tmp ]; then
         while IFS='|' read -r status combo; do
-            if [ "$status" = "PASS" ]; then
+            if [[ "$status" == PASS* ]]; then
                 echo -e "  ${GREEN}PASS${NC}  ${combo}"
             else
                 echo -e "  ${RED}FAIL${NC}  ${combo}"
