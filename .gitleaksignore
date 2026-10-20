@@ -1,0 +1,69 @@
+# .gitleaksignore - historical findings baseline (#168)
+#
+# 52 triaged historical findings (2026-10-20). All are history-only; none
+# exists in the current tree. Do NOT add new fingerprints here without a
+# triage comment - the purpose of this file is to let NEW findings fail
+# loudly instead of drowning in old ones.
+#
+# Classes:
+# 1. 8c97a47a (49 betterleaks + 1 stock-gitleaks finding): vendored PuPHPet
+#    VM scaffolding (pre-2016) - public upstream fixtures: APT/GPG public
+#    key IDs, well-known insecure sample keys, puppet:puppet doc creds.
+#    Directory no longer exists. The gitleaks-only extra (composer README)
+#    is the same class, caught by a newer stock-gitleaks rule.
+# 2. 88fb9f30... (4 findings): historical local dev-VM Firebird SYSDBA
+#    password from setup instructions, removed from tree. Public since the
+#    README commit - any system still using it must rotate (satware-internal).
+54a79a9a418907213fcf6a2d14c107fbe02a7eab:README.md:generic-api-key:12
+659fbbfa830e9f66a2606c702f014f87f582d9f5:README.md:generic-api-key:48
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/files/dot/ssh/id_rsa:private-key:1
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/files/dot/ssh/insecure_private_key:private-key:1
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/files/dot/ssh/root_id_rsa:private-key:1
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/README.md:generic-api-key:192
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/README.md:generic-api-key:198
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/README.md:generic-api-key:205
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/README.md:generic-api-key:212
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:10
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:4
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:40
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:42
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:43
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:5
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/acceptance/apt_key_provider_spec.rb:generic-api-key:9
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:132
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:137
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:149
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:163
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:177
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:18
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:36
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:55
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:77
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/classes/apt_backports_spec.rb:generic-api-key:83
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/blackfire/README.md:generic-api-key:44
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/blackfire/README.md:generic-api-key:56
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/elasticsearch/spec/classes/005_elasticsearch_repo_spec.rb:generic-api-key:90
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:12
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:17
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:22
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:7
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:8
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/epel/checksums.json:generic-api-key:9
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/gnupg/files/random.private.key:private-key:1
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/mongodb/manifests/repo.pp:generic-api-key:61
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/mongodb/manifests/repo.pp:generic-api-key:71
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/mongodb/README.md:generic-api-key:141
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/nginx/spec/spec_helper_system.rb:private-key:27
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/puphpet/manifests/rabbitmq/params.pp:generic-api-key:5
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/rabbitmq/manifests/repo/apt.pp:generic-api-key:9
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/rvm/checksums.json:generic-api-key:24
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/rvm/checksums.json:generic-api-key:49
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/staging/spec/defines/staging_file_spec.rb:curl-auth-user:137
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/staging/spec/defines/staging_file_spec.rb:curl-auth-user:172
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/stdlib/spec/functions/validate_x509_rsa_key_pair_spec.rb:private-key:30
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/stdlib/spec/functions/validate_x509_rsa_key_pair_spec.rb:private-key:62
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/vcsrepo/spec/acceptance/files/server.key:private-key:1
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/wget/.sync.yml:generic-api-key:11
+b4f1fc6225d6de634fd7b5a7462e700fd09b82aa:tests/tests/Test/Integration/AbstractIntegrationTest.php:generic-api-key:27
+dc2972d75924f2fa426227664b95a9bed498f994:tests/tests/Test/Integration/AbstractIntegrationTest.php:generic-api-key:14
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/composer/README.md:generic-api-key:74
