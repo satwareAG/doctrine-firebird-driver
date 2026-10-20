@@ -11,6 +11,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\PhpIntegerMappingType;
 use Override;
+use Satag\DoctrineFirebirdDriver\Compat\ColumnCompat;
 use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatform;
 
 use function array_keys;
@@ -116,7 +117,7 @@ final class FirebirdComparator extends BaseComparator
             // Boolean/string columns DO need normalisation: PHP's loose comparison
             // '' == false, so without '0'/'1' normalisation, hasDefaultChanged() would miss
             // a real change from empty-string to false.
-            if (! ($column->getType() instanceof PhpIntegerMappingType)) {
+            if (! (ColumnCompat::type($column) instanceof PhpIntegerMappingType)) {
                 $column->setDefault($default ? '1' : '0');
             }
 

@@ -68,6 +68,34 @@ parameters:
             paths:
                 - src/Platforms/
 
+        # DBAL 4.5 (dbal#7490) deprecations on the Column API. Calls exist in
+        # version-conditional branches (src/Compat/ColumnCompat.php) or in-place
+        # mutation paths that DBAL 4.4 offers as its only mechanism. Each call is
+        # guarded by method_exists or runs only under the version where the API
+        # is current. To be removed when support for DBAL 4.4 is dropped.
+        -
+            message: '#Call to deprecated method getType\(\) of class Doctrine\\DBAL\\Schema\\Column#'
+            paths:
+                - src/Compat/ColumnCompat.php
+                - src/Platforms/
+        -
+            message: '#Call to deprecated method set(Comment|Default|Length|PlatformOptions|Type)\(\) of class Doctrine\\DBAL\\Schema\\Column#'
+            paths:
+                - src/Platforms/
+                - src/Schema/
+
+        # Cross-version bridge: method_exists() guards flip between always-true and
+        # always-false depending on the resolved DBAL vendor (4.4 vs 4.5). Static
+        # narrowing is therefore meaningless here by construction.
+        -
+            identifier: function.alreadyNarrowedType
+            paths:
+                - src/Compat/ColumnCompat.php
+        -
+            identifier: function.impossibleType
+            paths:
+                - src/Compat/ColumnCompat.php
+
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpstan/phpstan-doctrine/extension.neon

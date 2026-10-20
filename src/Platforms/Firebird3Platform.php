@@ -13,6 +13,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
 use Doctrine\DBAL\Types\Types;
 use Override;
+use Satag\DoctrineFirebirdDriver\Compat\ColumnCompat;
 use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
@@ -78,7 +79,7 @@ class Firebird3Platform extends FirebirdPlatform
                 || $columnDiff->hasScaleChanged()
                 || $columnDiff->hasFixedChanged()
             ) {
-                $type                              = $newColumn->getType();
+                $type                              = ColumnCompat::type($newColumn);
                 $columnDefinition                  = $newColumn->toArray();
                 $columnDefinition['autoincrement'] = false;
 
@@ -143,7 +144,7 @@ class Firebird3Platform extends FirebirdPlatform
             }
 
             $query = 'ALTER ' . $oldColumnName . ' TYPE '
-                . $newColumn->getType()->getSQLDeclaration($newColumn->toArray(), $this);
+                . ColumnCompat::type($newColumn)->getSQLDeclaration($newColumn->toArray(), $this);
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
