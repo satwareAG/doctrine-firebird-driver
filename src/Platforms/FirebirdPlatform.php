@@ -863,7 +863,11 @@ class FirebirdPlatform extends AbstractPlatform
     #[Override]
     public function getColumnDeclarationSQL($name, array $column): string
     {
-        if (isset($column['type']) && $column['type'] instanceof BinaryType) {
+        // DBAL >= 4.5 (dbal#7490) omits the Type instance from platform column
+        // arrays and carries the type name only; feature-detect both shapes.
+        $isBinary = ($column['type'] ?? null) instanceof BinaryType
+            || ($column['typeName'] ?? null) === Types::BINARY;
+        if ($isBinary) {
             $column['charset'] = 'octets';
         }
 
