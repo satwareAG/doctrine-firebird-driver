@@ -2,7 +2,7 @@
 
 **Date**: 2026-03-23
 **Scope**: `src/` - doctrine-firebird-driver
-**Purpose**: Inform design of new `~/internal/php-firebird` driver
+**Purpose**: Inform design of new `~/external/php-firebird` driver
 
 ---
 
@@ -213,7 +213,7 @@ Connection.php manages transaction state via boolean flags (`transactionNestingL
 
 ---
 
-## 8. Prioritized Improvement List for `~/internal/php-firebird`
+## 8. Prioritized Improvement List for `~/external/php-firebird`
 
 ### P0 - Critical (Must Have)
 

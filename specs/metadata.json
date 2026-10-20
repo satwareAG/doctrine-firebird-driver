@@ -9,7 +9,14 @@
     "project_number": 2,
     "conformance_level": "L3",
     "issue_tracker": "https://github.com/satwareAG/doctrine-firebird-driver/issues/107",
-    "rfc_location": "<internal>/wiki/specs/rfc-interproject-agentic-development.md"
+    "rfc_location": "<internal>/wiki/specs/rfc-interproject-agentic-development.md",
+    "downstream": {
+      "_private_consumers": {
+        "forge": "gitlab",
+        "visibility": "private",
+        "role": "entity layer and platform consumers (names redacted - private repos)"
+      }
+    }
   },
   "upstream": {
     "spec-kit": {
@@ -27,17 +34,10 @@
     }
   },
   "downstream": {
-    "satag-amicron-entity-bundle": {
+    "_private_consumers": {
       "forge": "gitlab",
-      "local_path": "~/internal/satag-amicron-entity-bundle",
       "visibility": "private",
-      "role": "primary entity consumer"
-    },
-    "amicron-platform": {
-      "forge": "gitlab",
-      "local_path": "~/internal/amicron-platform",
-      "visibility": "private",
-      "role": "platform consumer"
+      "role": "entity layer and platform consumers (names redacted - private repos)"
     }
   },
   "morning_protocol": {

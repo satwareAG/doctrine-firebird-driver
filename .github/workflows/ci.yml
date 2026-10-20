@@ -460,21 +460,34 @@ jobs:
       - name: Run Psalm
         run: vendor/bin/psalm --no-cache --output-format=github
 
+  privacy-check:
+    name: Privacy Check (IPADP L2)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Run privacy rules check
+        run: python3 scripts/test_privacy_rules.py
+
   # Summary job for CI dashboard
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [test, quality-checks]
+    needs: [test, quality-checks, privacy-check]
     if: always()
     steps:
       - name: Check test results
         run: |
-          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.quality-checks.result }}" == "success" ]; then
-            echo "✅ All PHP × Firebird matrix tests and static analysis passed!"
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.quality-checks.result }}" == "success" ] && [ "${{ needs.privacy-check.result }}" == "success" ]; then
+            echo "✅ All PHP × Firebird matrix tests, static analysis and privacy checks passed!"
             exit 0
           else
             echo "❌ Some jobs failed. Check individual job logs."
             echo "  - Test matrix: ${{ needs.test.result }}"
             echo "  - Quality checks: ${{ needs.quality-checks.result }}"
+            echo "  - Privacy check: ${{ needs.privacy-check.result }}"
             exit 1
           fi
