@@ -67,3 +67,14 @@
 b4f1fc6225d6de634fd7b5a7462e700fd09b82aa:tests/tests/Test/Integration/AbstractIntegrationTest.php:generic-api-key:27
 dc2972d75924f2fa426227664b95a9bed498f994:tests/tests/Test/Integration/AbstractIntegrationTest.php:generic-api-key:14
 8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/composer/README.md:generic-api-key:74
+# 3. CI pin delta (2026-10-20): gitleaks v8.21.2 flags 8 more puphpet lines
+#    (GPG key IDs in apt/elasticsearch/gnupg/erlang module specs) that the
+#    local gitleaks build does not - same class as class 1 above.
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/defines/key_compat_spec.rb:generic-api-key:9
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/defines/key_spec.rb:generic-api-key:10
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/defines/source_compat_spec.rb:generic-api-key:4
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/apt/spec/defines/source_spec.rb:generic-api-key:4
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/elasticsearch/manifests/init.pp:generic-api-key:350
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/elasticsearch/spec/classes/005_elasticsearch_repo_spec.rb:generic-api-key:82
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/erlang/manifests/params.pp:generic-api-key:11
+8c97a47ae77ec6f149c077e3f31b1db177c7e099:puphpet/puppet/modules/gnupg/lib/puppet/type/gnupg_key.rb:private-key:19
