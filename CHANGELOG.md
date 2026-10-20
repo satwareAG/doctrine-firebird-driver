@@ -1,5 +1,15 @@
 # Changelog
 
+## [v4.7.3](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.3)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.2...v4.7.3)
+
+### Bug Fixes
+
+- **tests**: adapt comparator type tests to DBAL 4.5 name-based ColumnEditor (#223) ([111b6a3](https://github.com/satwareAG/doctrine-firebird-driver/commit/111b6a32f2882feb559899dd2844b6811c7253b4))
+- **tests**: classify PHPUnit runner warnings in matrix verdicts (#199) (#226) ([b98cf30](https://github.com/satwareAG/doctrine-firebird-driver/commit/b98cf30b5232d26d0994f92af0c6cb787285aed7))
+- **platforms**: keep octets charset for binary columns under DBAL 4.5 (closes #225) (#228) ([224aa1d](https://github.com/satwareAG/doctrine-firebird-driver/commit/224aa1d75262679d44b1c5480f0c0b3f3bf71117))
+
 ## [v4.7.2](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.2)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.1...v4.7.2)
