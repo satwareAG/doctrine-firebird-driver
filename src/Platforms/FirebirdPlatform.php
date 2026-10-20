@@ -28,6 +28,7 @@ use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 use Override;
 use RuntimeException;
+use Satag\DoctrineFirebirdDriver\Compat\ColumnCompat;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdBooleanType;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Platforms\Firebird\FirebirdMetadataProvider;
@@ -688,7 +689,7 @@ class FirebirdPlatform extends AbstractPlatform
                 || $columnDiff->hasScaleChanged()
                 || $columnDiff->hasFixedChanged()
             ) {
-                $type                              = $newColumn->getType();
+                $type                              = ColumnCompat::type($newColumn);
                 $columnDefinition                  = $newColumn->toArray();
                 $columnDefinition['autoincrement'] = false;
 
@@ -749,7 +750,7 @@ class FirebirdPlatform extends AbstractPlatform
             }
 
             $query = 'ALTER ' . $oldColumnName . ' TYPE '
-                . $newColumn->getType()->getSQLDeclaration($newColumn->toArray(), $this);
+                . ColumnCompat::type($newColumn)->getSQLDeclaration($newColumn->toArray(), $this);
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
         }
 
@@ -862,7 +863,11 @@ class FirebirdPlatform extends AbstractPlatform
     #[Override]
     public function getColumnDeclarationSQL($name, array $column): string
     {
-        if (isset($column['type']) && $column['type'] instanceof BinaryType) {
+        // DBAL >= 4.5 (dbal#7490) omits the Type instance from platform column
+        // arrays and carries the type name only; feature-detect both shapes.
+        $isBinary = ($column['type'] ?? null) instanceof BinaryType
+            || ($column['typeName'] ?? null) === Types::BINARY;
+        if ($isBinary) {
             $column['charset'] = 'octets';
         }
 
@@ -906,7 +911,7 @@ class FirebirdPlatform extends AbstractPlatform
     {
         if (! $this->hasNativeBooleanType) {
             foreach ($table->getColumns() as $column) {
-                if (! ($column->getType() instanceof BooleanType)) {
+                if (! (ColumnCompat::type($column) instanceof BooleanType)) {
                     continue;
                 }
 

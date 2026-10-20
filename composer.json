@@ -67,7 +67,7 @@
         "ext-firebird": "^13.2.0",
         "ext-mbstring": "*",
         "composer-runtime-api": "^2",
-        "doctrine/dbal": "~4.4.5",
+        "doctrine/dbal": "^4.4 || ^4.5",
         "symfony/polyfill-intl-grapheme": "^1.33",
         "symfony/polyfill-intl-normalizer": "^1.33",
         "symfony/polyfill-php83": "^1.33",

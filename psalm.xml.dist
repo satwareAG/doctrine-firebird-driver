@@ -54,12 +54,15 @@
         <!-- DeprecatedMethod: DBAL deprecated TableDiff::getName, getColumnComment,
              getOldColumnName, isCommentedDoctrineType, Type::getName in newer releases.
              These calls exist throughout the Platforms and Schema implementations and
-             cannot be trivially removed without a full DBAL 4 migration. -->
+             cannot be trivially removed without a full DBAL 4 migration. Also covers
+             Compat\ColumnCompat's DBAL 4.4 fallback branch (Column::getType()), which
+             is deprecated by dbal#7490 but is the only API on 4.4. -->
         <DeprecatedMethod>
             <errorLevel type="suppress">
                 <directory name="src/Platforms"/>
                 <directory name="src/Schema"/>
                 <directory name="src/Driver/Firebird"/>
+                <file name="src/Compat/ColumnCompat.php"/>
             </errorLevel>
         </DeprecatedMethod>
         <!-- InvalidOperand: integer-or-null and numeric concatenation in platform SQL

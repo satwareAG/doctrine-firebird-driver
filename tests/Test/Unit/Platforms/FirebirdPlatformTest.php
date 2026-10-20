@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\BinaryType;
 use Doctrine\DBAL\Types\IntegerType;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\Type;
 use Iterator;
@@ -842,6 +843,25 @@ END
         $found = $this->_platform->getColumnDeclarationSQL('foo', ['type' => $type]);
         self::assertIsString($found);
         self::assertSame('foo baz  CHARACTER SET octets DEFAULT NULL', $found);
+    }
+
+    public function testBinaryColumnDeclarationUsesOctetsWithTypeNameOnly(): void
+    {
+        // DBAL >= 4.5 platform column arrays omit the Type instance (dbal#7490):
+        // buildCreateTableSQL() passes typeName only, the 'type' key is gone.
+        $table = Table::editor()
+            ->setUnquotedName('probe_binary')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('column_binary')
+                    ->setTypeName(Types::BINARY)
+                    ->setLength(16)
+                    ->create(),
+            )
+            ->create();
+
+        $sql = implode(' ', $this->_platform->getCreateTableSQL($table));
+        self::assertStringContainsStringIgnoringCase('CHARACTER SET octets', $sql);
     }
 
     public function testGetCreateTemporaryTableSnippetSQL(): void
