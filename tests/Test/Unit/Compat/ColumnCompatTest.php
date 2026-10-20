@@ -14,6 +14,12 @@ use Satag\DoctrineFirebirdDriver\Compat\ColumnCompat;
 
 use function get_class;
 
+/**
+ * Under a DBAL 4.5 vendor, only the getTypeName() branch of ColumnCompat::type()
+ * is exercisable; the 4.4 fallback branch (Column::getType()) is verified on the
+ * 4.4.5 resolution (suite green on both bounds) and by the cross-version
+ * functional matrix in CI.
+ */
 #[CoversClass(ColumnCompat::class)]
 final class ColumnCompatTest extends TestCase
 {
@@ -27,11 +33,6 @@ final class ColumnCompatTest extends TestCase
         self::assertSame(BinaryType::class, get_class(ColumnCompat::type($column)));
     }
 
-    /**
-     * The DBAL 4.4 fallback branch (Column::getType()) cannot be exercised under a
-     * 4.5 vendor; it is verified on the 4.4.5 resolution (suite green on both bounds)
-     * and by the cross-version functional matrix in CI.
-     */
     public function testTypeResolvesIntegerColumn(): void
     {
         $column = Column::editor()

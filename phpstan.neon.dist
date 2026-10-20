@@ -77,7 +77,6 @@ parameters:
             message: '#Call to deprecated method getType\(\) of class Doctrine\\DBAL\\Schema\\Column#'
             paths:
                 - src/Compat/ColumnCompat.php
-                - src/Platforms/
         -
             message: '#Call to deprecated method set(Comment|Default|Length|PlatformOptions|Type)\(\) of class Doctrine\\DBAL\\Schema\\Column#'
             paths:
