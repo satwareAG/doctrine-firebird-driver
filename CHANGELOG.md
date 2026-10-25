@@ -1,5 +1,13 @@
 # Changelog
 
+## [v4.7.4](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.4)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.3...v4.7.4)
+
+### Bug Fixes
+
+- **platforms**: thread unquotedIdentifierFolding to AbstractPlatform constructor (closes #200) (#230) ([5c0d8a2](https://github.com/satwareAG/doctrine-firebird-driver/commit/5c0d8a2d24bb9066043cba7416f0e3f8e4ff8f2b))
+
 ## [v4.7.3](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.3)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.2...v4.7.3)
