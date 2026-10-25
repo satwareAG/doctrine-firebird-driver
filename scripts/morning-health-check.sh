@@ -87,6 +87,12 @@ fi
 section "IPADP Spec Currency"
 if [[ -f "$METADATA" ]]; then
   info "Parsing metadata: $METADATA"
+
+  # Loud failure on corrupt JSON: the fallback parsers below silence jq errors,
+  # which would otherwise report a broken file as "no upstream dependencies".
+  if ! jq -e . "$METADATA" >/dev/null 2>&1; then
+    warn "metadata.json is NOT valid JSON - IPADP scan unreliable until fixed"
+  fi
   
   # Extract upstream dependencies and check local paths
   # RFC 3.3 array form (canonical) with legacy object-form fallback

@@ -6,7 +6,6 @@
   "conformance_level": "L3",
   "sdd_source": "https://github.com/satwareAG/spec-kit",
   "local_path": "~/external/doctrine-firebird-driver",
-  "version": "4.7.3",
   "dependencies": {
     "upstream": [
       {
