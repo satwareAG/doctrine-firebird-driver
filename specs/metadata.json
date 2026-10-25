@@ -1,44 +1,45 @@
 {
-  "name": "doctrine-firebird-driver",
-  "version": "4.7.1",
-  "sdd_source": "https://github.com/satwareAG/spec-kit",
+  "schema_version": "1.0",
+  "project": "satwareAG/doctrine-firebird-driver",
   "forge": "github",
   "visibility": "public",
+  "conformance_level": "L3",
+  "sdd_source": "https://github.com/satwareAG/spec-kit",
   "local_path": "~/external/doctrine-firebird-driver",
+  "dependencies": {
+    "upstream": [
+      {
+        "repo": "satwareAG/spec-kit",
+        "forge": "github",
+        "relationship": "SDD methodology provider: methodology and tooling this repo conforms to",
+        "url": "https://github.com/satwareAG/spec-kit",
+        "channel": "gh:releases",
+        "local_path": "~/external/spec-kit",
+        "last_synced_tag": "satware-v1.2.3+1"
+      },
+      {
+        "repo": "satwareAG/php-firebird",
+        "forge": "github",
+        "relationship": "native-driver-provider: PHP Firebird extension this DBAL driver bridges; ext-firebird constraint and version pins track its release line",
+        "url": "https://github.com/satwareAG/php-firebird",
+        "channel": "gh:releases",
+        "local_path": "~/external/php-firebird",
+        "version": "13.2.10"
+      }
+    ],
+    "downstream": [
+      {
+        "repo": "(private-consumers-redacted)",
+        "forge": "gitlab",
+        "relationship": "entity layer and platform consumers of this DBAL driver (names redacted - IPADP privacy rule forbids public-to-private interlinking). Coordination is handover comments on this repo's issues only; consumer-lane verifications run in the consumers' own CI.",
+        "channel": "gitlab:issues"
+      }
+    ]
+  },
   "ipadp": {
     "project_number": 2,
-    "conformance_level": "L3",
     "issue_tracker": "https://github.com/satwareAG/doctrine-firebird-driver/issues/107",
-    "rfc_location": "<internal>/wiki/specs/rfc-interproject-agentic-development.md",
-    "downstream": {
-      "_private_consumers": {
-        "forge": "gitlab",
-        "visibility": "private",
-        "role": "entity layer and platform consumers (names redacted - private repos)"
-      }
-    }
-  },
-  "upstream": {
-    "spec-kit": {
-      "url": "https://github.com/satwareAG/spec-kit",
-      "forge": "github",
-      "local_path": "~/external/spec-kit",
-      "role": "methodology-provider"
-    },
-    "php-firebird": {
-      "url": "https://github.com/satwareAG/php-firebird",
-      "forge": "github",
-      "local_path": "~/external/php-firebird",
-      "role": "native-driver-provider",
-      "version": "13.2.8"
-    }
-  },
-  "downstream": {
-    "_private_consumers": {
-      "forge": "gitlab",
-      "visibility": "private",
-      "role": "entity layer and platform consumers (names redacted - private repos)"
-    }
+    "rfc_location": "<internal>/wiki/specs/rfc-interproject-agentic-development.md"
   },
   "morning_protocol": {
     "scripts": "scripts/"

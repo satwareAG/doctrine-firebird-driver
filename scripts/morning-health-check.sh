@@ -87,9 +87,22 @@ fi
 section "IPADP Spec Currency"
 if [[ -f "$METADATA" ]]; then
   info "Parsing metadata: $METADATA"
+
+  # Loud failure on corrupt JSON: the fallback parsers below silence jq errors,
+  # which would otherwise report a broken file as "no upstream dependencies".
+  if ! jq -e . "$METADATA" >/dev/null 2>&1; then
+    warn "metadata.json is NOT valid JSON - IPADP scan unreliable until fixed"
+  fi
   
   # Extract upstream dependencies and check local paths
-  mapfile -t dependencies < <(jq -r '.upstream | to_entries[] | "\(.key)|\(.value.local_path)"' "$METADATA" 2>/dev/null || true)
+  # RFC 3.3 array form (canonical) with legacy object-form fallback. A file
+  # containing BOTH forms would emit duplicate entries - unreachable since the
+  # RFC 3.3 migration (this repo's own file is single-form), but the fallback
+  # keeps fleet-copied copies of this script working in repos still migrating.
+  mapfile -t dependencies < <(
+    jq -r '.dependencies.upstream[]? | "\(.repo)|\(.local_path)"' "$METADATA" 2>/dev/null || true
+    jq -r '.upstream | to_entries[]? | "\(.key)|\(.value.local_path)"' "$METADATA" 2>/dev/null || true
+  )
   
   if [[ ${#dependencies[@]} -gt 0 ]]; then
     for dep in "${dependencies[@]}"; do
