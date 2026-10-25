@@ -13,6 +13,7 @@ use Firebird\Transaction;
 use Satag\DoctrineFirebirdDriver\Compat\Override;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Throwable;
+use WeakReference;
 
 use function array_flip;
 use function array_map;
@@ -50,7 +51,20 @@ final class Statement implements StatementInterface
     /** @var array<int|string, mixed> */
     private array $boundValues = [];
 
-    private Result|null $currentResult = null;
+    /**
+     * Weak reference to the most recent Result of this statement (#176).
+     *
+     * A strong reference here is what created the zombie-cursor problem: a
+     * consumed Result the user dropped stayed alive (cursor open, transaction
+     * locks retained) inside this property until cycle-GC, defeating the
+     * extension's idle-lock release (php-firebird#586/#588). A weak reference
+     * keeps the single-cursor-per-statement guarantee (free the previous
+     * result on re-execute) while letting refcounting destroy an abandoned
+     * Result deterministically.
+     *
+     * @var WeakReference<Result>|null
+     */
+    private WeakReference|null $currentResult = null;
 
     /** @var bool True if this statement is a DML operation (INSERT/UPDATE/DELETE/MERGE) */
     private bool $isDml = false;
@@ -147,10 +161,13 @@ final class Statement implements StatementInterface
         }
 
         if ($this->currentResult !== null) {
-            try {
-                $this->currentResult->free();
-            } catch (Throwable) {
-                // Ignore if already freed or invalid
+            $previous = $this->currentResult->get();
+            if ($previous !== null) {
+                try {
+                    $previous->free();
+                } catch (Throwable) {
+                    // Ignore if already freed or invalid
+                }
             }
 
             $this->currentResult = null;
@@ -266,9 +283,10 @@ final class Statement implements StatementInterface
             $this->connection->setLastInsertTable(strtoupper(trim($m[1], '"')));
         }
 
-        $this->currentResult = new Result($fbirdResultRc, $this->connection, $this);
+        $result              = new Result($fbirdResultRc, $this->connection, $this);
+        $this->currentResult = WeakReference::create($result);
 
-        return $this->currentResult;
+        return $result;
     }
 
     /**
@@ -282,7 +300,7 @@ final class Statement implements StatementInterface
      */
     public function clearCurrentResult(Result $result): void
     {
-        if ($this->currentResult !== $result) {
+        if ($this->currentResult?->get() !== $result) {
             return;
         }
 
