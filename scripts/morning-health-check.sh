@@ -95,7 +95,10 @@ if [[ -f "$METADATA" ]]; then
   fi
   
   # Extract upstream dependencies and check local paths
-  # RFC 3.3 array form (canonical) with legacy object-form fallback
+  # RFC 3.3 array form (canonical) with legacy object-form fallback. A file
+  # containing BOTH forms would emit duplicate entries - unreachable since the
+  # RFC 3.3 migration (this repo's own file is single-form), but the fallback
+  # keeps fleet-copied copies of this script working in repos still migrating.
   mapfile -t dependencies < <(
     jq -r '.dependencies.upstream[]? | "\(.repo)|\(.local_path)"' "$METADATA" 2>/dev/null || true
     jq -r '.upstream | to_entries[]? | "\(.key)|\(.value.local_path)"' "$METADATA" 2>/dev/null || true
