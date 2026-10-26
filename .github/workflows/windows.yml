@@ -117,10 +117,13 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          # Pinned to v13.2.7 to match ci.yml (#294 autocommit DDL fix, FB3
-          # segfault fix, cursor counter fix). Floating fallback patterns made
-          # this job silently switch DLL builds between runs (#167).
-          $patterns = @("php_firebird-v13\.2\.6-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.6-${phpVer}-nts-.*-$arch\.zip")
+          # Pinned to v13.2.10 to match the ci.yml/Dockerfile pins (#176 ext
+          # bump: #294 autocommit DDL fix, FB3 segfault fix, cursor counter
+          # fix, #588 idle-lock release). Floating fallback patterns made this
+          # job silently switch DLL builds between runs (#167). This bump is
+          # the #167 verdict input: if the shutdown 0xC0000005 persists on
+          # v13.2.10, the crash is not runner/DLL drift and routes upstream.
+          $patterns = @("php_firebird-v13\.2\.10-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.10-${phpVer}-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
