@@ -20,7 +20,6 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -42,12 +41,6 @@ jobs:
           extensions: mbstring, intl
           coverage: none
           tools: composer:v2
-
-      - name: Cache Firebird (Chocolatey)
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: C:\ProgramData\chocolatey\lib\firebird
-          key: ${{ runner.os }}-choco-firebird-3.0.13
 
       - name: Install Firebird
         shell: pwsh
@@ -118,10 +111,13 @@ jobs:
           $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
           
           $targetAsset = $null
-          # Pinned to v13.2.7 to match ci.yml (#294 autocommit DDL fix, FB3
-          # segfault fix, cursor counter fix). Floating fallback patterns made
-          # this job silently switch DLL builds between runs (#167).
-          $patterns = @("php_firebird-v13\.2\.6-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.6-${phpVer}-nts-.*-$arch\.zip")
+          # Pinned to v13.2.10 to match the ci.yml/Dockerfile pins (#176 ext
+          # bump: #294 autocommit DDL fix, FB3 segfault fix, cursor counter
+          # fix, #588 idle-lock release). Floating fallback patterns made this
+          # job silently switch DLL builds between runs (#167). This bump is
+          # the #167 verdict input: if the shutdown 0xC0000005 persists on
+          # v13.2.10, the crash is not runner/DLL drift and routes upstream.
+          $patterns = @("php_firebird-v13\.2\.10-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.10-${phpVer}-nts-.*-$arch\.zip")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
@@ -189,10 +185,12 @@ jobs:
           composer show phpunit/phpunit 2>$null | Select-String '^name|^versions'
           Write-Host '=== STRICT RUN (failOnDeprecation=true, failOnNotice=true) ==='
           vendor/bin/phpunit --configuration phpunit.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --no-progress --no-coverage
-          Write-Host "strict-exit=$LASTEXITCODE"
+          $strictExit = $LASTEXITCODE
+          Write-Host "strict-exit=$strictExit"
           Write-Host '=== RELAXED RUN (failOnDeprecation=false, failOnNotice=false) ==='
           vendor/bin/phpunit --configuration phpunit.win-relaxed.xml --testsuite Integration-ReadOnly --display-warnings --display-errors --display-deprecations --display-notices --no-progress --no-coverage
           Write-Host "relaxed-exit=$LASTEXITCODE"
-          # Preserve both exit codes in the log; final exit keeps the advisory
-          # job's original semantics (strict config result).
-          exit $LASTEXITCODE
+          # Gate on the STRICT run: it is the one that fails on shutdown-phase
+          # deprecations/notices (#167 diagnostics). The relaxed run is a
+          # diagnostic comparator - its exit code is logged above, not gating.
+          exit $strictExit
