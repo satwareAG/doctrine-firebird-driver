@@ -108,7 +108,7 @@ jobs:
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
           $headers = @{}
           if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "token $env:GITHUB_TOKEN" }
-          $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+          $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers -MaximumRetryCount 3 -RetryIntervalSec 10
           
           $targetAsset = $null
           # Pinned to v13.2.10 to match the ci.yml/Dockerfile pins (#176 ext
@@ -117,7 +117,7 @@ jobs:
           # job silently switch DLL builds between runs (#167). This bump is
           # the #167 verdict input: if the shutdown 0xC0000005 persists on
           # v13.2.10, the crash is not runner/DLL drift and routes upstream.
-          $patterns = @("php_firebird-v13\.2\.10-${phpVer}-nts-$vs-$arch\.zip", "php_firebird-v13\.2\.10-${phpVer}-nts-.*-$arch\.zip")
+          $patterns = @("^php_firebird-v13\.2\.10-${phpVer}-nts-$vs-$arch\.zip$", "^php_firebird-v13\.2\.10-${phpVer}-nts-.*-$arch\.zip$")
           
           foreach ($pattern in $patterns) {
               foreach ($release in $releases) {
