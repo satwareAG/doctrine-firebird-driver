@@ -17,6 +17,7 @@ use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Result;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Statement;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
+use WeakReference;
 
 use function fclose;
 use function fopen;
@@ -438,16 +439,36 @@ class StatementTest extends TestCase
         $statement = new Statement($this->connection, fopen('php://memory', 'r+'), [], 'SELECT 1');
 
         $result = new Result(null, $this->connection, $statement);
-        $this->setPrivateProperty($statement, 'currentResult', $result);
+        $this->setPrivateProperty($statement, 'currentResult', WeakReference::create($result));
 
-        // Statement -> Result -> Statement is a reference cycle: refcounting
-        // can never free a consumed cursor while the statement holds it (#176).
-        // free() must notify the statement so the retention chain is cut and
-        // the underlying ResultSet dies deterministically.
+        // free() must notify the statement so the weak reference is dropped
+        // and the retention chain is cut deterministically (#176).
         $result->free();
 
         $currentResult = (new ReflectionProperty(Statement::class, 'currentResult'))->getValue($statement);
         self::assertNull($currentResult, 'free() must drop the statement reference to the result');
+    }
+
+    #[Test]
+    public function statementDoesNotRetainAbandonedResults(): void
+    {
+        $statement = new Statement($this->connection, fopen('php://memory', 'r+'), [], 'SELECT 1');
+
+        $result = new Result(null, $this->connection, $statement);
+        $this->setPrivateProperty($statement, 'currentResult', WeakReference::create($result));
+
+        // The #176 zombie: a Result the user drops WITHOUT free() must die by
+        // refcount immediately. A strong Statement -> Result reference would
+        // keep the cursor (and its transaction locks) alive until cycle-GC.
+        // With the weak reference there is no cycle, so no gc_collect_cycles()
+        // is needed - destruction is deterministic refcount work.
+        unset($result);
+
+        $currentResult = (new ReflectionProperty(Statement::class, 'currentResult'))->getValue($statement);
+        self::assertNull(
+            $currentResult?->get(),
+            'an abandoned result must not survive via the statement reference',
+        );
     }
 
     // ====================================

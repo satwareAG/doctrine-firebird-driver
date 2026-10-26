@@ -4,7 +4,7 @@
 # =============================================================================
 # BuildKit syntax 1 required for optimal caching and security features
 # Base images: PHP CLI for test execution
-# Extensions: firebird (php-firebird v13.2.7), pcov (fast coverage)
+# Extensions: firebird (php-firebird v13.2.10), pcov (fast coverage)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -29,15 +29,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install php-firebird extension from source (v13.2.7)
-# v13.2.7: #294 autocommit DDL fix (commit return value check + cursor cleanup retry),
+# Install php-firebird extension from source (v13.2.10)
+# v13.2.10: #294 autocommit DDL fix (commit return value check + cursor cleanup retry),
 #           FB3 segfault fix in cursor cleanup (d4a4fa1).
 #           See UPGRADING.md in php-firebird for v13.0->v13.2 migration details.
 #
 # FB_API_VER=40 enables IBatch API support (requires Firebird 4.0+ AND client libraries)
 # Only set for Firebird 4.0/5.0 to avoid API mismatch crashes with Firebird 3.0 client libraries
 RUN docker-php-source extract \
-    && git clone --depth 1 --branch v13.2.7 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
+    && git clone --depth 1 --branch v13.2.10 https://github.com/satwareAG/php-firebird.git /usr/src/php/ext/firebird \
     && if [ "${FIREBIRD_VERSION}" = "4.0" ] || [ "${FIREBIRD_VERSION}" = "5.0" ]; then \
         echo "Enabling FB_API_VER=40 for Firebird ${FIREBIRD_VERSION}"; \
         export CPPFLAGS="-DFB_API_VER=40"; \

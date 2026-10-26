@@ -56,4 +56,4 @@ This project follows **L3 IPADP conformance**.
 | PHPStan 8 | `./vendor/bin/phpstan analyse` | 0 errors |
 | Psalm | `./vendor/bin/psalm --no-cache` | 0 errors (baseline: 112 pre-existing) |
 | PHP_CodeSniffer | `./vendor/bin/phpcs -q` | 0 errors |
-| PHPUnit | `./vendor/bin/phpunit` | 1620 unit + 575 functional per FB version |
+| PHPUnit | `./vendor/bin/phpunit` | 1621 unit + 577 functional per FB version |

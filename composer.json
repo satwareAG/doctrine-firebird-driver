@@ -64,7 +64,7 @@
     },
     "require": {
         "php": "^8.2",
-        "ext-firebird": "^13.2.0",
+        "ext-firebird": "^13.2.10",
         "ext-mbstring": "*",
         "composer-runtime-api": "^2",
         "doctrine/dbal": "^4.4 || ^4.5",
