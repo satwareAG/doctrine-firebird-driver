@@ -42,12 +42,6 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Cache Firebird (Chocolatey)
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: C:\ProgramData\chocolatey\lib\firebird
-          key: ${{ runner.os }}-choco-firebird-3.0.13
-
       - name: Install Firebird
         shell: pwsh
         run: |
