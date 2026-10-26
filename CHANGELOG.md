@@ -1,5 +1,13 @@
 # Changelog
 
+## [v4.7.5](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.5)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.4...v4.7.5)
+
+### Bug Fixes
+
+- **locks**: weak-reference Statement::currentResult - deterministic cursor release (#176) (#241) ([880efc6](https://github.com/satwareAG/doctrine-firebird-driver/commit/880efc6681e084d8a0fe2e63e074b3aa2db254f8))
+
 ## [v4.7.4](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.4)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.3...v4.7.4)
