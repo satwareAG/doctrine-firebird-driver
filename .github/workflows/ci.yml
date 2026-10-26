@@ -305,7 +305,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p tests/var/logs
-          php -i > tests/var/logs/php-info.txt
+          env -i php -i > tests/var/logs/php-info.txt
           php -m > tests/var/logs/php-modules.txt
           
       - name: Upload debug artifacts
