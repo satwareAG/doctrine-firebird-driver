@@ -46,6 +46,8 @@ This project follows **L3 IPADP conformance**.
 ### Pitfalls
 
 - **Branch switching (3.10.x / 3.18.x <-> 4.4.x)**: `composer.lock` is gitignored (library discipline, #195). A local lock from the previous branch survives the switch and poisons resolution. After every branch switch run `composer update --ignore-platform-req=ext-firebird`, never `composer install`. CI always runs `composer update`.
+- **Release PR date literal**: releaser-pleaser rewrites the version marker in AGENTS.md but keeps the date literal from the previous section (mechanism documented in #229; recurred on #233). Before merging a release PR, correct the date to the actual release date.
+- **Dependabot CI-action bumps**: agent-mergeable only after verifying the pinned SHA dereferences from the tagged release (annotated tags: the ref endpoint is a tag object, dereference one hop). Record the check in the merge note; precedent alone is not provenance (council 2026-10-25).
 
 ### Quality Gates
 
