@@ -9,6 +9,11 @@ on:
     branches:
       - '3.10.x'
       - '4.4.x'
+  # Soak for #167 (survival across runner-image roll cycles): weekly run on
+  # the default branch + manual top-ups. Revert this block at soak close.
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
