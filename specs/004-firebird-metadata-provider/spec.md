@@ -16,7 +16,7 @@ official DBAL platforms (MySQL, PostgreSQL, SQLite, Oracle, SQL Server,
 DB2) override it. `FirebirdPlatform` does not, making it the only platform
 where the new introspection API fails.
 
-This is a **general-purpose DBAL contract gap**, not an amicron-specific
+This is a **general-purpose DBAL contract gap**, not an private-erp-specific
 workaround. The old `list*()` path still works (deprecated) but will be
 removed in DBAL 5.0.
 
@@ -264,4 +264,4 @@ calls in `FirebirdSchemaManager.php` and `FirebirdPlatform.php` to the
 - Reference impls: MySQL (686L), PostgreSQL (729L), SQLite (710L), Oracle
   (581L), SQL Server (658L), DB2 (518L)
 - Existing SQL: `src/Schema/FirebirdSchemaManager.php` lines 254-420, 502-601, 690-730
-- Cross-ref: amicron-platform #218, #223, MR !192
+- Cross-ref: private-erp-consumer platform #218, #223, MR !192

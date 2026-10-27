@@ -20,7 +20,7 @@ boot/shutdown Doctrine kernels between tests (PHPUnit, Pest), this creates a rac
    `Connection is not valid or has been closed.` (`src/Driver/Firebird/Connection.php:250`).
 
 The current workaround - calling `gc_collect_cycles()` after every kernel shutdown -
-leaks driver internals into downstream test base classes. Confirmed in `amicron-platform`
+leaks driver internals into downstream test base classes. Confirmed in `private-erp-consumer platform`
 CI (2 intermittent test errors).
 
 php-firebird provides `FBIRD_CONNECT_FORCE_NEW` (value: 2, since v7.0.0; current
@@ -176,7 +176,7 @@ verification against a real DB).
 - **SC-004**: `DsnParserTest` includes a case for `?forceNewConnection=1`.
 - **SC-005**: `docs/DSN.md` lists `forceNewConnection` in both parameter tables.
 - **SC-006**: PHPStan Level 8 and PHPCS report zero new issues.
-- **SC-007**: `amicron-platform` CI can drop `gc_collect_cycles()` from test base classes
+- **SC-007**: `private-erp-consumer platform` CI can drop `gc_collect_cycles()` from test base classes
   after enabling `forceNewConnection=true` in its test Doctrine config (validated
   downstream, not in this repo).
 
@@ -186,4 +186,4 @@ verification against a real DB).
 - Auto-detection of test environments (the flag is opt-in, not auto-enabled).
 - Changes to Doctrine's `DsnParser` (not needed; `parse_str` handles it).
 - Refactoring the `Connection::__destruct()` close logic (working as designed).
-- The `gc_collect_cycles()` workaround removal in `amicron-platform` (downstream task).
+- The `gc_collect_cycles()` workaround removal in `private-erp-consumer platform` (downstream task).

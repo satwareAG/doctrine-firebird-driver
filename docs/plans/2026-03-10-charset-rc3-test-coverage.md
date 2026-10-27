@@ -12,9 +12,9 @@ BLOB stream support. While source coverage reached 100%, the existing unit tests
 encoding with UTF-8 input strings - they did not test with actual Windows-1252 encoded bytes
 as Firebird would return them on the wire.
 
-The `satag-amicron-entity-bundle` (spec-004) requires:
+The `private-erp-consumer` (spec-004) requires:
 
-- Connection with `charset: ISO8859_1` to Amicron Firebird databases
+- Connection with `charset: ISO8859_1` to private-ERP Firebird databases
 - Data arriving from DB in Windows-1252 (WIN1252) wire encoding
 - Transparent decode for VARCHAR, TEXT, and BLOB TEXT columns
 - Transparent encode for WHERE/LIKE search parameters
@@ -31,7 +31,7 @@ Missing:
 - Fetch methods tested with real WIN1252 bytes (0x84, 0x94, 0x9C, 0xE4, etc.)
 - BLOB TEXT stream decode with WIN1252 content
 - Encode/decode round-trip continuity verification
-- LIKE/search param encoding with all 7 Amicron special-char strings
+- LIKE/search param encoding with all 7 private-ERP special-char strings
 
 ## Implementation Plan
 
@@ -39,7 +39,7 @@ Missing:
 
 - Read all 4 middleware classes
 - Read existing 33 unit tests in `CharsetMiddlewareTest.php`
-- Cross-check against amicron spec-004 success criteria
+- Cross-check against private-erp spec-004 success criteria
 
 ### Phase 2 - Round-trip tests (complete)
 
@@ -47,10 +47,10 @@ Create `tests/Test/Unit/Driver/Middleware/CharsetEncodingRoundTripTest.php` with
 
 1. `testFetch*WithRealWin1252Bytes` - 6 tests, one per fetch method, with actual `mb_convert_encoding` WIN1252 bytes as mock return values
 2. `testFetch*StreamWithWin1252Bytes` - 6 tests, one per fetch method, with `php://temp` streams containing WIN1252 bytes
-3. `testRoundTrip*` - 7 tests, one per Amicron special-char string, verifying byte identity after WIN1252↔UTF-8 conversion
-4. `testBindValue*Encodes` - 7 tests, one per Amicron string, verifying `bindValue()` encoding
+3. `testRoundTrip*` - 7 tests, one per private-ERP special-char string, verifying byte identity after WIN1252↔UTF-8 conversion
+4. `testBindValue*Encodes` - 7 tests, one per private-ERP string, verifying `bindValue()` encoding
 5. `testExecuteParams*Encodes` - 7 tests, verifying inline `execute()` param encoding
-6. `testQuoteEncodesSpecialChars` - 7 tests, one per Amicron string, verifying `quote()` encoding
+6. `testQuoteEncodesSpecialChars` - 7 tests, one per private-ERP string, verifying `quote()` encoding
 
 ### Phase 3 - Spec and release docs (complete)
 
@@ -59,7 +59,7 @@ Create `tests/Test/Unit/Driver/Middleware/CharsetEncodingRoundTripTest.php` with
 - Fix `README.md` orphaned artifacts
 - Update `NEXT_STEPS.md`
 - Tag `v3.12.0-RC.3`, push to GitHub
-- Update `satag-amicron-entity-bundle/composer.json` to `3.12.0-RC.3`
+- Update `private-erp-consumer/composer.json` to `3.12.0-RC.3`
 
 ## Verification
 
@@ -70,9 +70,9 @@ Create `tests/Test/Unit/Driver/Middleware/CharsetEncodingRoundTripTest.php` with
 | PHPCS on src/Driver/Firebird/Middleware/ | 4/4 PASS |
 | No PHPUnit deprecations | 0 deprecations |
 
-## Amicron Bundle Impact
+## private-ERP Bundle Impact
 
-The `satag-amicron-entity-bundle` registers `CharsetMiddleware` from this driver via:
+The `private-erp-consumer` registers `CharsetMiddleware` from this driver via:
 
 ```xml
 <!-- src/Resources/config/service.xml -->
