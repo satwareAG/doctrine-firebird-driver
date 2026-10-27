@@ -133,8 +133,8 @@ Use descriptive branch names:
 - `docs/documentation-topic` - Documentation updates
 - `chore/maintenance-topic` - CI, dependency, and housekeeping work
 
-Routine pull requests should target **`3.10.x`**. The `4.4.x` branch is reserved for future DBAL 4
-work and should only receive changes when that line is actively being resumed.
+Routine pull requests should target **`4.4.x`** (the active line, DBAL 4.4/4.5). The `3.10.x`
+branch is maintenance-only (DBAL 3.x, critical fixes).
 
 ### 2. Write Tests First (TDD)
 
