@@ -19,7 +19,7 @@
 ### IPADP Conformance
 This project follows **L3 IPADP conformance**.
 - **Metadata**: `specs/metadata.json`
-- **Linkages**: Consumes `php-firebird` (upstream). Provided to `satag-amicron-entity-bundle` (downstream).
+- **Linkages**: Consumes `php-firebird` (upstream). Provided to a private downstream consumer (name redacted per `specs/metadata.json` IPADP privacy rule).
 
 ---
 
