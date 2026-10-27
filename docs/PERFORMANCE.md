@@ -53,7 +53,7 @@ foreach ($rows as $row) {
     $stmt->bindValue(1, $row['id']);
     $stmt->bindValue(2, $row['name']);
     $stmt->bindValue(3, $row['wert']);
-    $stmt->execute();
+    $stmt->executeStatement();
 }
 $conn->commit();
 

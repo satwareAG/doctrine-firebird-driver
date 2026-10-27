@@ -11,9 +11,9 @@ To utilize this library in your application code, the following is required:
 
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported - 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.5 recommended** - primary optimization target for Amicron ERP integration)
-- **php-firebird extension** v13.0+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening, `fbird_escape_literal()`)
-- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch, current release: v4.5.1)
-- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch, maintenance only: v3.19.0)
+- **php-firebird extension** v13.2.10+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening, `fbird_escape_literal()`)
+- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch, current release: v4.7.5)
+- [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch, maintenance only: v3.19.2)
 
 ## Version Compatibility Matrix
 
@@ -125,7 +125,7 @@ use Doctrine\DBAL\DriverManager;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection;
 
 $params = [
-    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'driverClass' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
     'host'         => 'localhost',
     'dbname'       => '/path/to/database.fdb',
     'user'         => 'SYSDBA',
@@ -185,7 +185,7 @@ The driver wraps LIKE column operands in `CAST(column AS VARCHAR(length))` to pr
 use Doctrine\DBAL\DriverManager;
 
 $params = [
-    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'driverClass' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
     'host'         => 'localhost',
     'dbname'       => '/path/to/database.fdb',
     'user'         => 'SYSDBA',
@@ -271,7 +271,7 @@ $config->setMiddlewares([
 ]);
 
 $connection = DriverManager::getConnection([
-    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'driverClass' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
     'host'         => 'localhost',
     'dbname'       => '/path/to/database.fdb',
     'user'         => 'SYSDBA',
@@ -293,8 +293,8 @@ $middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF
 **How it works:**
 - `bindValue()` / execute params: PHP encoding → database encoding before sending to Firebird.
 - `fetch*()` results: database encoding → PHP encoding after receiving from Firebird.
-- **BLOB Transparency:** PHP resource streams are automatically extracted and transcoded.
-- **`LARGE_OBJECT` support:** Parameters bound with `ParameterType::LARGE_OBJECT` are transcoded.
+- **BLOB Transparency:** PHP resource streams are automatically extracted (`stream_get_contents`) before binding.
+- **`LARGE_OBJECT` support:** Parameters bound with `ParameterType::LARGE_OBJECT` pass through without charset transcoding (deliberate, binary-safety: php-firebird #127/#148/#149).
 - Non-string values (int, float, null, bool, objects) pass through unchanged.
 
 **Requires:** `ext-mbstring` (declared in `composer.json`)
@@ -323,7 +323,7 @@ vendor/bin/phpunit tests/Test/Functional/
 
 ## Test Coverage
 
-- **1255+ tests** (unit, functional, integration)
+- **1621 unit + 577 functional tests per supported Firebird version** (unit, functional, integration)
 - **100% pass rate** across all Firebird versions (3.0, 4.0, 5.0)
 - **Windows CI** — Fully stabilized integration tests on GitHub Actions using dedicated permissive storage (`C:\firebird_tests`) to bypass `SYSTEM` account I/O restrictions.
 - **CI/CD Audit** — Regular audits ensure parity between local (`docker-cqc.sh`, `act`) and remote GitHub Actions environments.
@@ -401,9 +401,9 @@ You can reference the following resources for guidance:
   - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.4.x supports DBAL ^4.4 (Active)
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
 - Reference manuals of Firebird’s implementation of the SQL relational database language for  
-  [Firebird 2.5](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref25/firebird-25-language-reference.html), 
-  [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html) 
-  and [Firebird 4.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html) 
+  [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html), 
+  [Firebird 4.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html) 
+  and [Firebird 5.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html) 
 - PHP Firebird Extension Source: [PHP Firebird extension](https://github.com/FirebirdSQL/php-firebird)
 - [German Firebird Forum](https://www.firebirdforum.de/)
 -  You can download all given resources for reference.

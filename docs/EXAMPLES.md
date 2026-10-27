@@ -27,7 +27,7 @@ use Doctrine\DBAL\DriverManager;
 use Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection;
 
 $conn = DriverManager::getConnection([
-    'driver_class' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
+    'driverClass' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
     'wrapperClass' => FirebirdConnection::class,
     'host'         => 'localhost',
     'dbname'       => '/var/firebird/amicron.fdb',
@@ -203,7 +203,7 @@ $rows = $conn->fetchAllAssociative(
 ```php
 $stmt = $conn->prepare('SELECT BEMERKUNG FROM ADRESSEN WHERE KDNR = ?');
 $stmt->bindValue(1, 42);
-$result = $stmt->execute();
+$result = $stmt->executeQuery();
 $row = $result->fetchAssociative();
 
 // BLOBs are returned as string content (driver handles streaming)
@@ -217,7 +217,8 @@ $largeText = file_get_contents('/path/to/notes.txt');
 
 $conn->executeStatement(
     'UPDATE ADRESSEN SET BEMERKUNG = ? WHERE KDNR = ?',
-    [$largeText, 42, \Doctrine\DBAL\ParameterType::LARGE_OBJECT]
+    [$largeText, 42],
+    [\Doctrine\DBAL\ParameterType::LARGE_OBJECT, \Doctrine\DBAL\ParameterType::INTEGER]
 );
 ```
 
