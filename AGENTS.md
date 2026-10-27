@@ -53,7 +53,7 @@ This project follows **L3 IPADP conformance**.
 
 | Gate | Command | Status |
 |------|---------|--------|
-| PHPStan 8 | `./vendor/bin/phpstan analyse` | 0 errors |
-| Psalm | `./vendor/bin/psalm --no-cache` | 0 errors (baseline: 112 pre-existing) |
+| PHPStan 8 | `./vendor/bin/phpstan analyse` | 0 new errors (86 baselined; ratchet: #253) |
+| Psalm | `./vendor/bin/psalm --no-cache` | 0 new errors (146 baselined; ratchet: #253) |
 | PHP_CodeSniffer | `./vendor/bin/phpcs -q` | 0 errors |
 | PHPUnit | `./vendor/bin/phpunit` | 1621 unit + 577 functional per FB version |

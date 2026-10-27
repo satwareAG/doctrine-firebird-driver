@@ -40,7 +40,7 @@ To utilize this library in your application code, the following is required:
 
 > **Windows Support:** Starting with v7.3.0, pre-built Windows DLLs are available for PHP 8.2, 8.3, 8.4, and 8.5 (NTS and TS).
 
-> **Note:** Firebird **3.0 is the primary production target** (private ERP consumer). Features marked ❌ for FB3
+> **Note:** Firebird **3.0 is the primary production target** (private ERP consumer; full per-PR CI gate committed through at least 2027, #249). Features marked ❌ for FB3
 > are either absent on the server or require Firebird 4.0+. Feature detection is automatic —
 > no manual configuration is needed.
 
@@ -302,7 +302,7 @@ $middleware = new CharsetMiddleware(databaseEncoding: 'UTF-8', phpEncoding: 'UTF
 
 # Testing
 
-The project includes comprehensive test coverage across **Firebird 3.0, 4.0, and 5.0** with unit, functional, and integration tests.
+The project tests against **Firebird 3.0, 4.0, and 5.0** with unit, functional, and integration suites (coverage gaps tracked in #253 and the test suite docs).
 
 ## Quick Test Commands
 

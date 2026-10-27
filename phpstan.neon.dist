@@ -19,7 +19,7 @@ parameters:
     bootstrapFiles:
        - vendor/autoload.php
     treatPhpDocTypesAsCertain: false
-    reportUnmatchedIgnoredErrors: false
+    reportUnmatchedIgnoredErrors: true
     ignoreErrors:
         - identifier: missingType.generics
         # https://github.com/phpstan/phpstan-strict-rules/issues/103
@@ -28,45 +28,16 @@ parameters:
             paths:
                 - src/Driver/*/Driver.php
                 - src/Platforms/*Platform.php
-                - src/Schema/*SchemaManager.php
 
         # In some namespaces, we use array<string,mixed>, some elements of which are actually boolean
+        # (Platforms variant removed 2026-10-27: unmatched under DBAL 4.5 resolution, #249)
         -
             message: '~^Only booleans are allowed in .*, mixed given~'
             paths:
-                - src/Platforms/*Platform.php
                 - src/Schema/*SchemaManager.php
 
         # Deprecated DBAL methods called intentionally for backward compatibility
         # These will be updated when we drop support for the current DBAL version
-        -
-            message: '#Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\TableDiff#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getColumnComment\(\) of class Doctrine\\DBAL\\Platforms\\AbstractPlatform#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getOldColumnName\(\) of class Doctrine\\DBAL\\Schema\\ColumnDiff#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getVarcharMaxLength\(\) of class#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getIdentitySequenceName\(\) of class#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getBinaryMaxLength\(\) of class#'
-            paths:
-                - src/Platforms/
-        -
-            message: '#Call to deprecated method getTemporaryTableSQL\(\) of class#'
-            paths:
-                - src/Platforms/
 
         # DBAL 4.5 (dbal#7490) deprecations on the Column API. Calls exist in
         # version-conditional branches (src/Compat/ColumnCompat.php) or in-place
@@ -88,10 +59,6 @@ parameters:
         # narrowing is therefore meaningless here by construction.
         -
             identifier: function.alreadyNarrowedType
-            paths:
-                - src/Compat/ColumnCompat.php
-        -
-            identifier: function.impossibleType
             paths:
                 - src/Compat/ColumnCompat.php
 

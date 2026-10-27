@@ -52,9 +52,6 @@
     </MoreSpecificReturnType>
   </file>
   <file src="src/Driver/Firebird/Driver.php">
-    <InvalidArgument>
-      <code><![CDATA[$connection]]></code>
-    </InvalidArgument>
     <UnusedVariable>
       <code><![CDATA[$host]]></code>
     </UnusedVariable>
@@ -82,10 +79,8 @@
       <code><![CDATA[fetchNumericWithDateObjects]]></code>
       <code><![CDATA[isDateObjectFetchAvailable]]></code>
     </PossiblyUnusedMethod>
-    <UnusedProperty>
-      <code><![CDATA[$statement]]></code>
-    </UnusedProperty>
-  </file>
+
+</file>
   <file src="src/Driver/Firebird/Statement.php">
     <PossiblyUnusedMethod>
       <code><![CDATA[bindParam]]></code>

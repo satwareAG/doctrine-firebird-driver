@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
-    findUnusedBaselineEntry="false"
+    findUnusedBaselineEntry="true"
     findUnusedCode="true"
     errorBaseline="psalm-baseline.xml"
 >
@@ -35,7 +35,9 @@
              deprecations and Firebird OO types more completely than in local environments.
              Directory-level suppressions avoid false positives from DBAL version drift
              and ext-firebird-specific type narrowing. findUnusedCode="false" ensures
-             that locally-unused suppressors do not trigger UnusedIssueHandlerSuppression. -->
+             findUnusedCode="true" is intentional: dead-code detection stays on so unused
+             code surfaces as findings; only the baseline pruning differs (see
+             findUnusedBaselineEntry above). -->
         <DocblockTypeContradiction>
             <errorLevel type="suppress">
                 <directory name="src/Driver/Firebird"/>
