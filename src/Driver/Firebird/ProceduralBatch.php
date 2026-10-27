@@ -42,7 +42,6 @@ final class ProceduralBatch
     public function __construct(mixed $connection, string $sql, mixed $transResource)
     {
         try {
-            /** @phpstan-ignore arguments.count */
             $stmt = fbird_prepare_ex($connection, $sql, $transResource);
         } catch (Throwable $e) {
             throw DriverException::fromThrowable($e);
@@ -124,7 +123,7 @@ final class ProceduralBatch
             throw new DriverException('Batch execution failed.');
         }
 
-        /** @phpstan-ignore argument.type (fbird_batch_execute returns shaped array) */
+        /* fbird_batch_execute returns shaped array */
         return new ProceduralBatchResult($result);
     }
 

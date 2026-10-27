@@ -56,7 +56,6 @@ final class Result implements ResultInterface
     public function __construct(
         $firebirdResultResource,
         private readonly Connection $connection,
-        /** @phpstan-ignore-next-line property.onlyWritten */
         private readonly Statement|null $statement = null,
     ) {
         $this->firebirdResultResource = $firebirdResultResource;
@@ -98,7 +97,6 @@ final class Result implements ResultInterface
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
             // Warning "Invalid cursor" may be emitted when fetching from a closed/reused statement's result
-            /** @phpstan-ignore argument.type */
             $result = fbird_fetch_row($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
             if (is_array($result)) {
                 return array_values($result);
@@ -125,7 +123,6 @@ final class Result implements ResultInterface
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         // (php-firebird v7.0.0-rc.6+). The @ operator only suppresses warnings, not exceptions.
         try {
-            /** @phpstan-ignore argument.type */
             $result = fbird_fetch_assoc($this->firebirdResultResource, FBIRD_FETCH_BLOBS);
         } catch (Throwable $e) {
             throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
@@ -187,7 +184,6 @@ final class Result implements ResultInterface
     public function columnCount(): int
     {
         if ($this->isResultValid()) {
-            /** @phpstan-ignore argument.type */
             return (int) fbird_num_fields($this->firebirdResultResource);
         }
 
@@ -225,7 +221,6 @@ final class Result implements ResultInterface
         }
 
         for ($i = 0; $i < $this->columnCount(); $i++) {
-            /** @phpstan-ignore argument.type */
             $info = fbird_field_info($this->firebirdResultResource, $i);
             if (! is_array($info) || ($info['type'] ?? '') !== 'BLOB' || ! isset($info['sub_type'])) {
                 continue;
@@ -261,7 +256,6 @@ final class Result implements ResultInterface
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            /** @phpstan-ignore argument.type */
             $result = fbird_fetch_row($this->firebirdResultResource, $fetchFlags);
         } catch (Throwable $e) {
             throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
@@ -296,7 +290,6 @@ final class Result implements ResultInterface
 
         // Wrap in try-catch to handle Firebird\Exception when Exception Mode is enabled
         try {
-            /** @phpstan-ignore argument.type */
             $result = fbird_fetch_assoc($this->firebirdResultResource, $fetchFlags);
         } catch (Throwable $e) {
             throw \Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception::fromThrowable($e);
@@ -347,7 +340,6 @@ final class Result implements ResultInterface
         }
 
         try {
-            /** @phpstan-ignore argument.type */
             fbird_free_result($this->firebirdResultResource);
         } catch (Throwable) {
             // Ignore errors during cleanup

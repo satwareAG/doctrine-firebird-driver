@@ -270,7 +270,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         }
 
         try {
-            /** @phpstan-ignore arguments.count */
             $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
         } catch (Throwable $e) {
             $error = DriverException::fromThrowable($e);
@@ -284,7 +283,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             }
 
             try {
-                /** @phpstan-ignore arguments.count */
                 $stmt = fbird_prepare_ex($this->connection, $sql, $this->transactionManager->getActiveTransaction());
             } catch (Throwable $retry) {
                 throw DriverException::fromThrowable($retry);
@@ -341,7 +339,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
         // Firebird 5.0+: fbird_last_insert_id() works without a generator name.
         try {
-            /** @phpstan-ignore argument.type */
             $id = @fbird_last_insert_id($this->connection);
             if ($id !== false && $id > 0) {
                 return $id;
@@ -356,7 +353,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             $genName = $this->resolveIdentityGenerator($this->lastInsertTable);
             if ($genName !== null) {
                 try {
-                    /** @phpstan-ignore argument.type */
                     $lastVal = fbird_gen_id($genName, 0, $this->connection);
                     if ($lastVal !== false && $lastVal > 0) {
                         $this->lastResolvedIdentityId = $lastVal;
@@ -447,7 +443,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             if ($genName !== null) {
                 // Step 2a: fbird_gen_id() directly — fastest, no SQL parsing, no transaction overhead.
                 try {
-                    /** @phpstan-ignore argument.type */
                     $lastVal = fbird_gen_id($genName, 0, $this->connection);
                     if ($lastVal > 0) {
                         $this->lastResolvedIdentityId = $lastVal;
@@ -498,7 +493,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
             // Last resort: fbird_last_insert_id() without name — Firebird 5.0+ only.
             try {
-                /** @phpstan-ignore argument.type */
                 $id = @fbird_last_insert_id($this->connection);
                 if ($id !== false && $id > 0) {
                     $this->lastResolvedIdentityId = $id;
@@ -519,7 +513,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
 
         // Named generator: delegate to fbird_gen_id().
         try {
-            /** @phpstan-ignore argument.type */
             $lastVal = fbird_gen_id($name, 0, $this->connection);
 
             return $lastVal === 0 ? false : $lastVal;
@@ -889,7 +882,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         // The OO Firebird\Batch class has a private constructor and Batch::fromQuery()
         // fails with "invalid batch handle" in php-firebird v10.3.9.
 
-        /** @phpstan-ignore argument.type (connection validated above; transResource null-checked above) */
+        /* connection validated above; transResource null-checked above */
         return new ProceduralBatch($this->connection, $sql, $transResource);
     }
 
@@ -1157,7 +1150,6 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
                 }
 
                 try {
-                    /** @phpstan-ignore-next-line */
                     require_once $fullPath;
                 } catch (Throwable) {
                     // Ignore load errors for OO API
