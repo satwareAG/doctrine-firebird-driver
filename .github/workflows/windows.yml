@@ -108,7 +108,8 @@ jobs:
         run: |
           $phpVer = "${{ matrix.php }}"
           $arch = "x86_64"
-          $vs = if ($phpVer -ge "8.4") { "vs17" } else { "vs16" }
+          # Numeric compare: string -ge sorts "8.10" < "8.4" lexically (#243)
+          $vs = if ([version]"$phpVer.0" -ge [version]"8.4.0") { "vs17" } else { "vs16" }
           
           $apiUrl = "https://api.github.com/repos/satwareAG/php-firebird/releases"
           $headers = @{}
