@@ -26,7 +26,7 @@ name: doctrine-firebird-test
 
 services:
   # ---------------------------------------------------------------------------
-  # Firebird 3.0 Database Server (Primary/Default — Amicron ERP target)
+  # Firebird 3.0 Database Server (Primary/Default — private ERP consumer target)
   # ---------------------------------------------------------------------------
   firebird3:
     image: firebirdsql/firebird:3
@@ -39,7 +39,7 @@ services:
     volumes:
       - fb3-data:/var/lib/firebird/data
     # No host port mapping — tests communicate via Docker network.
-    # Avoids conflicts with local Firebird installations (e.g. amicron-firebird).
+    # Avoids conflicts with local Firebird installations (e.g. erp-firebird).
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/3050' || exit 1"]
       interval: 10s
