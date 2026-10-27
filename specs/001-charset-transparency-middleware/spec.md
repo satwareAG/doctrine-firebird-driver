@@ -6,20 +6,20 @@
 
 ## Context
 
-Amicron ERP Firebird databases use the `ISO8859_1` connection charset while the actual
+private ERP consumer Firebird databases use the `ISO8859_1` connection charset while the actual
 wire data is stored and transmitted in Windows-1252 encoding. PHP applications (and
 Doctrine DBAL) operate in UTF-8. Without a translation layer, all VARCHAR, TEXT,
 and BLOB TEXT columns containing non-ASCII characters (German umlauts, euro sign, etc.)
 are silently corrupted on read and write.
 
-The requirement comes from `satag-amicron-entity-bundle`, which must connect with
+The requirement comes from `private-erp-consumer`, which must connect with
 `charset=ISO8859_1` and receive/send UTF-8 strings transparently.
 
 ## User Scenarios & Testing
 
 ### User Story 1 - VARCHAR read transparency (Priority: P1)
 
-**Why this priority**: VARCHAR is the most common column type in Amicron (names, addresses,
+**Why this priority**: VARCHAR is the most common column type in private-ERP (names, addresses,
 article descriptions). Corruption here breaks core business data.
 **Independent Test**: Provide a mock result row with WIN1252 bytes; assert `fetchOne`,
 `fetchAssociative`, `fetchNumeric`, `fetchAllAssociative`, `fetchAllNumeric`, and
@@ -50,7 +50,7 @@ UTF-8 string; assert the inner statement receives the Windows-1252 byte sequence
 
 ### User Story 3 - BLOB TEXT (stream) transparency (Priority: P1)
 
-**Why this priority**: Amicron stores multi-line text fields (memos, notes) as BLOB TEXT
+**Why this priority**: private-ERP stores multi-line text fields (memos, notes) as BLOB TEXT
 columns. The Firebird driver returns these as PHP stream resources, not plain strings.
 **Independent Test**: Write WIN1252 bytes into a `php://temp` stream; pass it as a mock
 result column; assert the fetched value is the correct UTF-8 string.
@@ -63,9 +63,9 @@ result column; assert the fetched value is the correct UTF-8 string.
    **When** the result middleware decodes the row,
    **Then** the returned string is identical (ASCII is a subset of both encodings).
 
-### User Story 4 - Round-trip correctness for Amicron special characters (Priority: P1)
+### User Story 4 - Round-trip correctness for private-ERP special characters (Priority: P1)
 
-**Why this priority**: The exact character set used by Amicron must survive a full
+**Why this priority**: The exact character set used by private-ERP must survive a full
 encode/decode cycle. Any character lost results in persistent data corruption.
 **Independent Test**: For each string in the provider, encode UTF-8 to WIN1252 via
 the statement middleware then decode via the result middleware; assert equality.
@@ -88,7 +88,7 @@ returned driver is a `CharsetDriverMiddleware` with the configured encodings.
    `appCharset=UTF-8`,
    **When** `wrap($driver)` is called,
    **Then** the returned driver wraps the original and applies encoding on all connections.
-2. **Given** the amicron entity bundle service configuration,
+2. **Given** the private-erp entity bundle service configuration,
    **When** the Symfony container is compiled,
    **Then** `CharsetMiddleware` is registered as a `doctrine.middleware` tagged service
    with `priority=100`.
@@ -226,7 +226,7 @@ See [GH-117](https://github.com/satwareAG/doctrine-firebird-driver/issues/117).
 - Modifying the Firebird platform LIKE escaping logic.
 - Integration tests requiring a live Firebird database instance (those are in the
   functional test suite, gated by `DB_*` environment variables).
-- The `Utf8String` and `Utf8Text` Doctrine type classes in the amicron entity bundle
+- The `Utf8String` and `Utf8Text` Doctrine type classes in the private-erp entity bundle
   (they delegate entirely to this middleware and are identity pass-throughs).
 - DBAL 4.x compatibility (`composer.json` currently restricts to `^3.10`; the existing
   `quote()` signature would need reconciliation with DBAL 4's tightened contract).

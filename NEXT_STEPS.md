@@ -118,7 +118,7 @@ maintenance mode (DBAL 3.x).
 for SQL query logging. The driver's `ConnectionWrapper` docblock explicitly
 anticipates logging middleware being added downstream. The entity-bundle already
 has a `doctrine.middleware` convention with 4 middlewares. Downstream issues
-created: entity-bundle #168, #173, #174, #175; amicron-platform #218, #219.
+created: entity-bundle #168, #173, #174, #175; private-erp-consumer platform #218, #219.
 
 ### DBAL 3 series (3.10.x branch) - MAINTENANCE
 

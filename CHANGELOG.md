@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Privacy
+
+- **ipadp**: repo-wide private-consumer name sweep (#251): live docs, specs, tests and source comments now use the `private-erp-consumer` alias (defined in `specs/metadata.json`). Historical entries below retain original names by release-immutability decision.
+
 ## [v4.7.5](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.5)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.4...v4.7.5)

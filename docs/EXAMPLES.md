@@ -1,6 +1,6 @@
 # Usage Examples
 
-> **Primary target:** PHP 8.4 + Firebird 3.0 (Amicron ERP production environment)
+> **Primary target:** PHP 8.4 + Firebird 3.0 (private ERP consumer production environment)
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ $conn = DriverManager::getConnection([
     'driverClass' => \Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver::class,
     'wrapperClass' => FirebirdConnection::class,
     'host'         => 'localhost',
-    'dbname'       => '/var/firebird/amicron.fdb',
+    'dbname'       => '/var/firebird/erp.fdb',
     'user'         => 'SYSDBA',
     'password'     => 'masterkey',
     'charset'      => 'UTF8',
@@ -64,7 +64,7 @@ doctrine:
 
 ```dotenv
 DB_HOST=localhost
-DB_NAME=/var/firebird/amicron.fdb
+DB_NAME=/var/firebird/erp.fdb
 DB_USER=SYSDBA
 DB_PASSWORD=masterkey
 ```
@@ -330,31 +330,31 @@ $nativeConn->killAttachment(12345);
 
 ## Symfony Bundle Integration
 
-### doctrine.yaml (with satag/amicron-entity-bundle)
+### doctrine.yaml (with private-erp-consumer)
 
 ```yaml
 doctrine:
     dbal:
         connections:
-            amicron:
+            private-erp:
                 driver_class:  Satag\DoctrineFirebirdDriver\Driver\Firebird\Driver
                 wrapper_class: Satag\DoctrineFirebirdDriver\DBAL\FirebirdConnection
-                host:          '%env(AMICRON_DB_HOST)%'
-                dbname:        '%env(AMICRON_DB_PATH)%'
-                user:          '%env(AMICRON_DB_USER)%'
-                password:      '%env(AMICRON_DB_PASSWORD)%'
-                charset:       WIN1252     # Amicron ERP default encoding
+                host:          '%env(ERP_DB_HOST)%'
+                dbname:        '%env(ERP_DB_PATH)%'
+                user:          '%env(ERP_DB_USER)%'
+                password:      '%env(ERP_DB_PASSWORD)%'
+                charset:       WIN1252     # private ERP consumer default encoding
     orm:
         entity_managers:
-            amicron:
-                connection: amicron
+            private-erp:
+                connection: private-erp
                 mappings:
-                    AmicronEntityBundle:
+                    ErpEntityBundle:
                         is_bundle: true
                         type: attribute
 ```
 
-### Entity Example (compatible with satag/amicron-entity-bundle)
+### Entity Example (compatible with private-erp-consumer)
 
 ```php
 use Doctrine\ORM\Mapping as ORM;
@@ -384,7 +384,7 @@ class Adresse
 
 ## Firebird 4.0+ Features (IBatch)
 
-> ⚠️ **Requires Firebird Server 4.0+.** NOT available in production (FB 3.0 Amicron ERP).
+> ⚠️ **Requires Firebird Server 4.0+.** NOT available in production (FB 3.0 private ERP consumer).
 > Use for Firebird 4.0/5.0 deployments only. Version check is automatic.
 
 ### IBatch Bulk INSERT (10–12× faster than row-by-row)

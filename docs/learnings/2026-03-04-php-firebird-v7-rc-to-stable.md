@@ -45,7 +45,7 @@ Old `ignoreErrors` become stale and must be removed; otherwise PHPStan reports
 
 ## Problem
 
-Amicron ERP bundle (`satag-amicron-entity-bundle`) requires `php: ^8.4` but the
+private ERP consumer bundle (`private-erp-consumer`) requires `php: ^8.4` but the
 driver's `composer.json` `config.platform.php` was still `"8.1"`. This caused
 `composer update` in the bundle to see stubs optimized for PHP 8.1.
 

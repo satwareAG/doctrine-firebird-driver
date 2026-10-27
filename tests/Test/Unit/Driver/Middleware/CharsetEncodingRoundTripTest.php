@@ -31,18 +31,18 @@ use function rewind;
  *  - Both plain string and BLOB TEXT (stream resource) column values
  *  - LIKE / search parameter encoding via bindValue() and execute()
  *  - Connection::quote() encoding
- *  - The specific Amicron special characters from the charset spec
+ *  - The specific private-ERP special characters from the charset spec
  *    (User Story 4: Faßbrause, Ärger mit Öl, Straße 123, Müller & Söhne, €uro)
  */
 class CharsetEncodingRoundTripTest extends TestCase
 {
     /**
-     * Special characters relevant to Amicron Firebird Windows-1252 databases.
+     * Special characters relevant to private-ERP Firebird Windows-1252 databases.
      * Each data set is a well-known German business string tested individually.
      *
      * @return array<string, array{string}>
      */
-    public static function amicronSpecialStringProvider(): array
+    public static function erpSpecialStringProvider(): array
     {
         return [
             'german eszett in business context'    => ['Faßbrause für 30€?'],
@@ -59,7 +59,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // Round-trip: bindValue (UTF-8 → WIN1252) then fetchOne (WIN1252 → UTF-8)
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testBindValueAndFetchOneRoundTrip(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -82,7 +82,7 @@ class CharsetEncodingRoundTripTest extends TestCase
         self::assertSame($utf8String, $result->fetchOne());
     }
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testExecuteWithInlineParamsRoundTrip(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -110,7 +110,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // fetchAssociative: WIN1252 plain string decoding
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testFetchAssociativeDecodesWin1252ToUtf8(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -137,7 +137,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // fetchNumeric: WIN1252 plain string decoding
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testFetchNumericDecodesWin1252ToUtf8(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -158,7 +158,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // fetchAllAssociative: WIN1252 plain string decoding across multiple rows
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testFetchAllAssociativeDecodesWin1252ToUtf8(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -181,7 +181,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // fetchAllNumeric: WIN1252 plain string decoding
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testFetchAllNumericDecodesWin1252ToUtf8(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -201,7 +201,7 @@ class CharsetEncodingRoundTripTest extends TestCase
     // fetchFirstColumn: WIN1252 plain string decoding
     // -----------------------------------------------------------------------
 
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testFetchFirstColumnDecodesWin1252ToUtf8(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -357,7 +357,7 @@ class CharsetEncodingRoundTripTest extends TestCase
      * Verifies that LIKE search parameters (STRING type) are encoded before
      * being sent to Firebird, enabling correct WHERE col LIKE :param queries.
      */
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testBindValueEncodesSearchParameterToWin1252ForLike(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -376,7 +376,7 @@ class CharsetEncodingRoundTripTest extends TestCase
      * Verifies that search params are encoded via bindValue() for WHERE clause parameters.
      * DBAL4: inline execute([...]) params removed - use bindValue() instead.
      */
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testExecuteInlineParamEncodesSearchTermToWin1252(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -444,9 +444,9 @@ class CharsetEncodingRoundTripTest extends TestCase
      * SQL is re-encoded PHP -> DB encoding inbound, and the wrapped Result
      * decodes the WIN1252 bytes back to the original UTF-8 string outbound.
      *
-     * @dataProvider amicronSpecialStringProvider
+     * @dataProvider erpSpecialStringProvider
      */
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testQueryRoundTripsUtf8LiteralInParameterlessSelect(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -505,9 +505,9 @@ class CharsetEncodingRoundTripTest extends TestCase
      * FR-009: A parameterless DML statement with UTF-8 literals MUST have the
      * SQL body re-encoded to the database encoding before reaching the driver.
      *
-     * @dataProvider amicronSpecialStringProvider
+     * @dataProvider erpSpecialStringProvider
      */
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testExecEncodesUtf8LiteralInParameterlessDml(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');
@@ -528,9 +528,9 @@ class CharsetEncodingRoundTripTest extends TestCase
      * fragments (and other inline literals in prepared statements) are transcoded
      * before reaching Firebird, in addition to any bound-parameter encoding.
      *
-     * @dataProvider amicronSpecialStringProvider
+     * @dataProvider erpSpecialStringProvider
      */
-    #[DataProvider('amicronSpecialStringProvider')]
+    #[DataProvider('erpSpecialStringProvider')]
     public function testPrepareEncodesUtf8LiteralInSqlBody(string $utf8String): void
     {
         $win1252Bytes = mb_convert_encoding($utf8String, 'Windows-1252', 'UTF-8');

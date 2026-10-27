@@ -1,3 +1,5 @@
+> **Note (2026-10-27, IPADP sweep #251):** historical document. Private consumer names appear here by design of the archive-retention decision; live docs use the `private-erp-consumer` alias.
+
 # Deprecation Fixes Complete - 2025-12-06
 
 ## Summary

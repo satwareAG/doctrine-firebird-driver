@@ -1,6 +1,6 @@
 # Performance Guide
 
-> **Primary target:** PHP 8.4 + Firebird 3.0 (Amicron ERP production)
+> **Primary target:** PHP 8.4 + Firebird 3.0 (private ERP consumer production)
 
 ## Table of Contents
 

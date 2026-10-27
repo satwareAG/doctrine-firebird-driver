@@ -10,7 +10,7 @@ Doctrine Firebird driver
 To utilize this library in your application code, the following is required:
 
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported - 2.5 dropped in php-firebird v7.2.0)
-- **PHP**: **>= 8.2** (**8.5 recommended** - primary optimization target for Amicron ERP integration)
+- **PHP**: **>= 8.2** (**8.5 recommended** - primary optimization target for private ERP consumer integration)
 - **php-firebird extension** v13.2.10+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening, `fbird_escape_literal()`)
 - [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch, current release: v4.7.5)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch, maintenance only: v3.19.2)
@@ -40,7 +40,7 @@ To utilize this library in your application code, the following is required:
 
 > **Windows Support:** Starting with v7.3.0, pre-built Windows DLLs are available for PHP 8.2, 8.3, 8.4, and 8.5 (NTS and TS).
 
-> **Note:** Firebird **3.0 is the primary production target** (Amicron ERP). Features marked ❌ for FB3
+> **Note:** Firebird **3.0 is the primary production target** (private ERP consumer). Features marked ❌ for FB3
 > are either absent on the server or require Firebird 4.0+. Feature detection is automatic —
 > no manual configuration is needed.
 
@@ -240,7 +240,7 @@ doctrine:
 
 Many Firebird databases use a non-UTF-8 wire charset (e.g. `ISO8859_1` / `WIN1252`). The `CharsetMiddleware` converts string values transparently between your PHP application encoding and the Firebird wire encoding at the DBAL driver level - no manual `iconv`/`mb_convert_encoding` calls needed in application code.
 
-**Defaults:** `databaseEncoding: 'Windows-1252'` and `phpEncoding: 'UTF-8'` covers the most common case (Amicron ERP and other WIN1252 Firebird databases).
+**Defaults:** `databaseEncoding: 'Windows-1252'` and `phpEncoding: 'UTF-8'` covers the most common case (private ERP consumer and other WIN1252 Firebird databases).
 
 #### Symfony Configuration (DoctrineBundle service)
 

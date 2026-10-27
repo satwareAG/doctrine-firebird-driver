@@ -32,7 +32,7 @@ use Satag\DoctrineFirebirdDriver\Platforms\FirebirdPlatformConfiguration;
  *         ],
  *     ]);
  */
-/** @psalm-suppress UnusedClass — used as wrapperClass by downstream consumers (amicron-entity-bundle, amicron-platform) */
+/** @psalm-suppress UnusedClass — used as wrapperClass by downstream consumers (private-erp-consumer, private-erp-consumer platform) */
 final class FirebirdConnection extends Connection
 {
     private bool $platformConfigured = false;
