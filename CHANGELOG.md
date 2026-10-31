@@ -1,5 +1,13 @@
 # Changelog
 
+## [v4.8.0](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.8.0)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.6...v4.8.0)
+
+### Features
+
+- **deps**: raise ext-firebird floor to ^13.4.0 (security hardening train) (#274) ([7d601ac](https://github.com/satwareAG/doctrine-firebird-driver/commit/7d601ac15cb6f8056ff98fb2727996bdf79f82dd))
+
 ## [v4.7.6](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.6)
 
 [Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.5...v4.7.6)
