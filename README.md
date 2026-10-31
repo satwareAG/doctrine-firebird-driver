@@ -12,7 +12,7 @@ To utilize this library in your application code, the following is required:
 - **Firebird Server**: **3.0+** (minimum; 4.0 and 5.0 also supported - 2.5 dropped in php-firebird v7.2.0)
 - **PHP**: **>= 8.2** (**8.5 recommended** - primary optimization target for private ERP consumer integration)
 - **php-firebird extension** v13.2.10+ (satwareAG fork with M3 opaque-object API, IBatch, Exception Mode, OO API, PHP 8.4/8.5 hardening, `fbird_escape_literal()`)
-- [doctrine/dbal ^4.4](https://packagist.org/packages/doctrine/dbal#4.4.0) (4.4.x branch, current release: v4.7.5)
+- [doctrine/dbal ^4.4 || ^4.5](https://packagist.org/packages/doctrine/dbal) (4.5.x branch, current release: v4.7.5)
 - [doctrine/dbal ^3.10](https://packagist.org/packages/doctrine/dbal#3.10.0) (3.10.x branch, maintenance only: v3.19.2)
 
 ## Version Compatibility Matrix
@@ -398,7 +398,7 @@ You can reference the following resources for guidance:
 
 - satag/doctrine-firebird-driver Source Code Branches  
   - https://github.com/satwareAG/doctrine-firebird-driver/tree/3.10.x supports DBAL ^3.10 (Maintenance)
-  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.4.x supports DBAL ^4.4 (Active)
+  - https://github.com/satwareAG/doctrine-firebird-driver/tree/4.5.x supports DBAL ^4.4 || ^4.5 (Active)
 - Doctrine DBAL Driver documentation: [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/4.1/reference/supporting-other-databases.html)
 - Reference manuals of Firebird’s implementation of the SQL relational database language for  
   [Firebird 3.0](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref30/firebird-30-language-reference.html), 

@@ -5,15 +5,14 @@
 This project maintains two release lines, each tied to a DBAL major version.
 There is no separate `main`, `develop`, or `-dev` integration branch.
 
-> **Transition note (2026-10-31, spec 005)**: the default branch `4.4.x` is
-> being renamed to `4.5.x` to follow upstream doctrine/dbal layout (their
-> default is `4.5.x`; they retired `4.4.x`). During the transition window
-> both names are valid in CI and docs; after Phase C only `4.5.x` appears.
-> Policy: branch names are local policy, not upstream contracts - rename
-> only when upstream retires the line our default mirrors.
+> **Branch-name policy (spec 005, council 2026-10-31)**: branch names are
+> local policy, not upstream contracts. The default is `4.5.x` (renamed from
+> `4.4.x` on 2026-10-31 to follow upstream doctrine/dbal, whose default is
+> `4.5.x` since they retired `4.4.x`). Rename ONLY when upstream retires the
+> line our default mirrors - never preemptively for new upstream lines.
 
-The **`4.4.x`** branch is the active release line (DBAL 4, current: v4.5.1).
-Routine maintenance, bug fixes, dependency cleanup, and contributor PRs target `4.4.x`.
+The **`4.5.x`** branch is the active release line (DBAL 4, current: v4.5.1).
+Routine maintenance, bug fixes, dependency cleanup, and contributor PRs target `4.5.x`.
 The **`3.10.x`** branch is in maintenance mode (DBAL 3, last release: v3.19.0) and
 receives only critical bug fixes.
 
@@ -23,18 +22,18 @@ receives only critical bug fixes.
 
 | Branch | Role | Notes |
 |--------|------|-------|
-| `4.4.x` | Active release branch | Protected. Source of truth for DBAL 4.4-compatible development and releases. Current: v4.5.1. |
+| `4.5.x` | Active release branch | Protected. Source of truth for DBAL 4.4-compatible development and releases. Current: v4.5.1. |
 | `3.10.x` | Maintenance branch | Protected. DBAL 3.10-compatible line. Last release: v3.19.0. Critical fixes only. |
-| `feat/DESCRIPTION` | Feature branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
-| `fix/DESCRIPTION` | Bugfix branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
-| `docs/DESCRIPTION` | Documentation branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
-| `chore/DESCRIPTION` | Maintenance branch | Short-lived branch from `4.4.x`, opened back into `4.4.x`. |
+| `feat/DESCRIPTION` | Feature branch | Short-lived branch from `4.5.x`, opened back into `4.5.x`. |
+| `fix/DESCRIPTION` | Bugfix branch | Short-lived branch from `4.5.x`, opened back into `4.5.x`. |
+| `docs/DESCRIPTION` | Documentation branch | Short-lived branch from `4.5.x`, opened back into `4.5.x`. |
+| `chore/DESCRIPTION` | Maintenance branch | Short-lived branch from `4.5.x`, opened back into `4.5.x`. |
 
 ---
 
 ## Branch Rules
 
-### `4.4.x`
+### `4.5.x`
 
 - **Default branch** - all routine PRs target this branch.
 - **Protected** - no direct pushes.
@@ -42,7 +41,7 @@ receives only critical bug fixes.
 - **Required checks** - CI and quality workflows must pass before merge.
 - **Preferred merge style** - squash merge with a conventional commit title.
 
-Recommended GitHub ruleset for `4.4.x`:
+Recommended GitHub ruleset for `4.5.x`:
 
 - require pull requests
 - require required status checks
@@ -58,7 +57,7 @@ Merge queue is optional and should stay disabled until concurrent PR volume just
 - **Protected** - no direct pushes.
 - **Maintenance mode** - critical bug fixes only. No new features.
 - **Last release** - v3.19.0 (2026-07-19). No further releases planned unless critical bugs are found.
-- **Backport rule** - critical fixes from `4.4.x` may be cherry-picked to `3.10.x` if they apply to DBAL 3.x.
+- **Backport rule** - critical fixes from `4.5.x` may be cherry-picked to `3.10.x` if they apply to DBAL 3.x.
 
 ### Short-lived branches
 
@@ -71,7 +70,7 @@ Merge queue is optional and should stay disabled until concurrent PR volume just
 
 ## Release Tagging
 
-All DBAL 4 releases are tagged from `4.4.x`. DBAL 3 releases are tagged from `3.10.x`.
+All DBAL 4 releases are tagged from `4.5.x`. DBAL 3 releases are tagged from `3.10.x`.
 
 ```text
 v4.5.PATCH    # DBAL 4.4 line (active)
@@ -87,8 +86,8 @@ v3.19.PATCH   # DBAL 3.10 line (maintenance)
 ### Tag Procedure
 
 ```bash
-git checkout 4.4.x
-git pull origin 4.4.x
+git checkout 4.5.x
+git pull origin 4.5.x
 # Update CHANGELOG.md and version references
 git tag -a vX.Y.Z -m "chore(release): vX.Y.Z"
 git push origin vX.Y.Z
@@ -130,9 +129,9 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## PR Workflow
 
-1. Branch from `4.4.x` with `feat/`, `fix/`, `docs/`, or `chore/`.
+1. Branch from `4.5.x` with `feat/`, `fix/`, `docs/`, or `chore/`.
 2. Keep the PR focused on one logical change.
-3. Open the PR against `4.4.x`.
+3. Open the PR against `4.5.x`.
 4. Wait for all required CI and quality checks to pass.
 5. Squash-merge with a clean conventional commit title.
 6. Auto-delete the branch after merge.
@@ -145,7 +144,7 @@ While `3.10.x` is in maintenance mode, do not manually duplicate every change.
 
 Instead:
 
-1. Merge routine cleanup and maintenance into `4.4.x` only.
+1. Merge routine cleanup and maintenance into `4.5.x` only.
 2. If a change should later land on `3.10.x` (critical bug fix), mark it in the PR
    description and, if available, label it `backport:3.10.x`.
 3. Cherry-pick the fix to `3.10.x` if it applies to DBAL 3.x.
@@ -158,7 +157,7 @@ the two branches - they have meaningfully diverged (DBAL 3 vs DBAL 4 API).
 
 ## DBAL 4.x Migration - COMPLETE
 
-The `4.4.x` branch has been fully migrated to DBAL 4.4.x. The migration is
+The `4.5.x` branch has been fully migrated to DBAL 4.4/4.5 support. The migration is
 complete and the branch is the active release line (v4.5.1, 2026-07-20).
 
 Key milestones:

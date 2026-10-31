@@ -18,7 +18,6 @@ body:
       options:
         - 3.10.x
         - 4.5.x
-        - 4.4.x
         - Unsure
     validations:
       required: true

@@ -12,7 +12,7 @@
 | Item | Value |
 |------|-------|
 | **PHP Version** | 8.2+ (target: 8.4+) |
-| **DBAL Version** | ^3.10 (3.10.x branch) / ^4.4 (4.4.x branch) |
+| **DBAL Version** | ^3.10 (3.10.x branch) / ^4.4 || ^4.5 (4.5.x branch) |
 | **ext-firebird** | ^7.2.0 |
 | **Test Framework** | PHPUnit 11.5 |
 | **Static Analysis** | PHPStan L8 + Psalm |

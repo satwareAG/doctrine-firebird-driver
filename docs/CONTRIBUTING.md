@@ -133,7 +133,7 @@ Use descriptive branch names:
 - `docs/documentation-topic` - Documentation updates
 - `chore/maintenance-topic` - CI, dependency, and housekeeping work
 
-Routine pull requests should target **`4.4.x`** (the active line, DBAL 4.4/4.5). The `3.10.x`
+Routine pull requests should target **`4.5.x`** (the active line, DBAL 4.4/4.5). The `3.10.x`
 branch is maintenance-only (DBAL 3.x, critical fixes).
 
 ### 2. Write Tests First (TDD)
@@ -211,7 +211,7 @@ git push origin feat/feature-name
 - Reference related issues (`Fixes #123`)
 - Ensure all CI checks pass
 - Request review from maintainers
-- Note whether the change should later be forward-ported to `4.4.x`
+- Note whether the change should later be forward-ported to `4.5.x`
 
 ## Code Style Guidelines
 

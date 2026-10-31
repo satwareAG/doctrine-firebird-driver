@@ -28,9 +28,10 @@ OWNS: .github/workflows/**, .github/ISSUE_TEMPLATE/**, .github/PULL_REQUEST_TEMP
   EVIDENCE: pending
 
 - [ ] G6: Phase C cleanup PR merged; zero non-frozen 4.4.x references (grep gate)
-  CHECK: cd "$(git rev-parse --show-toplevel)" && test -z "$(grep -rl '4\.4\.x' --include='*.yml' --include='*.md' --include='*.json' --include='*.txt' . 2>/dev/null | grep -vE 'vendor/|archive/|CHANGELOG|\.git/|docs/learnings/|specs/00[1-4]/|NEXT_STEPS.md|specs/005-branch-alignment-dbal45/')" && echo "phase-c-clean"
+  CHECK: cd "$(git rev-parse --show-toplevel)" && test -z "$(grep -rl '4\.4\.x' --include='*.yml' --include='*.md' --include='*.json' --include='*.txt' . 2>/dev/null | grep -vE 'vendor/|archive/|CHANGELOG|\.git/|docs/learnings/|docs/research/|docs/eod/|docs/plans/|specs/00[1-4]-|NEXT_STEPS.md|specs/005-branch-alignment-dbal45/|docs/BRANCHING.md|specs/metadata.json')" && echo "phase-c-clean"
   EXPECT: phase-c-clean
   EVIDENCE: pending
+  NOTE: exclusions are frozen/historical records (dated docs, specs 001-004, changelogs, NEXT_STEPS deprecated file) plus two designated provenance locations: docs/BRANCHING.md (the branch-name policy note records the rename once, canonically) and specs/metadata.json (the dbal relationship describes upstream's retired 4.4.x branch as upstream fact). Gate refinement during execution, council change-set item 1 context, recorded here per unlazy ABANDON/NOTE discipline.
 
 - [ ] G7: handover + soak bookkeeping posted (cutover SHA, release-continuity evidence, #167 note)
   CHECK: cd "$(git rev-parse --show-toplevel)" && gh issue view 258 --json comments --jq '[.comments[].body] | join("\n")' | grep -q "cutover SHA" && gh issue view 167 --json comments --jq '[.comments[].body] | join("\n")' | grep -q "4\.5\.x" && echo "handover-recorded"
