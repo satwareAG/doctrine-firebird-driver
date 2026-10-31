@@ -43,5 +43,5 @@ OWNS: .github/workflows/**, .github/ISSUE_TEMPLATE/**, .github/PULL_REQUEST_TEMP
   EXPECT: local-clone-migrated
   EVIDENCE: exit=0; EXPECT=matched; gate-sig=9f9ce7f8104982e2; output-sha256=d55a2f9a96944f092e88bf6f70664df6bb437503a7fd883af119262f4c2e2a4f
 
-- [ ] G9: full release-publish path proven on 4.5.x (MANUAL, deferred - no CHECK oracle; proven only when the next natural release ships via releaser-pleaser; manufacturing a release to satisfy the gate is forbidden per council R3 S2/S4; if no release ships before 2026-12-31 re-evaluate with the operator)
-  EVIDENCE: pending
+- [x] G9: full release-publish path proven on 4.5.x (MANUAL, deferred - no CHECK oracle; proven only when the next natural release ships via releaser-pleaser; manufacturing a release to satisfy the gate is forbidden per council R3 S2/S4; if no release ships before 2026-12-31 re-evaluate with the operator)
+  EVIDENCE: natural release v4.7.6 shipped via releaser-pleaser 2026-10-31: reconcile run 41178324593 (push trigger on 4.5.x) opened release PR #271 -> 24/24 checks green -> squash c83c5ef -> publish run 41179410606 tagged v4.7.6 -> c83c5ef; release notes verified (Platform Requirement Change via rp-prefix + Bug Fixes). Not manufactured: delta contains fix #257 + ext-floor ^13.2.12 (#671 advisory).
