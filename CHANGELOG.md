@@ -1,5 +1,18 @@
 # Changelog
 
+## [v4.7.6](https://github.com/satwareAG/doctrine-firebird-driver/releases/tag/v4.7.6)
+
+[Compare to previous version](https://github.com/satwareAG/doctrine-firebird-driver/compare/v4.7.5...v4.7.6)
+
+### Platform Requirement Change
+
+> [!WARNING]
+> This release requires `ext-firebird` >= **13.2.12** (composer floor, previously >= 13.2.10). The floor raise ships the php-firebird #671 durability advisory fix (default connects by privileged users silently switched databases to async writes on affected extension builds, v13.0.0-rc.2 through v13.2.10). Upgrade `satware/php-firebird` to >= 13.2.12 before or together with bumping the driver - a `composer update` that picks up this tag will fail resolution until the extension is updated. Upgrading the extension does NOT repair already-flipped database headers: audit with `gstat -h <db>` and repair with `gfix <db> -write sync` (advisory + repair guidance: #259).
+
+### Bug Fixes
+
+- **#257**: defensive server-version token extraction in R4 connect path (#270) ([10f29fa](https://github.com/satwareAG/doctrine-firebird-driver/commit/10f29facf08f0cb80fe78cc667739e30531e4fc8))
+
 ## [Unreleased]
 
 ### Privacy
