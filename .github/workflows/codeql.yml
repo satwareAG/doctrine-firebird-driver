@@ -5,10 +5,13 @@ on:
     branches:
       - '3.10.x'
       - '4.4.x'
+      - '4.5.x'
   pull_request:
     branches:
       - '3.10.x'
       - '4.4.x'
+      - '4.5.x'
+  workflow_dispatch:
   schedule:
     - cron: '0 3 * * 1'  # Weekly Monday 3 AM UTC
 

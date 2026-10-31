@@ -13,7 +13,8 @@ Describe the change and why it is needed.
 ## Target line
 
 - [ ] `3.10.x` active maintenance line
-- [ ] `4.4.x` future DBAL 4 line
+- [ ] `4.5.x` DBAL 4 line (default after spec-005 rename; during the transition window `4.4.x` is the same line pre-rename)
+- [ ] `4.4.x` future DBAL 4 line (transition name - being renamed to `4.5.x`, see spec 005)
 
 ## Validation
 
@@ -32,7 +33,7 @@ Describe the change and why it is needed.
 ## Forward-port decision
 
 - [ ] No forward-port needed
-- [ ] Should later be forward-ported to `4.4.x`
+- [ ] Should later be forward-ported to `4.5.x` (the `4.4.x` line during the spec-005 rename transition)
 - [ ] I added context or label for future forward-porting
 
 ## Constitution check

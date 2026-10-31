@@ -5,6 +5,13 @@
 This project maintains two release lines, each tied to a DBAL major version.
 There is no separate `main`, `develop`, or `-dev` integration branch.
 
+> **Transition note (2026-10-31, spec 005)**: the default branch `4.4.x` is
+> being renamed to `4.5.x` to follow upstream doctrine/dbal layout (their
+> default is `4.5.x`; they retired `4.4.x`). During the transition window
+> both names are valid in CI and docs; after Phase C only `4.5.x` appears.
+> Policy: branch names are local policy, not upstream contracts - rename
+> only when upstream retires the line our default mirrors.
+
 The **`4.4.x`** branch is the active release line (DBAL 4, current: v4.5.1).
 Routine maintenance, bug fixes, dependency cleanup, and contributor PRs target `4.4.x`.
 The **`3.10.x`** branch is in maintenance mode (DBAL 3, last release: v3.19.0) and
