@@ -90,7 +90,7 @@ final class DriverServerVersionParseTest extends TestCase
         self::assertNull($this->extract($rawVersion));
     }
 
-    private function extract(string|false $rawVersion): ?string
+    private function extract(string|false $rawVersion): string|null
     {
         $method = new ReflectionMethod(Driver::class, 'extractServerVersionToken');
 
