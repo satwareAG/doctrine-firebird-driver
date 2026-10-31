@@ -14,7 +14,7 @@
 ### SDD/TDD Workflow
 1. **Spec**: Update `specs/` before changing code.
 2. **Test**: Use `phpunit` with a live Firebird container (see `docker-compose.yml`).
-3. **Pillars**: DBAL 4.4.x on `4.4.x` (active); DBAL 3.10.x on `3.10.x` (maintenance).
+3. **Pillars**: DBAL 4.4/4.5 (`^4.4 || ^4.5`, floor leg pinned in CI) on `4.4.x` (active; branch name is historical - upstream retired its 4.4.x line, live sync surfaces are 4.5.x/4.6.x/5.0.x); DBAL 3.10.x on `3.10.x` (maintenance, upstream line still active).
 
 ### IPADP Conformance
 This project follows **L3 IPADP conformance**.
