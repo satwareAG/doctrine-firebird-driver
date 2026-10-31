@@ -25,6 +25,22 @@
         "channel": "gh:releases",
         "local_path": "~/external/php-firebird",
         "version": "13.2.12"
+      },
+      {
+        "repo": "doctrine/dbal",
+        "forge": "github",
+        "relationship": "framework-provider: DBAL SPI this driver implements (Driver, AbstractPlatform, SchemaManager, Comparator); supported range per composer.json require constraint; upstream retired its 4.4.x branch - 4.5.x/4.6.x/5.0.x are the live sync surfaces, 5.0 is the next contract-break review point",
+        "url": "https://github.com/doctrine/dbal",
+        "channel": "gh:releases",
+        "local_path": "~/external/dbal"
+      },
+      {
+        "repo": "doctrine/orm",
+        "forge": "github",
+        "relationship": "integration-test-provider: ORM-level Integration-ReadOnly suite target (require-dev; consumed transitively at runtime via dbal); supported range per composer.json require-dev constraint",
+        "url": "https://github.com/doctrine/orm",
+        "channel": "gh:releases",
+        "local_path": "~/external/orm"
       }
     ],
     "downstream": [
