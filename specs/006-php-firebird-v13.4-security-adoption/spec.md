@@ -2,7 +2,7 @@
 
 ## Status: Implemented
 
-**Version**: 4.7.7
+**Version**: 4.8.0
 **Branch**: 4.5.x
 **Date**: 2026-10-31
 **Coordination**: #268 | Upstream: satwareAG/php-firebird#728 (epic), #737 (spec)
