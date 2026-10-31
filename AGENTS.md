@@ -14,7 +14,7 @@
 ### SDD/TDD Workflow
 1. **Spec**: Update `specs/` before changing code.
 2. **Test**: Use `phpunit` with a live Firebird container (see `docker-compose.yml`).
-3. **Pillars**: DBAL 4.4/4.5 (`^4.4 || ^4.5`, floor leg pinned in CI) on `4.4.x` (active; branch name is historical - upstream retired its 4.4.x line, live sync surfaces are 4.5.x/4.6.x/5.0.x); DBAL 3.10.x on `3.10.x` (maintenance, upstream line still active).
+3. **Pillars**: DBAL 4.4/4.5 (`^4.4 || ^4.5`, floor leg pinned in CI) on `4.4.x` (active; branch name is historical - upstream retired its 4.4.x line, live sync surfaces are 4.5.x/4.6.x/5.0.x); DBAL 3.10.x on `3.10.x` (maintenance, upstream line still active). **Branch rename in flight**: `4.4.x` -> `4.5.x` per spec 005 (council-approved 2026-10-31) - transition window accepts both names; this line updates again in Phase C.
 
 ### IPADP Conformance
 This project follows **L3 IPADP conformance**.
@@ -45,7 +45,7 @@ This project follows **L3 IPADP conformance**.
 
 ### Pitfalls
 
-- **Branch switching (3.10.x / 3.18.x <-> 4.4.x)**: `composer.lock` is gitignored (library discipline, #195). A local lock from the previous branch survives the switch and poisons resolution. After every branch switch run `composer update --ignore-platform-req=ext-firebird`, never `composer install`. CI always runs `composer update`.
+- **Branch switching (3.10.x / 3.18.x <-> 4.4.x, renamed to 4.5.x per spec 005)**: `composer.lock` is gitignored (library discipline, #195). A local lock from the previous branch survives the switch and poisons resolution. After every branch switch run `composer update --ignore-platform-req=ext-firebird`, never `composer install`. CI always runs `composer update`.
 - **Release PR date literal**: releaser-pleaser rewrites the version marker in AGENTS.md but keeps the date literal from the previous section (mechanism documented in #229; recurred on #233). Before merging a release PR, correct the date to the actual release date.
 - **Dependabot CI-action bumps**: agent-mergeable only after verifying the pinned SHA dereferences from the tagged release (annotated tags: the ref endpoint is a tag object, dereference one hop). Record the check in the merge note; precedent alone is not provenance (council 2026-10-25).
 
