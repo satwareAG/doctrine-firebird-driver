@@ -450,7 +450,7 @@ class FirebirdPlatform extends AbstractPlatform
             throw NotSupported::new(__METHOD__);
         }
 
-        if ($sequence->getCache() !== null) {
+        if ($sequence->getCacheSize() !== null) {
             throw NotSupported::new(__METHOD__);
         }
 
