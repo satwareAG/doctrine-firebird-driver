@@ -86,13 +86,74 @@ with post-connect `fbird_server_version()`. Eliminates the fragile
 service-attach roundtrip (which fails silently on some Docker images
 where `service_mgr` is not defined).
 
-The raw `isc_info_firebird_version` buffer is parsed to extract the
-first version string for platform selection.
+**Contract update (2026-10-31, #257):** the return value is treated as a
+version-bearing string and parsed defensively - the first
+`V?(\d+\.\d+(\.\d+)?(\.\d+)?)` token is extracted via regex scan; on
+`false`, empty, or no token the `'3.0'` minimum default is kept. The
+byte-offset parse of the raw `isc_info_firebird_version` buffer (1 byte
+impl type + 1 byte length) was removed: php-firebird v13.3.1 (#696 fix)
+returns the clean server version string (`LI-V3.0.14.33856 Firebird 3.0`),
+older releases return clump bytes the offsets cannot address - neither
+shape survives byte-slicing, and a mangled string fails the anchored
+`^(LI|WI)-` regex in `createDatabasePlatformForVersion()`, silently
+falling back to the base platform. The token scan is stable across all
+three historical return shapes (raw buffer, #696 garble, clean string)
+because the server's own version digits are the first version-like token
+in each.
 
 ### R9: `fbird_escape_literal()` — Connection::quote()
 
 Replaced manual `"'" . fbird_escape_string($value) . "'"` with
 `fbird_escape_literal()` (v13.0.0). Same result, handled server-side.
+
+## Security contract (extension integration)
+
+Added 2026-10-31 per coordination issue #268 (php-firebird v13.4.0 security
+train, upstream epic satwareAG/php-firebird#728). Documents the security
+invariants of this driver's `fbird_*`/`Firebird\*` usage as input to the
+upstream hardening PRs.
+
+### Identifier case-handling contract
+
+- Firebird stores unquoted identifiers uppercased. This driver emits quoted
+  identifiers only when the name requires it; unquoted names are passed
+  case-folded exactly (contract pinned upstream in satwareAG/php-firebird#730,
+  keeps `tests/Test/Unit/Driver/ConnectionTest.php:342` call sites green).
+- Introspection reads `RDB$` directly with bound `UPPER(?)` plus the driver's
+  own quote-doubling (`src/Driver/Firebird/Connection.php:429`); no
+  `fbird_list_fields` / `fbird_meta_data` interpolation paths.
+- Known gap (prior art: #155): introspection cannot distinguish identifiers
+  created quoted (stored mixed-case) from unquoted (stored uppercased);
+  lowercase-presence is the heuristic. Quoted mixed-case views/sequences are
+  documented as unsupported. Closing this gap requires upstream signal
+  (Option C in #155).
+
+### Privileged-API call sites (exhaustive, src/)
+
+| API | Call site | Mode |
+|-----|-----------|------|
+| `fbird_kill_attachment` | `src/Driver/Firebird/Connection.php:731` | connection resource + explicit attachment id |
+| `fbird_drop_table_force` | `src/Driver/Firebird/Connection.php:749` | connection resource + identifier (case-fold contract above) |
+| `fbird_drop_db` | `src/Schema/FirebirdSchemaManager.php:111` | **resource-mode only**: explicit `fbird_connect()` with credential params first (`:94`, empty-string defaults, auth fails loudly when unset) |
+
+Zero callers of `fbird_list_fields`, `fbird_meta_data`, `fbird_blob_export`,
+`fbird_backup`, `fbird_restore` in src/ and tests/ (verified by repo grep,
+2026-10-31). The deletion of the `fbird_drop_db()` string-mode
+SYSDBA/masterkey fallback in v13.4.0 (satwareAG/php-firebird#731) is safe for
+this consumer; confirmation posted upstream 2026-10-31.
+
+### Credential-sourcing for connections (no silent defaults)
+
+- The driver's own defaults live at `src/Driver/Firebird/Driver.php:55-56`
+  (`$params['user'] ?? 'SYSDBA'`, `$params['password'] ?? 'masterkey'`). These
+  are driver-level defaults applied before any extension call, independent of
+  the extension's (now deleted) string-mode fallback: every connect call in
+  src/ passes credentials explicitly.
+- `FirebirdSchemaManager::dropDatabase()` deliberately deviates: empty-string
+  credential defaults (`?? ''`) so an unconfigured drop fails at auth instead
+  of succeeding silently against privileged defaults.
+- Test/debug fixtures (integration constants, `tests/debug/*`) hardcode
+  SYSDBA/masterkey for containers only; no production path reads them.
 
 ## Deferred optimizations
 

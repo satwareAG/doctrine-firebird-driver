@@ -18,10 +18,8 @@ use function fbird_errcode;
 use function fbird_errmsg;
 use function fbird_pconnect;
 use function fbird_server_version;
-use function ord;
+use function preg_match;
 use function stristr;
-use function strlen;
-use function substr;
 
 use const FBIRD_CONNECT_FORCE_NEW;
 
@@ -115,16 +113,14 @@ final class Driver extends FirebirdDriver
             $notFoundException = Exception::fromErrorInfo($msg, $code);
         } else {
             // R4: Get server version from the established connection.
-            // fbird_server_version() is a v13.0.0 function that returns the raw
-            // isc_info_firebird_version buffer (binary format: 1 byte impl type,
-            // 1 byte length, N bytes version string, then more protocol layers).
-            // Extract just the first version string for platform selection.
-            $rawVersion = @fbird_server_version($connection);
-            if ($rawVersion !== false && strlen($rawVersion) >= 2) {
-                $len = ord($rawVersion[1]);
-                if ($len > 0 && strlen($rawVersion) >= 2 + $len) {
-                    $serverVersion = substr($rawVersion, 2, $len);
-                }
+            // fbird_server_version() (v13.0.0+) returns the server version as a
+            // string, but the shape varies by extension release: clean version
+            // string since v13.3.1 (php-firebird #696), clump-garbled bytes on
+            // older releases. Scan defensively for the first version-like token;
+            // keep the '3.0' default when nothing parseable is found (#257).
+            $parsedVersion = self::extractServerVersionToken(@fbird_server_version($connection));
+            if ($parsedVersion !== null) {
+                $serverVersion = $parsedVersion;
             }
         }
 
@@ -183,5 +179,33 @@ final class Driver extends FirebirdDriver
         // database doesn't exist yet. The schema tool creates it after the
         // initial connect fails; connect() throws a structured exception then.
         return @fbird_connect($connectString, $username, $password, $charset, $buffers, $dialect, $role);
+    }
+
+    /**
+     * Extract the first version-like token from a fbird_server_version() return.
+     *
+     * The return shape changed across extension releases: raw
+     * isc_info_firebird_version buffer bytes, clump-garbled output with inner
+     * length prefixes (client-library dependent, pre-v13.3.1), and the clean
+     * server version string ("LI-V3.0.14.33856 Firebird 3.0", v13.3.1+,
+     * php-firebird #696). The connected server's own version digits are the
+     * first version-like token in every shape, so a defensive regex scan stays
+     * stable regardless of client library - byte-offset slicing does not.
+     *
+     * @return string|null The token ("major.minor[.patch[.build]]"), or null
+     *                     when the input carries no parseable version (the
+     *                     caller then keeps its '3.0' minimum default).
+     */
+    private static function extractServerVersionToken(string|false $rawVersion): string|null
+    {
+        if ($rawVersion === false || $rawVersion === '') {
+            return null;
+        }
+
+        if (preg_match('/V?(\d+\.\d+(\.\d+)?(\.\d+)?)/', $rawVersion, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[1];
     }
 }
