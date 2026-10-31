@@ -8,15 +8,6 @@ parameters:
 
 		-
 			message: '''
-				#^Call to deprecated method getCache\(\) of class Doctrine\\DBAL\\Schema\\Sequence\:
-				Use \{@see getCacheSize\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 3
-			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
 				#^Call to deprecated method getName\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset\:
 				Use \{@see NamedObject\:\:getObjectName\(\)\} or \{@see OptionallyQualifiedName\:\:getObjectName\(\)\} instead\.
 				            In SQL context, convert the resulting \{@see Name\} to SQL using \{@see Name\:\:toSQL\(\)\}\. In other
@@ -44,15 +35,6 @@ parameters:
 			identifier: method.deprecated
 			count: 1
 			path: src/Platforms/Firebird3Platform.php
-
-		-
-			message: '''
-				#^Call to deprecated method getCache\(\) of class Doctrine\\DBAL\\Schema\\Sequence\:
-				Use \{@see getCacheSize\(\)\} instead\.$#
-			'''
-			identifier: method.deprecated
-			count: 1
-			path: src/Platforms/FirebirdPlatform.php
 
 		-
 			message: '''

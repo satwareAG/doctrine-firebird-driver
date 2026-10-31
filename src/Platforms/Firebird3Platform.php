@@ -356,7 +356,7 @@ ___query___;
             'name' => $sequence->getName(),
             'initialValue' => $sequence->getInitialValue(),
             'allocationSize' => $sequence->getAllocationSize(),
-            'cache' => $sequence->getCache(),
+            'cache' => $sequence->getCacheSize(),
         ]);
     }
 
@@ -365,8 +365,8 @@ ___query___;
      */
     private function getSequenceCacheSQL(Sequence $sequence): string
     {
-        if ($sequence->getCache() > 1) {
-            return ' CACHE ' . $sequence->getCache();
+        if ($sequence->getCacheSize() > 1) {
+            return ' CACHE ' . $sequence->getCacheSize();
         }
 
         return '';
