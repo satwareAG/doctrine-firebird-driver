@@ -2,7 +2,7 @@
 SYNC IMPACT REPORT
 Version change: 1.0 → 1.1
 Modified principles:
-- Article I (Doctrine DBAL Compatibility First): Updated branches to 3.10.x (DBAL 3) and 4.4.x (DBAL 4).
+- Article I (Doctrine DBAL Compatibility First): Updated branches to 3.10.x (DBAL 3) and 4.5.x (DBAL 4; renamed per spec 005).
 - Article II (PHP Extension Dependency): Updated target extension version to ^7.2.0.
 Added sections: None
 Removed sections: None
@@ -33,7 +33,7 @@ All specifications, plans, tasks, and implementations MUST comply with these art
 ## Article I: Doctrine DBAL Compatibility First
 
 **MUST** maintain compatibility with `doctrine/dbal ^3.10` on the `3.10.x` branch.  
-**MUST** target `doctrine/dbal ^4.4` on the `4.4.x` branch.  
+**MUST** target `doctrine/dbal ^4.4 || ^4.5` on the `4.5.x` branch.  
 **MUST NOT** introduce breaking changes to the public API without a major version bump.  
 **MUST** use `FirebirdConnection` wrapper pattern for DBAL 4.x forward compatibility.
 

@@ -1,6 +1,6 @@
 # Spec: Branch layout alignment with upstream doctrine/dbal
 
-## Status: Approved (council dfd-branch-005, 4/4 APPROVE-WITH-CHANGES, unanimous post-dissent-test)
+## Status: Implemented (Phases A+B executed 2026-10-31; Phase C = the PR carrying this line; G9 release-path proof deferred to the next natural release)
 
 **Branch**: 4.4.x (self-referential: the branch being renamed)
 **Date**: 2026-10-31
