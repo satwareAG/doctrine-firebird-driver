@@ -39,7 +39,7 @@ concurrency:
 
 jobs:
   test:
-    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}
+    name: PHP ${{ matrix.php-version }} / Firebird ${{ matrix.firebird.version }}${{ matrix.suffix }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -92,6 +92,17 @@ jobs:
           - version: '5.0'
             docker-tag: '5'
             config: 'phpunit.xml'
+        include:
+          # DBAL floor validation: the ^4.4 floor of the constraint is never
+          # exercised by the product matrix (composer resolves 4.5.x). One leg
+          # pins the oldest supported line so floor regressions fail loudly.
+          - php-version: '8.4'
+            firebird:
+              version: '5.0'
+              docker-tag: '5'
+              config: 'phpunit.xml'
+            dbal-pin: 'doctrine/dbal:4.4.*'
+            suffix: ' (dbal 4.4 floor)'
 
     env:
       # Default Firebird credentials
@@ -241,7 +252,12 @@ jobs:
         run: |
           set -eu
           php -m | grep -iE 'firebird|interbase' && echo "✅ ext-firebird loaded"
-          bash "$GITHUB_WORKSPACE/scripts/ci/composer-retry.sh" update --prefer-stable --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+          if [ -n "${{ matrix.dbal-pin }}" ]; then
+            echo "Pinning doctrine/dbal to ${{ matrix.dbal-pin }} (floor validation)"
+            bash "$GITHUB_WORKSPACE/scripts/ci/composer-retry.sh" update --prefer-stable --prefer-dist --no-progress --ignore-platform-req=ext-firebird --with '${{ matrix.dbal-pin }}'
+          else
+            bash "$GITHUB_WORKSPACE/scripts/ci/composer-retry.sh" update --prefer-stable --prefer-dist --no-progress --ignore-platform-req=ext-firebird
+          fi
 
       - name: Verify PHPUnit configuration for CI
         env:
