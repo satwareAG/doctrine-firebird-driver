@@ -4,7 +4,7 @@
 
 **doctrine-firebird-driver** is the official Doctrine DBAL driver for Firebird. It bridges the modern `satware/php-firebird` native extension with the Doctrine ecosystem, supporting Firebird 3.0, 4.0, and 5.0 features.
 
-**Current release:** v4.7.6 (2026-10-26) on `4.5.x` branch. <!-- x-releaser-pleaser-version -->
+**Current release:** v4.7.6 (2026-10-31) on `4.5.x` branch. <!-- x-releaser-pleaser-version -->
 **Maintenance line:** v3.19.2 (2026-08-08) on `3.10.x` branch (DBAL 3.x, critical fixes only).
 
 ---
@@ -46,7 +46,7 @@ This project follows **L3 IPADP conformance**.
 ### Pitfalls
 
 - **Branch switching (3.10.x / 3.18.x <-> 4.5.x)**: `composer.lock` is gitignored (library discipline, #195). A local lock from the previous branch survives the switch and poisons resolution. After every branch switch run `composer update --ignore-platform-req=ext-firebird`, never `composer install`. CI always runs `composer update`.
-- **Release PR date literal**: releaser-pleaser rewrites the version marker in AGENTS.md but keeps the date literal from the previous section (mechanism documented in #229; recurred on #233). Before merging a release PR, correct the date to the actual release date.
+- **Release PR date literal**: releaser-pleaser rewrites the version marker in AGENTS.md but keeps the date literal from the previous section (mechanism documented in #229; recurred on #233, then v4.7.6). Pre-merge corrections are futile - any release-PR edit (body, labels) re-triggers the `edited`-event reconcile, which force-regenerates the release branch and discards manually pushed commits. Correct the date POST-merge on the default branch via a follow-up PR.
 - **Dependabot CI-action bumps**: agent-mergeable only after verifying the pinned SHA dereferences from the tagged release (annotated tags: the ref endpoint is a tag object, dereference one hop). Record the check in the merge note; precedent alone is not provenance (council 2026-10-25).
 
 ### Quality Gates
