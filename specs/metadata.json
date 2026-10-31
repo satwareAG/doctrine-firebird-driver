@@ -24,7 +24,7 @@
         "url": "https://github.com/satwareAG/php-firebird",
         "channel": "gh:releases",
         "local_path": "~/external/php-firebird",
-        "version": "13.2.10"
+        "version": "13.2.12"
       }
     ],
     "downstream": [
