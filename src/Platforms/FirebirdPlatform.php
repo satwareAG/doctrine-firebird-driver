@@ -264,10 +264,7 @@ class FirebirdPlatform extends AbstractPlatform
         return 'DATEADD(-' . $months . ' MONTH TO ' . $date . ')';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getDateDiffExpression($date1, $date2): string
+    public function getDateDiffExpression(string $date1, string $date2): string
     {
         return 'DATEDIFF(day, ' . $date2 . ',' . $date1 . ')';
     }
@@ -378,10 +375,7 @@ class FirebirdPlatform extends AbstractPlatform
                     (RDB$VIEW_BLR IS NULL)';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getListViewsSQL($database): string
+    public function getListViewsSQL(string $database): string
     {
         return 'SELECT
                     TRIM(RDB$RELATION_NAME) AS RDB$RELATION_NAME,
@@ -403,16 +397,14 @@ class FirebirdPlatform extends AbstractPlatform
         return sprintf('SELECT %s FROM RDB$DATABASE', $expression);
     }
 
-    /** @inheritDoc */
     #[Override]
-    public function getCreateViewSQL($name, $sql): string
+    public function getCreateViewSQL(string $name, string $sql): string
     {
         return 'CREATE VIEW ' . $name . ' AS ' . $sql;
     }
 
-    /** @inheritDoc */
     #[Override]
-    public function getDropViewSQL($name): string
+    public function getDropViewSQL(string $name): string
     {
         return 'DROP VIEW ' . $name;
     }
@@ -620,11 +612,8 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->getExecuteBlockWithExecuteStatementsSql(['statements' => $statements]);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    public function getTruncateTableSQL($tableName, $cascade = false): string
+    public function getTruncateTableSQL(string $tableName, bool $cascade = false): string
     {
         $identifier = new Identifier($tableName);
         $tableName  = $identifier->getQuotedName($this);
@@ -979,11 +968,8 @@ class FirebirdPlatform extends AbstractPlatform
         return $this->getDropSequenceSQL($identitySequenceName);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     #[Override]
-    public function getListSequencesSQL($database): string
+    public function getListSequencesSQL(string $database): string
     {
         return 'select trim(rdb$generator_name) as rdb$generator_name, trim(RDB$DESCRIPTION) as comment from rdb$generators where rdb$system_flag is distinct from 1';
     }
@@ -1046,8 +1032,7 @@ ___query___;
         return str_replace(':TABLE', $table, $query);
     }
 
-    /** @inheritDoc */
-    public function getListTableForeignKeysSQL($table): string
+    public function getListTableForeignKeysSQL(string $table): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1164,10 +1149,7 @@ ___query___;
         return new FirebirdSelectSQLBuilder($this, 'WITH LOCK', null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getListTableConstraintsSQL($table): string
+    public function getListTableConstraintsSQL(string $table): string
     {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
@@ -1674,7 +1656,7 @@ SQL
 
     /** @param array<string, mixed> $options */
     #[Override]
-    protected function _getCreateTableSQL($name, array $columns, array $options = []): array
+    protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
         $this->checkIdentifierLength($name, $this->getMaxIdentifierLength());
 
