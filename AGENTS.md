@@ -15,6 +15,7 @@
 1. **Spec**: Update `specs/` before changing code.
 2. **Test**: Use `phpunit` with a live Firebird container (see `docker-compose.yml`).
 3. **Pillars**: DBAL 4.4/4.5 (`^4.4 || ^4.5`, floor leg pinned in CI) on `4.5.x` (default; branch name tracks the DBAL line per spec 005 - package releases v4.7.x are orthogonal; upstream live sync surfaces 4.5.x/4.6.x/5.0.x); DBAL 3.10.x on `3.10.x` (maintenance, upstream line still active).
+4. **Spec conventions** track spec-kit `satware-v1.2.6+1` (IPADP sync #280): new specs include the mandated **Abuse & Misuse Cases** section (AMR-xxx entries mapped to defending FRs; OWASP A04:2021 Insecure Design; categories: unauthorized access, input & injection, rate & resource abuse) per upstream `spec-template.md`; specs 001-006 are shipped historical records and are not retro-edited.
 
 ### IPADP Conformance
 This project follows **L3 IPADP conformance**.
