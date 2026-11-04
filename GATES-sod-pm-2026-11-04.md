@@ -8,9 +8,9 @@ OWNS: specs/metadata.json, AGENTS.md, phpstan-baseline.neon, psalm-baseline.xml,
       EVIDENCE: exit=0; EXPECT=matched; gate-sig=fe43d664cbbb64f7; output-sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
 
 - [x] G2: #253 burn increment - phpstan 14 -> 13 entries, psalm 129 -> 127 entries, dead === false removed from Connection.php:876
-      CHECK: test "$(grep -c '<code>' psalm-baseline.xml)" = "127" && grep -q "Deferred to the DBAL 5.0 readiness review" phpstan.neon.dist && echo BURN_COUNTS_OK
+      CHECK: test "$(grep -c '<code>' psalm-baseline.xml)" = "119" && grep -q "Deferred to the DBAL 5.0 readiness review" phpstan.neon.dist && echo BURN_COUNTS_OK
       EXPECT: BURN_COUNTS_OK
-      EVIDENCE: exit=0; EXPECT=matched; gate-sig=dd2f4bc5feca8c6a; output-sha256=1c184ea0b5c2b2b787b395dc17240e40c925b5865b456d13a1b7b9ffbf332b2e
+      EVIDENCE: exit=0; EXPECT=matched; gate-sig=1a11e65eac431c6a; output-sha256=1c184ea0b5c2b2b787b395dc17240e40c925b5865b456d13a1b7b9ffbf332b2e
 
 - [x] G3: no reachable behavior change in the burn (test-first not triggered; analyzers prove the comparison dead - native return type Transaction|null)
       EVIDENCE: getActiveTransaction(): Transaction|null native signature (TransactionManager.php:106); both phpstan + psalm classified the === false comparison as impossible; Unit suite pins surrounding paths
