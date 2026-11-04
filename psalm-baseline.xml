@@ -9,9 +9,6 @@
     </InvalidArrayOffset>
   </file>
   <file src="src/Driver/Firebird/Connection.php">
-    <InternalClass>
-      <code><![CDATA[NoIdentityValue::new()]]></code>
-    </InternalClass>
     <InvalidArgument>
       <code><![CDATA[$this->connection]]></code>
     </InvalidArgument>
@@ -144,19 +141,6 @@
     <RedundantCastGivenDocblockType>
       <code><![CDATA[(string) $oldColumnName]]></code>
     </RedundantCastGivenDocblockType>
-    <RedundantCondition>
-      <code><![CDATA[$addedColumn->getComment()]]></code>
-      <code><![CDATA[$newColumn->getComment()]]></code>
-      <code><![CDATA[$oldColumn->getComment()]]></code>
-    </RedundantCondition>
-    <RedundantFunctionCall>
-      <code><![CDATA[array_values]]></code>
-    </RedundantFunctionCall>
-    <TypeDoesNotContainNull>
-      <code><![CDATA['']]></code>
-      <code><![CDATA['']]></code>
-      <code><![CDATA['']]></code>
-    </TypeDoesNotContainNull>
   </file>
   <file src="src/Platforms/Firebird4Platform.php">
     <DeprecatedClass>

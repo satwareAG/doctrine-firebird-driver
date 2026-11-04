@@ -18,7 +18,6 @@ use Satag\DoctrineFirebirdDriver\Platforms\Keywords\Firebird3Keywords;
 use Satag\DoctrineFirebirdDriver\Platforms\SQL\Builder\FirebirdSelectSQLBuilder;
 
 use function array_merge;
-use function array_values;
 use function json_encode;
 use function sprintf;
 use function str_replace;
@@ -49,7 +48,7 @@ class Firebird3Platform extends FirebirdPlatform
 
             $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ' . $query;
 
-            $comment = $addedColumn->getComment() ?? '';
+            $comment = $addedColumn->getComment();
 
             if ($comment === '') {
                 continue;
@@ -126,8 +125,8 @@ class Firebird3Platform extends FirebirdPlatform
                 // $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' ADD PRIMARY KEY ('. $oldColumnName . ')';
             }
 
-            $oldComment = $oldColumn->getComment() ?? '';
-            $newComment = $newColumn->getComment() ?? '';
+            $oldComment = $oldColumn->getComment();
+            $newComment = $newColumn->getComment();
             if (
                 $columnDiff->hasCommentChanged()
                 || $oldComment !== $newComment
@@ -157,11 +156,11 @@ class Firebird3Platform extends FirebirdPlatform
 
         $sql = array_merge($sql, $commentsSQL);
 
-        return array_values(array_merge(
+        return array_merge(
             $this->getPreAlterTableIndexForeignKeySQL($diff),
             $sql,
             $this->getPostAlterTableIndexForeignKeySQL($diff),
-        ));
+        );
     }
 
     #[Override]
