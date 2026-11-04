@@ -185,6 +185,20 @@ Workaround: `gc_collect_cycles()` before DDL operations to force PHP to
 destroy Result objects. With a clean database (no stale tables), all tests
 pass without hangs.
 
+### Lock-conflict retry on auto-commit restart (#163)
+
+The implicit auto-commit transaction restart after commit()/rollBack() can hit
+"lock conflict on no wait transaction" (-913) when other attachments still hold
+lingering metadata locks (php-firebird #572). `TransactionManager::withAutoCommitRestartRetry()`
+retries up to 3 attempts with 50ms then 100ms exponential backoff; all other
+errors surface immediately.
+
+Test seam (#275): the retry delay is injectable via the private `sleeper`
+property (usleep by default) so `TransactionManagerLockRetryTest` observes the
+exact backoff schedule deterministically. Wall-clock assertions are gone - they
+flaked on Windows runners (sleep undershoot vs measured window). Retry
+semantics are unchanged.
+
 ### DBAL 4.4 -> 5.0 forward-looking deprecations
 
 90 PHPStan baseline entries for deprecated DBAL 4.4 methods
