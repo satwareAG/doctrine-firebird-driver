@@ -8,11 +8,11 @@ use Closure;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use ReflectionProperty;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Exception as DriverException;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\TransactionManager;
 use stdClass;
 
-use function microtime;
 use function usleep;
 
 /**
@@ -50,7 +50,10 @@ final class TransactionManagerLockRetryTest extends TestCase
     {
         $tm       = $this->createManager();
         $attempts = 0;
-        $start    = microtime(true);
+        $slept    = [];
+        $this->setSleeper($tm, static function (int $microseconds) use (&$slept): void {
+            $slept[] = $microseconds;
+        });
 
         try {
             $this->invokeRetry($tm, static function () use (&$attempts): void {
@@ -63,8 +66,31 @@ final class TransactionManagerLockRetryTest extends TestCase
             self::assertStringContainsString('lock conflict', $e->getMessage());
         }
 
-        // Backoff floor: 50ms + 100ms sleeps between 3 attempts.
-        self::assertGreaterThanOrEqual(0.15, microtime(true) - $start);
+        self::assertSame([50000, 100000], $slept, 'Backoff must be exactly 50ms then 100ms between attempts');
+    }
+
+    public function testBackoffScheduleIsDeterministicViaInjectedSleeper(): void
+    {
+        $tm      = $this->createManager();
+        $slept   = [];
+        $this->setSleeper($tm, static function (int $microseconds) use (&$slept): void {
+            $slept[] = $microseconds;
+        });
+        $attempts = 0;
+
+        try {
+            $this->invokeRetry($tm, static function () use (&$attempts): void {
+                $attempts++;
+                throw DriverException::fromErrorInfo('lock conflict on no wait transaction', -913);
+            });
+            self::fail('Expected DriverException after exhausting retries');
+        } catch (DriverException $e) {
+            self::assertSame(3, $attempts, 'Exactly max-retry attempts expected');
+        }
+
+        // Deterministic: the observed delay schedule is the assertion, not
+        // elapsed wall time (Windows runners undershoot usleep, #275).
+        self::assertSame([50000, 100000], $slept, 'Injected sleeper must observe 50ms then 100ms');
     }
 
     public function testDoesNotRetryNonLockConflictErrors(): void
@@ -103,5 +129,16 @@ final class TransactionManagerLockRetryTest extends TestCase
         $reflectionClass = new ReflectionClass(TransactionManager::class);
 
         return $reflectionClass->newInstanceWithoutConstructor();
+    }
+
+    /**
+     * Inject the retry delay callable (test seam, #275). The default is a
+     * real usleep; tests observe the exact backoff schedule instead of
+     * measuring wall time.
+     */
+    private function setSleeper(TransactionManager $manager, callable $sleeper): void
+    {
+        $property = new ReflectionProperty(TransactionManager::class, 'sleeper');
+        $property->setValue($manager, Closure::fromCallable($sleeper));
     }
 }
