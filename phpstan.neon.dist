@@ -62,8 +62,43 @@ parameters:
             paths:
                 - src/Compat/ColumnCompat.php
 
+        # Deferred to the DBAL 5.0 readiness review (#253, operator disposition
+        # 2026-10-31): the quoted-name deprecation family is soft-deprecated -
+        # DBAL 4.5 core itself calls getQuotedName 23x in AbstractPlatform and its
+        # keyword classes still extend the deprecated KeywordList - and removal
+        # targets DBAL 5.0. The getSetTransactionIsolationSQL entry is the
+        # operator-permanent wider-contract exception (same disposition).
+        # Ratchet: reportUnmatchedIgnoredErrors=true fails CI the moment a DBAL
+        # release drops one of these APIs, forcing the migration in the same
+        # change. Do not add entries here without a #253-linked rationale.
+        -
+            message: '#^Call to deprecated method (getName|getQuotedName|isQuoted)\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset#'
+            paths:
+                - src/Platforms/
+                - src/Schema/
+        -
+            message: '#^Call to deprecated method quoteIdentifier\(\) of class Doctrine\\DBAL\\Platforms\\AbstractPlatform#'
+            paths:
+                - src/Platforms/
+                - src/Schema/
+        -
+            message: '#^Call to deprecated method getRenamedColumns\(\) of class Doctrine\\DBAL\\Schema\\TableDiff#'
+            paths:
+                - src/Platforms/
+        -
+            message: '#^Call to deprecated method getPlatformOptions\(\) of class Doctrine\\DBAL\\Schema\\Column#'
+            paths:
+                - src/Schema/FirebirdComparator.php
+        -
+            message: '#^Method Satag\\DoctrineFirebirdDriver\\Platforms\\FirebirdPlatform\:\:getSetTransactionIsolationSQL\(\) has parameter \$level with no type specified\.$#'
+            paths:
+                - src/Platforms/FirebirdPlatform.php
+        -
+            identifier: class.extendsDeprecatedClass
+            paths:
+                - src/Platforms/Keywords/
+
 includes:
     - vendor/phpstan/phpstan-strict-rules/rules.neon
     - vendor/phpstan/phpstan-doctrine/extension.neon
     - vendor/phpstan/phpstan-deprecation-rules/rules.neon
-    - phpstan-baseline.neon
