@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Satag\DoctrineFirebirdDriver\Driver\Firebird;
 
+use Closure;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Firebird\Transaction;
 use Satag\DoctrineFirebirdDriver\Driver\Firebird\Enum\ExecutionMode;
@@ -75,8 +76,26 @@ final class TransactionManager
 
     private Transaction|null $activeTransaction = null;
 
-    public function __construct(private readonly Connection $connection)
+    /**
+     * Retry delay callable (test seam, #275). Null = real usleep(). Unit
+     * tests inject an observer to assert the exact backoff schedule
+     * deterministically instead of measuring wall time (Windows runners
+     * undershoot usleep against the measured window).
+     */
+    private Closure|null $sleeper = null;
+
+    /**
+     * @param Closure|null $sleeper Retry delay callable (test seam, #275).
+     *                             Null = real usleep(). Unit tests inject an
+     *                             observer to assert the exact backoff
+     *                             schedule deterministically instead of
+     *                             measuring wall time (Windows runners
+     *                             undershoot usleep against the measured
+     *                             window).
+     */
+    public function __construct(private readonly Connection $connection, Closure|null $sleeper = null)
     {
+        $this->sleeper = $sleeper;
     }
 
     public function getLevel(): int
@@ -474,7 +493,7 @@ final class TransactionManager
                     throw $e;
                 }
 
-                usleep(self::AUTO_TX_LOCK_RETRY_BACKOFF_US * 2 ** ($attempt - 1));
+                $this->delay(self::AUTO_TX_LOCK_RETRY_BACKOFF_US * 2 ** ($attempt - 1));
             }
         }
     }
@@ -483,6 +502,21 @@ final class TransactionManager
     {
         return $e->getCode() === self::ER_LOCK_CONFLICT
             || str_contains($e->getMessage(), 'lock conflict');
+    }
+
+    /**
+     * Wait between lock-conflict retry attempts (#163). Delegates to the
+     * injected sleeper when set (test seam, #275), usleep() otherwise.
+     */
+    private function delay(int $microseconds): void
+    {
+        if ($this->sleeper !== null) {
+            ($this->sleeper)($microseconds);
+
+            return;
+        }
+
+        usleep($microseconds);
     }
 
     private function isInvalidTransactionHandle(int $code, string $message): bool
