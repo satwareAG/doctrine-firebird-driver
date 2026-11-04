@@ -27,7 +27,7 @@ OWNS: src/Driver/Firebird/TransactionManager.php, tests/Test/Unit/Driver/Transac
   EVIDENCE: pending
 
 - [ ] G7: spec-kit drift port issue filed on this repo (dedup re-searched at filing time), referenced on #278
-  CHECK: gh issue list --state open --search "spec-kit satware-v1.2.6 in:title,body" --json number --jq 'if length > 0 then "SPEC_KIT_DRIFT_FILED" else "MISSING" end'
+  CHECK: gh issue view 280 --json state,title --jq 'if .state == "OPEN" and (.title | test("satware-v1.2.6")) then "SPEC_KIT_DRIFT_FILED" else "MISSING" end'
   EXPECT: SPEC_KIT_DRIFT_FILED
   EVIDENCE: pending
 
