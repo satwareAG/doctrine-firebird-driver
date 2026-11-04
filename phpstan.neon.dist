@@ -71,6 +71,10 @@ parameters:
         # Ratchet: reportUnmatchedIgnoredErrors=true fails CI the moment a DBAL
         # release drops one of these APIs, forcing the migration in the same
         # change. Do not add entries here without a #253-linked rationale.
+        # Scope note: the prefix patterns also suppress NEW calls to the same
+        # methods added under the same paths - the ratchet fires on API removal,
+        # not on new call sites. A new call to a family method requires a
+        # #253-linked review note before merging (#253, 2026-11-04).
         -
             message: '#^Call to deprecated method (getName|getQuotedName|isQuoted)\(\) of class Doctrine\\DBAL\\Schema\\AbstractAsset#'
             paths:

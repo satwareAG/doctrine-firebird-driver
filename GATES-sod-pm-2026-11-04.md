@@ -3,9 +3,9 @@
 OWNS: specs/metadata.json, AGENTS.md, phpstan-baseline.neon, psalm-baseline.xml, src/Driver/Firebird/Connection.php
 
 - [x] G1: #280 IPADP sync - changelog review (v1.2.5+1 backfill, v1.2.6+1), contract impact ported (AGENTS.md spec-conventions item: Abuse & Misuse Cases mandate), last_synced_tag -> satware-v1.2.6+1 committed
-      CHECK: git show ipadp/spec-kit-v1.2.6-sync:specs/metadata.json > /tmp/opencode/doctrine-firebird-driver/metadata-pr281.json && node /home/mw/internal/harness/scripts/check-spec-kit-release.mjs --metadata /tmp/opencode/doctrine-firebird-driver/metadata-pr281.json | grep -c '"update_available":false'
-      EXPECT: 1
-      EVIDENCE: exit=0; EXPECT=matched; gate-sig=fe43d664cbbb64f7; output-sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
+      CHECK: test "$(git show origin/4.5.x:specs/metadata.json | jq -r '.dependencies.upstream[0].last_synced_tag')" = "satware-v1.2.6+1" && test "$(gh api repos/satwareAG/spec-kit/releases/latest --jq '.tag_name')" = "satware-v1.2.6+1" && echo G1_SYNC_VERIFIED
+      EXPECT: G1_SYNC_VERIFIED
+      EVIDENCE: exit=0; EXPECT=matched; gate-sig=262368e629b8df29; output-sha256=5e5b9abb4f67f48b5f3e1a097e09851ee6d5b9c297306843a729704b83302188
 
 - [x] G2: #253 burn increment - phpstan 14 -> 13 entries, psalm 129 -> 127 entries, dead === false removed from Connection.php:876
       CHECK: test "$(grep -c '<code>' psalm-baseline.xml)" = "119" && grep -q "Deferred to the DBAL 5.0 readiness review" phpstan.neon.dist && echo BURN_COUNTS_OK
@@ -21,9 +21,9 @@ OWNS: specs/metadata.json, AGENTS.md, phpstan-baseline.neon, psalm-baseline.xml,
       EVIDENCE: exit=0; EXPECT=matched; gate-sig=f0bd2aaff35a3232; output-sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
 
 - [x] G5: ops-learnings filing - gh run list --commit short-sha silent-empty trap filed to harness skills/ops-learnings SKILL.md section 4
-      CHECK: cd /home/mw/internal/harness && tea api "repos/satware.ai/harness/pulls/1739" | jq -r '.state'
+      CHECK: tea api "repos/satware.ai/harness/pulls/1739" | jq -r '.state'   # lane-local: requires a default tea login on git.satware.ai
       EXPECT: open
-      EVIDENCE: exit=0; EXPECT=matched; gate-sig=687d0c0b9c855376; output-sha256=30da2826a39aee42b1ecc8c8f5ad1f503e430566b03e3b13655a94915f012b00
+      EVIDENCE: exit=0; EXPECT=matched; gate-sig=5d298690a73e8743; output-sha256=30da2826a39aee42b1ecc8c8f5ad1f503e430566b03e3b13655a94915f012b00
 
 - [x] G6: #259 stays on downstream lane - closed, boundary-confirmed, no this-lane execution
       CHECK: gh issue view 259 --json state --jq .state
