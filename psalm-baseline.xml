@@ -32,10 +32,6 @@
       <code><![CDATA[releaseSavepoint]]></code>
       <code><![CDATA[rollbackSavepoint]]></code>
     </PossiblyUnusedMethod>
-    <TypeDoesNotContainType>
-      <code><![CDATA[$transResource === false]]></code>
-      <code><![CDATA[$transResource === null || $transResource === false]]></code>
-    </TypeDoesNotContainType>
   </file>
   <file src="src/Driver/Firebird/ConnectionWrapper.php">
     <InternalMethod>

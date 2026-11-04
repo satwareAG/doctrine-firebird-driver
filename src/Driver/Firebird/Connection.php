@@ -873,7 +873,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         } else {
             $transResource = $this->transactionManager->getActiveTransaction();
 
-            if ($transResource === null || $transResource === false) {
+            if ($transResource === null) {
                 throw new DriverException('No valid transaction available for batch operation.');
             }
         }
