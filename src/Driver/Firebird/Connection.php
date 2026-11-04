@@ -373,6 +373,12 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
             return $this->connectionInsertId;
         }
 
+        // DBAL marks NoIdentityValue @internal but throws it from its own core
+        // drivers identically (PDO/SQLite lastInsertId without sequence) - an
+        // upstream annotation mismatch, not an API violation. Same call the
+        // DBAL 5.0 readiness review re-checks (#253).
+
+        /** @psalm-suppress InternalClass */
         throw NoIdentityValue::new();
     }
 
@@ -873,7 +879,7 @@ final class Connection implements \Doctrine\DBAL\Driver\Connection
         } else {
             $transResource = $this->transactionManager->getActiveTransaction();
 
-            if ($transResource === null || $transResource === false) {
+            if ($transResource === null) {
                 throw new DriverException('No valid transaction available for batch operation.');
             }
         }
