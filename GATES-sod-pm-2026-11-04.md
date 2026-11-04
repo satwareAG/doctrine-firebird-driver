@@ -21,7 +21,7 @@ OWNS: specs/metadata.json, AGENTS.md, phpstan-baseline.neon, psalm-baseline.xml,
       EVIDENCE: exit=0; EXPECT=matched; gate-sig=f0bd2aaff35a3232; output-sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
 
 - [x] G5: ops-learnings filing - gh run list --commit short-sha silent-empty trap filed to harness skills/ops-learnings SKILL.md section 4
-      CHECK: tea api "repos/satware.ai/harness/pulls/1739" | jq -r '.state'   # lane-local: requires a default tea login on git.satware.ai
+      CHECK: tea api "repos/satware.ai/harness/pulls/1739" | jq -r '.state'   # lane-local: requires a default tea login for the internal harness forge (see harness PR #1739)
       EXPECT: open
       EVIDENCE: exit=0; EXPECT=matched; gate-sig=5d298690a73e8743; output-sha256=30da2826a39aee42b1ecc8c8f5ad1f503e430566b03e3b13655a94915f012b00
 
