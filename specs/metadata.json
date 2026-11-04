@@ -15,7 +15,7 @@
         "url": "https://github.com/satwareAG/spec-kit",
         "channel": "gh:releases",
         "local_path": "~/external/spec-kit",
-        "last_synced_tag": "satware-v1.2.3+1"
+        "last_synced_tag": "satware-v1.2.6+1"
       },
       {
         "repo": "satwareAG/php-firebird",
