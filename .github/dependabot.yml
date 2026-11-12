@@ -4,3 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      codeql-action:
+        # codeql-action hard-fails on mixed versions across steps (#283/#284): all refs bump in one PR
+        patterns:
+          - "github/codeql-action/*"
